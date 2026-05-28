@@ -102,6 +102,27 @@ tasks:
     deps: [sync]
 
   ########################
+  # WORKER
+  ########################
+  worker:dev:
+    desc: Run Celery Worker in Development Mode
+    deps: [sync]
+    cmds:
+      - uv run -- celery -A worker.celery_app worker -l info -Q celery --concurrency=2
+
+  worker:beat:
+    desc: Run Celery Beat Scheduler in Development Mode
+    deps: [sync]
+    cmds:
+      - uv run -- celery -A worker.celery_app beat -l info
+
+  worker:all:
+    desc: Run Both Celery Worker and Beat in Development Mode
+    deps: [sync]
+    cmds:
+      - uv run -- celery -A worker.celery_app worker -l info -Q celery --concurrency=2 -B
+
+  ########################
   # INTERNAL TASKS
   ########################
   sync:
