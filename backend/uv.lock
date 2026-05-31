@@ -156,6 +156,7 @@ dependencies = [
     { name = "backend" },
     { name = "db" },
     { name = "providers" },
+    { name = "worker" },
 ]
 
 [package.metadata]
@@ -163,6 +164,7 @@ requires-dist = [
     { name = "backend", editable = "packages/backend" },
     { name = "db", editable = "packages/db" },
     { name = "providers", editable = "packages/providers" },
+    { name = "worker", editable = "packages/worker" },
 ]
 
 [[package]]

@@ -6,13 +6,15 @@ requires-python = ">=3.9,<4.0"
 dependencies = [
   "backend",
   "db",
-  "providers"
+  "providers",
+  "worker"
 ]
 
 [tool.uv.sources]
 backend = {workspace = true}
 db = {workspace = true}
 providers = {workspace = true}
+worker = {workspace = true}
 
 [tool.uv.workspace]
 members = ["packages/*"]
