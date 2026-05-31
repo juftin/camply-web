@@ -5,6 +5,8 @@ set -e
 cd /app/packages/db
 alembic upgrade head
 
-populate-database
+if [ "${SKIP_POPULATE:-0}" != "1" ]; then
+    populate-database
+fi
 
 exec "${@}"

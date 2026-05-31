@@ -90,6 +90,7 @@ services:
       CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.0}
       CAMPLY_PUSHOVER_APP_TOKEN: ${PUSHOVER_APP_TOKEN:-}
       PUSHOVER_APP_TOKEN: ${PUSHOVER_APP_TOKEN:-}
+      SKIP_POPULATE: "1"
     restart: unless-stopped
 
   celery-beat:
@@ -115,4 +116,5 @@ services:
       CAMPLY_VALKEY_URL: "redis://valkey:6379/0"
       CAMPLY_SENTRY_DSN: ${SENTRY_DSN:-}
       CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.0}
+      SKIP_POPULATE: "1"
     restart: unless-stopped
