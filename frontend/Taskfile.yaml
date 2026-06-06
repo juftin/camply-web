@@ -56,6 +56,12 @@ tasks:
       FRONTEND_VERSION:
         sh: npm pkg get version | jq -r
 
+  codegen:
+    desc: Generate TypeScript API Client from OpenAPI Schema
+    cmds:
+      - npm run codegen
+    deps: [install]
+
   test:
     desc: Run Frontend Tests
     cmds:

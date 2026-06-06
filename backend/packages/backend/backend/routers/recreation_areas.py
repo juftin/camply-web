@@ -4,7 +4,7 @@ Recreation Areas
 
 from functools import cached_property
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, computed_field
 from sqlalchemy import select
 
@@ -61,7 +61,7 @@ async def recreation_area(
     )
     fetched = result.scalar_one_or_none()
     if fetched is None:
-        raise ValueError("Recreation Area not found")
+        raise HTTPException(status_code=404, detail="Recreation Area not found")
     return RecreationArea(
         id=fetched.id,
         provider_id=fetched.provider_id,

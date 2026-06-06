@@ -1,5 +1,5 @@
 """
-Health Check API
+Search API — full-text search across recreation areas and campgrounds.
 """
 
 from fastapi import APIRouter
