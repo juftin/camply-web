@@ -1,8 +1,25 @@
 volumes:
   db_data:
     driver: local
+  valkey_data:
+    driver: local
 
 services:
+  valkey:
+    image: valkey/valkey:8-alpine
+    command: valkey-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+    restart: unless-stopped
+
   backend:
     build:
       context: .
@@ -46,4 +63,57 @@ services:
       start_period: 10s
     ports:
       - 5432:5432
+    restart: unless-stopped
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: juftin/camply-worker:${BACKEND_VERSION:-local}
+    command: celery -A worker.celery_app worker -l info -Q celery --concurrency=4
+    depends_on:
+      db:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    volumes:
+      - "${HOME}/Application\ Support/camply/:/root/.local/share/camply/"
+    environment:
+      CAMPLY_DB_DRIVERNAME: "postgresql+psycopg"
+      CAMPLY_DB_HOST: "db"
+      CAMPLY_DB_USERNAME: ${POSTGRES_USER:-camply}
+      CAMPLY_DB_PASSWORD: ${POSTGRES_PASSWORD:-camply}
+      CAMPLY_DB_DATABASE: ${POSTGRES_DB:-camply}
+      CAMPLY_DB_PORT: 5432
+      CAMPLY_VALKEY_URL: "redis://valkey:6379/0"
+      CAMPLY_SENTRY_DSN: ${SENTRY_DSN:-}
+      CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.0}
+      PUSHOVER_APP_TOKEN: ${PUSHOVER_APP_TOKEN:-}
+      SKIP_MIGRATIONS: "1"
+    restart: unless-stopped
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: juftin/camply-beat:${BACKEND_VERSION:-local}
+    command: celery -A worker.celery_app beat -l info
+    depends_on:
+      db:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    volumes:
+      - "${HOME}/Application\ Support/camply/:/root/.local/share/camply/"
+    environment:
+      CAMPLY_DB_DRIVERNAME: "postgresql+psycopg"
+      CAMPLY_DB_HOST: "db"
+      CAMPLY_DB_USERNAME: ${POSTGRES_USER:-camply}
+      CAMPLY_DB_PASSWORD: ${POSTGRES_PASSWORD:-camply}
+      CAMPLY_DB_DATABASE: ${POSTGRES_DB:-camply}
+      CAMPLY_DB_PORT: 5432
+      CAMPLY_VALKEY_URL: "redis://valkey:6379/0"
+      CAMPLY_SENTRY_DSN: ${SENTRY_DSN:-}
+      CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.0}
+      SKIP_MIGRATIONS: "1"
     restart: unless-stopped

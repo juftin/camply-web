@@ -17,6 +17,7 @@ COPY pyproject.toml uv.lock /app/
 COPY packages/backend/pyproject.toml /app/packages/backend/pyproject.toml
 COPY packages/db/pyproject.toml /app/packages/db/pyproject.toml
 COPY packages/providers/pyproject.toml /app/packages/providers/pyproject.toml
+COPY packages/worker/pyproject.toml /app/packages/worker/pyproject.toml
 
 RUN --mount=from=ghcr.io/astral-sh/uv:latest,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/root/.cache/uv \
