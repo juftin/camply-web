@@ -43,9 +43,13 @@ to book your spot!
         |   ├── pyproject.toml
         |   ├── migrations/
         |   └── db/
-        └── providers/
+        ├── providers/
+        |   ├── pyproject.toml
+        |   └── providers/
+        └── worker/
             ├── pyproject.toml
-            └── providers/
+            ├── tests/
+            └── worker/
 ```
 
 ### cli
@@ -72,3 +76,4 @@ to book your spot!
   - `backend/`: The FastAPI application that serves the API endpoints.
   - `db/`: Contains database models and migrations.
   - `providers/`: Contains third-party API providers and integrations.
+  - `worker/`: Celery-powered background task worker for campsite polling, availability diffing, and Pushover notification delivery.

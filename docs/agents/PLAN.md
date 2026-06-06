@@ -47,12 +47,12 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 
 ### Phase 1: Smart Poller & Single-Scan MVP
 **Goal**: Build the "Smart" engine that de-duplicates requests and proves the end-to-end flow.
-- [ ] **DB Schema**: Design `Users` (with early access flag), `UniqueTargets` (unique definitions), and `UserScans` (user subscriptions).
-- [ ] **Sentry**: Initialize Sentry SDKs for both Backend and Frontend.
-- [ ] **Provider Engine**: Define the new `BaseProvider` ABC and migrate `recreation_dot_gov` logic.
-- [ ] **Celery Worker**: Implement de-duplicated polling logic in Celery.
-- [ ] **Infrastructure**: Update `docker-compose.yaml` to include Valkey and Celery worker/beat services.
-- [ ] **Tooling**: Add Celery/Worker management tasks to the `backend/Taskfile.yaml`.
+- [x] **DB Schema**: Design `Users` (with early access flag), `UniqueTargets` (unique definitions), and `UserScans` (user subscriptions).
+- [x] **Sentry**: Initialize Sentry SDK for Celery worker; backend Sentry remaining.
+- [x] **Provider Engine**: Define the new `BaseProvider` ABC and migrate `recreation_dot_gov` logic.
+- [x] **Celery Worker**: Implement de-duplicated polling logic in Celery.
+- [x] **Infrastructure**: Update `docker-compose.yaml` to include Valkey and Celery worker/beat services.
+- [x] **Tooling**: Add Celery/Worker management tasks to the `backend/Taskfile.yaml`.
 - [ ] **OpenAPI**: Expose initial search/scan endpoints and configure client generation.
 - [ ] **Pushover**: Integrate basic notification delivery.
 
@@ -90,6 +90,6 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 ---
 
 ## 🏁 Next Immediate Steps
-1. [ ] **Database Design**: Create SQLAlchemy models for the Multi-User / De-duplicated architecture in `backend/packages/db`.
-2. [ ] **Provider Migration**: Extract search logic from `cli/` to `backend/packages/providers/`.
+1. [x] **Database Design**: Create SQLAlchemy models for the Multi-User / De-duplicated architecture in `backend/packages/db`.
+2. [x] **Provider Migration**: Extract search logic from `cli/` to `backend/packages/providers/`.
 3. [ ] **API Scaffolding**: Setup OpenAPI client generation in the frontend.
