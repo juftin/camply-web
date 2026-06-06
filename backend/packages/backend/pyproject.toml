@@ -1,6 +1,7 @@
 [project]
 name = "backend"
 version = "0.1.0"
+license = "PolyForm-Noncommercial-1.0.0"
 authors = [
   {name = "Justin Flannery", email = "justin.flannery@juftin.com"}
 ]

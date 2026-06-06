@@ -5,6 +5,10 @@
 </a>
 </div>
 
+<div align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue.svg" alt="License: PolyForm Noncommercial 1.0.0"></a>
+</div>
+
 **`camply`**, the campsite finder ⛺️, is a tool to help you book a campsite online. Finding
 reservations at sold out campgrounds can be tough. That's where camply comes in. It searches
 thousands of campgrounds across the ~~USA~~ world via the APIs of booking services like
