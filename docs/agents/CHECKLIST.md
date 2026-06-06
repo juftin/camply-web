@@ -58,7 +58,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ### 2.1 Authentication & Profile
 
-- [ ] T2.1.1 Configure Auth0 backend integration (JWT validation).
+- [x] T2.1.1 Configure Auth0 backend integration (JWT validation).
 - [ ] T2.1.2 Implement `is_early_access_user` middleware for FastAPI.
 - [ ] T2.1.3 Configure Auth0 frontend integration (React SDK).
 - [ ] T2.1.4 Build the User Profile page for Pushover key management.
