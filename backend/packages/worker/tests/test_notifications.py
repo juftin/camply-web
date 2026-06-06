@@ -110,9 +110,7 @@ class TestSendPushoverNotification:
                 "send_alert",
                 new_callable=AsyncMock,
             ) as mock_send:
-                result = send_pushover_notification(
-                    str(user.id), notification
-                )
+                result = send_pushover_notification(str(user.id), notification)
 
         assert result["status"] == "success"
         mock_send.assert_called_once()
@@ -136,8 +134,6 @@ class TestSendPushoverNotification:
         mock_db = _make_mock_db(mock_session)
 
         with patch("worker.tasks.notifications.db", mock_db):
-            result = send_pushover_notification(
-                str(user.id), bad_notification
-            )
+            result = send_pushover_notification(str(user.id), bad_notification)
 
         assert result["status"] == "error"

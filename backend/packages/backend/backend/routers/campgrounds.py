@@ -2,7 +2,7 @@
 Campgrounds
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
 from backend.dependencies import SessionDep
@@ -26,7 +26,7 @@ async def get_campground(provider: int, id: str, session: SessionDep) -> Campgro
     )
     fetched = result.scalar_one_or_none()
     if fetched is None:
-        raise ValueError("Campground not found")
+        raise HTTPException(status_code=404, detail="Campground not found")
     return Campground(
         id=fetched.id,
         provider_id=fetched.provider_id,

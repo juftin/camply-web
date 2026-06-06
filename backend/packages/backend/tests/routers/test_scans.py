@@ -143,9 +143,7 @@ class TestCreateScan:
         assert resp2.status_code == 409, resp2.text
         assert "already exists" in resp2.text.lower()
 
-    def test_create_scan_nonexistent_campground(
-        self, test_client: TestClient
-    ) -> None:
+    def test_create_scan_nonexistent_campground(self, test_client: TestClient) -> None:
         response = test_client.post(
             API_SCANS,
             json={
@@ -232,15 +230,11 @@ class TestUpdateScan:
         created = _create_scan(test_client, cg_id)
         scan_id = created["id"]
 
-        resp = test_client.patch(
-            f"{API_SCANS}/{scan_id}", json={"is_active": False}
-        )
+        resp = test_client.patch(f"{API_SCANS}/{scan_id}", json={"is_active": False})
         assert resp.status_code == 200
         assert resp.json()["is_active"] is False
 
-        resp = test_client.patch(
-            f"{API_SCANS}/{scan_id}", json={"is_active": True}
-        )
+        resp = test_client.patch(f"{API_SCANS}/{scan_id}", json={"is_active": True})
         assert resp.status_code == 200
         assert resp.json()["is_active"] is True
 
@@ -327,9 +321,7 @@ class TestMe:
 class TestEarlyAccess:
     """Tests for the early-access whitelist gate."""
 
-    def test_create_scan_requires_early_access(
-        self, test_client: TestClient
-    ) -> None:
+    def test_create_scan_requires_early_access(self, test_client: TestClient) -> None:
         """A user without early access should get 403 ERR_EARLY_ACCESS_REQUIRED."""
 
         from backend.app import app as camply_app
@@ -341,9 +333,7 @@ class TestEarlyAccess:
             is_early_access_user=False,
             pushover_token=None,
         )
-        camply_app.dependency_overrides[resolve_current_user] = (
-            lambda: non_early_user
-        )
+        camply_app.dependency_overrides[resolve_current_user] = lambda: non_early_user
 
         try:
             response = test_client.post(

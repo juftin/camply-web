@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from backend.dependencies import SessionDep
+from backend.schemas import ProviderResponse
 from db.models import Provider as ProviderDB
 
 provider_router = APIRouter(tags=["providers"])
@@ -42,15 +43,15 @@ async def get_provider(id: int, session: SessionDep) -> Provider:
     )
 
 
-@provider_router.get("/provider")
-async def list_providers(session: SessionDep) -> list[Provider]:
+@provider_router.get("/providers")
+async def list_providers(session: SessionDep) -> list[ProviderResponse]:
     """
-    List all Providers
+    List all supported providers.
     """
     result = await session.execute(select(ProviderDB))
     providers = result.scalars().all()
     return [
-        Provider(
+        ProviderResponse(
             id=p.id,
             name=p.name,
             description=p.description,

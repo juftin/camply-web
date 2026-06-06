@@ -97,9 +97,7 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
     lock = ValkeyLock(valkey_url=worker_config.valkey_url)
 
     try:
-        acquired = await lock.acquire(
-            key=lock_key, timeout=worker_config.lock_timeout
-        )
+        acquired = await lock.acquire(key=lock_key, timeout=worker_config.lock_timeout)
     except Exception:
         logger.warning(
             "Could not connect to Valkey for lock, skipping",
@@ -149,12 +147,10 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
             # Instantiate provider and call find_availabilities
             provider = provider_cls()
             try:
-                availabilities: list[CampsiteDTO] = (
-                    await provider.find_availabilities(
-                        park_id=target.campground_id,
-                        start_date=target.start_date,
-                        end_date=target.end_date,
-                    )
+                availabilities: list[CampsiteDTO] = await provider.find_availabilities(
+                    park_id=target.campground_id,
+                    start_date=target.start_date,
+                    end_date=target.end_date,
                 )
             finally:
                 try:
@@ -168,9 +164,7 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
             }
 
             # Load previous scan results for diffing
-            prev_stmt = select(ScanResult).where(
-                ScanResult.target_id == target_uuid
-            )
+            prev_stmt = select(ScanResult).where(ScanResult.target_id == target_uuid)
             prev_result = await session.execute(prev_stmt)
             previous_results = prev_result.scalars().all()
 
@@ -216,8 +210,7 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                                 "is_electric": campsite.is_electric,
                                 "is_accessible": campsite.is_accessible,
                                 "available_dates": [
-                                    d.isoformat()
-                                    for d in campsite.available_dates
+                                    d.isoformat() for d in campsite.available_dates
                                 ],
                             },
                         )
@@ -235,16 +228,12 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
 
             # Replace previous scan results for this target
             await session.execute(
-                delete(ScanResult).where(
-                    ScanResult.target_id == target_uuid
-                )
+                delete(ScanResult).where(ScanResult.target_id == target_uuid)
             )
             session.add_all(new_results_to_store)
 
             # Update last_checked_at
-            target.last_checked_at = datetime.datetime.now(
-                tz=datetime.timezone.utc
-            )
+            target.last_checked_at = datetime.datetime.now(tz=datetime.timezone.utc)
             session.add(target)
 
             await session.commit()
@@ -270,9 +259,7 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                                 name="worker.tasks.notifications.send_pushover_notification",
                                 kwargs={
                                     "user_id": str(scan.user_id),
-                                    "notification": opening.model_dump(
-                                        mode="json"
-                                    ),
+                                    "notification": opening.model_dump(mode="json"),
                                 },
                                 queue="celery",
                             )

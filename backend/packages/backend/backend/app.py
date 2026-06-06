@@ -11,7 +11,7 @@ from backend.__about__ import __application__, __version__
 from backend.config import backend_config
 from backend.routers.campgrounds import campground_router
 from backend.routers.health import health_router
-from backend.routers.me import me_router, provider_list_router
+from backend.routers.me import me_router
 from backend.routers.providers import provider_router
 from backend.routers.recreation_areas import recreation_area_router
 from backend.routers.scans import scan_router
@@ -70,7 +70,6 @@ API_ROUTERS: list[APIRouter] = [
     provider_router,
     scan_router,
     me_router,
-    provider_list_router,
 ]
 
 for router in API_ROUTERS:

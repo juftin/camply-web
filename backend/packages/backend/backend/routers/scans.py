@@ -9,8 +9,8 @@ All endpoints are auth-gated through the ``CurrentUserDep`` dependency:
   users are upserted into the database automatically.
 
 Every endpoint also enforces an *early-access* (whitelist) gate via
-``_enforce_early_access`` — un-whitelisted callers receive a ``403`` with
-error code ``ERR_EARLY_ACCESS_REQUIRED``.
+the router-level ``require_early_access`` dependency — un-whitelisted
+callers receive a ``403`` with error code ``ERR_EARLY_ACCESS_REQUIRED``.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from __future__ import annotations
 import uuid
 
 import structlog
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -45,15 +45,13 @@ from db.models import (
 
 logger = structlog.getLogger(__name__)
 
-scan_router = APIRouter(prefix="/scans", tags=["scans"])
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _enforce_early_access(current_user: CurrentUserDep) -> None:
+def require_early_access(current_user: CurrentUserDep) -> None:
     """Raise 403 if the user is not whitelisted."""
     if not current_user.is_early_access_user:
         raise HTTPException(
@@ -63,6 +61,13 @@ def _enforce_early_access(current_user: CurrentUserDep) -> None:
                 "message": "Early access is required. Please request access.",
             },
         )
+
+
+scan_router = APIRouter(
+    prefix="/scans",
+    tags=["scans"],
+    dependencies=[Depends(require_early_access)],
+)
 
 
 async def _lookup_campground(
@@ -123,7 +128,6 @@ async def list_scans(
     offset: int = Query(default=0, ge=0),
 ) -> ScanListResponse:
     """List all scans belonging to the authenticated user."""
-    _enforce_early_access(current_user)
 
     query = (
         select(UserScanDB)
@@ -185,9 +189,7 @@ async def list_scans(
 
     # Total count for pagination
     count_result = await session.execute(
-        select(func.count(UserScanDB.id)).where(
-            UserScanDB.user_id == current_user.id
-        )
+        select(func.count(UserScanDB.id)).where(UserScanDB.user_id == current_user.id)
     )
     total = count_result.scalar_one()
 
@@ -210,7 +212,6 @@ async def create_scan(
     If a ``UniqueTarget`` with the same hash already exists it is re-used
     (de-duplication).  Otherwise a new target is created.
     """
-    _enforce_early_access(current_user)
 
     # Validate that the campground exists
     campground_db = await _lookup_campground(
@@ -285,7 +286,6 @@ async def get_scan(
     session: SessionDep,
 ) -> ScanDetailResponse:
     """Return detailed information for a single scan, including recent results."""
-    _enforce_early_access(current_user)
 
     result = await session.execute(
         select(UserScanDB)
@@ -353,7 +353,6 @@ async def update_scan(
     session: SessionDep,
 ) -> ScanResponse:
     """Update scan filters or toggle ``is_active``."""
-    _enforce_early_access(current_user)
 
     result = await session.execute(
         select(UserScanDB)
@@ -402,7 +401,6 @@ async def delete_scan(
     session: SessionDep,
 ) -> Response:
     """Delete (unsubscribe from) a scan."""
-    _enforce_early_access(current_user)
 
     result = await session.execute(
         select(UserScanDB).where(

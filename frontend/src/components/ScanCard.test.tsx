@@ -1,7 +1,13 @@
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import React from "react";
 import { ScanCard } from "./ScanCard";
 import type { ScanResponse } from "@/lib/structs";
+
+function renderWithRouter(ui: React.ReactElement) {
+  return render(ui, { wrapper: MemoryRouter });
+}
 
 const baseScan: ScanResponse = {
   id: "test-scan-1",
@@ -22,7 +28,7 @@ const baseScan: ScanResponse = {
 
 describe("ScanCard", () => {
   it("renders campground name", () => {
-    render(
+    renderWithRouter(
       <ScanCard
         scan={baseScan}
         onToggleActive={vi.fn()}
@@ -33,7 +39,7 @@ describe("ScanCard", () => {
   });
 
   it("shows recreation area name", () => {
-    render(
+    renderWithRouter(
       <ScanCard
         scan={baseScan}
         onToggleActive={vi.fn()}
@@ -44,7 +50,7 @@ describe("ScanCard", () => {
   });
 
   it("shows active badge for active scan", () => {
-    render(
+    renderWithRouter(
       <ScanCard
         scan={baseScan}
         onToggleActive={vi.fn()}
@@ -57,7 +63,7 @@ describe("ScanCard", () => {
   });
 
   it("shows paused badge for inactive scan", () => {
-    render(
+    renderWithRouter(
       <ScanCard
         scan={{ ...baseScan, is_active: false }}
         onToggleActive={vi.fn()}
@@ -69,7 +75,7 @@ describe("ScanCard", () => {
   });
 
   it("shows found count", () => {
-    render(
+    renderWithRouter(
       <ScanCard
         scan={{ ...baseScan, found_count: 5 }}
         onToggleActive={vi.fn()}
@@ -81,7 +87,7 @@ describe("ScanCard", () => {
 
   it("renders last checked time when available", () => {
     const now = new Date().toISOString();
-    render(
+    renderWithRouter(
       <ScanCard
         scan={{ ...baseScan, last_checked_at: now }}
         onToggleActive={vi.fn()}
@@ -92,7 +98,7 @@ describe("ScanCard", () => {
   });
 
   it("shows electric badge when required", () => {
-    render(
+    renderWithRouter(
       <ScanCard
         scan={{ ...baseScan, require_electric: true }}
         onToggleActive={vi.fn()}
@@ -103,7 +109,7 @@ describe("ScanCard", () => {
   });
 
   it("shows min stay badge when > 1", () => {
-    render(
+    renderWithRouter(
       <ScanCard
         scan={{ ...baseScan, min_stay_length: 3 }}
         onToggleActive={vi.fn()}
@@ -115,7 +121,7 @@ describe("ScanCard", () => {
 
   it("calls onToggleActive when switch is clicked", async () => {
     const onToggle = vi.fn();
-    render(
+    renderWithRouter(
       <ScanCard
         scan={baseScan}
         onToggleActive={onToggle}
@@ -128,17 +134,21 @@ describe("ScanCard", () => {
     expect(onToggle).toHaveBeenCalledWith("test-scan-1", false);
   });
 
-  it("calls onDelete when delete button is clicked", () => {
+  it("calls onDelete after confirmation", async () => {
     const onDelete = vi.fn();
-    render(
+    renderWithRouter(
       <ScanCard
         scan={baseScan}
         onToggleActive={vi.fn()}
         onDelete={onDelete}
       />,
     );
-    const deleteBtn = screen.getByRole("button", { name: "" });
-    deleteBtn.click();
+    // Click the trash icon button to open the confirmation dialog
+    const trashBtn = screen.getByRole("button", { name: "" });
+    trashBtn.click();
+    // Wait for the confirmation dialog to appear and click "Delete"
+    const confirmBtn = await screen.findByRole("button", { name: "Delete" });
+    confirmBtn.click();
     expect(onDelete).toHaveBeenCalledWith("test-scan-1");
   });
 });

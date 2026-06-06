@@ -33,9 +33,7 @@ class TestMeEndpoint:
     def test_patch_me_clear_pushover(self, test_client: TestClient) -> None:
         """PATCH /api/me with null should clear the token."""
         # First set a token
-        set_resp = test_client.patch(
-            "/api/me", json={"pushover_token": "temp_token"}
-        )
+        set_resp = test_client.patch("/api/me", json={"pushover_token": "temp_token"})
         assert set_resp.status_code == 200
         assert set_resp.json()["pushover_token"] == "temp_token"
 

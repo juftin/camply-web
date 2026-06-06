@@ -57,9 +57,16 @@ class ScanCreateRequest(BaseModel):
     campground_id: str = Field(..., description="Provider-internal campground ID")
     start_date: datetime.date = Field(..., description="Check-in date")
     end_date: datetime.date = Field(..., description="Check-out date")
-    min_stay_length: int = Field(default=1, ge=1, description="Minimum consecutive nights")
-    preferred_types: list[str] = Field(default_factory=list, description="Preferred campsite types (TENT, RV, CABIN, …)")
-    require_electric: bool = Field(default=False, description="Only alert on electric hookup sites")
+    min_stay_length: int = Field(
+        default=1, ge=1, description="Minimum consecutive nights"
+    )
+    preferred_types: list[str] = Field(
+        default_factory=list,
+        description="Preferred campsite types (TENT, RV, CABIN, …)",
+    )
+    require_electric: bool = Field(
+        default=False, description="Only alert on electric hookup sites"
+    )
 
 
 class ScanUpdateRequest(BaseModel):

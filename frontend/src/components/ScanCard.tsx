@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Clock,
   Calendar,
@@ -16,6 +18,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toTitleCase } from "@/lib/utils";
 import type { ScanResponse } from "@/lib/structs";
 
@@ -32,6 +42,8 @@ export function ScanCard({
   onDelete,
   toggling = false,
 }: ScanCardProps) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
   const lastChecked = scan.last_checked_at
     ? formatRelativeTime(scan.last_checked_at)
     : "Never";
@@ -40,10 +52,11 @@ export function ScanCard({
   const isPastEnd = new Date(scan.end_date) < new Date();
 
   return (
-    <Card
-      className={`transition-all ${!scan.is_active ? "opacity-60" : ""} ${isPastEnd ? "ring-1 ring-yellow-400/30" : ""}`}
-    >
-      <CardHeader className="pb-3">
+    <Link to={`/dashboard/scans/${scan.id}`} className="block">
+      <Card
+        className={`transition-all hover:shadow-md ${!scan.is_active ? "opacity-60" : ""} ${isPastEnd ? "ring-1 ring-yellow-400/30" : ""}`}
+      >
+        <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1 pr-2">
             <CardTitle className="text-base truncate">
@@ -118,14 +131,19 @@ export function ScanCard({
         </div>
       </CardContent>
 
-      <CardFooter className="border-t pt-3 flex justify-between">
+      <CardFooter
+        className="border-t pt-3 flex justify-between"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center gap-2">
-          <Switch
-            id={`active-${scan.id}`}
-            checked={scan.is_active}
-            onCheckedChange={(checked) => onToggleActive(scan.id, checked)}
-            disabled={toggling}
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <Switch
+              id={`active-${scan.id}`}
+              checked={scan.is_active}
+              onCheckedChange={(checked) => onToggleActive(scan.id, checked)}
+              disabled={toggling}
+            />
+          </div>
           <Label
             htmlFor={`active-${scan.id}`}
             className="text-xs text-muted-foreground cursor-pointer"
@@ -137,12 +155,45 @@ export function ScanCard({
           variant="ghost"
           size="sm"
           className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={() => onDelete(scan.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowDeleteDialog(true);
+          }}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </CardFooter>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Scan</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this scan? This action cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                onDelete(scan.id);
+                setShowDeleteDialog(false);
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
+    </Link>
   );
 }
 

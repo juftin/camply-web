@@ -14,6 +14,7 @@ import { Ethos } from "@/pages/Ethos";
 import { HowItWorks } from "@/pages/HowItWorks";
 import { Campground } from "@/pages/Campground";
 import { RecreationArea } from "@/pages/RecreationArea";
+import { ScanDetail } from "@/pages/ScanDetail";
 import { AuthProvider } from "@/hooks/useAuth";
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -43,6 +44,10 @@ function App() {
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route
+                    path="/dashboard/scans/:scanId"
+                    element={<ScanDetail />}
+                  />
                   <Route
                     path="/campground/:providerId/:campgroundId"
                     element={<Campground />}

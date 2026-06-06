@@ -155,9 +155,7 @@ async def resolve_current_user(
     email = (payload.get("email") or payload.get("sub") or "").lower()
 
     # Upsert user by auth0_id
-    result = await session.execute(
-        select(User).where(User.auth0_id == auth0_id)
-    )
+    result = await session.execute(select(User).where(User.auth0_id == auth0_id))
     auth0_user: User | None = result.scalar_one_or_none()
     if auth0_user is None:
         auth0_user = User(
