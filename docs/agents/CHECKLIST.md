@@ -49,8 +49,8 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ### 1.5 Governance & Licensing
 
-- [ ] T1.5.1 Research and select a Non-Commercial license (e.g., Polyform Non-Commercial).
-- [ ] T1.5.2 Update `LICENSE` file and repository headers to reflect new terms.
+- [x] T1.5.1 Research and select a Non-Commercial license (Polyform Noncommercial 1.0.0).
+- [x] T1.5.2 Update `LICENSE` file and repository headers to reflect new terms.
 
 ---
 

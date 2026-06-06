@@ -1,6 +1,7 @@
 [project]
 name = "db"
 version = "0.1.0"
+license = "PolyForm-Noncommercial-1.0.0"
 dependencies = [
   "sqlalchemy[asyncio]>=2,<3",
   "psycopg[binary]>=3,<4",
