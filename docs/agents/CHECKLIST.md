@@ -45,7 +45,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.4.7 Build the `ScanForm` component using Shadcn/UI and React Hook Form.
 - [x] T1.4.8 Connect the existing `SearchBar` to the `ScanForm` flow.
 - [x] T1.4.9 Implement the "Early Access" whitelist gate UI.
-- [x] T1.4.10 **Testing**: Write backend API tests (`pytest`) and frontend component tests (`vitest`).
+- [x] T1.4.10 **Testing**: Write backend API tests (`pytest`) and frontend component tests (`vitest`).  *(✅ 16 backend + 13 frontend tests passing)*
 
 ### 1.5 Governance & Licensing
 

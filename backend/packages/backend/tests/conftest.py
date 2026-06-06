@@ -93,7 +93,7 @@ def seed_data(add_rows: list) -> None:
 
 @pytest.fixture
 def test_client() -> TestClient:
-    """Synchronous FastAPI TestClient wired to the in-memory DB."""
+    """Synchronous FastAPI TestClient wired to the temp-file DB."""
     return TestClient(real_app)
 
 

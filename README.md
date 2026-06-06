@@ -60,20 +60,27 @@ to book your spot!
 
 ### frontend
 
-- The frontend of the application is a React application built with TypeScript.
-- It uses Vite as the build tool and includes all necessary configurations for
-  development and production builds.
-- It leverages modern React features and libraries for state management,
-  routing, and UI components.
-- It uses Tailwind CSS for styling.
-- The frontend should be able to be published as a static site that can be served
-  by any web server.
+- **Stack**: React 18 + TypeScript + Vite + Tailwind CSS + Shadcn/UI.
+- **State**: TanStack Query for server state; React Context for auth.
+- **Forms**: React Hook Form + Zod for strict validation.
+- **API**: Axios client with OpenAPI TypeScript codegen.
+- **Auth**: Auth0 redirect or local auto-auth, toggleable via backend config.
+- **Pages**: Home (search), Dashboard (scan management), Early Access gate,
+  Campground/Rec Area detail, static content pages.
+- The frontend can be published as a static site served by any web server.
 
 ### backend
 
-- The backend of the application is built with Python.
+- **Stack**: Python 3.12 + FastAPI + SQLAlchemy (async) + Pydantic v2.
+- **API Endpoints**: Search, campground/rec-area lookup, user profile (`/me`),
+  scan CRUD (`/scans`) — all with OpenAPI docs at `/api/docs`.
+- **Auth**: Two modes — local (auto-admin, no token needed) and Auth0 (JWT
+  validation via PyJWT + JWKS).
 - The backend is a `uv` workspace containing multiple packages:
-  - `backend/`: The FastAPI application that serves the API endpoints.
-  - `db/`: Contains database models and migrations.
-  - `providers/`: Contains third-party API providers and integrations.
-  - `worker/`: Celery-powered background task worker for campsite polling, availability diffing, and Pushover notification delivery.
+  - `backend/`: FastAPI application serving API endpoints and auth.
+  - `db/`: Database models (User, UniqueTarget, UserScan, ScanResult, etc.)
+    and Alembic migrations.
+  - `providers/`: Third-party API providers (Recreation.gov) with pluggable
+    `BaseProvider` ABC.
+  - `worker/`: Celery-powered background task worker for campsite polling,
+    availability diffing, de-duplicated scanning, and Pushover notifications.

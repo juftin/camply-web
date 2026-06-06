@@ -53,8 +53,8 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 - [x] **Celery Worker**: Implement de-duplicated polling logic in Celery.
 - [x] **Infrastructure**: Update `docker-compose.yaml` to include Valkey and Celery worker/beat services.
 - [x] **Tooling**: Add Celery/Worker management tasks to the `backend/Taskfile.yaml`.
-- [ ] **OpenAPI**: Expose initial search/scan endpoints and configure client generation.
-- [ ] **Pushover**: Integrate basic notification delivery.
+- [x] **OpenAPI**: Expose initial search/scan endpoints and configure client generation.
+- [x] **Pushover**: Integrate basic notification delivery.
 
 
 ### Phase 2: User Dashboard & Auth
@@ -92,4 +92,8 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 ## 🏁 Next Immediate Steps
 1. [x] **Database Design**: Create SQLAlchemy models for the Multi-User / De-duplicated architecture in `backend/packages/db`.
 2. [x] **Provider Migration**: Extract search logic from `cli/` to `backend/packages/providers/`.
-3. [ ] **API Scaffolding**: Setup OpenAPI client generation in the frontend.
+3. [x] **API Scaffolding**: Setup OpenAPI client generation in the frontend.
+4. [x] **API Endpoints**: FastAPI scan/search/me CRUD endpoints.
+5. [x] **Dashboard UI**: Scan management dashboard with creation, toggling, and deletion.
+6. [ ] **Auth0 Integration**: Wire up production Auth0 JWT validation and profile pages.
+7. [ ] **Provider Parity**: Port remaining providers (usedirect, xanterra)."}]}

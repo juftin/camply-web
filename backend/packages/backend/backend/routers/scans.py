@@ -1,8 +1,16 @@
 """
 Scan management router — ``/api/scans`` endpoints.
 
-All endpoints are auth-gated.  In *local* auth mode a bare ``AdminEmail``
-header can be used; in *Auth0* mode a valid bearer JWT is required.
+All endpoints are auth-gated through the ``CurrentUserDep`` dependency:
+
+* **local mode** — a synthetic admin user is created on first access
+  (configured via ``CAMPLY_ADMIN_EMAIL``).
+* **auth0 mode** — a valid ``Authorization: Bearer <JWT>`` header is required;
+  users are upserted into the database automatically.
+
+Every endpoint also enforces an *early-access* (whitelist) gate via
+``_enforce_early_access`` — un-whitelisted callers receive a ``403`` with
+error code ``ERR_EARLY_ACCESS_REQUIRED``.
 """
 
 from __future__ import annotations

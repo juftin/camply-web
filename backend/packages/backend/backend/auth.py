@@ -11,7 +11,6 @@ from __future__ import annotations
 import uuid
 from typing import Annotated, Optional
 
-import httpx
 import structlog
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -35,28 +34,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 # Auth0 helpers
 # ---------------------------------------------------------------------------
 
-_AUTH0_JWKS_CACHE: dict[str, dict] = {}
 _AUTH0_ALGORITHMS = ["RS256"]
-
-
-async def _load_auth0_public_keys(domain: str) -> dict[str, dict]:
-    """Fetch and cache Auth0 JWKS keys."""
-    if domain in _AUTH0_JWKS_CACHE:
-        return _AUTH0_JWKS_CACHE[domain]
-    jwks_url = f"https://{domain}/.well-known/jwks.json"
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(jwks_url, timeout=10)
-            resp.raise_for_status()
-            data = resp.json()
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Unable to fetch Auth0 public keys",
-        ) from exc
-    keys = {k["kid"]: k for k in data.get("keys", [])}
-    _AUTH0_JWKS_CACHE[domain] = keys
-    return keys
 
 
 async def _verify_auth0_token(token: str) -> dict:
@@ -187,9 +165,9 @@ async def resolve_current_user(
             email=email,
             is_early_access_user=False,
         )
-        session.add(user)
+        session.add(auth0_user)
         await session.commit()
-        await session.refresh(user)
+        await session.refresh(auth0_user)
 
     return CurrentUser(
         id=auth0_user.id,
