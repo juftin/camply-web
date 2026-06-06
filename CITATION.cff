@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use camply-web in your research or project, please cite it as below."
+title: camply-web
+abstract: A free, self-hostable campsite availability scanner that checks for cancellations at sold-out campgrounds
+authors:
+  - given-names: Justin
+    family-names: Flannery
+    email: justin.flannery@juftin.com
+    orcid: https://orcid.org/0009-0007-5108-4663
+repository-code: https://github.com/juftin/camply-web
+url: https://github.com/juftin/camply-web
+license: PolyForm-Noncommercial-1.0.0
+version: 0.1.0
+date-released: 2025-06-01
+keywords:
+  - camping
+  - campsite
+  - recreation.gov
+  - campground
+  - outdoor
+type: software

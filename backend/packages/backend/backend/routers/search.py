@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 """
 Search API — full-text search across recreation areas and campgrounds.
 """

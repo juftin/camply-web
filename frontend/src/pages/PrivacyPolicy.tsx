@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 export function PrivacyPolicy() {
   return (
     <div className="container mx-auto py-12 px-4 max-w-4xl">

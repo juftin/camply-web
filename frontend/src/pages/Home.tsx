@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 import { MapPin, Clock, Shield, Star, Heart, Tent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {

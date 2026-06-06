@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 import { useState, useEffect } from "react";
 import { TentTree, Mail, CheckCircle, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";

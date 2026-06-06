@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 import { Moon, Sun } from "lucide-react";
 
 import { Button } from "@/components/ui/button";

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 import { Mountain, Tent, Loader2 } from "lucide-react";
 import { toTitleCase } from "@/lib/utils";
 import { useEffect, useRef } from "react";

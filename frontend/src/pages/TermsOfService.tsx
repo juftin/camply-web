@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 import { Link } from "react-router-dom";
 
 export function TermsOfService() {

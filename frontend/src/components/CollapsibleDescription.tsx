@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { sanitizeAndRenderHTML, isHTMLContent, toTitleCase } from "@/lib/utils";

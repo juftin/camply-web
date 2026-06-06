@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 from abc import ABC
 
 from pydantic import AliasChoices, BaseModel, Field

@@ -5,7 +5,7 @@ requires = ["hatchling"]
 [project]
 authors = [{name = "Justin Flannery", email = "justin.flannery@juftin.com"}]
 classifiers = [
-  "License :: OSI Approved :: MIT License",
+  "License :: Other/Proprietary License",
   "Development Status :: 5 - Production/Stable",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
@@ -32,7 +32,7 @@ dependencies = [
 description = "camply, the campsite finder 🏕"
 dynamic = ["version"]
 keywords = ["recdotgov", "outdoors", "camping", "reservations", "national-parks"]
-license = "MIT"
+license = "PolyForm-Noncommercial-1.0.0"
 name = "camply"
 readme = "README.md"
 requires-python = ">=3.8,<4"

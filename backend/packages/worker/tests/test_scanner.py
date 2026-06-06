@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 """
 Tests for the check_target_availability scanner task.
 """

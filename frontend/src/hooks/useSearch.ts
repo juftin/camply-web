@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 import { useQuery } from "@tanstack/react-query";
 import { searchCampgrounds } from "@/lib/api";
 import { SearchResult } from "@/lib/structs.ts";

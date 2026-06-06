@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 """
 Heartbeat: Periodic task to discover targets needing checks.
 """

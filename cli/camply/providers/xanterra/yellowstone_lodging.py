@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 """
 Python Class Check Yellowstone Campground Booking API for Availability
 """

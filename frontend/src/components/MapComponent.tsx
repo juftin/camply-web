@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 import GoogleMapReact from "google-map-react";
 import { Tent, MapPin } from "lucide-react";
 

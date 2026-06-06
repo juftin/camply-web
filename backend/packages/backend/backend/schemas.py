@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 """
 Pydantic v2 request / response schemas for camply-backend API endpoints.
 """

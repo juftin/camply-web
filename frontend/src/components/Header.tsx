@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 import * as React from "react";
 import { Menu, X, TentTree, LayoutDashboard } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";

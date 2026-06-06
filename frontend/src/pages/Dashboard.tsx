@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Loader2, Frown, LogOut, Settings } from "lucide-react";

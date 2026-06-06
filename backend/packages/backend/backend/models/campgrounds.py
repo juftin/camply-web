@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 from functools import cached_property
 
 from pydantic import BaseModel, computed_field

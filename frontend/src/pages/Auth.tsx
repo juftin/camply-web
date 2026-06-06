@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+
 import * as React from "react";
 import { TentTree, Mail, Lock, User, Eye, EyeOff, Tent } from "lucide-react";
 import { Button } from "@/components/ui/button";
