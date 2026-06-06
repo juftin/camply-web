@@ -1,72 +1,53 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type ReactElement, type ReactNode } from "react";
+import { describe, expect, it, vi } from "vitest";
 import App from "./App";
 
-Object.defineProperty(globalThis, "fetch", {
-  value: vi.fn(),
-  writable: true,
-});
+function renderWithProviders(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  );
+}
+
+// Mock the useAuth hook
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    user: null,
+    isLoading: false,
+    error: null,
+    isEarlyAccess: false,
+    isReady: true,
+    refresh: vi.fn(),
+    updatePushoverToken: vi.fn(),
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }: { children: ReactNode }) => children,
+}));
 
 describe("App", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
+  it("renders the navigation header", () => {
+    renderWithProviders(<App />);
+    // The heading should contain "camply"
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toBeInTheDocument();
   });
 
-  it("renders the app title and description", () => {
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      json: async () => ({ status: 200, timestamp: "2024-01-01T00:00:00Z" }),
-    });
-
-    render(<App />);
-
-    expect(screen.getByText("Camply Web")).toBeInTheDocument();
-    expect(
-      screen.getByText("Find campsites at sold-out campgrounds"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Backend Status")).toBeInTheDocument();
+  it("renders the home page search area", () => {
+    renderWithProviders(<App />);
+    // The search input should be present on the home page
+    const searchInput = screen.queryByPlaceholderText(/search/i);
+    const searchButton = screen.queryByRole("button", { name: /search/i });
+    expect(searchInput || searchButton).toBeTruthy();
   });
 
-  it("shows loading state initially", () => {
-    (fetch as ReturnType<typeof vi.fn>).mockImplementation(
-      () => new Promise(() => {}),
-    );
-
-    render(<App />);
-
-    expect(screen.getByText("Loading...")).toBeInTheDocument();
-  });
-
-  it("displays health status when API call succeeds", async () => {
-    const mockHealthData = {
-      status: 200,
-      timestamp: "2024-01-01T12:00:00Z",
-    };
-
-    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      json: async () => mockHealthData,
-    });
-
-    render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Status: 200")).toBeInTheDocument();
-      expect(
-        screen.getByText("Timestamp: 2024-01-01T12:00:00Z"),
-      ).toBeInTheDocument();
-    });
-  });
-
-  it("displays error message when API call fails", async () => {
-    (fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-      new Error("Network error"),
-    );
-
-    render(<App />);
-
-    await waitFor(() => {
-      expect(
-        screen.getByText("Failed to connect to backend"),
-      ).toBeInTheDocument();
-    });
+  it("renders without crashing", () => {
+    renderWithProviders(<App />);
+    expect(document.body).toBeTruthy();
   });
 });

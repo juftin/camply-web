@@ -36,16 +36,16 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ### 1.4 API & Frontend Foundation
 
-- [ ] T1.4.1 Create FastAPI search endpoints (`/api/v1/search`) using existing logic.
-- [ ] T1.4.2 Create scan management endpoints (`POST /api/v1/scans`, `GET /api/v1/scans`).
-- [ ] T1.4.3 Refactor existing React frontend to support toggleable Auth0 authentication.
-- [ ] T1.4.4 Implement "Local-Only" auth mode (bypass Auth0 if disabled in `.env`).
-- [ ] T1.4.5 Setup automated OpenAPI TypeScript client generation and TanStack Query.
-- [ ] T1.4.6 Implement the `Dashboard` page (`/dashboard`) for scan management.
-- [ ] T1.4.7 Build the `ScanForm` component using Shadcn/UI and React Hook Form.
-- [ ] T1.4.8 Connect the existing `SearchBar` to the `ScanForm` flow.
-- [ ] T1.4.9 Implement the "Early Access" whitelist gate UI.
-- [ ] T1.4.10 **Testing**: Write backend API tests (`pytest`) and frontend component tests (`vitest`).
+- [x] T1.4.1 Create FastAPI search endpoints (`/api/v1/search`) using existing logic.
+- [x] T1.4.2 Create scan management endpoints (`POST /api/v1/scans`, `GET /api/v1/scans`).
+- [x] T1.4.3 Refactor existing React frontend to support toggleable Auth0 authentication.
+- [x] T1.4.4 Implement "Local-Only" auth mode (bypass Auth0 if disabled in `.env`).
+- [x] T1.4.5 Setup automated OpenAPI TypeScript client generation and TanStack Query.
+- [x] T1.4.6 Implement the `Dashboard` page (`/dashboard`) for scan management.
+- [x] T1.4.7 Build the `ScanForm` component using Shadcn/UI and React Hook Form.
+- [x] T1.4.8 Connect the existing `SearchBar` to the `ScanForm` flow.
+- [x] T1.4.9 Implement the "Early Access" whitelist gate UI.
+- [x] T1.4.10 **Testing**: Write backend API tests (`pytest`) and frontend component tests (`vitest`).
 
 ### 1.5 Governance & Licensing
 

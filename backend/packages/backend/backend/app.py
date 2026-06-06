@@ -2,16 +2,45 @@
 camply-backend FastAPI Application
 """
 
+import structlog
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 
 from backend.__about__ import __application__, __version__
+from backend.config import backend_config
 from backend.routers.campgrounds import campground_router
 from backend.routers.health import health_router
+from backend.routers.me import me_router, provider_list_router
 from backend.routers.providers import provider_router
 from backend.routers.recreation_areas import recreation_area_router
+from backend.routers.scans import scan_router
 from backend.routers.search import search_router
+
+logger = structlog.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Sentry initialisation
+# ---------------------------------------------------------------------------
+if backend_config.sentry_dsn:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.starlette import StarletteIntegration
+
+    sentry_sdk.init(
+        dsn=backend_config.sentry_dsn,
+        traces_sample_rate=backend_config.sentry_traces_sample_rate,
+        integrations=[
+            StarletteIntegration(),
+            FastApiIntegration(),
+        ],
+        environment=backend_config.environment,
+    )
+    logger.info("Sentry initialized for FastAPI backend")
+
+# ---------------------------------------------------------------------------
+# FastAPI application
+# ---------------------------------------------------------------------------
 
 app = FastAPI(
     title=__application__,
@@ -39,6 +68,9 @@ API_ROUTERS: list[APIRouter] = [
     campground_router,
     recreation_area_router,
     provider_router,
+    scan_router,
+    me_router,
+    provider_list_router,
 ]
 
 for router in API_ROUTERS:

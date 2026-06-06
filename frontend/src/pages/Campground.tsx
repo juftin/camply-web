@@ -6,6 +6,7 @@ import {
   ExternalLink,
   ChevronLeft,
   ChevronRight,
+  Bell,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -15,9 +16,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/SearchBar";
 import { MapComponent } from "@/components/MapComponent";
 import { CollapsibleDescription } from "@/components/CollapsibleDescription";
+import { ScanForm } from "@/components/ScanForm";
 import {
   getCampground,
   getProvider,
@@ -113,40 +116,65 @@ export function Campground() {
 
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <div className="flex items-center space-x-3 mb-6">
-            <Tent className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-3xl font-bold">
-                {toTitleCase(campground.name)}
-              </h1>
-              <p className="text-muted-foreground flex items-center space-x-2">
-                <span>Provided by {toTitleCase(provider.name)}</span>
-                {provider.url && (
-                  <a
-                    href={campground.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1 text-primary hover:underline"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center space-x-3">
+              <Tent className="h-8 w-8 text-primary shrink-0" />
+              <div>
+                <h1 className="text-3xl font-bold">
+                  {toTitleCase(campground.name)}
+                </h1>
+                <p className="text-muted-foreground flex items-center space-x-2">
+                  <span>Provided by {toTitleCase(provider.name)}</span>
+                  {provider.url && (
+                    <a
+                      href={campground.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center space-x-1 text-primary hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </p>
+                {recreationArea && (
+                  <div className="mt-2">
+                    <button
+                      onClick={() =>
+                        navigate(`/rec-area/${providerId}/${recreationArea.id}`)
+                      }
+                      className="inline-flex items-center space-x-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <ChevronLeft className="h-3 w-3" />
+                      <Mountain className="h-3 w-3" />
+                      <span>{toTitleCase(recreationArea.name)}</span>
+                    </button>
+                  </div>
                 )}
-              </p>
-              {recreationArea && (
-                <div className="mt-2">
-                  <button
-                    onClick={() =>
-                      navigate(`/rec-area/${providerId}/${recreationArea.id}`)
-                    }
-                    className="inline-flex items-center space-x-1 text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    <ChevronLeft className="h-3 w-3" />
-                    <Mountain className="h-3 w-3" />
-                    <span>{toTitleCase(recreationArea.name)}</span>
-                  </button>
-                </div>
-              )}
+              </div>
             </div>
+            <ScanForm
+              preselectedCampground={{
+                id: campground.id,
+                provider_id: provider.id,
+                recreation_area_id: campground.recreation_area_id,
+                name: campground.name,
+                description: campground.description,
+                country: campground.country,
+                state: campground.state,
+                longitude: campground.longitude,
+                latitude: campground.latitude,
+                reservable: campground.reservable,
+                enabled: campground.enabled,
+                url: campground.url,
+              }}
+              preselectedProviderId={provider.id}
+              trigger={
+                <Button size="default" className="shrink-0">
+                  <Bell className="h-4 w-4 mr-1.5" />
+                  Monitor
+                </Button>
+              }
+            />
           </div>
         </div>
 
@@ -234,7 +262,7 @@ export function Campground() {
                 <CardContent>
                   <div className="space-y-3">
                     {otherCampgrounds
-                      .filter((c) => c.id !== campgroundId) // Exclude current campground
+                      .filter((c) => c.id !== campgroundId)
                       .map((otherCampground) => (
                         <div
                           key={otherCampground.id}

@@ -1,8 +1,9 @@
 import * as React from "react";
-import { Menu, X, TentTree } from "lucide-react";
+import { Menu, X, TentTree, LayoutDashboard } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuth } from "@/hooks/useAuth";
 
 interface HeaderProps {
   showLogo?: boolean;
@@ -11,13 +12,15 @@ interface HeaderProps {
 export function Header({ showLogo = true }: HeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, isEarlyAccess } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = React.useState(true);
   const [lastScrollY, setLastScrollY] = React.useState(0);
 
+  const isAuthenticated = user !== null;
+
   const handleAuthNavigation = (mode?: "signup") => {
     if (location.pathname === "/auth") {
-      // Already on auth page, just update the URL
       const searchParams = new URLSearchParams(location.search);
       if (mode === "signup") {
         searchParams.set("mode", "signup");
@@ -29,7 +32,6 @@ export function Header({ showLogo = true }: HeaderProps) {
         replace: true,
       });
     } else {
-      // Navigate to auth page
       navigate(mode === "signup" ? "/auth?mode=signup" : "/auth");
     }
   };
@@ -43,7 +45,6 @@ export function Header({ showLogo = true }: HeaderProps) {
         }, 100);
       }
     } else {
-      // Scroll to top when navigating to new pages (no hash)
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [location]);
@@ -51,34 +52,24 @@ export function Header({ showLogo = true }: HeaderProps) {
   React.useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-
-      // Only apply auto-hide behavior on mobile when menu is not open
       if (window.innerWidth < 768 && !isMobileMenuOpen) {
         if (currentScrollY > lastScrollY && currentScrollY > 100) {
-          // Scrolling down and past threshold - hide header
           setIsHeaderVisible(false);
         } else if (currentScrollY < lastScrollY) {
-          // Scrolling up - show header
           setIsHeaderVisible(true);
         }
       } else {
-        // Always show header on desktop
         setIsHeaderVisible(true);
       }
-
       setLastScrollY(currentScrollY);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY, isMobileMenuOpen]);
 
   return (
     <>
-      {/* Header */}
       <header
         className={`sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 ${isHeaderVisible ? "translate-y-0" : "-translate-y-full"}`}
       >
@@ -93,7 +84,6 @@ export function Header({ showLogo = true }: HeaderProps) {
               </Link>
             )}
           </div>
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-6">
             <Link
               to="/providers"
@@ -127,9 +117,19 @@ export function Header({ showLogo = true }: HeaderProps) {
             >
               Contribute
             </Link>
+            {isAuthenticated && isEarlyAccess && (
+              <Link
+                to="/dashboard"
+                className={`flex items-center gap-1 text-muted-foreground hover:text-foreground ${
+                  location.pathname === "/dashboard" ? "text-foreground" : ""
+                }`}
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </Link>
+            )}
           </nav>
 
-          {/* Mobile Navigation Toggle */}
           <button
             className={`md:hidden p-2 ${!showLogo ? "absolute right-4" : ""}`}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -145,17 +145,31 @@ export function Header({ showLogo = true }: HeaderProps) {
             className={`hidden md:flex items-center space-x-2 ${!showLogo ? "absolute right-4" : ""}`}
           >
             <ThemeToggle />
-            <Button variant="outline" onClick={() => handleAuthNavigation()}>
-              Sign In
-            </Button>
-            <Button onClick={() => handleAuthNavigation("signup")}>
-              Sign Up
-            </Button>
+            {isAuthenticated && isEarlyAccess ? (
+              <Button
+                variant="outline"
+                onClick={() => navigate("/dashboard")}
+              >
+                <LayoutDashboard className="h-4 w-4 mr-1" />
+                Dashboard
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => handleAuthNavigation()}
+                >
+                  Sign In
+                </Button>
+                <Button onClick={() => handleAuthNavigation("signup")}>
+                  Sign Up
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Mobile Navigation Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden sticky top-[73px] z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <nav className="container mx-auto px-4 py-4 space-y-4">
@@ -195,28 +209,54 @@ export function Header({ showLogo = true }: HeaderProps) {
             >
               Contribute
             </Link>
+            {isAuthenticated && isEarlyAccess && (
+              <Link
+                to="/dashboard"
+                className={`block text-muted-foreground hover:text-foreground ${
+                  location.pathname === "/dashboard" ? "text-foreground" : ""
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <LayoutDashboard className="h-4 w-4 inline mr-1" />
+                Dashboard
+              </Link>
+            )}
             <div className="pt-4 border-t space-y-3">
               <div className="flex items-center justify-between">
                 <ThemeToggle />
               </div>
               <div className="flex flex-col space-y-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    handleAuthNavigation();
-                  }}
-                >
-                  Sign In
-                </Button>
-                <Button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    handleAuthNavigation("signup");
-                  }}
-                >
-                  Sign Up
-                </Button>
+                {isAuthenticated && isEarlyAccess ? (
+                  <Button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigate("/dashboard");
+                    }}
+                  >
+                    <LayoutDashboard className="h-4 w-4 mr-1" />
+                    Dashboard
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        handleAuthNavigation();
+                      }}
+                    >
+                      Sign In
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        handleAuthNavigation("signup");
+                      }}
+                    >
+                      Sign Up
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </nav>
