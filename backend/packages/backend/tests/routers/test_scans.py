@@ -282,6 +282,7 @@ class TestDeleteScan:
 
         response = test_client.delete(f"{API_SCANS}/{scan_id}")
         assert response.status_code == 204
+        assert response.content == b""  # 204 must have no body
 
         get_resp = test_client.get(f"{API_SCANS}/{scan_id}")
         assert get_resp.status_code == 404
@@ -321,3 +322,46 @@ class TestMe:
         data = response.json()
         assert data["email"] == "admin@camply.local"
         assert data["is_early_access_user"] is True
+
+
+class TestEarlyAccess:
+    """Tests for the early-access whitelist gate."""
+
+    def test_create_scan_requires_early_access(
+        self, test_client: TestClient
+    ) -> None:
+        """A user without early access should get 403 ERR_EARLY_ACCESS_REQUIRED."""
+
+        from backend.app import app as camply_app
+        from backend.auth import CurrentUser, resolve_current_user
+
+        non_early_user = CurrentUser(
+            id=uuid.uuid4(),
+            email="not-whitelisted@test.com",
+            is_early_access_user=False,
+            pushover_token=None,
+        )
+        camply_app.dependency_overrides[resolve_current_user] = (
+            lambda: non_early_user
+        )
+
+        try:
+            response = test_client.post(
+                API_SCANS,
+                json={
+                    "provider_id": 1,
+                    "campground_id": "cg-lower-pines",
+                    "start_date": "2026-07-01",
+                    "end_date": "2026-07-05",
+                },
+            )
+            assert response.status_code == 403, response.text
+            error_detail = response.json().get("detail", {})
+            if isinstance(error_detail, dict):
+                assert error_detail.get("error") == "ERR_EARLY_ACCESS_REQUIRED"
+            else:
+                # string variant
+                assert "ERR_EARLY_ACCESS_REQUIRED" in str(error_detail)
+        finally:
+            # Restore original dependency
+            camply_app.dependency_overrides.pop(resolve_current_user, None)

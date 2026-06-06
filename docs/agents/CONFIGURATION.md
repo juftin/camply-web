@@ -4,34 +4,50 @@ This document defines all environment variables used by the `camply` monorepo. A
 
 ## ⚙️ Core Configuration
 
+All backend environment variables are prefixed with ``CAMPLY_`` to avoid conflicts.
+They are defined in ``backend/packages/backend/backend/config.py`` via ``pydantic-settings``.
+
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ENVIRONMENT` | Deployment stage (`local`, `development`, `production`) | `local` |
-| `DEBUG` | Enable debug logs and FastAPI docs | `true` |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql+psycopg://camply:camply@localhost:5432/camply` |
+| `CAMPLY_ENVIRONMENT` | Deployment stage (`local`, `development`, `production`) | `local` |
+| `CAMPLY_DEBUG` | Enable debug logs and FastAPI docs | `true` |
+| `CAMPLY_SENTRY_DSN` | Sentry DSN for error tracking | `None` (disabled) |
+| `CAMPLY_SENTRY_TRACES_SAMPLE_RATE` | Sentry traces sample rate | `0.0` |
+| `CAMPLY_AUTH_MODE` | Authentication mode (`local` or `auth0`) | `local` |
+| `CAMPLY_ADMIN_EMAIL` | Admin email for local mode (auto-whitelisted) | `admin@camply.local` |
+| `CAMPLY_AUTH0_DOMAIN` | Auth0 tenant domain (e.g., `dev-xyz.us.auth0.com`) | `None` |
+| `CAMPLY_AUTH0_AUDIENCE` | Auth0 API Audience/Identifier | `None` |
+| `CAMPLY_AUTH0_CLIENT_ID` | Auth0 frontend Client ID | `None` |
+
+Database config uses ``CAMPLY_DB_`` prefix (defined in ``backend/packages/db/db/config.py``):
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CAMPLY_DB_DRIVERNAME` | Database driver | `sqlite+aiosqlite` |
+| `CAMPLY_DB_USERNAME` | Database username | `camply` |
+| `CAMPLY_DB_HOST` | Database host/path | `~/.local/share/camply/camply.db` |
+| `CAMPLY_DB_DATABASE` | Database name | `camply` |
+
+Valkey/Celery config:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
 | `VALKEY_URL` | Valkey connection string for Celery | `redis://localhost:6379/0` |
 
 ---
 
 ## 🔒 Authentication (Toggleable)
 
-`camply` supports two authentication modes.
+`camply` supports two authentication modes, controlled by ``CAMPLY_AUTH_MODE``.
+See ``backend/packages/backend/backend/auth.py`` for implementation details.
 
-### 1. Auth0 Mode (Community/SaaS)
-Enabled when `AUTH_MODE=auth0`.
-| Variable | Description |
-|----------|-------------|
-| `AUTH_MODE` | Set to `auth0` to enable external identity provider. |
-| `AUTH0_DOMAIN` | Your Auth0 tenant domain (e.g., `dev-xyz.us.auth0.com`). |
-| `AUTH0_AUDIENCE` | The API Identifier configured in Auth0. |
-| `AUTH0_CLIENT_ID` | The Frontend Application Client ID. |
+### 1. Local-Only Mode (Private Self-Hosting — default)
+Uses ``CAMPLY_ADMIN_EMAIL`` to auto-create an admin user on first access.
+No external identity provider needed.
 
-### 2. Local-Only Mode (Private Self-Hosting)
-Enabled when `AUTH_MODE=local`.
-| Variable | Description |
-|----------|-------------|
-| `AUTH_MODE` | Set to `local` to bypass external auth. |
-| `ADMIN_EMAIL` | The email address that will automatically be whitelisted. |
+### 2. Auth0 Mode (Community/SaaS)
+Set ``CAMPLY_AUTH_MODE=auth0`` to enable Auth0 JWT validation.
+Requires ``CAMPLY_AUTH0_DOMAIN`` and ``CAMPLY_AUTH0_AUDIENCE``.
 
 ---
 
