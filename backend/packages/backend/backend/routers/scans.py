@@ -142,14 +142,30 @@ async def list_scans(
     result = await session.execute(query)
     scans = result.unique().scalars().all()
 
-    # Gather campground/rec-area names and result counts
+    # Batch-load all referenced campgrounds to avoid N+1 queries.
+    cg_ids = {scan.target.campground_id for scan in scans}
+    campground_map: dict[tuple[int, str], CampgroundDB] = {}
+    if cg_ids:
+        cg_result = await session.execute(
+            select(CampgroundDB)
+            .options(joinedload(CampgroundDB.recreation_area))
+            .where(CampgroundDB.id.in_(cg_ids))
+        )
+        for cg_row in cg_result.unique().scalars().all():
+            campground_map[(cg_row.provider_id, cg_row.id)] = cg_row
+
+    # Gather names and result counts
     response_items: list[ScanResponse] = []
     for scan in scans:
-        cg = await _lookup_campground(
-            session, scan.target.provider_id, scan.target.campground_id
+        cg_record = campground_map.get(
+            (scan.target.provider_id, scan.target.campground_id)
         )
-        cg_name = cg.name if cg else ""
-        ra_name = cg.recreation_area.name if cg and cg.recreation_area else ""
+        cg_name = cg_record.name if cg_record else ""
+        ra_name = (
+            cg_record.recreation_area.name
+            if cg_record and cg_record.recreation_area
+            else ""
+        )
 
         # Count unique campsite IDs found in the latest scan_results
         found = (
