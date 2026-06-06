@@ -24,9 +24,6 @@ class WorkerConfig(BaseSettings):
     sentry_dsn: Optional[str] = None
     sentry_traces_sample_rate: float = 0.0
 
-    # Pushover
-    pushover_app_token: Optional[str] = None
-
     # Deployment
     environment: str = "local"
 

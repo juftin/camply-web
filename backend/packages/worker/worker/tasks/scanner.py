@@ -309,3 +309,7 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
             await lock.release(key=lock_key)
         except Exception:
             pass
+        try:
+            await lock.close()
+        except Exception:
+            pass
