@@ -1,0 +1,168 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+---
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Backend ──────────────────────────────────────────────────────────────
+
+  backend-lint:
+    name: Backend Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-suffix: backend
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: uv sync --all-packages
+      - name: Check formatting
+        run: uv run ruff format --check .
+      - name: Run ruff
+        run: uv run ruff check .
+
+  backend-typecheck:
+    name: Backend Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-suffix: backend
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: uv sync --all-packages
+      - name: Run mypy
+        run: uv run mypy --ignore-missing-imports packages
+
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-suffix: backend
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: uv sync --all-packages
+      - name: Run pytest
+        run: uv run pytest -v
+
+  backend-docker:
+    name: Backend Docker Build
+    runs-on: ubuntu-latest
+    needs: [backend-lint, backend-typecheck, backend-test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          tags: juftin/camply-backend:ci-${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+  # ── Frontend ─────────────────────────────────────────────────────────────
+
+  frontend-lint:
+    name: Frontend Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: ./frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run eslint
+        run: npm run lint
+
+  frontend-typecheck:
+    name: Frontend Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: ./frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tsc
+        run: npm run typecheck
+
+  frontend-test:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: ./frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run vitest
+        run: npm run test:run
+
+  frontend-docker:
+    name: Frontend Docker Build
+    runs-on: ubuntu-latest
+    needs: [frontend-lint, frontend-typecheck, frontend-test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: false
+          tags: juftin/camply-frontend:ci-${{ github.sha }}
+          build-args: |
+            CAMPLY_API_URL=
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
