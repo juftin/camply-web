@@ -59,6 +59,10 @@ export interface MeResponse {
   pushover_token: string | null;
 }
 
+export interface MeUpdateRequest {
+  pushover_token?: string | null;
+}
+
 // ---- Scans ----
 
 export interface ScanCreateRequest {

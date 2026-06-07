@@ -54,7 +54,7 @@ async def update_me(
             detail="User not found",
         )
 
-    user.pushover_token = body.pushover_token
+    user.pushover_token = body.pushover_token or None
 
     await session.commit()
     await session.refresh(user)

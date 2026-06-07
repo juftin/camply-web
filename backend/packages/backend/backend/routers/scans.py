@@ -23,7 +23,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from backend.auth import CurrentUserDep
+from backend.auth import CurrentUserDep, require_early_access
 from backend.dependencies import SessionDep
 from backend.schemas import (
     ScanCreateRequest,
@@ -44,23 +44,6 @@ from db.models import (
 )
 
 logger = structlog.getLogger(__name__)
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def require_early_access(current_user: CurrentUserDep) -> None:
-    """Raise 403 if the user is not whitelisted."""
-    if not current_user.is_early_access_user:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "error": "ERR_EARLY_ACCESS_REQUIRED",
-                "message": "Early access is required. Please request access.",
-            },
-        )
 
 
 scan_router = APIRouter(

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactElement, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -15,7 +15,16 @@ function renderWithProviders(ui: ReactElement) {
   );
 }
 
-// Mock the useAuth hook
+vi.mock("@/lib/api", () => ({
+  fetchAuthConfig: vi.fn().mockResolvedValue({
+    auth_mode: "local",
+    auth0_domain: null,
+    auth0_client_id: null,
+  }),
+  setAccessTokenProvider: vi.fn(),
+  getApiErrorMessage: vi.fn().mockReturnValue(""),
+}));
+
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({
     user: null,
@@ -26,24 +35,29 @@ vi.mock("@/hooks/useAuth", () => ({
     refresh: vi.fn(),
     updatePushoverToken: vi.fn(),
     signOut: vi.fn(),
+    login: vi.fn(),
+    authMode: "local" as const,
   }),
   AuthProvider: ({ children }: { children: ReactNode }) => children,
+  AuthModeContext: { Provider: ({ children }: { children: ReactNode }) => children },
 }));
 
 describe("App", () => {
-  it("renders the navigation header", () => {
+  it("renders the navigation header", async () => {
     renderWithProviders(<App />);
-    // The heading should contain "camply"
-    const heading = screen.getByRole("heading", { level: 1 });
-    expect(heading).toBeInTheDocument();
+    await waitFor(() => {
+      const heading = screen.getByRole("heading", { level: 1 });
+      expect(heading).toBeInTheDocument();
+    });
   });
 
-  it("renders the home page search area", () => {
+  it("renders the home page search area", async () => {
     renderWithProviders(<App />);
-    // The search input should be present on the home page
-    const searchInput = screen.queryByPlaceholderText(/search/i);
-    const searchButton = screen.queryByRole("button", { name: /search/i });
-    expect(searchInput || searchButton).toBeTruthy();
+    await waitFor(() => {
+      const searchInput = screen.queryByPlaceholderText(/search/i);
+      const searchButton = screen.queryByRole("button", { name: /search/i });
+      expect(searchInput || searchButton).toBeTruthy();
+    });
   });
 
   it("renders without crashing", () => {

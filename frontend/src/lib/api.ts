@@ -5,6 +5,7 @@ import type {
   Provider,
   Campground,
   MeResponse,
+  MeUpdateRequest,
   ScanCreateRequest,
   ScanListResponse,
   ScanDetailResponse,
@@ -26,6 +27,30 @@ const api = axios.create({
   },
 });
 
+// ---------------------------------------------------------------------------
+// Auth token interceptor
+// ---------------------------------------------------------------------------
+
+let _getAccessToken: (() => Promise<string | null>) | null = null;
+
+export function setAccessTokenProvider(fn: () => Promise<string | null>): void {
+  _getAccessToken = fn;
+}
+
+api.interceptors.request.use(async (config) => {
+  if (_getAccessToken) {
+    try {
+      const token = await _getAccessToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch {
+      // Silently skip — token retrieval may fail if not authenticated
+    }
+  }
+  return config;
+});
+
 // Simple error helper
 export function getApiErrorMessage(error: unknown): string {
   if (error instanceof AxiosError && error.response?.data) {
@@ -35,6 +60,21 @@ export function getApiErrorMessage(error: unknown): string {
   }
   if (error instanceof Error) return error.message;
   return "An unexpected error occurred";
+}
+
+// ---------------------------------------------------------------------------
+// Auth config
+// ---------------------------------------------------------------------------
+
+export interface AuthConfig {
+  auth_mode: "local" | "auth0";
+  auth0_domain: string | null;
+  auth0_client_id: string | null;
+}
+
+export async function fetchAuthConfig(): Promise<AuthConfig> {
+  const response = await api.get<AuthConfig>("/auth-config");
+  return response.data;
 }
 
 // ---------------------------------------------------------------------------
@@ -95,14 +135,30 @@ export async function listProviders(): Promise<Provider[]> {
 // Auth / Profile
 // ---------------------------------------------------------------------------
 
+export interface AccessRequestPayload {
+  email: string;
+  name?: string | null;
+}
+
+export interface AccessRequestResponse {
+  message: string;
+}
+
+export async function submitAccessRequest(
+  payload: AccessRequestPayload,
+): Promise<AccessRequestResponse> {
+  const response = await api.post<AccessRequestResponse>("/request-access", payload);
+  return response.data;
+}
+
 export async function getMe(): Promise<MeResponse> {
   const response = await api.get<MeResponse>("/me");
   return response.data;
 }
 
-export async function updateMe(payload: {
-  pushover_token?: string | null;
-}): Promise<MeResponse> {
+export async function updateMe(
+  payload: MeUpdateRequest,
+): Promise<MeResponse> {
   const response = await api.patch<MeResponse>("/me", payload);
   return response.data;
 }

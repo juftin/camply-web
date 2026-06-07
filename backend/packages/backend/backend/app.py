@@ -9,6 +9,8 @@ from fastapi.responses import ORJSONResponse
 
 from backend.__about__ import __application__, __version__
 from backend.config import backend_config
+from backend.routers.access import access_router
+from backend.routers.auth_config import auth_config_router
 from backend.routers.campgrounds import campground_router
 from backend.routers.health import health_router
 from backend.routers.me import me_router
@@ -64,6 +66,8 @@ app.add_middleware(
 
 API_ROUTERS: list[APIRouter] = [
     health_router,
+    auth_config_router,
+    access_router,
     search_router,
     campground_router,
     recreation_area_router,
