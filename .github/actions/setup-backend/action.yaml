@@ -13,8 +13,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
     - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
       with:
         enable-cache: true
@@ -26,5 +24,4 @@ runs:
 
     - name: Install backend dependencies
       shell: bash
-      working-directory: ./backend
       run: uv sync --all-packages

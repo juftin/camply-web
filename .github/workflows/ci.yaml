@@ -2,6 +2,10 @@
 ---
 name: CI
 
+permissions:
+  contents: read
+  actions: write
+
 on:
   push:
     branches: [main]
@@ -10,7 +14,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -19,10 +23,12 @@ jobs:
   backend-checks:
     name: Backend ${{ matrix.name }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: ./backend
     strategy:
+      fail-fast: false
       matrix:
         include:
           - name: Lint
@@ -30,10 +36,11 @@ jobs:
               uv run ruff format --check .
               uv run ruff check .
           - name: Type Check
-            cmd: uv run mypy --ignore-missing-imports packages
+            cmd: uv run mypy packages
           - name: Tests
             cmd: uv run pytest -v
     steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-backend
       - name: ${{ matrix.name }}
         run: ${{ matrix.cmd }}
@@ -42,6 +49,7 @@ jobs:
     name: Backend Docker Build
     needs: [backend-checks]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
@@ -59,10 +67,12 @@ jobs:
   frontend-checks:
     name: Frontend ${{ matrix.name }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: ./frontend
     strategy:
+      fail-fast: false
       matrix:
         include:
           - name: Lint
@@ -72,6 +82,7 @@ jobs:
           - name: Tests
             cmd: npm run test:run
     steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-frontend
       - name: ${{ matrix.name }}
         run: ${{ matrix.cmd }}
@@ -80,6 +91,7 @@ jobs:
     name: Frontend Docker Build
     needs: [frontend-checks]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
@@ -89,7 +101,6 @@ jobs:
           context: ./frontend
           push: false
           tags: juftin/camply-frontend:ci-${{ github.sha }}
-          build-args: |
-            CAMPLY_API_URL=
+          build-args: CAMPLY_API_URL=
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
