@@ -3,7 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
-import { type ReactElement, type ReactNode } from "react";
+import { type ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { Profile } from "./Profile";
 
@@ -65,6 +65,8 @@ describe("Profile", () => {
 
   it("renders the sign out section", () => {
     renderWithProviders(<Profile />);
-    expect(screen.getByText("Sign Out")).toBeInTheDocument();
+    // "Sign Out" appears in both the card title and button text
+    const signOutElements = screen.getAllByText("Sign Out");
+    expect(signOutElements.length).toBeGreaterThanOrEqual(2);
   });
 });

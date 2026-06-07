@@ -5,7 +5,7 @@ import {
   listScans,
   createScan,
   getScan,
-  updateScan,
+  updateScanApi,
   deleteScan,
   getApiErrorMessage,
 } from "@/lib/api";
@@ -73,7 +73,7 @@ export function useUpdateScan() {
     Error,
     { scanId: string; payload: ScanUpdateRequest }
   >({
-    mutationFn: ({ scanId, payload }) => updateScan(scanId, payload),
+    mutationFn: ({ scanId, payload }) => updateScanApi(scanId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scans"] });
     },

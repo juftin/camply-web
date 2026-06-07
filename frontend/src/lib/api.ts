@@ -29,21 +29,6 @@ const api = axios.create({
   },
 });
 
-// Inject Auth0 bearer token when available
-function getAccessToken(): string | null {
-  try {
-    // Dynamic import to avoid crash when @auth0/auth0-react isn't loaded
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const auth0Domain = import.meta.env.VITE_AUTH0_DOMAIN;
-    if (!auth0Domain) return null;
-    // @ts-expect-error — auth0 is available at runtime
-    const cache = (window as any).__auth0_cache__;
-    return cache?.accessToken ?? null;
-  } catch {
-    return null;
-  }
-}
-
 // Simple error helper
 export function getApiErrorMessage(error: unknown): string {
   if (error instanceof AxiosError && error.response?.data) {
