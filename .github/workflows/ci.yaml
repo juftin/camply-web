@@ -104,6 +104,21 @@ jobs:
       - name: ${{ matrix.name }}
         run: ${{ matrix.cmd }}
 
+  # When only backend files change, run a fast frontend type check to catch
+  # API contract drift between backend responses and frontend type definitions.
+  frontend-typecheck-cross:
+    name: Frontend Type Check (API contract)
+    needs: [changes]
+    if: ${{ needs.changes.outputs.backend == 'true' && needs.changes.outputs.frontend != 'true' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: ./.github/actions/setup-frontend
+      - name: Type Check
+        run: npm run typecheck
+
   frontend-docker:
     name: Frontend Docker Build
     needs: [changes, frontend-checks]
