@@ -11,13 +11,13 @@ from fastapi.responses import ORJSONResponse
 
 from backend.__about__ import __application__, __version__
 from backend.config import backend_config
+from backend.routers.access_request import access_request_router
 from backend.routers.campgrounds import campground_router
 from backend.routers.health import health_router
 from backend.routers.me import me_router
 from backend.routers.providers import provider_router
 from backend.routers.recreation_areas import recreation_area_router
 from backend.routers.scans import scan_router
-from backend.routers.access_request import access_request_router
 from backend.routers.search import search_router
 
 logger = structlog.getLogger(__name__)
