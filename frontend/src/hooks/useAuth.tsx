@@ -7,43 +7,46 @@ import {
   type ReactNode,
 } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getMe, updateMe, getApiErrorMessage } from "@/lib/api";
+import { useAuth0 } from "@auth0/auth0-react";
+import { getMe, updateMe, getApiErrorMessage, setAccessTokenProvider } from "@/lib/api";
 import type { MeResponse } from "@/lib/structs";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
+export type AuthMode = "local" | "auth0";
+
 export interface AuthState {
-  /** The current user profile, or ``null`` while loading. */
   user: MeResponse | null;
-  /** ``true`` while the initial auth check request is in flight. */
   isLoading: boolean;
-  /** Non-null if the auth check failed. */
   error: string | null;
-  /** Shorthand: is the user an early-access whitelisted user? */
   isEarlyAccess: boolean;
-  /** True when we've finished the initial load (user resolved or error). */
   isReady: boolean;
-  /** Refresh the user profile from the server. */
   refresh: () => Promise<void>;
-  /** Update the user's pushover token. */
   updatePushoverToken: (token: string | null) => Promise<void>;
-  /** Sign out (clear local state). */
   signOut: () => void;
+  login: () => void;
+  authMode: AuthMode;
 }
 
 // ---------------------------------------------------------------------------
-// Context
+// Auth mode context (set by App.tsx based on backend /api/auth-config)
 // ---------------------------------------------------------------------------
 
-const AuthContext = createContext<AuthState | null>(null);
+export const AuthModeContext = createContext<AuthMode>("local");
 
 // ---------------------------------------------------------------------------
-// Provider component
+// Internal context
 // ---------------------------------------------------------------------------
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export const AuthContext = createContext<AuthState | null>(null);
+
+// ---------------------------------------------------------------------------
+// Local-mode provider (no Auth0)
+// ---------------------------------------------------------------------------
+
+function LocalAuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [initialLoading, setInitialLoading] = useState(true);
   const [hasError, setHasError] = useState<string | null>(null);
@@ -60,19 +63,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Track initial loading state
   useEffect(() => {
-    if (!isLoading) {
-      setInitialLoading(false);
-    }
+    if (!isLoading) setInitialLoading(false);
   }, [isLoading]);
 
   useEffect(() => {
-    if (error) {
-      setHasError(getApiErrorMessage(error));
-    } else {
-      setHasError(null);
-    }
+    if (error) setHasError(getApiErrorMessage(error));
+    else setHasError(null);
   }, [error]);
 
   const pushoverMutation = useMutation({
@@ -109,9 +106,123 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh,
     updatePushoverToken,
     signOut,
+    login: () => {},
+    authMode: "local" as AuthMode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+// ---------------------------------------------------------------------------
+// Auth0-mode provider
+// ---------------------------------------------------------------------------
+
+function Auth0AuthProvider({ children }: { children: ReactNode }) {
+  const {
+    isAuthenticated,
+    isLoading: auth0Loading,
+    getAccessTokenSilently,
+    loginWithRedirect,
+    logout,
+  } = useAuth0();
+
+  const queryClient = useQueryClient();
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [hasError, setHasError] = useState<string | null>(null);
+
+  // Register the token provider so axios can attach Bearer tokens.
+  useEffect(() => {
+    setAccessTokenProvider(async () => {
+      if (!isAuthenticated) return null;
+      try {
+        return await getAccessTokenSilently();
+      } catch {
+        return null;
+      }
+    });
+  }, [isAuthenticated, getAccessTokenSilently]);
+
+  const {
+    data: user,
+    error,
+    isLoading: meLoading,
+    refetch,
+  } = useQuery<MeResponse>({
+    queryKey: ["me"],
+    queryFn: getMe,
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
+    enabled: isAuthenticated && !auth0Loading,
+  });
+
+  useEffect(() => {
+    if (!auth0Loading && (!isAuthenticated || !meLoading)) {
+      setInitialLoading(false);
+    }
+  }, [auth0Loading, isAuthenticated, meLoading]);
+
+  useEffect(() => {
+    if (error) setHasError(getApiErrorMessage(error));
+    else setHasError(null);
+  }, [error]);
+
+  const pushoverMutation = useMutation({
+    mutationFn: (token: string | null) => updateMe({ pushover_token: token }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+    },
+  });
+
+  const updatePushoverToken = useCallback(
+    async (token: string | null) => {
+      await pushoverMutation.mutateAsync(token);
+      await refetch();
+    },
+    [pushoverMutation, refetch],
+  );
+
+  const refresh = useCallback(async () => {
+    setHasError(null);
+    await refetch();
+  }, [refetch]);
+
+  const signOut = useCallback(() => {
+    queryClient.setQueryData(["me"], null);
+    setHasError(null);
+    logout({ logoutParams: { returnTo: window.location.origin } });
+  }, [queryClient, logout]);
+
+  const login = useCallback(() => {
+    loginWithRedirect();
+  }, [loginWithRedirect]);
+
+  const value: AuthState = {
+    user: user ?? null,
+    isLoading: initialLoading,
+    error: hasError,
+    isEarlyAccess: user?.is_early_access_user ?? false,
+    isReady: !initialLoading,
+    refresh,
+    updatePushoverToken,
+    signOut,
+    login,
+    authMode: "auth0" as AuthMode,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+// ---------------------------------------------------------------------------
+// Top-level provider — picks local or auth0 based on AuthModeContext
+// ---------------------------------------------------------------------------
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const mode = useContext(AuthModeContext);
+
+  if (mode === "auth0") {
+    return <Auth0AuthProvider>{children}</Auth0AuthProvider>;
+  }
+  return <LocalAuthProvider>{children}</LocalAuthProvider>;
 }
 
 // ---------------------------------------------------------------------------

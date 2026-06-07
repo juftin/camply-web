@@ -11,9 +11,11 @@ from __future__ import annotations
 import uuid
 from typing import Annotated, Optional
 
+import jwt
 import structlog
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jwt import PyJWKClient
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,21 +37,23 @@ bearer_scheme = HTTPBearer(auto_error=False)
 # ---------------------------------------------------------------------------
 
 _AUTH0_ALGORITHMS = ["RS256"]
+_jwks_client_cache: dict[str, PyJWKClient] = {}
+
+
+def _get_jwks_client() -> PyJWKClient:
+    """Return a cached module-level ``PyJWKClient`` for Auth0 JWKS fetching."""
+    domain = backend_config.auth0_domain
+    assert domain is not None, "auth0_domain must be configured in auth0 mode"
+    if domain not in _jwks_client_cache:
+        jwks_url = f"https://{domain}/.well-known/jwks.json"
+        _jwks_client_cache[domain] = PyJWKClient(jwks_url, cache_keys=True)
+    return _jwks_client_cache[domain]
 
 
 async def _verify_auth0_token(token: str) -> dict:
-    """Validate an Auth0 RS256 JWT and return its payload.
-
-    Note: ``PyJWT``'s ``PyJWKClient`` would normally handle caching;
-    we keep a simple in-memory cache for clarity.
-    """
-    import jwt
-    from jwt import PyJWKClient
-
-    jwks_url = f"https://{backend_config.auth0_domain}/.well-known/jwks.json"
+    """Validate an Auth0 RS256 JWT and return its payload."""
     try:
-        jwks_client = PyJWKClient(jwks_url, cache_keys=True)
-        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        signing_key = _get_jwks_client().get_signing_key_from_jwt(token)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -173,6 +177,23 @@ async def resolve_current_user(
         is_early_access_user=auth0_user.is_early_access_user,
         pushover_token=auth0_user.pushover_token,
     )
+
+
+# ---------------------------------------------------------------------------
+# Early-access guard
+# ---------------------------------------------------------------------------
+
+
+def require_early_access(current_user: CurrentUserDep) -> None:
+    """Raise 403 if the authenticated user is not on the early-access whitelist."""
+    if not current_user.is_early_access_user:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "ERR_EARLY_ACCESS_REQUIRED",
+                "message": "Early access is required. Please request access.",
+            },
+        )
 
 
 # ---------------------------------------------------------------------------

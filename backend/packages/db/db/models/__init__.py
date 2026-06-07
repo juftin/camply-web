@@ -3,6 +3,7 @@
 Database Models
 """
 
+from .access_request import AccessRequest
 from .base import Base
 from .campgrounds import Campground
 from .providers import Provider
@@ -14,6 +15,7 @@ from .user_scans import UserScan
 from .users import User
 
 __all__ = [
+    "AccessRequest",
     "Base",
     "Campground",
     "Provider",

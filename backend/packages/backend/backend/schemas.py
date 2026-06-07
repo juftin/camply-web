@@ -46,6 +46,24 @@ class MeUpdateRequest(BaseModel):
 
 
 # ===========================================================================
+# Access Requests
+# ===========================================================================
+
+
+class AccessRequestCreate(BaseModel):
+    """Payload for ``POST /request-access``."""
+
+    email: str = Field(..., description="Email address requesting early access")
+    name: Optional[str] = Field(default=None, description="Optional name")
+
+
+class AccessRequestResponse(BaseModel):
+    """Response for a successful access request submission."""
+
+    message: str
+
+
+# ===========================================================================
 # Scans
 # ===========================================================================
 

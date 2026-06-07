@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Menu, X, TentTree, LayoutDashboard } from "lucide-react";
+import { Menu, X, TentTree, LayoutDashboard, User } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -118,15 +118,26 @@ export function Header({ showLogo = true }: HeaderProps) {
               Contribute
             </Link>
             {isAuthenticated && isEarlyAccess && (
-              <Link
-                to="/dashboard"
-                className={`flex items-center gap-1 text-muted-foreground hover:text-foreground ${
-                  location.pathname === "/dashboard" ? "text-foreground" : ""
-                }`}
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Dashboard
-              </Link>
+              <>
+                <Link
+                  to="/dashboard"
+                  className={`flex items-center gap-1 text-muted-foreground hover:text-foreground ${
+                    location.pathname === "/dashboard" ? "text-foreground" : ""
+                  }`}
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
+                </Link>
+                <Link
+                  to="/profile"
+                  className={`flex items-center gap-1 text-muted-foreground hover:text-foreground ${
+                    location.pathname === "/profile" ? "text-foreground" : ""
+                  }`}
+                >
+                  <User className="h-4 w-4" />
+                  Profile
+                </Link>
+              </>
             )}
           </nav>
 
@@ -146,13 +157,23 @@ export function Header({ showLogo = true }: HeaderProps) {
           >
             <ThemeToggle />
             {isAuthenticated && isEarlyAccess ? (
-              <Button
-                variant="outline"
-                onClick={() => navigate("/dashboard")}
-              >
-                <LayoutDashboard className="h-4 w-4 mr-1" />
-                Dashboard
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/dashboard")}
+                >
+                  <LayoutDashboard className="h-4 w-4 mr-1" />
+                  Dashboard
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate("/profile")}
+                  aria-label="Profile"
+                >
+                  <User className="h-4 w-4" />
+                </Button>
+              </>
             ) : (
               <>
                 <Button
@@ -210,16 +231,28 @@ export function Header({ showLogo = true }: HeaderProps) {
               Contribute
             </Link>
             {isAuthenticated && isEarlyAccess && (
-              <Link
-                to="/dashboard"
-                className={`block text-muted-foreground hover:text-foreground ${
-                  location.pathname === "/dashboard" ? "text-foreground" : ""
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <LayoutDashboard className="h-4 w-4 inline mr-1" />
-                Dashboard
-              </Link>
+              <>
+                <Link
+                  to="/dashboard"
+                  className={`block text-muted-foreground hover:text-foreground ${
+                    location.pathname === "/dashboard" ? "text-foreground" : ""
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <LayoutDashboard className="h-4 w-4 inline mr-1" />
+                  Dashboard
+                </Link>
+                <Link
+                  to="/profile"
+                  className={`block text-muted-foreground hover:text-foreground ${
+                    location.pathname === "/profile" ? "text-foreground" : ""
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <User className="h-4 w-4 inline mr-1" />
+                  Profile
+                </Link>
+              </>
             )}
             <div className="pt-4 border-t space-y-3">
               <div className="flex items-center justify-between">
@@ -227,15 +260,27 @@ export function Header({ showLogo = true }: HeaderProps) {
               </div>
               <div className="flex flex-col space-y-2">
                 {isAuthenticated && isEarlyAccess ? (
-                  <Button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      navigate("/dashboard");
-                    }}
-                  >
-                    <LayoutDashboard className="h-4 w-4 mr-1" />
-                    Dashboard
-                  </Button>
+                  <>
+                    <Button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        navigate("/dashboard");
+                      }}
+                    >
+                      <LayoutDashboard className="h-4 w-4 mr-1" />
+                      Dashboard
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        navigate("/profile");
+                      }}
+                    >
+                      <User className="h-4 w-4 mr-1" />
+                      Profile
+                    </Button>
+                  </>
                 ) : (
                   <>
                     <Button

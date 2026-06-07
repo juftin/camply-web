@@ -54,19 +54,19 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ---
 
-## 🛠️ Phase 2: Auth0 & Early Access
+## 🛠️ Phase 2: Auth0 & Early Access ✅
 
 ### 2.1 Authentication & Profile
 
 - [x] T2.1.1 Configure Auth0 backend integration (JWT validation).
-- [ ] T2.1.2 Implement `is_early_access_user` middleware for FastAPI.
-- [ ] T2.1.3 Configure Auth0 frontend integration (React SDK).
-- [ ] T2.1.4 Build the User Profile page for Pushover key management.
+- [x] T2.1.2 Implement `is_early_access_user` middleware for FastAPI.
+- [x] T2.1.3 Configure Auth0 frontend integration (React SDK).
+- [x] T2.1.4 Build the User Profile page for Pushover key management.
 
 ### 2.2 Access Control
 
-- [ ] T2.1.5 Build the "Early Access" gate/landing page for non-whitelisted users.
-- [ ] T2.1.6 Implement "Request Access" logic (simple email collection/notif).
+- [x] T2.1.5 Build the "Early Access" gate/landing page for non-whitelisted users.
+- [x] T2.1.6 Implement "Request Access" logic (simple email collection/notif).
 
 ---
 
