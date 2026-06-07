@@ -14,35 +14,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── Detect changed paths ────────────────────────────────────────────────
-  # Lets downstream jobs skip when nothing in their domain has changed.
-
-  changes:
-    runs-on: ubuntu-latest
-    outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
-        id: filter
-        with:
-          filters: |
-            backend:
-              - 'backend/**'
-              - '.github/workflows/ci.yaml'
-              - '.github/actions/setup-backend/**'
-            frontend:
-              - 'frontend/**'
-              - '.github/workflows/ci.yaml'
-              - '.github/actions/setup-frontend/**'
-
   # ── Backend ──────────────────────────────────────────────────────────────
 
   backend-checks:
     name: Backend ${{ matrix.name }}
-    needs: [changes]
-    if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -65,8 +40,7 @@ jobs:
 
   backend-docker:
     name: Backend Docker Build
-    needs: [changes, backend-checks]
-    if: ${{ needs.changes.outputs.backend == 'true' }}
+    needs: [backend-checks]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -84,8 +58,6 @@ jobs:
 
   frontend-checks:
     name: Frontend ${{ matrix.name }}
-    needs: [changes]
-    if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -104,25 +76,9 @@ jobs:
       - name: ${{ matrix.name }}
         run: ${{ matrix.cmd }}
 
-  # When only backend files change, run a fast frontend type check to catch
-  # API contract drift between backend responses and frontend type definitions.
-  frontend-typecheck-cross:
-    name: Frontend Type Check (API contract)
-    needs: [changes]
-    if: ${{ needs.changes.outputs.backend == 'true' && needs.changes.outputs.frontend != 'true' }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
-    steps:
-      - uses: ./.github/actions/setup-frontend
-      - name: Type Check
-        run: npm run typecheck
-
   frontend-docker:
     name: Frontend Docker Build
-    needs: [changes, frontend-checks]
-    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    needs: [frontend-checks]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
