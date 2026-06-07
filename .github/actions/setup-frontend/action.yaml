@@ -2,8 +2,8 @@
 ---
 name: Setup Frontend
 description: >-
-  Check out the repo, set up the requested Node version with npm caching, and
-  install frontend dependencies.
+  Install Task runner, set up Node.js with npm caching, and install frontend
+  dependencies.
 
 inputs:
   node-version:
@@ -13,15 +13,15 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Install task runner
+      shell: bash
+      run: sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d
+
     - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
       with:
         node-version: ${{ inputs.node-version }}
         cache: npm
         cache-dependency-path: ./frontend/package-lock.json
-
-    - name: Install task runner
-      shell: bash
-      run: npm install -g @go-task/cli
 
     - name: Install frontend dependencies
       shell: bash
