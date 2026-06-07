@@ -32,13 +32,11 @@ jobs:
       matrix:
         include:
           - name: Lint
-            cmd: |
-              uv run ruff format --check .
-              uv run ruff check .
+            cmd: task backend:lint
           - name: Type Check
-            cmd: uv run mypy packages
+            cmd: task backend:check
           - name: Tests
-            cmd: uv run pytest -v
+            cmd: task backend:test
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-backend
@@ -76,11 +74,11 @@ jobs:
       matrix:
         include:
           - name: Lint
-            cmd: npm run lint
+            cmd: task frontend:lint
           - name: Type Check
-            cmd: npm run typecheck
+            cmd: task frontend:check
           - name: Tests
-            cmd: npm run test:run
+            cmd: task frontend:test
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-frontend

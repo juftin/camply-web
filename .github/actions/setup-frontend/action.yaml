@@ -19,6 +19,10 @@ runs:
         cache: npm
         cache-dependency-path: ./frontend/package-lock.json
 
+    - name: Install task runner
+      shell: bash
+      run: npm install -g @go-task/cli
+
     - name: Install frontend dependencies
       shell: bash
       working-directory: ./frontend

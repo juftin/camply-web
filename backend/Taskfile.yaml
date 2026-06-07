@@ -28,10 +28,10 @@ tasks:
     deps: [sync]
 
   lint:
-    desc: Run Code Linters
+    desc: Run Code Linters (ruff format check + ruff check)
     cmds:
+      - uv run -- ruff format --check {{.CLI_ARGS | default "."}}
       - uv run -- ruff check {{.CLI_ARGS | default "."}}
-      - task: check
     deps: [sync]
 
   run:
