@@ -43,11 +43,7 @@ tasks:
   check:
     desc: Run Static Type Checkers
     cmds:
-      - |
-        uv run -- \
-        mypy \
-          --ignore-missing-imports \
-          {{.CLI_ARGS | default .SOURCE_CODE}}
+      - uv run -- mypy {{.CLI_ARGS | default .SOURCE_CODE}}
     deps: [sync]
 
   fmt:

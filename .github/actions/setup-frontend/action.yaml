@@ -15,7 +15,9 @@ runs:
   steps:
     - name: Install task runner
       shell: bash
-      run: sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d
+      run: |
+        curl -sL https://taskfile.dev/install.sh | sh -s -- -d -v 3.41.0
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
     - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
       with:
