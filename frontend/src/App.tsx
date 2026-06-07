@@ -3,6 +3,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { Home } from "@/pages/Home";
+import { Profile } from "@/pages/Profile";
 import { Providers } from "@/pages/Providers";
 import { Auth } from "@/pages/Auth";
 import { Dashboard } from "@/pages/Dashboard";
@@ -42,6 +43,7 @@ function App() {
                   <Route path="/how-it-works" element={<HowItWorks />} />
                   <Route path="/contribute" element={<Contribute />} />
                   <Route path="/faq" element={<FAQ />} />
+                  <Route path="/profile" element={<Profile />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/contact" element={<Contact />} />

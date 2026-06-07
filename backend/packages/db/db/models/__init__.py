@@ -11,9 +11,11 @@ from .scan_results import ScanResult
 from .search import Search
 from .unique_targets import UniqueTarget
 from .user_scans import UserScan
+from .access_request import AccessRequest
 from .users import User
 
 __all__ = [
+    "AccessRequest",
     "Base",
     "Campground",
     "Provider",

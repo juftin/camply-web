@@ -10,7 +10,7 @@ import datetime
 import uuid
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 # ===========================================================================
 # Providers
@@ -136,3 +136,22 @@ class SearchResultResponse(BaseModel):
     recreation_area_name: Optional[str] = None
     campground_id: Optional[str] = None
     campground_name: Optional[str] = None
+
+
+# ===========================================================================
+# Access Requests
+# ===========================================================================
+
+
+class AccessRequestCreate(BaseModel):
+    """Payload for requesting early access."""
+
+    email: EmailStr
+
+
+class AccessRequestResponse(BaseModel):
+    """Response returned after submitting an access request."""
+
+    id: uuid.UUID
+    email: str
+    created_at: datetime.datetime

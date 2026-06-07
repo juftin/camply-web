@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 import * as React from "react";
-import { Menu, X, TentTree, LayoutDashboard } from "lucide-react";
+import { Menu, X, TentTree, LayoutDashboard, User } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -130,6 +130,17 @@ export function Header({ showLogo = true }: HeaderProps) {
                 Dashboard
               </Link>
             )}
+            {isAuthenticated && (
+              <Link
+                to="/profile"
+                className={`flex items-center gap-1 text-muted-foreground hover:text-foreground ${
+                  location.pathname === "/profile" ? "text-foreground" : ""
+                }`}
+              >
+                <User className="h-4 w-4" />
+                Profile
+              </Link>
+            )}
           </nav>
 
           <button
@@ -221,6 +232,18 @@ export function Header({ showLogo = true }: HeaderProps) {
               >
                 <LayoutDashboard className="h-4 w-4 inline mr-1" />
                 Dashboard
+              </Link>
+            )}
+            {isAuthenticated && (
+              <Link
+                to="/profile"
+                className={`block text-muted-foreground hover:text-foreground ${
+                  location.pathname === "/profile" ? "text-foreground" : ""
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <User className="h-4 w-4 inline mr-1" />
+                Profile
               </Link>
             )}
             <div className="pt-4 border-t space-y-3">

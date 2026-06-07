@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
 
 import { useState, useEffect } from "react";
-import { TentTree, Mail, CheckCircle, ArrowLeft } from "lucide-react";
+import { TentTree, Mail, CheckCircle, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,19 +12,38 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import { requestAccess, getApiErrorMessage } from "@/lib/api";
 
 export function EarlyAccess() {
   const { user } = useAuth();
   const email = user?.email ?? "";
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Auto-submit since we already have the email.
+  // Submit the access request to the backend
   useEffect(() => {
-    if (!submitted) {
-      const timer = setTimeout(() => setSubmitted(true), 600);
-      return () => clearTimeout(timer);
+    if (!submitted && !submitting && email) {
+      setSubmitting(true);
+      requestAccess(email)
+        .then(() => {
+          setSubmitted(true);
+          setError(null);
+        })
+        .catch((err) => {
+          // 409 means already requested — treat as success
+          if (err?.response?.status === 409) {
+            setSubmitted(true);
+            setError(null);
+          } else {
+            setError(getApiErrorMessage(err));
+          }
+        })
+        .finally(() => {
+          setSubmitting(false);
+        });
     }
-  }, [submitted]);
+  }, [email, submitted, submitting]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
@@ -40,17 +59,31 @@ export function EarlyAccess() {
         <Card className="text-center">
           <CardHeader>
             <div className="mx-auto mb-2">
-              {submitted ? (
+              {submitting ? (
+                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+              ) : error ? (
+                <AlertCircle className="h-12 w-12 text-destructive" />
+              ) : submitted ? (
                 <CheckCircle className="h-12 w-12 text-green-500" />
               ) : (
                 <Mail className="h-12 w-12 text-primary" />
               )}
             </div>
             <CardTitle className="text-xl">
-              {submitted ? "You're on the List!" : "Early Access Required"}
+              {submitting
+                ? "Submitting Request..."
+                : error
+                  ? "Something went wrong"
+                  : submitted
+                    ? "You're on the List!"
+                    : "Early Access Required"}
             </CardTitle>
             <CardDescription className="text-sm mt-2">
-              {submitted ? (
+              {submitting ? (
+                <>Submitting your early access request for <strong>{email}</strong>...</>
+              ) : error ? (
+                <>{error}</>
+              ) : submitted ? (
                 <>
                   Thanks, <strong>{email}</strong>! We'll notify you when
                   early access becomes available.

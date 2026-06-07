@@ -112,6 +112,14 @@ export interface ScanDetailResponse extends ScanResponse {
   results: ScanResultItem[];
 }
 
+// ---- Access Requests ----
+
+export interface AccessRequestResponse {
+  id: string;
+  email: string;
+  created_at: string;
+}
+
 // ---- Error responses ----
 
 export interface ApiError {

@@ -28,8 +28,24 @@ vi.mock("@/hooks/useAuth", () => ({
     refresh: vi.fn(),
     updatePushoverToken: vi.fn(),
     signOut: vi.fn(),
+    isAuth0Mode: false,
+    loginWithAuth0: vi.fn(),
+    auth0IsLoading: false,
   }),
   AuthProvider: ({ children }: { children: ReactNode }) => children,
+}));
+
+// Mock the auth0-react module to avoid import errors
+vi.mock("@auth0/auth0-react", () => ({
+  useAuth0: () => ({
+    isAuthenticated: false,
+    isLoading: false,
+    user: null,
+    loginWithRedirect: vi.fn(),
+    logout: vi.fn(),
+    getAccessTokenSilently: vi.fn(),
+  }),
+  Auth0Provider: ({ children }: { children: ReactNode }) => children,
 }));
 
 describe("App", () => {

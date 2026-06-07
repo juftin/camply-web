@@ -17,6 +17,7 @@ from backend.routers.me import me_router
 from backend.routers.providers import provider_router
 from backend.routers.recreation_areas import recreation_area_router
 from backend.routers.scans import scan_router
+from backend.routers.access_request import access_request_router
 from backend.routers.search import search_router
 
 logger = structlog.getLogger(__name__)
@@ -72,6 +73,7 @@ API_ROUTERS: list[APIRouter] = [
     provider_router,
     scan_router,
     me_router,
+    access_request_router,
 ]
 
 for router in API_ROUTERS:

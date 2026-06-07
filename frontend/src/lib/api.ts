@@ -12,6 +12,7 @@ import type {
   ScanDetailResponse,
   ScanUpdateRequest,
   ScanResponse,
+  AccessRequestResponse,
 } from "@/lib/structs.ts";
 
 // ---------------------------------------------------------------------------
@@ -28,6 +29,21 @@ const api = axios.create({
   },
 });
 
+// Inject Auth0 bearer token when available
+function getAccessToken(): string | null {
+  try {
+    // Dynamic import to avoid crash when @auth0/auth0-react isn't loaded
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const auth0Domain = import.meta.env.VITE_AUTH0_DOMAIN;
+    if (!auth0Domain) return null;
+    // @ts-expect-error — auth0 is available at runtime
+    const cache = (window as any).__auth0_cache__;
+    return cache?.accessToken ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Simple error helper
 export function getApiErrorMessage(error: unknown): string {
   if (error instanceof AxiosError && error.response?.data) {
@@ -38,6 +54,30 @@ export function getApiErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   return "An unexpected error occurred";
 }
+
+// ---------------------------------------------------------------------------
+// Auth0 token interceptor
+// ---------------------------------------------------------------------------
+
+// Store a reference to the Auth0 getAccessTokenSilently function so the
+// API layer can refresh the token without depending on React context.
+let _getAuth0Token: (() => Promise<string | null>) | null = null;
+
+export function setAuth0TokenProvider(
+  provider: () => Promise<string | null>,
+): void {
+  _getAuth0Token = provider;
+}
+
+api.interceptors.request.use(async (config) => {
+  if (_getAuth0Token) {
+    const token = await _getAuth0Token();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
 
 // ---------------------------------------------------------------------------
 // Search & Metadata
@@ -110,6 +150,19 @@ export async function updateMe(payload: {
 }
 
 // ---------------------------------------------------------------------------
+// Access Requests
+// ---------------------------------------------------------------------------
+
+export async function requestAccess(
+  email: string,
+): Promise<AccessRequestResponse> {
+  const response = await api.post<AccessRequestResponse>("/request-access", {
+    email,
+  });
+  return response.data;
+}
+
+// ---------------------------------------------------------------------------
 // Scans
 // ---------------------------------------------------------------------------
 
@@ -127,14 +180,12 @@ export async function createScan(
   return response.data;
 }
 
-export async function getScan(
-  scanId: string,
-): Promise<ScanDetailResponse> {
+export async function getScan(scanId: string): Promise<ScanDetailResponse> {
   const response = await api.get<ScanDetailResponse>(`/scans/${scanId}`);
   return response.data;
 }
 
-export async function updateScan(
+export async function updateScanApi(
   scanId: string,
   payload: ScanUpdateRequest,
 ): Promise<ScanResponse> {
@@ -145,3 +196,5 @@ export async function updateScan(
 export async function deleteScan(scanId: string): Promise<void> {
   await api.delete(`/scans/${scanId}`);
 }
+
+export { api as axiosInstance };
