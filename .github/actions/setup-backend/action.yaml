@@ -16,7 +16,7 @@ runs:
     - name: Install task runner
       shell: bash
       run: |
-        curl -sL https://taskfile.dev/install.sh | sh -s -- -d v3.41.0
+        curl -sL https://taskfile.dev/install.sh | sh -s -- -d -b "$HOME/.local/bin" v3.41.0
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
     - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
