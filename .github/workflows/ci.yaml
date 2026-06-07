@@ -7,20 +7,55 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # ── Detect changed paths ────────────────────────────────────────────────
+  # Lets downstream jobs skip when nothing in their domain has changed.
+
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yaml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci.yaml'
+
   # ── Backend ──────────────────────────────────────────────────────────────
 
-  backend-lint:
-    name: Backend Lint
+  backend-checks:
+    name: Backend ${{ matrix.name }}
+    needs: [changes]
+    if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./backend
+    strategy:
+      matrix:
+        include:
+          - name: Lint
+            cmd: |
+              uv run ruff format --check .
+              uv run ruff check .
+          - name: Type Check
+            cmd: uv run mypy --ignore-missing-imports packages
+          - name: Tests
+            cmd: uv run pytest -v
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -32,55 +67,14 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: uv sync --all-packages
-      - name: Check formatting
-        run: uv run ruff format --check .
-      - name: Run ruff
-        run: uv run ruff check .
-
-  backend-typecheck:
-    name: Backend Type Check
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./backend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-suffix: backend
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install dependencies
-        run: uv sync --all-packages
-      - name: Run mypy
-        run: uv run mypy --ignore-missing-imports packages
-
-  backend-test:
-    name: Backend Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./backend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-suffix: backend
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install dependencies
-        run: uv sync --all-packages
-      - name: Run pytest
-        run: uv run pytest -v
+      - name: ${{ matrix.name }}
+        run: ${{ matrix.cmd }}
 
   backend-docker:
     name: Backend Docker Build
+    needs: [changes, backend-checks]
+    if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
-    needs: [backend-lint, backend-typecheck, backend-test]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -95,12 +89,23 @@ jobs:
 
   # ── Frontend ─────────────────────────────────────────────────────────────
 
-  frontend-lint:
-    name: Frontend Lint
+  frontend-checks:
+    name: Frontend ${{ matrix.name }}
+    needs: [changes]
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./frontend
+    strategy:
+      matrix:
+        include:
+          - name: Lint
+            cmd: npm run lint
+          - name: Type Check
+            cmd: npm run typecheck
+          - name: Tests
+            cmd: npm run test:run
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -110,49 +115,14 @@ jobs:
           cache-dependency-path: ./frontend/package-lock.json
       - name: Install dependencies
         run: npm ci
-      - name: Run eslint
-        run: npm run lint
-
-  frontend-typecheck:
-    name: Frontend Type Check
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: ./frontend/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-      - name: Run tsc
-        run: npm run typecheck
-
-  frontend-test:
-    name: Frontend Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: ./frontend/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-      - name: Run vitest
-        run: npm run test:run
+      - name: ${{ matrix.name }}
+        run: ${{ matrix.cmd }}
 
   frontend-docker:
     name: Frontend Docker Build
+    needs: [changes, frontend-checks]
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
-    needs: [frontend-lint, frontend-typecheck, frontend-test]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
