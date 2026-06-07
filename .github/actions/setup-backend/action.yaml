@@ -24,6 +24,8 @@ runs:
         enable-cache: true
         cache-suffix: backend
         python-version: ${{ inputs.python-version }}
+      env:
+        UV_PROJECT_ENVIRONMENT: /home/runner/work/camply-web/camply-web/.venv
 
     - name: Install backend dependencies
       shell: bash
