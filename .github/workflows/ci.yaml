@@ -1,0 +1,98 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+---
+name: CI
+
+permissions:
+  contents: read
+  actions: write
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Backend ──────────────────────────────────────────────────────────────
+
+  backend-checks:
+    name: Backend ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Lint
+            cmd: task backend:lint
+          - name: Type Check
+            cmd: task backend:check
+          - name: Tests
+            cmd: task backend:test
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: ./.github/actions/setup-backend
+      - name: ${{ matrix.name }}
+        run: ${{ matrix.cmd }}
+
+  backend-docker:
+    name: Backend Docker Build
+    needs: [backend-checks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build backend image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ./backend
+          push: false
+          tags: juftin/camply-backend:ci-${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+  # ── Frontend ─────────────────────────────────────────────────────────────
+
+  frontend-checks:
+    name: Frontend ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Lint
+            cmd: task frontend:lint
+          - name: Type Check
+            cmd: task frontend:check
+          - name: Tests
+            cmd: task frontend:test
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: ./.github/actions/setup-frontend
+      - name: ${{ matrix.name }}
+        run: ${{ matrix.cmd }}
+
+  frontend-docker:
+    name: Frontend Docker Build
+    needs: [frontend-checks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build frontend image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ./frontend
+          push: false
+          tags: juftin/camply-frontend:ci-${{ github.sha }}
+          build-args: CAMPLY_API_URL=
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend

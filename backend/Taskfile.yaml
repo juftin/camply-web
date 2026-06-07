@@ -28,10 +28,10 @@ tasks:
     deps: [sync]
 
   lint:
-    desc: Run Code Linters
+    desc: Run Code Linters (ruff format check + ruff check)
     cmds:
+      - uv run -- ruff format --check {{.CLI_ARGS | default "."}}
       - uv run -- ruff check {{.CLI_ARGS | default "."}}
-      - task: check
     deps: [sync]
 
   run:
@@ -43,11 +43,7 @@ tasks:
   check:
     desc: Run Static Type Checkers
     cmds:
-      - |
-        uv run -- \
-        mypy \
-          --ignore-missing-imports \
-          {{.CLI_ARGS | default .SOURCE_CODE}}
+      - uv run -- mypy {{.CLI_ARGS | default .SOURCE_CODE}}
     deps: [sync]
 
   fmt:

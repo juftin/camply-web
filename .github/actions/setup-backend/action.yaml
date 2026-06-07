@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+---
+name: Setup Backend
+description: >-
+  Install Task runner, set up uv and Python, and synchronise all workspace
+  packages.
+
+inputs:
+  python-version:
+    description: Python version to install
+    default: "3.12"
+
+runs:
+  using: composite
+  steps:
+    - name: Install task runner
+      shell: bash
+      run: |
+        curl -sL https://taskfile.dev/install.sh | sh -s -- -d -b "$HOME/.local/bin" v3.41.0
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+    - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+      with:
+        enable-cache: true
+        cache-suffix: backend
+        python-version: ${{ inputs.python-version }}
+      env:
+        UV_PROJECT_ENVIRONMENT: /home/runner/work/camply-web/camply-web/.venv
+
+    - name: Install backend dependencies
+      shell: bash
+      working-directory: ./backend
+      run: uv sync --all-packages

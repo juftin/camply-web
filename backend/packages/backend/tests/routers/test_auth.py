@@ -6,6 +6,7 @@ The default DB is an SQLite file configured by the environment.
 """
 
 import uuid
+from typing import Generator
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -45,7 +46,7 @@ def auth0_mode(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
-def mock_auth0_verify() -> dict:
+def mock_auth0_verify() -> Generator[dict, None, None]:
     """Mock ``_verify_auth0_token`` so tests don't need real Auth0 keys."""
     payload = _fake_auth0_payload()
     patcher = patch(

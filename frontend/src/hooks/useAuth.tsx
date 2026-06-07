@@ -34,12 +34,14 @@ export interface AuthState {
 // Auth mode context (set by App.tsx based on backend /api/auth-config)
 // ---------------------------------------------------------------------------
 
+/* eslint-disable-next-line react-refresh/only-export-components */
 export const AuthModeContext = createContext<AuthMode>("local");
 
 // ---------------------------------------------------------------------------
 // Internal context
 // ---------------------------------------------------------------------------
 
+/* eslint-disable-next-line react-refresh/only-export-components */
 export const AuthContext = createContext<AuthState | null>(null);
 
 // ---------------------------------------------------------------------------
@@ -229,6 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 // Hook
 // ---------------------------------------------------------------------------
 
+/* eslint-disable-next-line react-refresh/only-export-components */
 export function useAuth(): AuthState {
   const ctx = useContext(AuthContext);
   if (!ctx) {

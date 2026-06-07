@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+---
+name: Setup Frontend
+description: >-
+  Install Task runner, set up Node.js with npm caching, and install frontend
+  dependencies.
+
+inputs:
+  node-version:
+    description: Node.js version to install
+    default: "20"
+
+runs:
+  using: composite
+  steps:
+    - name: Install task runner
+      shell: bash
+      run: |
+        curl -sL https://taskfile.dev/install.sh | sh -s -- -d -b "$HOME/.local/bin" v3.41.0
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: ./frontend/package-lock.json
+
+    - name: Install frontend dependencies
+      shell: bash
+      working-directory: ./frontend
+      run: npm ci
