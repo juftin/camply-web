@@ -18,6 +18,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import AuthMode, backend_config
@@ -158,7 +159,7 @@ async def resolve_current_user(
     auth0_id = payload.get("sub", "")
     email = (payload.get("email") or payload.get("sub") or "").lower()
 
-    # Upsert user by auth0_id
+    # Upsert user by auth0_id — handle concurrent insert race
     result = await session.execute(select(User).where(User.auth0_id == auth0_id))
     auth0_user: User | None = result.scalar_one_or_none()
     if auth0_user is None:
@@ -168,8 +169,16 @@ async def resolve_current_user(
             is_early_access_user=False,
         )
         session.add(auth0_user)
-        await session.commit()
-        await session.refresh(auth0_user)
+        try:
+            await session.commit()
+        except IntegrityError:
+            await session.rollback()
+            result = await session.execute(
+                select(User).where(User.auth0_id == auth0_id)
+            )
+            auth0_user = result.scalar_one()
+        else:
+            await session.refresh(auth0_user)
 
     return CurrentUser(
         id=auth0_user.id,
