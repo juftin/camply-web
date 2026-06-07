@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactElement, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -45,19 +45,14 @@ vi.mock("@/hooks/useAuth", () => ({
 describe("App", () => {
   it("renders the navigation header", async () => {
     renderWithProviders(<App />);
-    await waitFor(() => {
-      const heading = screen.getByRole("heading", { level: 1 });
-      expect(heading).toBeInTheDocument();
-    });
+    const heading = await screen.findByRole("heading", { level: 1 }, { timeout: 5000 });
+    expect(heading).toBeInTheDocument();
   });
 
   it("renders the home page search area", async () => {
     renderWithProviders(<App />);
-    await waitFor(() => {
-      const searchInput = screen.queryByPlaceholderText(/search/i);
-      const searchButton = screen.queryByRole("button", { name: /search/i });
-      expect(searchInput || searchButton).toBeTruthy();
-    });
+    const searchInput = await screen.findByPlaceholderText(/search/i, {}, { timeout: 5000 });
+    expect(searchInput).toBeTruthy();
   });
 
   it("renders without crashing", () => {
