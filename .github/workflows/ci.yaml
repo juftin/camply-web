@@ -23,17 +23,19 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
         id: filter
         with:
           filters: |
             backend:
               - 'backend/**'
               - '.github/workflows/ci.yaml'
+              - '.github/actions/setup-backend/**'
             frontend:
               - 'frontend/**'
               - '.github/workflows/ci.yaml'
+              - '.github/actions/setup-frontend/**'
 
   # ── Backend ──────────────────────────────────────────────────────────────
 
@@ -57,16 +59,7 @@ jobs:
           - name: Tests
             cmd: uv run pytest -v
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-suffix: backend
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install dependencies
-        run: uv sync --all-packages
+      - uses: ./.github/actions/setup-backend
       - name: ${{ matrix.name }}
         run: ${{ matrix.cmd }}
 
@@ -76,10 +69,10 @@ jobs:
     if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Build backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ./backend
           push: false
@@ -107,14 +100,7 @@ jobs:
           - name: Tests
             cmd: npm run test:run
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: ./frontend/package-lock.json
-      - name: Install dependencies
-        run: npm ci
+      - uses: ./.github/actions/setup-frontend
       - name: ${{ matrix.name }}
         run: ${{ matrix.cmd }}
 
@@ -124,10 +110,10 @@ jobs:
     if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Build frontend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ./frontend
           push: false
