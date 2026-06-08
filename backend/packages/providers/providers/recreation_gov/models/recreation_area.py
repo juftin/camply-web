@@ -11,6 +11,7 @@ from db.data.providers import RecreationDotGov
 from db.models import RecreationArea
 from providers.base import NullHandler
 from providers.recreation_gov.models.address import AddressPopulator
+from providers.utils import normalize_name
 
 logger = structlog.getLogger(__name__)
 
@@ -63,7 +64,7 @@ class RecDotGovRecreationAreaData(AddressPopulator):
                 recreation_area = RecreationArea(
                     id=area.RecAreaID,
                     provider_id=RecreationDotGov.id,
-                    name=area.RecAreaName,
+                    name=normalize_name(area.RecAreaName),
                     description=area.RecAreaDescription,
                     city=city,
                     state=state,
