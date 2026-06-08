@@ -7,31 +7,46 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function toTitleCase(str: string): string {
-  return str
-    .toLowerCase()
-    .split(" ")
-    .map((word) => {
-      // Handle common abbreviations and prepositions
-      const lowerWord = word.toLowerCase();
-      const exceptions = [
-        "of",
-        "the",
-        "and",
-        "in",
-        "on",
-        "at",
-        "to",
-        "for",
-        "with",
-        "by",
-      ];
+  if (!str) return str;
 
-      // Always capitalize first word and words that aren't exceptions
-      if (word === str.split(" ")[0] || !exceptions.includes(lowerWord)) {
+  // If the string has mixed casing, return it unchanged — it's already
+  // properly formatted (e.g. "McKinney Lake", "Yosemite National Park").
+  // Only normalize strings that are ALL UPPERCASE or all lowercase.
+  const isAllUpper = str === str.toUpperCase();
+  const isAllLower = str === str.toLowerCase();
+
+  if (!isAllUpper && !isAllLower) {
+    return str;
+  }
+
+  const exceptions = new Set([
+    "of",
+    "the",
+    "and",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "with",
+    "by",
+  ]);
+
+  const words = str.toLowerCase().split(" ");
+
+  return words
+    .map((word, index) => {
+      if (!word) return word; // preserve empty strings from consecutive spaces
+      // Always capitalize the first word
+      if (index === 0) {
         return word.charAt(0).toUpperCase() + word.slice(1);
       }
-
-      return lowerWord;
+      // Lowercase exception words
+      if (exceptions.has(word)) {
+        return word;
+      }
+      // Capitalize everything else
+      return word.charAt(0).toUpperCase() + word.slice(1);
     })
     .join(" ");
 }
