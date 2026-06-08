@@ -4,18 +4,20 @@
 Utility functions for providers.
 """
 
-_EXCEPTIONS: frozenset[str] = frozenset({
-    "of",
-    "the",
-    "and",
-    "in",
-    "on",
-    "at",
-    "to",
-    "for",
-    "with",
-    "by",
-})
+_EXCEPTIONS: frozenset[str] = frozenset(
+    {
+        "of",
+        "the",
+        "and",
+        "in",
+        "on",
+        "at",
+        "to",
+        "for",
+        "with",
+        "by",
+    }
+)
 
 
 def normalize_name(name: str | None) -> str | None:
