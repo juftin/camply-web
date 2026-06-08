@@ -5,7 +5,6 @@ import {
   Bell,
   Shield,
   DollarSign,
-  ExternalLink,
   HeartHandshake,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,28 +46,14 @@ export function Contribute() {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-lg font-medium">
-              We personally commit to <strong>never taking any profit</strong>{" "}
-              from camply.
+              We are committed to <strong>keeping camply free</strong> and
+              open-source, forever.
             </p>
             <p className="text-muted-foreground">
-              100% of all contributions go directly towards maintaining the
-              service, covering hosting costs, notification delivery, and
-              keeping the lights on. This is a labor of love for the outdoor
-              community, not a business venture.
+              Contributions help cover hosting costs, notification delivery, and
+              ongoing development. This is a labor of love for the outdoor
+              community.
             </p>
-            <div className="text-sm text-muted-foreground mt-4">
-              <span className="text-center">
-                All expenses are tracked transparently on our{" "}
-                <a
-                  href="https://github.com/juftin/camply"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:text-primary/80 font-medium"
-                >
-                  GitHub repository
-                </a>
-              </span>
-            </div>
           </CardContent>
         </Card>
       </section>
@@ -299,69 +284,6 @@ export function Contribute() {
             </CardContent>
           </Card>
         </div>
-      </section>
-
-      {/* Transparency */}
-      <section className="mb-16">
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">
-              Transparency & Accountability
-            </CardTitle>
-            <CardDescription>
-              We believe in complete transparency about how contributions are
-              used
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="text-muted-foreground mb-4">
-                As camply grows, we are committed to maintaining complete
-                transparency about operational costs and how contributions are
-                used. All financial information will be shared openly with the
-                community.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              <div>
-                <h4 className="font-semibold mb-3">
-                  Our Commitment to Transparency
-                </h4>
-                <ul className="space-y-2 text-muted-foreground">
-                  <li>• All expenses tracked and documented</li>
-                  <li>• Regular financial updates to the community</li>
-                  <li>• Open-source approach to financial management</li>
-                  <li>• Zero profit guarantee - all funds go to operations</li>
-                  <li>• Community input on major expenditures</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-3">What We'll Track</h4>
-                <ul className="space-y-2 text-muted-foreground">
-                  <li>• Server and hosting costs</li>
-                  <li>• Email and notification service fees</li>
-                  <li>• Database and storage expenses</li>
-                  <li>• Third-party service integrations</li>
-                  <li>• Any infrastructure improvements</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="text-center pt-4">
-              <Button variant="outline" asChild>
-                <a
-                  href="https://github.com/juftin/camply"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Follow Our Progress on GitHub
-                </a>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </section>
 
       {/* Thank You */}

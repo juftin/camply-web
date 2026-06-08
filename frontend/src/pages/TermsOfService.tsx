@@ -29,8 +29,7 @@ export function TermsOfService() {
             become available based on your preferences.
           </p>
           <p className="mb-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
-            <strong>Not-for-Profit Service:</strong> camply is operated as a
-            not-for-profit service with a mission to help outdoor enthusiasts
+            camply is a free service with a mission to help outdoor enthusiasts
             access nature. We are committed to ethical practices and will never
             monetize your personal data.
           </p>
@@ -128,10 +127,9 @@ export function TermsOfService() {
             lost revenue, or lost data, arising from your use of the service.
           </p>
           <p className="mb-4">
-            As a not-for-profit service, our liability is limited to the extent
-            permitted by law. We provide this service to help the outdoor
-            community and operate in good faith to maintain reliable campsite
-            monitoring.
+            Our liability is limited to the extent permitted by law. We provide
+            this service to help the outdoor community and operate in good
+            faith to maintain reliable campsite monitoring.
           </p>
         </section>
 
@@ -167,8 +165,8 @@ export function TermsOfService() {
             Privacy and Data Ethics
           </h2>
           <p className="mb-4">
-            Your privacy is important to us. As a not-for-profit service, we are
-            committed to ethical data practices:
+            Your privacy is important to us. We are committed to ethical data
+            practices:
           </p>
           <ul className="list-disc list-inside mb-4 space-y-2">
             <li>
@@ -256,8 +254,8 @@ export function TermsOfService() {
             </li>
           </ul>
           <p className="mb-4 text-sm text-muted-foreground">
-            As an open-source, not-for-profit project, we encourage transparency
-            and welcome community feedback on our terms and operations.
+            As an open-source project, we encourage transparency and welcome
+            community feedback on our terms and operations.
           </p>
         </section>
       </div>
