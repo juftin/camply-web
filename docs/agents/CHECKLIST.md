@@ -91,7 +91,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 ### 4.1 Stability
 
 - [ ] T4.1.1 Implement proxy rotation logic for provider requests.
-- [ ] T4.1.2 Implement backoff/retry strategy for provider API failures.
+- [x] T4.1.2 Implement backoff/retry strategy for provider API failures.
 - [ ] T4.1.3 Setup Prometheus/Grafana dashboard for scan success metrics.
 
 ### 4.2 Deployment
