@@ -25,9 +25,7 @@ class TestSearch:
 
     def test_search_custom_limit(self, test_client: TestClient) -> None:
         """The limit parameter is accepted."""
-        response = test_client.get(
-            "/api/search", params={"query": "test", "limit": 10}
-        )
+        response = test_client.get("/api/search", params={"query": "test", "limit": 10})
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)

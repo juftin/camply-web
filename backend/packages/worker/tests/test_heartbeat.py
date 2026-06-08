@@ -201,9 +201,7 @@ class TestDiscoverTargetsAsync:
         )
 
         with patch("worker.tasks.heartbeat.db", mock_db):
-            with patch(
-                "worker.tasks.heartbeat.celery_app"
-            ) as mock_celery:
+            with patch("worker.tasks.heartbeat.celery_app") as mock_celery:
                 result = await _discover_targets_async()
 
         assert result["discovered"] == 2
@@ -232,9 +230,7 @@ class TestDiscoverTargetsAsync:
         )
 
         with patch("worker.tasks.heartbeat.db", mock_db):
-            with patch(
-                "worker.tasks.heartbeat.celery_app"
-            ) as mock_celery:
+            with patch("worker.tasks.heartbeat.celery_app") as mock_celery:
                 result = await _discover_targets_async()
 
         assert result["discovered"] == 0

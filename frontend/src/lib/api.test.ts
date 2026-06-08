@@ -3,8 +3,13 @@ import type { AxiosInstance } from "axios";
 
 // We'll mock axios.create to return a controlled instance
 const mockGet = vi.fn();
+const mockUseFn = vi.fn();
 const mockAxiosInstance = {
   get: mockGet,
+  interceptors: {
+    request: { use: mockUseFn },
+    response: { use: vi.fn() },
+  },
   defaults: {
     baseURL: "/api",
     timeout: 10000,

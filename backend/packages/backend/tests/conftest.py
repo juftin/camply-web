@@ -57,7 +57,9 @@ def _seed_base_data() -> None:
     async def _seed() -> None:
         async with maker() as session:
             # Guard — only seed once
-            if (await session.execute(sa_select(Provider).limit(1))).scalar_one_or_none():
+            if (
+                await session.execute(sa_select(Provider).limit(1))
+            ).scalar_one_or_none():
                 return
             session.add_all(
                 [

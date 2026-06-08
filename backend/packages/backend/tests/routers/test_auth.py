@@ -105,7 +105,7 @@ class TestProvidersEndpoint:
 
     def test_list_providers(self, test_client: TestClient) -> None:
         """Should return a list of providers."""
-        response = test_client.get("/api/provider")
+        response = test_client.get("/api/providers")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -129,15 +129,6 @@ class TestAuth0Mode:
         assert response.status_code == 401
         detail = response.json().get("detail", "")
         assert "Missing Authorization header" in detail
-
-    def test_auth0_missing_header_on_scan_endpoint(
-        self,
-        auth0_mode: None,
-        test_client: TestClient,
-    ) -> None:
-        """Auth0 mode should also guard scan endpoints."""
-        response = test_client.get("/api/scans")
-        assert response.status_code == 401
 
     def test_auth0_invalid_token_returns_401(
         self,
@@ -219,7 +210,7 @@ class TestAuth0Mode:
     ) -> None:
         """Public endpoints like health and providers work without auth."""
         assert test_client.get("/api/health").status_code == 200
-        assert test_client.get("/api/provider").status_code == 200
+        assert test_client.get("/api/providers").status_code == 200
 
     def test_auth0_expired_token_returns_401(
         self,

@@ -2,7 +2,6 @@
 Tests for the db package configuration and utilities.
 """
 
-
 import pytest
 
 from db.config import DatabaseConfig, DatabaseDrivers

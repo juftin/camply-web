@@ -332,7 +332,6 @@ class TestScannerTaskAsync:
 
         # We'll patch the ValkeyLock constructor
         with patch("worker.tasks.scanner.ValkeyLock", return_value=mock_lock):
-
             mock_target = MagicMock()
             mock_target.id = target_uuid_obj
             mock_target.provider_id = 1
@@ -348,6 +347,7 @@ class TestScannerTaskAsync:
 
             # Use a real CampsiteDTO to ensure .value works on campsite_type
             from providers.dto import CampsiteDTO as RealCampsiteDTO
+
             real_campsite = RealCampsiteDTO(
                 campsite_id="site_1",
                 campsite_name="Site 1",
@@ -363,9 +363,21 @@ class TestScannerTaskAsync:
             mock_session.execute.side_effect = [
                 MagicMock(scalar_one_or_none=MagicMock(return_value=mock_target)),
                 MagicMock(scalar_one_or_none=MagicMock(return_value=mock_campground)),
-                MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))),
-                MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))),
-                MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))),
+                MagicMock(
+                    scalars=MagicMock(
+                        return_value=MagicMock(all=MagicMock(return_value=[]))
+                    )
+                ),
+                MagicMock(
+                    scalars=MagicMock(
+                        return_value=MagicMock(all=MagicMock(return_value=[]))
+                    )
+                ),
+                MagicMock(
+                    scalars=MagicMock(
+                        return_value=MagicMock(all=MagicMock(return_value=[]))
+                    )
+                ),
             ]
             mock_session.add_all = MagicMock()
             mock_session.add = MagicMock()
@@ -383,7 +395,9 @@ class TestScannerTaskAsync:
             mock_provider.async_client = MagicMock(aclose=AsyncMock())
 
             mock_provider_cls = MagicMock(return_value=mock_provider)
-            mock_provider_cls.get_campground_url = MagicMock(return_value="https://book")
+            mock_provider_cls.get_campground_url = MagicMock(
+                return_value="https://book"
+            )
 
             with patch("worker.tasks.scanner.db", mock_db):
                 with patch.dict(

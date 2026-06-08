@@ -2,7 +2,6 @@
 Tests for the ``/api/rec-area`` endpoints.
 """
 
-import pytest
 from fastapi.testclient import TestClient
 
 
@@ -21,16 +20,14 @@ class TestGetRecreationArea:
         assert data["state"] == "CA"
 
     def test_get_rec_area_not_found(self, test_client: TestClient) -> None:
-        """A non-existent recreation area raises ValueError."""
-        with pytest.raises(ValueError, match="Recreation Area not found"):
-            test_client.get("/api/rec-area/1/nonexistent")
+        """A non-existent recreation area returns 404."""
+        response = test_client.get("/api/rec-area/1/nonexistent")
+        assert response.status_code == 404
 
-    def test_get_rec_area_wrong_provider(
-        self, test_client: TestClient
-    ) -> None:
-        """Wrong provider ID raises ValueError."""
-        with pytest.raises(ValueError, match="Recreation Area not found"):
-            test_client.get("/api/rec-area/99/rec_area_1")
+    def test_get_rec_area_wrong_provider(self, test_client: TestClient) -> None:
+        """Wrong provider ID returns 404."""
+        response = test_client.get("/api/rec-area/99/rec_area_1")
+        assert response.status_code == 404
 
 
 class TestListRecreationAreaCampgrounds:
@@ -49,9 +46,7 @@ class TestListRecreationAreaCampgrounds:
 
     def test_list_campgrounds_empty(self, test_client: TestClient) -> None:
         """An empty recreation area returns an empty list."""
-        response = test_client.get(
-            "/api/rec-area/1/nonexistent_rec_area/campgrounds"
-        )
+        response = test_client.get("/api/rec-area/1/nonexistent_rec_area/campgrounds")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)

@@ -6,11 +6,11 @@ from fastapi.testclient import TestClient
 
 
 class TestListProviders:
-    """Tests for GET /api/provider (list all providers)."""
+    """Tests for GET /api/providers (list all providers)."""
 
     def test_list_providers(self, test_client: TestClient) -> None:
         """All providers should be returned."""
-        response = test_client.get("/api/provider")
+        response = test_client.get("/api/providers")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
