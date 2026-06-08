@@ -27,7 +27,7 @@ const faqs: FAQItem[] = [
     id: "is-free",
     question: "Is camply free to use?",
     answer:
-      "Yes! camply is completely free and open-source. We operate as a not-for-profit service supported by community contributions. There are no hidden fees or premium subscriptions.",
+      "Yes! camply is completely free and open-source, supported by community contributions. There are no hidden fees or premium subscriptions.",
   },
   {
     id: "make-reservations",

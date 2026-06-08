@@ -16,12 +16,10 @@ export function PrivacyPolicy() {
             availability monitoring service.
           </p>
           <p className="mb-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
-            <strong>Our Commitment:</strong> camply is operated as a
-            not-for-profit service. We will{" "}
-            <strong>never sell your personal data</strong> to third parties or
-            use it for commercial gain. Our mission is to help outdoor
-            enthusiasts find campsites, and we are committed to operating
-            ethically and transparently.
+            <strong>Our Commitment:</strong> camply is a free service. We will{" "}
+            <strong>never sell your personal data</strong> to third parties.
+            Our mission is to help outdoor enthusiasts find campsites, and we
+            are committed to operating ethically and transparently.
           </p>
         </section>
 
@@ -65,10 +63,10 @@ export function PrivacyPolicy() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Information Sharing</h2>
           <p className="mb-4">
-            <strong>We will never sell your personal data.</strong> As a
-            not-for-profit service, we do not sell, trade, rent, or monetize
-            your personal information in any way. We may share your information
-            only in the following limited circumstances:
+            <strong>We will never sell your personal data.</strong> We do not
+            sell, trade, rent, or monetize your personal information in any
+            way. We may share your information only in the following limited
+            circumstances:
           </p>
           <ul className="list-disc list-inside mb-4 space-y-2">
             <li>With your explicit consent</li>
@@ -79,11 +77,6 @@ export function PrivacyPolicy() {
               (email delivery, hosting) under strict confidentiality agreements
             </li>
           </ul>
-          <p className="mb-4 text-sm text-muted-foreground">
-            <strong>Note:</strong> Given our not-for-profit nature, we have no
-            plans for business transfers or mergers that would involve sharing
-            your data.
-          </p>
         </section>
 
         <section className="mb-8">
@@ -174,8 +167,8 @@ export function PrivacyPolicy() {
             </li>
           </ul>
           <p className="mb-4 text-sm text-muted-foreground">
-            As an open-source, not-for-profit project, we welcome transparency
-            and community feedback on our privacy practices.
+            As an open-source project, we welcome transparency and community
+            feedback on our privacy practices.
           </p>
         </section>
       </div>
