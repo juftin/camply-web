@@ -11,7 +11,7 @@ import conftest
 import pytest
 from fastapi.testclient import TestClient
 
-from db.models import Campground, Provider, RecreationArea
+from db.models import Campground, RecreationArea
 
 API_SCANS = "/api/scans"
 API_SEARCH = "/api/search"
@@ -32,16 +32,12 @@ def _next() -> str:
 
 @pytest.fixture(scope="module", autouse=True)
 def _seed_data():
-    """Seed providers and recreation areas into the shared DB."""
+    """Seed recreation areas and campgrounds into the shared DB.
+
+    Provider id=1 is already seeded by conftest.
+    """
     conftest.seed_data(
         add_rows=[
-            Provider(
-                id=1,
-                name="Recreation.gov",
-                description="US Recreation.gov",
-                url="https://recreation.gov",
-                enabled=True,
-            ),
             RecreationArea(
                 id="rec-yosemite",
                 provider_id=1,

@@ -45,6 +45,73 @@ async def _create_tables() -> None:
 
 asyncio.run(_create_tables())
 
+# ── Seed base data shared across all backend router tests ──────────────────
+
+
+def _seed_base_data() -> None:
+    """Insert seed Provider / RecArea / Campground rows shared by many endpoint tests."""
+    from sqlalchemy import select as sa_select
+
+    from db.models import Campground, Provider, RecreationArea
+
+    async def _seed() -> None:
+        async with maker() as session:
+            # Guard — only seed once
+            if (await session.execute(sa_select(Provider).limit(1))).scalar_one_or_none():
+                return
+            session.add_all(
+                [
+                    Provider(
+                        id=1,
+                        name="Recreation.gov",
+                        description="US Recreation.gov",
+                        url="https://recreation.gov",
+                        enabled=True,
+                    ),
+                    Provider(
+                        id=2,
+                        name="Disabled Provider",
+                        url="https://disabled.example.com",
+                        enabled=False,
+                    ),
+                    RecreationArea(
+                        id="rec_area_1",
+                        provider_id=1,
+                        name="Test Recreation Area",
+                        country="US",
+                        state="CA",
+                        reservable=True,
+                        enabled=True,
+                    ),
+                    Campground(
+                        id="cg_1",
+                        provider_id=1,
+                        recreation_area_id="rec_area_1",
+                        name="Test Campground",
+                        country="US",
+                        state="CA",
+                        reservable=True,
+                        enabled=True,
+                    ),
+                    Campground(
+                        id="cg_non_reservable",
+                        provider_id=1,
+                        recreation_area_id="rec_area_1",
+                        name="Non Reservable Campground",
+                        country="US",
+                        state="CA",
+                        reservable=False,
+                        enabled=True,
+                    ),
+                ]
+            )
+            await session.commit()
+
+    asyncio.run(_seed())
+
+
+_seed_base_data()
+
 
 # ---------------------------------------------------------------------------
 # Override FastAPI's DB dependency
@@ -89,6 +156,12 @@ def seed_data(add_rows: list) -> None:
 # ---------------------------------------------------------------------------
 # Test fixtures
 # ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    """Limit anyio to asyncio backend only (trio is not installed)."""
+    return "asyncio"
 
 
 @pytest.fixture
