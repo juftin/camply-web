@@ -38,5 +38,8 @@ class BackendConfig(BaseSettings):
     sentry_dsn: Optional[str] = None
     sentry_traces_sample_rate: float = 0.0
 
+    # Prometheus multiprocess
+    prometheus_multiproc_dir: Optional[str] = None
+
 
 backend_config = BackendConfig()

@@ -3,6 +3,10 @@ volumes:
     driver: local
   valkey_data:
     driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
 
 services:
   valkey:
@@ -38,6 +42,8 @@ services:
       CAMPLY_DB_DATABASE: ${POSTGRES_DB:-camply}
       CAMPLY_DB_PORT: 5432
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-4}
+      PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
+      CAMPLY_PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
@@ -88,6 +94,7 @@ services:
       CAMPLY_VALKEY_URL: "redis://valkey:6379/0"
       CAMPLY_SENTRY_DSN: ${SENTRY_DSN:-}
       CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.0}
+      CAMPLY_METRICS_PORT: 8001
       PUSHOVER_APP_TOKEN: ${PUSHOVER_APP_TOKEN:-}
       SKIP_MIGRATIONS: "1"
     restart: unless-stopped
@@ -116,4 +123,34 @@ services:
       CAMPLY_SENTRY_DSN: ${SENTRY_DSN:-}
       CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.0}
       SKIP_MIGRATIONS: "1"
+      CAMPLY_METRICS_PORT: 8001
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--storage.tsdb.retention.time=30d"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-camply}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_data:/var/lib/grafana
     restart: unless-stopped

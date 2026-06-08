@@ -36,5 +36,8 @@ class WorkerConfig(BaseSettings):
     # How stale a target must be before re-checking (seconds)
     target_cooldown: int = 55
 
+    # Prometheus metrics HTTP server port (0 = disabled)
+    metrics_port: int = 8001
+
 
 worker_config = WorkerConfig()

@@ -4,7 +4,7 @@ Celery Application Configuration
 
 import structlog
 from celery import Celery
-from celery.signals import setup_logging
+from celery.signals import setup_logging, worker_ready
 
 from worker.config import worker_config
 
@@ -86,6 +86,18 @@ def configure_celery_logging(**kwargs: object) -> None:
 
 
 celery_app = create_celery_app()
+
+# Import metrics module to register Celery signal handlers (task_prerun, task_postrun)
+import worker.metrics  # noqa: E402, F401
+
+
+@worker_ready.connect
+def _on_worker_ready(**kwargs: object) -> None:
+    """Start the Prometheus metrics HTTP server when the worker is ready."""
+    if worker_config.metrics_port > 0:
+        from worker.metrics import start_metrics_server_in_thread
+
+        start_metrics_server_in_thread(port=worker_config.metrics_port)
 
 
 # Conditional Sentry initialization

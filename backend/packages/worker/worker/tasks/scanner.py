@@ -18,6 +18,12 @@ from providers.utils import normalize_name
 from worker.celery_app import celery_app
 from worker.config import worker_config
 from worker.locks import ValkeyLock
+from worker.metrics import (
+    CAMPGROUND_API_ERRORS_TOTAL,
+    LOCK_CONTENTION_TOTAL,
+    SCAN_RESULTS_STORED_TOTAL,
+    UNIQUE_TARGETS_CHECKED,
+)
 from worker.notifications.base import NotificationDTO
 
 logger = structlog.getLogger(__name__)
@@ -104,11 +110,15 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
             "Could not connect to Valkey for lock, skipping",
             target_id=target_id,
         )
+        LOCK_CONTENTION_TOTAL.labels(outcome="error").inc()
         return {"status": "skipped", "reason": "valkey_unavailable"}
 
     if not acquired:
         logger.info("Lock not acquired, skipping", target_id=target_id)
+        LOCK_CONTENTION_TOTAL.labels(outcome="skipped").inc()
         return {"status": "skipped", "reason": "lock_held"}
+
+    LOCK_CONTENTION_TOTAL.labels(outcome="acquired").inc()
 
     try:
         async with db.get_session() as session:
@@ -153,6 +163,11 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                     start_date=target.start_date,
                     end_date=target.end_date,
                 )
+            except Exception:
+                CAMPGROUND_API_ERRORS_TOTAL.labels(
+                    provider=str(target.provider_id)
+                ).inc()
+                raise
             finally:
                 try:
                     await provider.async_client.aclose()
@@ -232,6 +247,7 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                 delete(ScanResult).where(ScanResult.target_id == target_uuid)
             )
             session.add_all(new_results_to_store)
+            SCAN_RESULTS_STORED_TOTAL.inc(len(new_results_to_store))
 
             # Update last_checked_at
             target.last_checked_at = datetime.datetime.now(tz=datetime.timezone.utc)
@@ -272,6 +288,8 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                     new_openings=len(new_openings),
                     notifications_sent=notifications_sent,
                 )
+
+            UNIQUE_TARGETS_CHECKED.inc()
 
             return {
                 "status": "success",

@@ -9,6 +9,7 @@ from fastapi import APIRouter, status
 from sqlalchemy.exc import IntegrityError
 
 from backend.dependencies import SessionDep
+from backend.metrics import ACCESS_REQUESTS_TOTAL
 from backend.schemas import AccessRequestCreate, AccessRequestResponse
 from db.models import AccessRequest
 
@@ -30,6 +31,7 @@ async def request_access(
     session.add(access_req)
     try:
         await session.commit()
+        ACCESS_REQUESTS_TOTAL.inc()
     except IntegrityError:
         await session.rollback()
         logger.info("Duplicate access request ignored", email=body.email)

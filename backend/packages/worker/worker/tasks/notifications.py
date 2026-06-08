@@ -12,6 +12,7 @@ from sqlalchemy import select
 from db.config import db
 from db.models import User
 from worker.celery_app import celery_app
+from worker.metrics import NOTIFICATIONS_SENT_TOTAL
 from worker.notifications.base import NotificationDTO
 from worker.notifications.pushover import PushoverProvider
 
@@ -78,6 +79,7 @@ async def _send_pushover_notification_async(
             user_config={"user_key": pushover_token},
             payload=payload,
         )
+        NOTIFICATIONS_SENT_TOTAL.inc()
         return {"status": "success"}
     except Exception as exc:
         logger.error(
