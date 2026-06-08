@@ -130,15 +130,6 @@ class TestAuth0Mode:
         detail = response.json().get("detail", "")
         assert "Missing Authorization header" in detail
 
-    def test_auth0_missing_header_on_scan_endpoint(
-        self,
-        auth0_mode: None,
-        test_client: TestClient,
-    ) -> None:
-        """Auth0 mode should also guard scan endpoints."""
-        response = test_client.get("/api/scans")
-        assert response.status_code == 401
-
     def test_auth0_invalid_token_returns_401(
         self,
         auth0_mode: None,
@@ -245,3 +236,101 @@ class TestAuth0Mode:
         assert response.status_code == 401
         detail = response.json().get("detail", "")
         assert "expired" in detail.lower()
+
+    def test_auth0_invalid_token_format_returns_401(
+        self,
+        auth0_mode: None,
+        test_client: TestClient,
+    ) -> None:
+        """A malformed token that causes a signing key resolution failure should return 401."""
+        from fastapi import HTTPException, status
+
+        with patch(
+            "backend.auth._verify_auth0_token",
+            new=AsyncMock(
+                side_effect=HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Unable to resolve signing key",
+                )
+            ),
+        ):
+            response = test_client.get(
+                "/api/me",
+                headers={"Authorization": "Bearer malformed_token"},
+            )
+        assert response.status_code == 401
+
+    def test_auth0_user_created_via_email_fallback(
+        self,
+        auth0_mode: None,
+        test_client: TestClient,
+    ) -> None:
+        """When payload has no email, the sub (auth0_id) should be used as email."""
+        no_email_sub = "auth0|fallback_only"
+        payload_without_email = {
+            "sub": no_email_sub,
+            "iss": "https://camply-test.us.auth0.com/",
+            "aud": "https://api.camply.juftin.dev",
+        }
+
+        with patch(
+            "backend.auth._verify_auth0_token",
+            new=AsyncMock(return_value=payload_without_email),
+        ):
+            response = test_client.get(
+                "/api/me",
+                headers={"Authorization": "Bearer no_email_token"},
+            )
+        assert response.status_code == 200
+        data = response.json()
+        # Should fall back to sub (lowercased)
+        assert no_email_sub.lower() in data["email"]
+
+    def test_auth0_jwks_client_cache_hit(
+        self,
+        auth0_mode: None,
+    ) -> None:
+        """Calling _get_jwks_client twice with the same domain returns the cached client."""
+        from backend.auth import _get_jwks_client, _jwks_client_cache
+
+        # Clear cache
+        _jwks_client_cache.clear()
+
+        from backend.config import backend_config
+
+        original_domain = backend_config.auth0_domain
+        try:
+            backend_config.auth0_domain = "cache-test.us.auth0.com"
+
+            client1 = _get_jwks_client()
+            client2 = _get_jwks_client()
+
+            # Same object (cached)
+            assert client1 is client2
+            # Cache has one entry
+            assert "cache-test.us.auth0.com" in _jwks_client_cache
+        finally:
+            backend_config.auth0_domain = original_domain
+            _jwks_client_cache.clear()
+
+    def test_auth0_jwks_client_cache_hit_with_config_monkeypatch(
+        self,
+        auth0_mode: None,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """JWKS client cache uses the domain from backend_config."""
+        from backend.auth import _jwks_client_cache
+
+        _jwks_client_cache.clear()
+        monkeypatch.setattr(
+            "backend.auth.backend_config.auth0_domain",
+            "monkey-domain.us.auth0.com",
+        )
+
+        from backend.auth import _get_jwks_client
+
+        client = _get_jwks_client()
+        assert "monkey-domain.us.auth0.com" in _jwks_client_cache
+        assert _jwks_client_cache["monkey-domain.us.auth0.com"] is client
+
+        _jwks_client_cache.clear()

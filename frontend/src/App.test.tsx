@@ -1,22 +1,23 @@
 import { render } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { type ReactElement, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import App from "./App";
 
-function renderWithProviders(ui: ReactElement) {
+function renderWithProviders() {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
     },
   });
+
   return render(
-    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>,
   );
 }
 
-// Mock API config to return synchronously so the loading state resolves
-// immediately on the first render.
 vi.mock("@/lib/api", () => ({
   fetchAuthConfig: vi.fn(() =>
     Promise.resolve({
@@ -49,8 +50,8 @@ vi.mock("@/hooks/useAuth", () => ({
 }));
 
 describe("App", () => {
-  it("renders without crashing", () => {
-    renderWithProviders(<App />);
+  it("renders without crashing", async () => {
+    renderWithProviders();
     expect(document.body).toBeTruthy();
   });
 });

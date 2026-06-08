@@ -3,7 +3,9 @@ Tests for the heartbeat discover_targets task.
 """
 
 import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from sqlalchemy.orm import Session
 
 from db.models import UniqueTarget, UserScan
@@ -19,12 +21,9 @@ class TestDiscoverTargets:
         A target with last_checked_at=None and an active UserScan
         should be discovered.
         """
-        # The target fixture already has last_checked_at=None and an active scan
         assert target.last_checked_at is None
         assert user_scan.is_active is True
 
-        # We can't easily test the full sync wrapper with async DB,
-        # so test the query logic via direct DB inspection
         from sqlalchemy import select
 
         stmt = (
@@ -49,13 +48,10 @@ class TestDiscoverTargets:
         A target checked very recently should NOT be discovered
         (within cooldown period).
         """
-        # Set last_checked_at to "just now"
         target.last_checked_at = datetime.datetime.now(tz=datetime.timezone.utc)
         session.add(target)
         session.commit()
 
-        # The cooldown threshold uses target_cooldown (default 55s)
-        # A target checked now should be outside the cooldown window
         from datetime import timedelta, timezone
 
         now = datetime.datetime.now(tz=timezone.utc)
@@ -78,7 +74,6 @@ class TestDiscoverTargets:
         result = session.execute(stmt)
         targets = result.scalars().all()
 
-        # Target was just checked, should NOT be in results
         assert len(targets) == 0
 
     def test_stale_target_discovered(
@@ -149,15 +144,11 @@ class TestDiscoverTargets:
         """
         A target with no linked UserScans should NOT be discovered.
         """
-        # The target fixture creates a target, but if there's no UserScan
-        # linking to it (there shouldn't be since we didn't create one),
-        # it should not appear in the join query.
-        from sqlalchemy import select
-
-        # Delete any existing scans for this target
         for scan in session.query(UserScan).all():
             session.delete(scan)
         session.commit()
+
+        from sqlalchemy import select
 
         stmt = (
             select(UniqueTarget)
@@ -171,3 +162,116 @@ class TestDiscoverTargets:
         targets = result.scalars().all()
 
         assert len(targets) == 0
+
+
+class TestDiscoverTargetsAsync:
+    """Tests for the async _discover_targets_async function."""
+
+    @pytest.mark.anyio
+    async def test_discover_targets_async_enqueues_tasks(self) -> None:
+        """
+        _discover_targets_async should discover due targets and enqueue
+        check_target_availability tasks for each.
+        """
+        from worker.tasks.heartbeat import _discover_targets_async
+
+        mock_target_1 = MagicMock(spec=UniqueTarget)
+        mock_target_1.id = "target-1"
+        mock_target_2 = MagicMock(spec=UniqueTarget)
+        mock_target_2.id = "target-2"
+
+        # Mock the DB session
+        # NB: execute returns a CursorResult, .scalars() is sync and returns
+        # a ScalarResult, .all() is sync
+        mock_session = AsyncMock()
+        mock_cursor = MagicMock()
+        mock_scalar = MagicMock()
+        mock_scalar.all.return_value = [
+            mock_target_1,
+            mock_target_2,
+        ]
+        mock_cursor.scalars.return_value = mock_scalar
+        mock_session.execute.return_value = mock_cursor
+
+        # Mock db.get_session as async context manager
+        mock_db = MagicMock()
+        mock_db.get_session.return_value = AsyncMock(
+            __aenter__=AsyncMock(return_value=mock_session),
+            __aexit__=AsyncMock(return_value=None),
+        )
+
+        with patch("worker.tasks.heartbeat.db", mock_db):
+            with patch("worker.tasks.heartbeat.celery_app") as mock_celery:
+                result = await _discover_targets_async()
+
+        assert result["discovered"] == 2
+        assert result["enqueued"] == 2
+        assert mock_celery.send_task.call_count == 2
+
+    @pytest.mark.anyio
+    async def test_discover_targets_async_empty(self) -> None:
+        """
+        _discover_targets_async should return zero counts when no
+        targets are due.
+        """
+        from worker.tasks.heartbeat import _discover_targets_async
+
+        mock_session = AsyncMock()
+        mock_cursor = MagicMock()
+        mock_scalar = MagicMock()
+        mock_scalar.all.return_value = []
+        mock_cursor.scalars.return_value = mock_scalar
+        mock_session.execute.return_value = mock_cursor
+
+        mock_db = MagicMock()
+        mock_db.get_session.return_value = AsyncMock(
+            __aenter__=AsyncMock(return_value=mock_session),
+            __aexit__=AsyncMock(return_value=None),
+        )
+
+        with patch("worker.tasks.heartbeat.db", mock_db):
+            with patch("worker.tasks.heartbeat.celery_app") as mock_celery:
+                result = await _discover_targets_async()
+
+        assert result["discovered"] == 0
+        assert result["enqueued"] == 0
+        mock_celery.send_task.assert_not_called()
+
+
+class TestDiscoverTargetsSync:
+    """Tests for the sync discover_targets wrapper task."""
+
+    def test_discover_targets_wrapper_calls_async(self) -> None:
+        """
+        The sync discover_targets task should call _discover_targets_async
+        and return its result.
+        """
+        from worker.tasks.heartbeat import discover_targets
+
+        with patch(
+            "worker.tasks.heartbeat._discover_targets_async",
+            new_callable=AsyncMock,
+        ) as mock_async:
+            mock_async.return_value = {"discovered": 3, "enqueued": 3}
+
+            result = discover_targets()
+
+        assert result["discovered"] == 3
+        assert result["enqueued"] == 3
+
+    def test_discover_targets_error_handling(self) -> None:
+        """
+        When the async function raises, discover_targets should catch it
+        and return an error dict.
+        """
+        from worker.tasks.heartbeat import discover_targets
+
+        with patch(
+            "worker.tasks.heartbeat._discover_targets_async",
+            new_callable=AsyncMock,
+        ) as mock_async:
+            mock_async.side_effect = Exception("Test error")
+
+            result = discover_targets()
+
+        assert result["status"] == "error"
