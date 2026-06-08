@@ -8,6 +8,7 @@ from sqlalchemy import (
     Integer,
     String,
     case,
+    func,
     or_,
     select,
 )
@@ -71,12 +72,12 @@ class Search(Base):
         substring = f"%{term_lc}%"
         # -------------- MATCH QUALITY SCORE --------------
         match_score = case(
-            (cls.recreation_area_name == exact, 100),
-            (cls.campground_name == exact, 100),
-            (cls.recreation_area_name.like(prefix), 75),
-            (cls.campground_name.like(prefix), 75),
-            (cls.recreation_area_name.like(substring), 50),
-            (cls.campground_name.like(substring), 50),
+            (func.lower(cls.recreation_area_name) == exact, 100),
+            (func.lower(cls.campground_name) == exact, 100),
+            (func.lower(cls.recreation_area_name).like(prefix), 75),
+            (func.lower(cls.campground_name).like(prefix), 75),
+            (func.lower(cls.recreation_area_name).like(substring), 50),
+            (func.lower(cls.campground_name).like(substring), 50),
             else_=0,
             value=None,
         ).label("match_score")
@@ -93,8 +94,8 @@ class Search(Base):
             select(cls, total_score)
             .where(
                 or_(
-                    cls.recreation_area_name.like(substring),
-                    cls.campground_name.like(substring),
+                    func.lower(cls.recreation_area_name).like(substring),
+                    func.lower(cls.campground_name).like(substring),
                 )
             )
             .order_by(total_score.desc(), cls.provider_name)

@@ -10,6 +10,7 @@ from db.data.providers import RecreationDotGov
 from db.models import Campground, RecreationArea
 from providers.base import NullHandler
 from providers.recreation_gov.models.address import AddressPopulator
+from providers.utils import normalize_name
 
 logger = structlog.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class RecDotGovCampgroundData(AddressPopulator):
                     id=camp.FacilityID,
                     recreation_area_id=camp.ParentRecAreaID,
                     provider_id=RecreationDotGov.id,
-                    name=camp.FacilityName,
+                    name=normalize_name(camp.FacilityName),
                     description=camp.FacilityDescription,
                     city=city,
                     state=state,

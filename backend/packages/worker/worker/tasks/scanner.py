@@ -14,6 +14,7 @@ from db.config import db
 from db.models import Campground, ScanResult, UniqueTarget, UserScan
 from providers import PROVIDERS
 from providers.dto import CampsiteDTO
+from providers.utils import normalize_name
 from worker.celery_app import celery_app
 from worker.config import worker_config
 from worker.locks import ValkeyLock
@@ -193,14 +194,14 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                 if is_new:
                     new_openings.append(
                         NotificationDTO(
-                            title=f"Campsite Available: {campground.name}",
+                            title=f"Campsite Available: {normalize_name(campground.name)}",
                             message=(
                                 f"{campsite.campsite_name} "
                                 f"({campsite.campsite_type.value}) "
-                                f"is available at {campground.name}"
+                                f"is available at {normalize_name(campground.name)}"
                             ),
                             booking_url=booking_url,
-                            park_name=campground.name,
+                            park_name=normalize_name(campground.name),  # type: ignore[arg-type]
                             campsite_name=campsite.campsite_name,
                             start_date=target.start_date,
                             end_date=target.end_date,
