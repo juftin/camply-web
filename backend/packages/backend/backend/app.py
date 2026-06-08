@@ -5,10 +5,15 @@ camply-backend FastAPI Application
 import structlog
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import ORJSONResponse, Response
 
 from backend.__about__ import __application__, __version__
 from backend.config import backend_config
+from backend.metrics import (
+    PrometheusMiddleware,
+    get_metrics_response,
+    refresh_db_gauges,
+)
 from backend.routers.access import access_router
 from backend.routers.auth_config import auth_config_router
 from backend.routers.campgrounds import campground_router
@@ -63,6 +68,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(PrometheusMiddleware)
+
+
+@app.get("/metrics")
+async def metrics_endpoint() -> Response:
+    """Prometheus metrics endpoint — unauthenticated, not under /api."""
+    await refresh_db_gauges()
+    return get_metrics_response()
+
 
 API_ROUTERS: list[APIRouter] = [
     health_router,

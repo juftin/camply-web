@@ -12,6 +12,7 @@ from db.config import db
 from db.models import UniqueTarget, UserScan
 from worker.celery_app import celery_app
 from worker.config import worker_config
+from worker.metrics import TARGETS_DISCOVERED_TOTAL, TARGETS_ENQUEUED_TOTAL
 
 logger = structlog.getLogger(__name__)
 
@@ -77,5 +78,8 @@ async def _discover_targets_async() -> dict:
             total=len(targets),
             enqueued=enqueued,
         )
+
+        TARGETS_DISCOVERED_TOTAL.inc(len(targets))
+        TARGETS_ENQUEUED_TOTAL.inc(enqueued)
 
         return {"discovered": len(targets), "enqueued": enqueued}

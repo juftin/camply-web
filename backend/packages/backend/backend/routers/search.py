@@ -2,10 +2,13 @@
 Search API — full-text search across recreation areas and campgrounds.
 """
 
+import time
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 from backend.dependencies import SessionDep
+from backend.metrics import SEARCH_DURATION_SECONDS, TOTAL_SEARCH_REQUESTS
 from db.models import Search
 
 search_router = APIRouter(tags=["search"])
@@ -33,11 +36,14 @@ async def search(
     """
     Database Search for Recreation Areas and Campgrounds
     """
+    start = time.monotonic()
+    TOTAL_SEARCH_REQUESTS.inc()
     search_rows = await Search.algorithm(
         session=session,
         term=query,
         limit=limit,
     )
+    SEARCH_DURATION_SECONDS.observe(time.monotonic() - start)
     return [
         SearchResult(
             id=row.id,
