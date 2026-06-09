@@ -473,7 +473,7 @@ class BaseProvider(ABC):
         try:
             from fake_useragent import UserAgent
 
-            self.user_agent = UserAgent(browsers=["chrome"]).random
+            self.user_agent = UserAgent(browsers=["Chrome"]).random
         except Exception:
             self.user_agent = (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
