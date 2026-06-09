@@ -117,28 +117,6 @@ export function Header({ showLogo = true }: HeaderProps) {
             >
               Contribute
             </Link>
-            {isAuthenticated && isEarlyAccess && (
-              <>
-                <Link
-                  to="/dashboard"
-                  className={`flex items-center gap-1 text-muted-foreground hover:text-foreground ${
-                    location.pathname === "/dashboard" ? "text-foreground" : ""
-                  }`}
-                >
-                  <LayoutDashboard className="h-4 w-4" />
-                  Dashboard
-                </Link>
-                <Link
-                  to="/profile"
-                  className={`flex items-center gap-1 text-muted-foreground hover:text-foreground ${
-                    location.pathname === "/profile" ? "text-foreground" : ""
-                  }`}
-                >
-                  <User className="h-4 w-4" />
-                  Profile
-                </Link>
-              </>
-            )}
           </nav>
 
           <button
@@ -230,30 +208,6 @@ export function Header({ showLogo = true }: HeaderProps) {
             >
               Contribute
             </Link>
-            {isAuthenticated && isEarlyAccess && (
-              <>
-                <Link
-                  to="/dashboard"
-                  className={`block text-muted-foreground hover:text-foreground ${
-                    location.pathname === "/dashboard" ? "text-foreground" : ""
-                  }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <LayoutDashboard className="h-4 w-4 inline mr-1" />
-                  Dashboard
-                </Link>
-                <Link
-                  to="/profile"
-                  className={`block text-muted-foreground hover:text-foreground ${
-                    location.pathname === "/profile" ? "text-foreground" : ""
-                  }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <User className="h-4 w-4 inline mr-1" />
-                  Profile
-                </Link>
-              </>
-            )}
             <div className="pt-4 border-t space-y-3">
               <div className="flex items-center justify-between">
                 <ThemeToggle />
