@@ -73,6 +73,9 @@ logs/
 tmp/
 temp/
 
+# Data
+.data/
+
 # API Clients
 backend/clients/
 

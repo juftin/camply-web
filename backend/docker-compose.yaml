@@ -32,8 +32,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - "${HOME}/Application\ Support/camply/:/root/.local/share/camply/"
+    volumes: []
     environment:
       CAMPLY_DB_DRIVERNAME: "postgresql+psycopg"
       CAMPLY_DB_HOST: "db"
@@ -82,8 +81,7 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
-    volumes:
-      - "${HOME}/Application\ Support/camply/:/root/.local/share/camply/"
+    volumes: []
     environment:
       CAMPLY_DB_DRIVERNAME: "postgresql+psycopg"
       CAMPLY_DB_HOST: "db"
@@ -110,8 +108,7 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
-    volumes:
-      - "${HOME}/Application\ Support/camply/:/root/.local/share/camply/"
+    volumes: []
     environment:
       CAMPLY_DB_DRIVERNAME: "postgresql+psycopg"
       CAMPLY_DB_HOST: "db"
