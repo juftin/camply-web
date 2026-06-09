@@ -36,8 +36,10 @@ ENV PATH="/app/.venv/bin:${PATH}"
 
 COPY entrypoint.sh /app/entrypoint.sh
 
-RUN chown -R camply:camply /app && \
-    chmod +x /app/entrypoint.sh
+ENV HOME=/home/camply
+
+RUN mkdir -p ${HOME}/.local/share/camply && \
+    chown -R camply:camply /app ${HOME}
 
 USER camply
 
