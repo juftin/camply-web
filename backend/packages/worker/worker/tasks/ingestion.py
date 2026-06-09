@@ -76,10 +76,18 @@ def populate_provider_database(self, provider_id: int) -> dict:
     provider_cls = PROVIDERS.get(provider_id)
     if provider_cls is None:
         logger.warning("Unknown provider id", provider_id=provider_id)
-        return {"status": "error", "provider_id": provider_id, "reason": "unknown_provider"}
+        return {
+            "status": "error",
+            "provider_id": provider_id,
+            "reason": "unknown_provider",
+        }
 
     provider_name = provider_cls.__name__
-    logger.info("Starting provider ingestion", provider_id=provider_id, provider_name=provider_name)
+    logger.info(
+        "Starting provider ingestion",
+        provider_id=provider_id,
+        provider_name=provider_name,
+    )
 
     try:
         return asyncio.run(_populate_provider_async(provider_id, provider_cls))
@@ -92,9 +100,7 @@ def populate_provider_database(self, provider_id: int) -> dict:
         raise self.retry(exc=exc) from exc
 
 
-async def _populate_provider_async(
-    provider_id: int, provider_cls: type
-) -> dict:
+async def _populate_provider_async(provider_id: int, provider_cls: type) -> dict:
     """
     Async implementation of per-provider database population.
 
