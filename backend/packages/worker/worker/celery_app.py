@@ -4,6 +4,7 @@ Celery Application Configuration
 
 import structlog
 from celery import Celery
+from celery.schedules import crontab
 from celery.signals import setup_logging, worker_ready
 
 from worker.config import worker_config
@@ -40,17 +41,24 @@ def create_celery_app() -> Celery:
     # Result expiry: 1 hour (we don't need results long-term)
     app.conf.result_expires = 3600
 
-    # Beat schedule: runs discover_targets every 60 seconds
+    # Beat schedule:
+    # - discover_targets every 60 seconds
+    # - populate_database daily at midnight UTC
     app.conf.beat_schedule = {
         "discover-targets-every-60s": {
             "task": "worker.tasks.heartbeat.discover_targets",
             "schedule": worker_config.heartbeat_interval,
+        },
+        "populate-database-daily": {
+            "task": "worker.tasks.ingestion.populate_database",
+            "schedule": crontab(minute=0, hour=0),
         },
     }
 
     # Module containing task definitions (autodiscovery)
     app.conf.imports = [
         "worker.tasks.heartbeat",
+        "worker.tasks.ingestion",
         "worker.tasks.scanner",
         "worker.tasks.notifications",
     ]
