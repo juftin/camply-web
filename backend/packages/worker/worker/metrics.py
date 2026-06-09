@@ -147,12 +147,13 @@ def start_metrics_server(port: int = 8001) -> None:
     Otherwise falls back to the default in-process collector for single-worker
     setups (e.g. local development with --pool=solo).
     """
-    registry = prometheus_client.CollectorRegistry()
-    if _multiproc_dir:
-        MultiProcessCollector(registry)
-
     try:
-        prometheus_client.start_http_server(port, registry=registry)
+        if _multiproc_dir:
+            registry = prometheus_client.CollectorRegistry()
+            MultiProcessCollector(registry)
+            prometheus_client.start_http_server(port, registry=registry)
+        else:
+            prometheus_client.start_http_server(port)
         logger.info("Worker metrics server started", port=port)
     except Exception:
         logger.exception("Failed to start worker metrics server", port=port)
