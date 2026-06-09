@@ -83,22 +83,13 @@ def populate_provider_database(self, provider_id: int) -> dict:
 
     try:
         return asyncio.run(_populate_provider_async(provider_id, provider_cls))
-    except Exception:
+    except Exception as exc:
         logger.exception(
             "populate_provider_database task failed",
             provider_id=provider_id,
             provider_name=provider_name,
         )
-        try:
-            raise self.retry(
-                exc=Exception(f"populate_provider_database failed for {provider_id}")
-            )
-        except Exception:
-            return {
-                "status": "error",
-                "provider_id": provider_id,
-                "reason": "unhandled_exception",
-            }
+        raise self.retry(exc=exc) from exc
 
 
 async def _populate_provider_async(
