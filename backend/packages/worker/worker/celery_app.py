@@ -5,7 +5,7 @@ Celery Application Configuration
 import structlog
 from celery import Celery
 from celery.schedules import crontab
-from celery.signals import setup_logging, worker_ready
+from celery.signals import setup_logging, worker_init
 
 from worker.config import worker_config
 
@@ -76,7 +76,6 @@ def configure_celery_logging(**kwargs: object) -> None:
     """
     structlog.configure(
         processors=[
-            structlog.stdlib.filter_by_level,
             structlog.stdlib.add_logger_name,
             structlog.stdlib.add_log_level,
             structlog.stdlib.PositionalArgumentsFormatter(),
@@ -88,7 +87,7 @@ def configure_celery_logging(**kwargs: object) -> None:
         ],
         wrapper_class=structlog.stdlib.BoundLogger,
         context_class=dict,
-        logger_factory=structlog.PrintLoggerFactory(),
+        logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
 
@@ -99,13 +98,17 @@ celery_app = create_celery_app()
 import worker.metrics  # noqa: E402, F401
 
 
-@worker_ready.connect
-def _on_worker_ready(**kwargs: object) -> None:
-    """Start the Prometheus metrics HTTP server when the worker is ready."""
-    if worker_config.metrics_port > 0:
-        from worker.metrics import start_metrics_server_in_thread
+@worker_init.connect
+def _on_worker_init(**kwargs: object) -> None:
+    """Start the Prometheus metrics HTTP server when the worker initializes.
 
-        start_metrics_server_in_thread(port=worker_config.metrics_port)
+    Uses worker_init (main process, before pool fork) rather than
+    worker_ready so the metrics server is ready before children start.
+    """
+    if worker_config.metrics_port > 0:
+        from worker.metrics import start_metrics_server
+
+        start_metrics_server(port=worker_config.metrics_port)
 
 
 # Conditional Sentry initialization
