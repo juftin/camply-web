@@ -5,16 +5,38 @@ Exposes a /metrics endpoint on a separate HTTP port (default 8001)
 via prometheus_client's built-in HTTP server running in a daemon thread.
 Celery signals (task_prerun, task_postrun) automatically capture task
 execution counts and durations across all tasks.
+
+When PROMETHEUS_MULTIPROC_DIR is set, uses prometheus_client's multiprocess
+mode so metrics from all prefork worker children are aggregated via shared
+.db files, matching the FastAPI backend's approach.
 """
 
-import threading
+import os
 import time
 from typing import Any
 
-import prometheus_client
 import structlog
 from celery.signals import task_postrun, task_prerun
-from prometheus_client import Counter, Gauge, Histogram
+
+# Must create the multiprocess directory BEFORE prometheus_client is first
+# imported — the library checks the env var at import time.
+_multiproc_dir = os.environ.get(
+    "CAMPLY_PROMETHEUS_MULTIPROC_DIR",
+    os.environ.get("PROMETHEUS_MULTIPROC_DIR"),
+)
+if _multiproc_dir:
+    os.makedirs(_multiproc_dir, exist_ok=True)
+    # Clean stale .db files from previous runs to prevent metric accumulation
+    for fname in os.listdir(_multiproc_dir):
+        if fname.endswith(".db"):
+            try:
+                os.remove(os.path.join(_multiproc_dir, fname))
+            except OSError:
+                pass
+
+import prometheus_client  # noqa: E402
+from prometheus_client import Counter, Gauge, Histogram  # noqa: E402
+from prometheus_client.multiprocess import MultiProcessCollector  # noqa: E402
 
 logger = structlog.getLogger(__name__)
 
@@ -120,28 +142,18 @@ def start_metrics_server(port: int = 8001) -> None:
     """
     Start a prometheus_client HTTP server in a daemon thread.
 
-    Runs on the given port so Prometheus can scrape worker metrics
-    independently from the backend API.
+    When PROMETHEUS_MULTIPROC_DIR is configured, uses MultiProcessCollector
+    to aggregate metrics from all prefork worker children via shared .db files.
+    Otherwise falls back to the default in-process collector for single-worker
+    setups (e.g. local development with --pool=solo).
     """
     try:
-        prometheus_client.start_http_server(port)
+        if _multiproc_dir:
+            registry = prometheus_client.CollectorRegistry()
+            MultiProcessCollector(registry)
+            prometheus_client.start_http_server(port, registry=registry)
+        else:
+            prometheus_client.start_http_server(port)
         logger.info("Worker metrics server started", port=port)
     except Exception:
         logger.exception("Failed to start worker metrics server", port=port)
-
-
-def start_metrics_server_in_thread(port: int = 8001) -> None:
-    """
-    Start the metrics HTTP server in a daemon thread.
-
-    This is safe to call from within a Celery worker process. The thread
-    is marked daemon so it won't block shutdown.
-    """
-    thread = threading.Thread(
-        target=start_metrics_server,
-        args=(port,),
-        daemon=True,
-        name="prometheus-metrics",
-    )
-    thread.start()
-    logger.info("Worker metrics server thread started", port=port)

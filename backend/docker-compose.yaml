@@ -93,6 +93,8 @@ services:
       CAMPLY_SENTRY_DSN: ${SENTRY_DSN:-}
       CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.0}
       CAMPLY_METRICS_PORT: 8001
+      PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
+      CAMPLY_PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
       PUSHOVER_APP_TOKEN: ${PUSHOVER_APP_TOKEN:-}
       SKIP_MIGRATIONS: "1"
     restart: unless-stopped
@@ -121,6 +123,8 @@ services:
       CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.0}
       SKIP_MIGRATIONS: "1"
       CAMPLY_METRICS_PORT: 8001
+      PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
+      CAMPLY_PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
     restart: unless-stopped
 
   prometheus:
@@ -131,6 +135,12 @@ services:
       - "--web.console.libraries=/usr/share/prometheus/console_libraries"
       - "--web.console.templates=/usr/share/prometheus/consoles"
       - "--storage.tsdb.retention.time=30d"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     ports:
       - "9090:9090"
     volumes:
@@ -144,6 +154,12 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-camply}
       GF_AUTH_ANONYMOUS_ENABLED: "true"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     ports:
       - "3000:3000"
     volumes:
