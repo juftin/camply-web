@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { toTitleCase } from "./utils";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import { toTitleCase, formatRelativeTime } from "./utils";
 
 describe("toTitleCase", () => {
   it("title-cases an all-uppercase string", () => {
@@ -62,5 +62,62 @@ describe("toTitleCase", () => {
 
   it("handles a string with trailing whitespace all-caps", () => {
     expect(toTitleCase("YOSEMITE ")).toBe("Yosemite ");
+  });
+});
+
+describe("formatRelativeTime", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("does not throw for a valid ISO string", () => {
+    expect(() => formatRelativeTime("2020-01-01T00:00:00Z")).not.toThrow();
+  });
+
+  it("shows seconds ago for timestamps within the last minute", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2025-06-15T12:00:00Z"));
+
+    expect(formatRelativeTime("2025-06-15T11:59:30Z")).toBe("30s ago");
+    expect(formatRelativeTime("2025-06-15T11:59:01Z")).toBe("59s ago");
+  });
+
+  it("shows minutes ago for timestamps in the last hour", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2025-06-15T12:00:00Z"));
+
+    expect(formatRelativeTime("2025-06-15T11:59:00Z")).toBe("1m ago");
+    expect(formatRelativeTime("2025-06-15T11:30:00Z")).toBe("30m ago");
+  });
+
+  it("shows hours ago for timestamps in the last day", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2025-06-15T12:00:00Z"));
+
+    expect(formatRelativeTime("2025-06-15T10:00:00Z")).toBe("2h ago");
+  });
+
+  it("shows days ago for older timestamps", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2025-06-15T12:00:00Z"));
+
+    expect(formatRelativeTime("2025-06-12T12:00:00Z")).toBe("3d ago");
+  });
+
+  it("returns 'just now' for timestamps slightly in the future (clock skew)", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2025-06-15T12:00:00Z"));
+
+    expect(formatRelativeTime("2025-06-15T12:00:30Z")).toBe("just now");
+    expect(formatRelativeTime("2025-06-15T12:00:59Z")).toBe("just now");
+  });
+
+  it("uses future tense for timestamps further in the future", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2025-06-15T12:00:00Z"));
+
+    expect(formatRelativeTime("2025-06-15T12:05:00Z")).toBe("in 5m");
+    expect(formatRelativeTime("2025-06-15T14:00:00Z")).toBe("in 2h");
+    expect(formatRelativeTime("2025-06-18T12:00:00Z")).toBe("in 3d");
   });
 });

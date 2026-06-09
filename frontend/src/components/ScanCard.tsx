@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { toTitleCase } from "@/lib/utils";
+import { toTitleCase, formatDate, daysBetween, formatRelativeTime } from "@/lib/utils";
 import type { ScanResponse } from "@/lib/structs";
 
 interface ScanCardProps {
@@ -195,29 +195,4 @@ export function ScanCard({
     </Card>
     </Link>
   );
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function formatDate(iso: string): string {
-  const d = new Date(iso + "T00:00:00");
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-function daysBetween(start: string, end: string): number {
-  const s = new Date(start + "T00:00:00");
-  const e = new Date(end + "T00:00:00");
-  return Math.max(0, Math.round((e.getTime() - s.getTime()) / 86400000));
-}
-
-function formatRelativeTime(iso: string): string {
-  const now = Date.now();
-  const then = new Date(iso).getTime();
-  const diffSec = Math.floor((now - then) / 1000);
-  if (diffSec < 60) return `${diffSec}s ago`;
-  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
-  return `${Math.floor(diffSec / 86400)}d ago`;
 }
