@@ -36,8 +36,7 @@ services:
         condition: service_healthy
       grafana:
         condition: service_healthy
-    volumes:
-      - ./.data/camply/:/home/camply/.local/share/camply/
+    volumes: []
     environment:
       CAMPLY_DB_DRIVERNAME: "postgresql+psycopg"
       CAMPLY_DB_HOST: "db"
@@ -90,8 +89,7 @@ services:
         condition: service_healthy
       grafana:
         condition: service_healthy
-    volumes:
-      - ./.data/camply/:/home/camply/.local/share/camply/
+    volumes: []
     environment:
       CAMPLY_DB_DRIVERNAME: "postgresql+psycopg"
       CAMPLY_DB_HOST: "db"
@@ -122,8 +120,7 @@ services:
         condition: service_healthy
       grafana:
         condition: service_healthy
-    volumes:
-      - ./.data/camply/:/home/camply/.local/share/camply/
+    volumes: []
     environment:
       CAMPLY_DB_DRIVERNAME: "postgresql+psycopg"
       CAMPLY_DB_HOST: "db"
