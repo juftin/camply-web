@@ -92,3 +92,31 @@ export function isHTMLContent(content: string | null | undefined): boolean {
   if (!content) return false;
   return /<[a-z][\s\S]*>/i.test(content);
 }
+
+export function formatDate(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+export function daysBetween(start: string, end: string): number {
+  const s = new Date(start + "T00:00:00");
+  const e = new Date(end + "T00:00:00");
+  return Math.max(0, Math.round((e.getTime() - s.getTime()) / 86400000));
+}
+
+export function formatRelativeTime(iso: string): string {
+  const now = Date.now();
+  const then = new Date(iso).getTime();
+  const diffSec = Math.floor((now - then) / 1000);
+  if (diffSec < 0) {
+    const abs = Math.abs(diffSec);
+    if (abs < 60) return "just now";
+    if (abs < 3600) return `in ${Math.floor(abs / 60)}m`;
+    if (abs < 86400) return `in ${Math.floor(abs / 3600)}h`;
+    return `in ${Math.floor(abs / 86400)}d`;
+  }
+  if (diffSec < 60) return `${diffSec}s ago`;
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+  return `${Math.floor(diffSec / 86400)}d ago`;
+}

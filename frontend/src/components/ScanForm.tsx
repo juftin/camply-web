@@ -294,15 +294,15 @@ export function ScanForm({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="start_date">Check-in</Label>
-              <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <label className="relative">
+                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   id="start_date"
                   type="date"
                   className="pl-10"
                   {...register("start_date")}
                 />
-              </div>
+              </label>
               {errors.start_date && (
                 <p className="text-xs text-destructive">
                   {errors.start_date.message}
@@ -311,15 +311,15 @@ export function ScanForm({
             </div>
             <div className="space-y-1">
               <Label htmlFor="end_date">Check-out</Label>
-              <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <label className="relative">
+                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   id="end_date"
                   type="date"
                   className="pl-10"
                   {...register("end_date")}
                 />
-              </div>
+              </label>
               {errors.end_date && (
                 <p className="text-xs text-destructive">
                   {errors.end_date.message}
