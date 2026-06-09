@@ -8,6 +8,9 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+RUN addgroup --system --gid 1000 camply && \
+    adduser --system --uid 1000 --gid 1000 camply
+
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_LOCKED=1 \
@@ -32,6 +35,11 @@ RUN --mount=from=ghcr.io/astral-sh/uv:latest,source=/uv,target=/bin/uv \
 ENV PATH="/app/.venv/bin:${PATH}"
 
 COPY entrypoint.sh /app/entrypoint.sh
+
+RUN chown -R camply:camply /app && \
+    chmod +x /app/entrypoint.sh
+
+USER camply
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 
