@@ -51,13 +51,16 @@ jobs:
       - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
       - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
       - name: Build backend image
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        uses: docker/bake-action@6614cfa25eff9a0b2b2697efb0b6159e7680d584 # v7.2.0
         with:
-          context: ./backend
+          files: ./docker-compose.yaml
+          targets: backend
           push: false
-          tags: juftin/camply-backend:ci-${{ github.sha }}
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,mode=max,scope=backend
+          set: |
+            *.cache-from=type=gha,scope=backend
+            *.cache-to=type=gha,mode=max,scope=backend
+        env:
+          BACKEND_VERSION: ci-${{ github.sha }}
 
   # ── Frontend ─────────────────────────────────────────────────────────────
 
@@ -90,11 +93,14 @@ jobs:
       - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
       - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
       - name: Build frontend image
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        uses: docker/bake-action@6614cfa25eff9a0b2b2697efb0b6159e7680d584 # v7.2.0
         with:
-          context: ./frontend
+          files: ./docker-compose.yaml
+          targets: frontend
           push: false
-          tags: juftin/camply-frontend:ci-${{ github.sha }}
-          build-args: CAMPLY_API_URL=
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
+          set: |
+            *.cache-from=type=gha,scope=frontend
+            *.cache-to=type=gha,mode=max,scope=frontend
+            frontend.args.CAMPLY_API_URL=
+        env:
+          FRONTEND_VERSION: ci-${{ github.sha }}
