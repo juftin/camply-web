@@ -51,7 +51,7 @@ tasks:
 
   docker:
     desc: Build Docker Image
-    cmd: docker compose --project-directory ../ build frontend
+    cmd: docker buildx bake --file ../docker-compose.yaml frontend
     env:
       FRONTEND_VERSION:
         sh: npm pkg get version | jq -r
