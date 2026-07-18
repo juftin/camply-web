@@ -34,7 +34,7 @@ function renderProfile(overrides: Partial<AuthState> = {}) {
     updatePushoverToken: vi.fn().mockResolvedValue(undefined),
     signOut: vi.fn(),
     login: vi.fn(),
-    authMode: "local",
+    authMode: "basic",
     ...overrides,
   };
 

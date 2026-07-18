@@ -110,11 +110,18 @@ function Auth0Content() {
   );
 }
 
-function LocalContent() {
+function BasicContent() {
   const navigate = useNavigate();
+  const { isReady, user } = useAuth();
+
   React.useEffect(() => {
-    navigate("/dashboard", { replace: true });
-  }, [navigate]);
+    if (isReady && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isReady, user, navigate]);
+
+  // When not logged in, the BasicAuthProvider shows the login form —
+  // this page just renders nothing while waiting.
   return null;
 }
 
@@ -124,5 +131,5 @@ export function Auth() {
   if (authMode === "auth0") {
     return <Auth0Content />;
   }
-  return <LocalContent />;
+  return <BasicContent />;
 }

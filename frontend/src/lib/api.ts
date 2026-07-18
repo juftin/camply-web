@@ -28,16 +28,31 @@ const api = axios.create({
 });
 
 // ---------------------------------------------------------------------------
-// Auth token interceptor
+// Auth token interceptor (Basic auth takes priority over Bearer/Auth0)
 // ---------------------------------------------------------------------------
 
 let _getAccessToken: (() => Promise<string | null>) | null = null;
+let _basicAuthHeader: string | null = null;
 
 export function setAccessTokenProvider(fn: () => Promise<string | null>): void {
   _getAccessToken = fn;
 }
 
+/** Store HTTP Basic Auth credentials in memory (cleared on page refresh). */
+export function setBasicAuth(username: string, password: string): void {
+  _basicAuthHeader = `Basic ${btoa(`${username}:${password}`)}`;
+}
+
+/** Clear stored Basic Auth credentials (sign out). */
+export function clearBasicAuth(): void {
+  _basicAuthHeader = null;
+}
+
 api.interceptors.request.use(async (config) => {
+  if (_basicAuthHeader) {
+    config.headers.Authorization = _basicAuthHeader;
+    return config;
+  }
   if (_getAccessToken) {
     try {
       const token = await _getAccessToken();
