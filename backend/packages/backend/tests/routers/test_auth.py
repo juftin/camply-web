@@ -81,7 +81,9 @@ class TestBasicAuth:
         """Invalid username/password should return 401."""
         response = test_client.get(
             "/api/me",
-            headers={"Authorization": f"Basic {base64.b64encode(b'wrong:creds').decode()}"},
+            headers={
+                "Authorization": f"Basic {base64.b64encode(b'wrong:creds').decode()}"
+            },
         )
         assert response.status_code == 401
 

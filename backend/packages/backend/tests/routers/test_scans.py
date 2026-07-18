@@ -232,11 +232,15 @@ class TestUpdateScan:
         created = _create_scan(test_client, cg_id)
         scan_id = created["id"]
 
-        resp = test_client.patch(f"{API_SCANS}/{scan_id}", json={"is_active": False}, headers=_BASIC_AUTH)
+        resp = test_client.patch(
+            f"{API_SCANS}/{scan_id}", json={"is_active": False}, headers=_BASIC_AUTH
+        )
         assert resp.status_code == 200
         assert resp.json()["is_active"] is False
 
-        resp = test_client.patch(f"{API_SCANS}/{scan_id}", json={"is_active": True}, headers=_BASIC_AUTH)
+        resp = test_client.patch(
+            f"{API_SCANS}/{scan_id}", json={"is_active": True}, headers=_BASIC_AUTH
+        )
         assert resp.status_code == 200
         assert resp.json()["is_active"] is True
 
@@ -263,7 +267,9 @@ class TestUpdateScan:
 
     def test_update_scan_not_found(self, test_client: TestClient) -> None:
         response = test_client.patch(
-            f"{API_SCANS}/{uuid.uuid4()}", json={"is_active": False}, headers=_BASIC_AUTH
+            f"{API_SCANS}/{uuid.uuid4()}",
+            json={"is_active": False},
+            headers=_BASIC_AUTH,
         )
         assert response.status_code == 404
 
@@ -285,7 +291,9 @@ class TestDeleteScan:
         assert get_resp.status_code == 404
 
     def test_delete_scan_not_found(self, test_client: TestClient) -> None:
-        response = test_client.delete(f"{API_SCANS}/{uuid.uuid4()}", headers=_BASIC_AUTH)
+        response = test_client.delete(
+            f"{API_SCANS}/{uuid.uuid4()}", headers=_BASIC_AUTH
+        )
         assert response.status_code == 404
 
 
@@ -319,5 +327,3 @@ class TestMe:
         data = response.json()
         assert data["email"] == "admin@camply.local"
         assert data["is_early_access_user"] is True
-
-

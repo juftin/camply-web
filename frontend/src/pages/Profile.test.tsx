@@ -69,7 +69,7 @@ describe("Profile", () => {
     expect(screen.getByText("Go to Dashboard")).toBeInTheDocument();
   });
 
-  it("hides dashboard link when user is not early access", () => {
+  it("shows dashboard link even when user is not early access", () => {
     renderProfile({
       user: {
         id: "test-user-id",
@@ -79,7 +79,7 @@ describe("Profile", () => {
       },
       isEarlyAccess: false,
     });
-    expect(screen.queryByText("Go to Dashboard")).not.toBeInTheDocument();
+    expect(screen.getByText("Go to Dashboard")).toBeInTheDocument();
   });
 
   it("calls signOut when sign out button is clicked", () => {

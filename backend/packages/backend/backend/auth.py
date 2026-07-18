@@ -9,7 +9,6 @@ Supports three modes:
 
 from __future__ import annotations
 
-import base64
 import secrets
 import uuid
 from typing import Annotated, Optional
@@ -17,8 +16,12 @@ from typing import Annotated, Optional
 import jwt
 import structlog
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.responses import JSONResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBasic, HTTPBasicCredentials, HTTPBearer
+from fastapi.security import (
+    HTTPAuthorizationCredentials,
+    HTTPBasic,
+    HTTPBasicCredentials,
+    HTTPBearer,
+)
 from jwt import PyJWKClient
 from pydantic import BaseModel
 from sqlalchemy import select
