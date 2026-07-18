@@ -67,7 +67,7 @@ export function getApiErrorMessage(error: unknown): string {
 // ---------------------------------------------------------------------------
 
 export interface AuthConfig {
-  auth_mode: "local" | "auth0";
+  auth_mode: "basic" | "auth0";
   auth0_domain: string | null;
   auth0_client_id: string | null;
 }

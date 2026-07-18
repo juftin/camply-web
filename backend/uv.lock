@@ -173,6 +173,11 @@ dependencies = [
     { name = "worker" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "backend", editable = "packages/backend" },
@@ -180,6 +185,9 @@ requires-dist = [
     { name = "providers", editable = "packages/providers" },
     { name = "worker", editable = "packages/worker" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "httpx", specifier = ">=0.28.1" }]
 
 [[package]]
 name = "celery"

@@ -21,7 +21,7 @@ function renderWithProviders() {
 vi.mock("@/lib/api", () => ({
   fetchAuthConfig: vi.fn(() =>
     Promise.resolve({
-      auth_mode: "local" as const,
+      auth_mode: "basic" as const,
       auth0_domain: null,
       auth0_client_id: null,
     }),
@@ -41,7 +41,7 @@ vi.mock("@/hooks/useAuth", () => ({
     updatePushoverToken: vi.fn(),
     signOut: vi.fn(),
     login: vi.fn(),
-    authMode: "local" as const,
+    authMode: "basic" as const,
   }),
   AuthProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
   AuthModeContext: {

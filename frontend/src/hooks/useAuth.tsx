@@ -15,7 +15,7 @@ import type { MeResponse } from "@/lib/structs";
 // Types
 // ---------------------------------------------------------------------------
 
-export type AuthMode = "local" | "auth0";
+export type AuthMode = "basic" | "auth0";
 
 export interface AuthState {
   user: MeResponse | null;
@@ -35,7 +35,7 @@ export interface AuthState {
 // ---------------------------------------------------------------------------
 
 /* eslint-disable-next-line react-refresh/only-export-components */
-export const AuthModeContext = createContext<AuthMode>("local");
+export const AuthModeContext = createContext<AuthMode>("basic");
 
 // ---------------------------------------------------------------------------
 // Internal context
@@ -45,10 +45,10 @@ export const AuthModeContext = createContext<AuthMode>("local");
 export const AuthContext = createContext<AuthState | null>(null);
 
 // ---------------------------------------------------------------------------
-// Local-mode provider (no Auth0)
+// Basic-auth provider (HTTP Basic Auth — no Auth0)
 // ---------------------------------------------------------------------------
 
-function LocalAuthProvider({ children }: { children: ReactNode }) {
+function BasicAuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [initialLoading, setInitialLoading] = useState(true);
   const [hasError, setHasError] = useState<string | null>(null);
@@ -109,7 +109,7 @@ function LocalAuthProvider({ children }: { children: ReactNode }) {
     updatePushoverToken,
     signOut,
     login: () => {},
-    authMode: "local" as AuthMode,
+    authMode: "basic" as AuthMode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -215,7 +215,7 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
-// Top-level provider — picks local or auth0 based on AuthModeContext
+// Top-level provider — picks basic or auth0 based on AuthModeContext
 // ---------------------------------------------------------------------------
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -224,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (mode === "auth0") {
     return <Auth0AuthProvider>{children}</Auth0AuthProvider>;
   }
-  return <LocalAuthProvider>{children}</LocalAuthProvider>;
+  return <BasicAuthProvider>{children}</BasicAuthProvider>;
 }
 
 // ---------------------------------------------------------------------------

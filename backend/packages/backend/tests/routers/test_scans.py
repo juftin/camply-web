@@ -4,6 +4,7 @@ Tests for the ``/api/scans`` CRUD endpoints.
 Each test uses unique data to remain independent of other tests.
 """
 
+import base64
 import uuid
 from itertools import count
 
@@ -12,6 +13,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from db.models import Campground, RecreationArea
+
+# Default Basic Auth credentials matching config defaults
+_BASIC_AUTH = {"Authorization": f"Basic {base64.b64encode(b'admin:camply').decode()}"}
 
 API_SCANS = "/api/scans"
 API_SEARCH = "/api/search"
@@ -85,7 +89,7 @@ def _create_scan(
         "require_electric": False,
         **overrides,
     }
-    resp = test_client.post(API_SCANS, json=payload)
+    resp = test_client.post(API_SCANS, json=payload, headers=_BASIC_AUTH)
     assert resp.status_code == 201, resp.text
     return resp.json()
 
@@ -135,6 +139,7 @@ class TestCreateScan:
                 "start_date": "2026-07-01",
                 "end_date": "2026-07-05",
             },
+            headers=_BASIC_AUTH,
         )
         assert resp2.status_code == 409, resp2.text
         assert "already exists" in resp2.text.lower()
@@ -148,6 +153,7 @@ class TestCreateScan:
                 "start_date": "2026-07-01",
                 "end_date": "2026-07-05",
             },
+            headers=_BASIC_AUTH,
         )
         assert response.status_code == 404, response.text
 
@@ -157,7 +163,7 @@ class TestListScans:
 
     def test_list_scans_returns_paginated(self, test_client: TestClient) -> None:
         """GET /api/scans returns a paginated list."""
-        response = test_client.get(API_SCANS)
+        response = test_client.get(API_SCANS, headers=_BASIC_AUTH)
         assert response.status_code == 200
         data = response.json()
         assert "scans" in data
@@ -172,7 +178,7 @@ class TestListScans:
         _create_scan(test_client, cg1)
         _create_scan(test_client, cg2)
 
-        response = test_client.get(API_SCANS)
+        response = test_client.get(API_SCANS, headers=_BASIC_AUTH)
         assert response.status_code == 200
         data = response.json()
         # At least 2 scans (our new ones plus any from prior tests)
@@ -187,7 +193,7 @@ class TestListScans:
         _seed_campground(cg_id, "Active Filter Camp")
         _create_scan(test_client, cg_id)
 
-        response = test_client.get(f"{API_SCANS}?is_active=true")
+        response = test_client.get(f"{API_SCANS}?is_active=true", headers=_BASIC_AUTH)
         assert response.status_code == 200
         data = response.json()
         # At least 1 (our new scan, plus any from prior tests)
@@ -205,7 +211,7 @@ class TestGetScan:
         created = _create_scan(test_client, cg_id)
         scan_id = created["id"]
 
-        response = test_client.get(f"{API_SCANS}/{scan_id}")
+        response = test_client.get(f"{API_SCANS}/{scan_id}", headers=_BASIC_AUTH)
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == scan_id
@@ -213,7 +219,7 @@ class TestGetScan:
         assert data["results"] == []
 
     def test_get_scan_not_found(self, test_client: TestClient) -> None:
-        response = test_client.get(f"{API_SCANS}/{uuid.uuid4()}")
+        response = test_client.get(f"{API_SCANS}/{uuid.uuid4()}", headers=_BASIC_AUTH)
         assert response.status_code == 404
 
 
@@ -226,11 +232,11 @@ class TestUpdateScan:
         created = _create_scan(test_client, cg_id)
         scan_id = created["id"]
 
-        resp = test_client.patch(f"{API_SCANS}/{scan_id}", json={"is_active": False})
+        resp = test_client.patch(f"{API_SCANS}/{scan_id}", json={"is_active": False}, headers=_BASIC_AUTH)
         assert resp.status_code == 200
         assert resp.json()["is_active"] is False
 
-        resp = test_client.patch(f"{API_SCANS}/{scan_id}", json={"is_active": True})
+        resp = test_client.patch(f"{API_SCANS}/{scan_id}", json={"is_active": True}, headers=_BASIC_AUTH)
         assert resp.status_code == 200
         assert resp.json()["is_active"] is True
 
@@ -247,6 +253,7 @@ class TestUpdateScan:
                 "preferred_types": ["RV"],
                 "require_electric": True,
             },
+            headers=_BASIC_AUTH,
         )
         assert response.status_code == 200
         data = response.json()
@@ -256,7 +263,7 @@ class TestUpdateScan:
 
     def test_update_scan_not_found(self, test_client: TestClient) -> None:
         response = test_client.patch(
-            f"{API_SCANS}/{uuid.uuid4()}", json={"is_active": False}
+            f"{API_SCANS}/{uuid.uuid4()}", json={"is_active": False}, headers=_BASIC_AUTH
         )
         assert response.status_code == 404
 
@@ -270,15 +277,15 @@ class TestDeleteScan:
         created = _create_scan(test_client, cg_id)
         scan_id = created["id"]
 
-        response = test_client.delete(f"{API_SCANS}/{scan_id}")
+        response = test_client.delete(f"{API_SCANS}/{scan_id}", headers=_BASIC_AUTH)
         assert response.status_code == 204
         assert response.content == b""  # 204 must have no body
 
-        get_resp = test_client.get(f"{API_SCANS}/{scan_id}")
+        get_resp = test_client.get(f"{API_SCANS}/{scan_id}", headers=_BASIC_AUTH)
         assert get_resp.status_code == 404
 
     def test_delete_scan_not_found(self, test_client: TestClient) -> None:
-        response = test_client.delete(f"{API_SCANS}/{uuid.uuid4()}")
+        response = test_client.delete(f"{API_SCANS}/{uuid.uuid4()}", headers=_BASIC_AUTH)
         assert response.status_code == 404
 
 
@@ -292,13 +299,13 @@ class TestSearch:
 
     def test_search_empty_query(self, test_client: TestClient) -> None:
         """An empty query returns a 200 with an empty list."""
-        response = test_client.get(f"{API_SEARCH}?query=")
+        response = test_client.get(f"{API_SEARCH}?query=", headers=_BASIC_AUTH)
         assert response.status_code == 200
         assert response.json() == []
 
     def test_search_returns_list(self, test_client: TestClient) -> None:
         """A query returns a 200 with a list."""
-        response = test_client.get(f"{API_SEARCH}?query=test")
+        response = test_client.get(f"{API_SEARCH}?query=test", headers=_BASIC_AUTH)
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
@@ -307,7 +314,7 @@ class TestMe:
     """Tests for GET /api/me."""
 
     def test_me_endpoint(self, test_client: TestClient) -> None:
-        response = test_client.get(API_ME)
+        response = test_client.get(API_ME, headers=_BASIC_AUTH)
         assert response.status_code == 200
         data = response.json()
         assert data["email"] == "admin@camply.local"
@@ -340,6 +347,7 @@ class TestEarlyAccess:
                     "start_date": "2026-07-01",
                     "end_date": "2026-07-05",
                 },
+                headers=_BASIC_AUTH,
             )
             assert response.status_code == 403, response.text
             error_detail = response.json().get("detail", {})

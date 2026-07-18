@@ -71,7 +71,7 @@ function App() {
   const [config, setConfig] = useState<AuthConfig | null>(null);
 
   useEffect(() => {
-    fetchAuthConfig().then(setConfig).catch(() => setConfig({ auth_mode: "local", auth0_domain: null, auth0_client_id: null }));
+    fetchAuthConfig().then(setConfig).catch(() => setConfig({ auth_mode: "basic", auth0_domain: null, auth0_client_id: null }));
   }, []);
 
   if (!config) {
@@ -104,7 +104,7 @@ function App() {
   }
 
   return (
-    <AuthModeContext.Provider value="local">
+    <AuthModeContext.Provider value="basic">
       <AuthProvider>
         <AppRoutes />
       </AuthProvider>
