@@ -8,14 +8,21 @@ import {
 } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth0 } from "@auth0/auth0-react";
-import { getMe, updateMe, getApiErrorMessage, setAccessTokenProvider } from "@/lib/api";
+import { AxiosError } from "axios";
+import {
+  getMe,
+  updateMe,
+  getApiErrorMessage,
+  setAccessTokenProvider,
+  clearBasicAuth,
+} from "@/lib/api";
 import type { MeResponse } from "@/lib/structs";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-export type AuthMode = "local" | "auth0";
+export type AuthMode = "basic" | "auth0";
 
 export interface AuthState {
   user: MeResponse | null;
@@ -35,7 +42,7 @@ export interface AuthState {
 // ---------------------------------------------------------------------------
 
 /* eslint-disable-next-line react-refresh/only-export-components */
-export const AuthModeContext = createContext<AuthMode>("local");
+export const AuthModeContext = createContext<AuthMode>("basic");
 
 // ---------------------------------------------------------------------------
 // Internal context
@@ -45,10 +52,10 @@ export const AuthModeContext = createContext<AuthMode>("local");
 export const AuthContext = createContext<AuthState | null>(null);
 
 // ---------------------------------------------------------------------------
-// Local-mode provider (no Auth0)
+// Basic-auth provider (HTTP Basic Auth — no Auth0)
 // ---------------------------------------------------------------------------
 
-function LocalAuthProvider({ children }: { children: ReactNode }) {
+function BasicAuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [initialLoading, setInitialLoading] = useState(true);
   const [hasError, setHasError] = useState<string | null>(null);
@@ -61,7 +68,7 @@ function LocalAuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<MeResponse>({
     queryKey: ["me"],
     queryFn: getMe,
-    retry: 1,
+    retry: false,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -70,8 +77,18 @@ function LocalAuthProvider({ children }: { children: ReactNode }) {
   }, [isLoading]);
 
   useEffect(() => {
-    if (error) setHasError(getApiErrorMessage(error));
-    else setHasError(null);
+    if (error) {
+      const axiosError = error as AxiosError;
+      // 401 just means not logged in — don't show as error, clear any stale creds
+      if (axiosError?.response?.status === 401) {
+        clearBasicAuth();
+        setHasError(null);
+      } else {
+        setHasError(getApiErrorMessage(error));
+      }
+    } else {
+      setHasError(null);
+    }
   }, [error]);
 
   const pushoverMutation = useMutation({
@@ -95,9 +112,16 @@ function LocalAuthProvider({ children }: { children: ReactNode }) {
   }, [refetch]);
 
   const signOut = useCallback(() => {
+    clearBasicAuth();
     queryClient.setQueryData(["me"], null);
     setHasError(null);
   }, [queryClient]);
+
+  /** Called by the /auth page to attempt login with credentials. */
+  const login = useCallback(async () => {
+    // No-op — actual login is handled by the /auth page's form which
+    // calls setBasicAuth() directly, then invalidates the ["me"] query.
+  }, []);
 
   const value: AuthState = {
     user: user ?? null,
@@ -108,8 +132,8 @@ function LocalAuthProvider({ children }: { children: ReactNode }) {
     refresh,
     updatePushoverToken,
     signOut,
-    login: () => {},
-    authMode: "local" as AuthMode,
+    login,
+    authMode: "basic" as AuthMode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -215,7 +239,7 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
-// Top-level provider — picks local or auth0 based on AuthModeContext
+// Top-level provider — picks basic or auth0 based on AuthModeContext
 // ---------------------------------------------------------------------------
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -224,7 +248,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (mode === "auth0") {
     return <Auth0AuthProvider>{children}</Auth0AuthProvider>;
   }
-  return <LocalAuthProvider>{children}</LocalAuthProvider>;
+  return <BasicAuthProvider>{children}</BasicAuthProvider>;
 }
 
 // ---------------------------------------------------------------------------

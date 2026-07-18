@@ -1,20 +1,27 @@
 """
 Authentication utilities for camply-backend.
 
-Supports two modes:
-  * ``AUTH_MODE=local`` — simple email-based identity suitable for self-hosters.
+Supports three modes:
+  * ``AUTH_MODE=basic`` — HTTP Basic Auth for self-hosted deployments (default).
+  * ``AUTH_MODE=local`` — email-based identity with no password (legacy).
   * ``AUTH_MODE=auth0`` — Auth0 JWT validation for the community SaaS tier.
 """
 
 from __future__ import annotations
 
+import secrets
 import uuid
 from typing import Annotated, Optional
 
 import jwt
 import structlog
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import (
+    HTTPAuthorizationCredentials,
+    HTTPBasic,
+    HTTPBasicCredentials,
+    HTTPBearer,
+)
 from jwt import PyJWKClient
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -28,10 +35,11 @@ from db.models import User
 logger = structlog.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Bearer-token scheme — works for both Auth0 JWTs and local session tokens
+# Auth schemes — Basic for self-hosted, Bearer for Auth0 JWTs
 # ---------------------------------------------------------------------------
 
 bearer_scheme = HTTPBearer(auto_error=False)
+basic_scheme = HTTPBasic(auto_error=False)
 
 # ---------------------------------------------------------------------------
 # Auth0 helpers
@@ -97,8 +105,25 @@ class CurrentUser(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Local-mode user resolver
+# Basic-auth user resolver
 # ---------------------------------------------------------------------------
+
+
+async def _get_or_create_basic_user(session: AsyncSession) -> User:
+    """Return the admin user for basic auth — create on first call."""
+    result = await session.execute(
+        select(User).where(User.email == backend_config.admin_email)
+    )
+    user = result.scalar_one_or_none()
+    if user is None:
+        user = User(
+            email=backend_config.admin_email,
+            is_early_access_user=True,
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+    return user
 
 
 async def _get_or_create_local_user(session: AsyncSession) -> User:
@@ -124,22 +149,58 @@ async def _get_or_create_local_user(session: AsyncSession) -> User:
 
 
 async def resolve_current_user(
+    request: Request,
     credentials: Annotated[
         Optional[HTTPAuthorizationCredentials], Depends(bearer_scheme)
     ],
     session: SessionDep,
+    basic_credentials: Annotated[
+        Optional[HTTPBasicCredentials], Depends(basic_scheme)
+    ] = None,
 ) -> CurrentUser:
     """
     FastAPI dependency that resolves the current authenticated user.
 
-    **local mode**
+    **basic mode** (default)
+        Requires HTTP Basic Auth credentials matching the configured
+        ``CAMPLY_BASIC_AUTH_USERNAME`` / ``CAMPLY_BASIC_AUTH_PASSWORD``.
+
+    **local mode** (legacy)
         Returns a synthetic user derived from the configured ``ADMIN_EMAIL``.
-        No bearer token is required.
+        No credentials required.
 
     **auth0 mode**
         Validates the bearer JWT, looks up (or creates) the user in the
         database, and returns the DB record.
     """
+    if backend_config.auth_mode == AuthMode.BASIC:
+        if basic_credentials is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing credentials",
+                headers={"WWW-Authenticate": "Basic"},
+            )
+        if not (
+            secrets.compare_digest(
+                basic_credentials.username, backend_config.basic_auth_username
+            )
+            and secrets.compare_digest(
+                basic_credentials.password, backend_config.basic_auth_password
+            )
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials",
+                headers={"WWW-Authenticate": "Basic"},
+            )
+        user = await _get_or_create_basic_user(session)
+        return CurrentUser(
+            id=user.id,
+            email=user.email,
+            is_early_access_user=user.is_early_access_user,
+            pushover_token=user.pushover_token,
+        )
+
     if backend_config.auth_mode == AuthMode.LOCAL:
         user = await _get_or_create_local_user(session)
         return CurrentUser(

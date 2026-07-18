@@ -3,14 +3,11 @@ Scan management router — ``/api/scans`` endpoints.
 
 All endpoints are auth-gated through the ``CurrentUserDep`` dependency:
 
+* **basic mode** — HTTP Basic Auth required (default).
 * **local mode** — a synthetic admin user is created on first access
   (configured via ``CAMPLY_ADMIN_EMAIL``).
 * **auth0 mode** — a valid ``Authorization: Bearer <JWT>`` header is required;
   users are upserted into the database automatically.
-
-Every endpoint also enforces an *early-access* (whitelist) gate via
-the router-level ``require_early_access`` dependency — un-whitelisted
-callers receive a ``403`` with error code ``ERR_EARLY_ACCESS_REQUIRED``.
 """
 
 from __future__ import annotations
@@ -18,12 +15,12 @@ from __future__ import annotations
 import uuid
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from backend.auth import CurrentUserDep, require_early_access
+from backend.auth import CurrentUserDep
 from backend.dependencies import SessionDep
 from backend.schemas import (
     ScanCreateRequest,
@@ -49,7 +46,6 @@ logger = structlog.getLogger(__name__)
 scan_router = APIRouter(
     prefix="/scans",
     tags=["scans"],
-    dependencies=[Depends(require_early_access)],
 )
 
 

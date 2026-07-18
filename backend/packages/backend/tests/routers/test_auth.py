@@ -5,6 +5,7 @@ These use FastAPI's synchronous ``TestClient`` which wraps async endpoints.
 The default DB is an SQLite file configured by the environment.
 """
 
+import base64
 import uuid
 from typing import Generator
 from unittest.mock import AsyncMock, patch
@@ -13,6 +14,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.auth import AuthMode
+
+# Default Basic Auth credentials matching config defaults
+_BASIC_AUTH = {"Authorization": f"Basic {base64.b64encode(b'admin:camply').decode()}"}
 
 # ---------------------------------------------------------------------------
 # Helpers — synthetic JWT payload used when mocking token verification
@@ -61,16 +65,35 @@ def mock_auth0_verify() -> Generator[dict, None, None]:
 
 
 # ===========================================================================
-# Local-mode tests (existing)
+# Basic-mode tests (default)
 # ===========================================================================
+
+
+class TestBasicAuth:
+    """Tests for Basic auth credential validation."""
+
+    def test_missing_credentials_returns_401(self, test_client: TestClient) -> None:
+        """A request without Basic auth should return 401."""
+        response = test_client.get("/api/me")
+        assert response.status_code == 401
+
+    def test_invalid_credentials_returns_401(self, test_client: TestClient) -> None:
+        """Invalid username/password should return 401."""
+        response = test_client.get(
+            "/api/me",
+            headers={
+                "Authorization": f"Basic {base64.b64encode(b'wrong:creds').decode()}"
+            },
+        )
+        assert response.status_code == 401
 
 
 class TestMeEndpoint:
     """Tests for GET/PATCH /api/me."""
 
-    def test_get_me_local_mode(self, test_client: TestClient) -> None:
-        """Local mode should return the admin user."""
-        response = test_client.get("/api/me")
+    def test_get_me_basic_mode(self, test_client: TestClient) -> None:
+        """Basic mode with valid credentials should return the admin user."""
+        response = test_client.get("/api/me", headers=_BASIC_AUTH)
         assert response.status_code == 200
         data = response.json()
         assert "id" in data
@@ -82,6 +105,7 @@ class TestMeEndpoint:
         response = test_client.patch(
             "/api/me",
             json={"pushover_token": "test_token_abc123"},
+            headers=_BASIC_AUTH,
         )
         assert response.status_code == 200
         data = response.json()
@@ -89,13 +113,19 @@ class TestMeEndpoint:
 
     def test_patch_me_clear_pushover(self, test_client: TestClient) -> None:
         """PATCH /api/me with null should clear the token."""
-        # First set a token
-        set_resp = test_client.patch("/api/me", json={"pushover_token": "temp_token"})
+        set_resp = test_client.patch(
+            "/api/me",
+            json={"pushover_token": "temp_token"},
+            headers=_BASIC_AUTH,
+        )
         assert set_resp.status_code == 200
         assert set_resp.json()["pushover_token"] == "temp_token"
 
-        # Then clear it
-        clear_resp = test_client.patch("/api/me", json={"pushover_token": None})
+        clear_resp = test_client.patch(
+            "/api/me",
+            json={"pushover_token": None},
+            headers=_BASIC_AUTH,
+        )
         assert clear_resp.status_code == 200
         assert clear_resp.json()["pushover_token"] is None
 
@@ -105,7 +135,7 @@ class TestProvidersEndpoint:
 
     def test_list_providers(self, test_client: TestClient) -> None:
         """Should return a list of providers."""
-        response = test_client.get("/api/providers")
+        response = test_client.get("/api/providers", headers=_BASIC_AUTH)
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)

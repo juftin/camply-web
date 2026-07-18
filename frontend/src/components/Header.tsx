@@ -12,7 +12,7 @@ interface HeaderProps {
 export function Header({ showLogo = true }: HeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isEarlyAccess } = useAuth();
+  const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = React.useState(true);
   const [lastScrollY, setLastScrollY] = React.useState(0);
@@ -134,7 +134,7 @@ export function Header({ showLogo = true }: HeaderProps) {
             className={`hidden md:flex items-center space-x-2 ${!showLogo ? "absolute right-4" : ""}`}
           >
             <ThemeToggle />
-            {isAuthenticated && isEarlyAccess ? (
+            {isAuthenticated ? (
               <>
                 <Button
                   variant="outline"
@@ -213,7 +213,7 @@ export function Header({ showLogo = true }: HeaderProps) {
                 <ThemeToggle />
               </div>
               <div className="flex flex-col space-y-2">
-                {isAuthenticated && isEarlyAccess ? (
+                {isAuthenticated ? (
                   <>
                     <Button
                       onClick={() => {

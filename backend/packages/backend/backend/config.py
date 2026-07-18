@@ -9,8 +9,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class AuthMode(str, Enum):
-    """Authentication mode — local-only or Auth0."""
+    """Authentication mode — basic, local, or Auth0."""
 
+    BASIC = "basic"
     LOCAL = "local"
     AUTH0 = "auth0"
 
@@ -28,7 +29,9 @@ class BackendConfig(BaseSettings):
     debug: bool = True
 
     # Authentication
-    auth_mode: AuthMode = AuthMode.LOCAL
+    auth_mode: AuthMode = AuthMode.BASIC
+    basic_auth_username: str = "admin"
+    basic_auth_password: str = "camply"
     auth0_domain: Optional[str] = None
     auth0_audience: Optional[str] = None
     auth0_client_id: Optional[str] = None

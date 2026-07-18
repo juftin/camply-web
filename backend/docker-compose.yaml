@@ -41,10 +41,12 @@ services:
       CAMPLY_DB_DATABASE: ${POSTGRES_DB:-camply}
       CAMPLY_DB_PORT: 5432
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-4}
+      CAMPLY_BASIC_AUTH_USERNAME: ${CAMPLY_BASIC_AUTH_USERNAME:-admin}
+      CAMPLY_BASIC_AUTH_PASSWORD: ${CAMPLY_BASIC_AUTH_PASSWORD:-camply}
       PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
       CAMPLY_PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "curl", "-f", "-u", "${CAMPLY_BASIC_AUTH_USERNAME:-admin}:${CAMPLY_BASIC_AUTH_PASSWORD:-camply}", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

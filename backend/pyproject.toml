@@ -73,3 +73,8 @@ module = [
     "importlib_metadata",
 ]
 ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+]
