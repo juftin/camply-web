@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 
 export function Profile() {
-  const { user, isEarlyAccess, isLoading, updatePushoverToken, signOut } =
+  const { user, isLoading, updatePushoverToken, signOut } =
     useAuth();
   const navigate = useNavigate();
 
@@ -135,18 +135,16 @@ export function Profile() {
 
           {/* Actions */}
           <div className="pt-4 border-t space-y-3">
-            {isEarlyAccess && (
-              <Button
-                variant="outline"
-                className="w-full"
-                asChild
-              >
-                <Link to="/dashboard">
-                  <LayoutDashboard className="h-4 w-4 mr-2" />
-                  Go to Dashboard
-                </Link>
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              className="w-full"
+              asChild
+            >
+              <Link to="/dashboard">
+                <LayoutDashboard className="h-4 w-4 mr-2" />
+                Go to Dashboard
+              </Link>
+            </Button>
 
             <Button
               variant="destructive"

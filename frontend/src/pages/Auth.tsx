@@ -22,15 +22,15 @@ function Auth0Content() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { loginWithRedirect } = useAuth0();
-  const { isReady, user, isEarlyAccess } = useAuth();
+  const { isReady, user } = useAuth();
   const isSignUp = searchParams.get("mode") === "signup";
 
-  // Redirect authenticated early-access users to dashboard.
+  // Redirect authenticated users to dashboard.
   React.useEffect(() => {
-    if (isReady && user && isEarlyAccess) {
+    if (isReady && user) {
       navigate("/dashboard", { replace: true });
     }
-  }, [isReady, user, isEarlyAccess, navigate]);
+  }, [isReady, user, navigate]);
 
   const handleLogin = () => {
     loginWithRedirect({

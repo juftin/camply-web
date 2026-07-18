@@ -6,7 +6,6 @@ import { Home } from "@/pages/Home";
 import { Providers } from "@/pages/Providers";
 import { Auth } from "@/pages/Auth";
 import { Dashboard } from "@/pages/Dashboard";
-import { EarlyAccess } from "@/pages/EarlyAccess";
 import { Profile } from "@/pages/Profile";
 import { PrivacyPolicy } from "@/pages/PrivacyPolicy";
 import { TermsOfService } from "@/pages/TermsOfService";
@@ -28,7 +27,6 @@ function AppRoutes() {
     <Router basename={basename}>
       <Routes>
         <Route path="/auth" element={<Auth />} />
-        <Route path="/early-access" element={<EarlyAccess />} />
 
         <Route
           path="/*"

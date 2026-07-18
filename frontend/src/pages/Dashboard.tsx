@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { Plus, Loader2, Frown, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,13 +18,11 @@ import { useScans, useUpdateScan, useDeleteScan, getApiErrorMessage } from "@/ho
 export function Dashboard() {
   const {
     user,
-    isEarlyAccess,
     isReady,
     isLoading: authLoading,
     updatePushoverToken,
     signOut,
   } = useAuth();
-  const navigate = useNavigate();
 
   const {
     data: scanList,
@@ -73,12 +70,6 @@ export function Dashboard() {
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
-  }
-
-  // ---- Early access gate ----
-  if (!isEarlyAccess) {
-    navigate("/early-access", { replace: true });
-    return null;
   }
 
   const handleSavePushover = async () => {
