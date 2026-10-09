@@ -81,3 +81,7 @@ backend/clients/
 
 # Git Worktrees
 .worktrees/
+
+# Snapshot Transient Runs
+frontend/snapshots/current/
+frontend/snapshots/diffs/

@@ -23,6 +23,21 @@ tasks:
       - task: backend:test
       - task: frontend:test
 
+  snapshot:
+    desc: Run UI Visual Snapshots and Generate Comparison Report
+    cmds:
+      - task: frontend:snapshot
+
+  snapshot:update:
+    desc: Update UI Visual Snapshot Baselines
+    cmds:
+      - task: frontend:snapshot:update
+
+  snapshot:check:
+    desc: Verify UI Visual Snapshots Match Baselines (CI Gate)
+    cmds:
+      - task: frontend:snapshot:check
+
   lint:
     desc: Lint All Code (Backend + Frontend)
     cmds:
