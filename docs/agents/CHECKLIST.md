@@ -45,7 +45,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.4.7 Build the `ScanForm` component using Shadcn/UI and React Hook Form.
 - [x] T1.4.8 Connect the existing `SearchBar` to the `ScanForm` flow.
 - [x] T1.4.9 Implement the "Early Access" whitelist gate UI.
-- [x] T1.4.10 **Testing**: Write backend API tests (`pytest`) and frontend component tests (`vitest`).  *(✅ 16 backend + 13 frontend tests passing)*
+- [x] T1.4.10 **Testing**: Write backend API tests (`pytest`) and frontend component tests (`vitest`). _(✅ 16 backend + 13 frontend tests passing)_
 
 ### 1.5 Governance & Licensing
 
@@ -99,3 +99,14 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [ ] T4.1.4 Finalize production `docker-compose.yml`.
 - [ ] T4.1.5 Create Kubernetes manifests for API and Worker scaling.
 - [ ] T4.1.6 Complete a full mobile-responsive audit of the UI.
+
+### 4.3 Discovery & Alert Experience
+
+- [x] T4.3.1 Research Campflare/Campnab and audit current discovery-to-alert behavior.
+- [x] T4.3.2 Define the [proposed UI/UX specification, plan, and staged tasks](../../specs/002-campsite-discovery/plan.md).
+- [x] T4.3.2a Detail first-release work packages and create a local clickable planning wireframe.
+- [ ] T4.3.3 Validate wireframes/prototype and resolve date, access, and notification decisions.
+- [ ] T4.3.4 Implement correctness and accessible interaction foundations (Phase A).
+- [ ] T4.3.5 Implement and verify the complete discovery-to-alert journey (Phase B).
+- [ ] T4.3.6 Expand geographic discovery and delivery after validation (Phase C).
+- [ ] T4.3.7 Add advanced monitoring/organization with dedicated backend contracts (Phase D).
