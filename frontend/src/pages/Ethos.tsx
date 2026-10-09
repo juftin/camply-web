@@ -130,12 +130,12 @@ export function Ethos() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground mb-4">
-                camply will never be sold, never have ads, and never charge for
-                basic functionality. We're committed to keeping outdoor access
+                camply will never be sold, never charge you, and never advantage
+                one user over another. We're committed to keeping outdoor access
                 free for everyone.
               </p>
               <p className="text-muted-foreground">
-                Our code is open source, our finances are transparent, and our
+                Our code is open source, our intentions are clear, and our
                 decisions are made with the community in mind.
               </p>
             </CardContent>
