@@ -23,6 +23,7 @@ from backend.routers.providers import provider_router
 from backend.routers.recreation_areas import recreation_area_router
 from backend.routers.scans import scan_router
 from backend.routers.search import search_router
+from backend.routers.sessions import session_router
 
 logger = structlog.getLogger(__name__)
 
@@ -60,10 +61,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "https://camply.juftin.dev",
-    ],
+    allow_origins=backend_config.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,6 +80,7 @@ async def metrics_endpoint() -> Response:
 API_ROUTERS: list[APIRouter] = [
     health_router,
     auth_config_router,
+    session_router,
     access_router,
     search_router,
     campground_router,

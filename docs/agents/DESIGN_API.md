@@ -1,8 +1,9 @@
 # DESIGN_API: API Contract & Security
 
-This document defines the interface between the `camply-backend` (FastAPI) and `camply-frontend` (React). It also outlines the security flow for Auth0 and early access whitelisting.
+This document defines the interface between the `camply-backend` (FastAPI) and `camply-frontend` (React). It also outlines the security flow for Auth0 and optional invite-only access.
 
 ## 🎯 API Philosophy
+
 1. **OpenAPI-First**: Every endpoint must be documented so that the frontend TypeScript client can be automatically generated.
 2. **Standardized Responses**: All successful responses use `ORJSONResponse` for performance.
 3. **Strict Validation**: Every request payload must be a Pydantic v2 model.
@@ -12,30 +13,32 @@ This document defines the interface between the `camply-backend` (FastAPI) and `
 
 ## 🔒 Security & Middleware
 
-### 1. Auth Modes
-The backend supports two authentication modes, controlled by the `CAMPLY_AUTH_MODE` environment variable:
+### 1. Authentication and local development
 
-**Local mode** (`auth_mode=local` — default):
-- No bearer token is required.
-- A synthetic admin user is created on first access, configured via `CAMPLY_ADMIN_EMAIL`.
-- Suitable for single-user self-hosted deployments.
+The owner selects `none`, `session`, or `auth0` with `CAMPLY_AUTH_MODE`, independently of the environment. HTTP Basic authentication is unsupported.
 
-**Auth0 mode** (`auth_mode=auth0`):
-- Frontend sends the Auth0 JWT in the `Authorization: Bearer <token>` header.
-- Backend validates the signature, issuer, and audience against Auth0's JWKS endpoint.
-- Users are upserted into the database on first login.
-- See `backend/packages/backend/backend/auth.py` for implementation details.
+- **Automatic login (`none`, default)**: every request uses the shared admin identity; no login/signup/logout UI.
+- **Password sessions (`session`)**: the app posts username/password JSON to `POST /api/login`. The response contains the profile and sets a signed HTTP-only session cookie plus a CSRF cookie. Mutations require `X-CSRF-Token` matching the signed session. `POST /api/logout` clears the cookies. The shared account has no signup. Cookies have an absolute lifetime, and credential/secret changes invalidate them.
+- **Auth0 (`auth0`)**: requests require an RS256 bearer token validated against issuer and API audience. Users are provisioned by subject on first access. The application starts sign-in on `/auth` and uses the Auth0 SDK.
+- **`GET /api/auth-config`**: public configuration returns `auth_mode`, `auth0_domain`, `auth0_client_id`, `auth0_audience`, `auto_login`, `signup_enabled`, and `invite_only`. The React SDK requests the returned audience. Auth0 mode must supply domain, audience, and client ID.
+- **`GET /api/me`**: the profile exposes `is_invited`. The existing database column remains `is_early_access_user` for compatibility with stored data.
 
-### 2. Early Access (Whitelist) Middleware
-- **Check**: For every request to `/api/v1/scans/*`, the backend checks the user's `is_early_access_user` flag.
-- **Action**: If the user is not whitelisted, the backend returns `403 Forbidden` with error code `ERR_EARLY_ACCESS_REQUIRED`.
-- **UI Interaction**: The frontend catches `403` and the `Dashboard` component redirects to the Early Access page.
+### 2. Optional invite-only guard
+
+`CAMPLY_INVITE_ONLY` defaults to `false`. When enabled, every `/api/scans` operation requires the user's `is_invited` flag. Uninvited authenticated callers receive `403` with `ERR_INVITE_REQUIRED`. The frontend gates dashboard and scan detail routes with the invitation request screen. Profiles and public metadata remain accessible. Existing scan ownership checks apply in both configurations.
+
+### 3. Invitation requests (collection only)
+
+`POST /api/request-access` stores a pending email request and accepts duplicates idempotently. It does not grant access or deliver notifications.
+
+**TODO:** Provide an approval/revocation workflow, verified identity matching, and invitation notification delivery.
 
 ---
 
 ## 🏗️ Endpoint Definitions
 
 ### 1. Search & Metadata (Public/Auth-Light)
+
 - **`GET /api/search?query=<term>`**: Full-text search for campgrounds and recreation areas (uses the `Search` FTS table).
 - **`GET /api/providers`**: List supported providers and their scanning capabilities.
 - **`GET /api/provider/{id}`**: Get a single provider by ID.
@@ -44,14 +47,16 @@ The backend supports two authentication modes, controlled by the `CAMPLY_AUTH_MO
 - **`GET /api/rec-area/{provider}/{id}/campgrounds`**: List campgrounds within a recreation area.
 
 ### 2. User & Profile (Auth-Required)
+
 - **`GET /api/me`**: Get current user profile and whitelist status.
 - **`PATCH /api/me`**: Update user-specific settings (e.g., `pushover_token`).
 
-### 3. Scan Management (Auth-Required + Whitelist)
+### 3. Scan Management (Auth-Required + Optional Invitation)
+
 - **`GET /api/scans`**: List all scans belonging to the current user (paginated).
 - **`POST /api/scans`**: Create a new scan.
-    - **Logic**: Backend calculates the target `hash`, creates/links the `UniqueTarget` (de-duplication), and creates the `UserScan`.
-    - Returns `201 Created` on success, `409 Conflict` if a duplicate scan exists.
+  - **Logic**: Backend calculates the target `hash`, creates/links the `UniqueTarget` (de-duplication), and creates the `UserScan`.
+  - Returns `201 Created` on success, `409 Conflict` if a duplicate scan exists.
 - **`GET /api/scans/{id}`**: Detailed view of a scan, including recent `scan_results`.
 - **`PATCH /api/scans/{id}`**: Update scan filters (`min_stay_length`, `preferred_types`, `require_electric`) or toggle `is_active`.
 - **`DELETE /api/scans/{id}`**: Unsubscribe from a scan (returns `204 No Content`).
@@ -63,6 +68,7 @@ The backend supports two authentication modes, controlled by the `CAMPLY_AUTH_MO
 All schemas are defined in `backend/packages/backend/backend/schemas.py`.
 
 ### `ScanCreateRequest`
+
 ```python
 class ScanCreateRequest(BaseModel):
     provider_id: int = Field(..., description="Provider identifier")
@@ -75,6 +81,7 @@ class ScanCreateRequest(BaseModel):
 ```
 
 ### `ScanResponse`
+
 ```python
 class ScanResponse(BaseModel):
     id: UUID
@@ -94,12 +101,15 @@ class ScanResponse(BaseModel):
 ```
 
 ### `ScanDetailResponse` extends `ScanResponse`
+
 Adds:
+
 ```python
     results: list[ScanResultItem]
 ```
 
 ### `ScanResultItem`
+
 ```python
 class ScanResultItem(BaseModel):
     campsite_id: str
@@ -110,31 +120,32 @@ class ScanResultItem(BaseModel):
 ---
 
 ## 🔄 Client Generation Workflow
+
 1. Backend developer updates the FastAPI router.
 2. Run `task backend:check` to ensure types are correct.
 3. Start the backend: `task backend:dev`.
 4. Run: `npx tsx src/lib/codegen.ts` from `frontend/`.
-    - Fetches `http://localhost:8000/api/openapi.json`.
-    - Generates TypeScript types in `frontend/src/lib/api/generated/schema.ts`.
+   - Fetches `http://localhost:8000/api/openapi.json`.
+   - Generates TypeScript types in `frontend/src/lib/api/generated/schema.ts`.
 5. Register new endpoints in `frontend/src/lib/api.ts` and `frontend/src/lib/structs.ts`.
 
 ---
 
 ## 🗺️ Endpoint Summary
 
-| Method | Path | Auth | Whitelist | Purpose |
-|--------|------|------|-----------|---------|
-| GET | `/api/search?query=` | — | — | Search campgrounds/rec areas |
-| GET | `/api/providers` | — | — | List providers |
-| GET | `/api/provider/{id}` | — | — | Single provider |
-| GET | `/api/campground/{provider}/{id}` | — | — | Single campground |
-| GET | `/api/rec-area/{provider}/{id}` | — | — | Single rec area |
-| GET | `/api/rec-area/{provider}/{id}/campgrounds` | — | — | Campgrounds in rec area |
-| GET | `/api/me` | ✓ | — | Current user profile |
-| PATCH | `/api/me` | ✓ | — | Update profile |
-| GET | `/api/scans` | ✓ | ✓ | List user scans |
-| POST | `/api/scans` | ✓ | ✓ | Create scan |
-| GET | `/api/scans/{id}` | ✓ | ✓ | Scan detail |
-| PATCH | `/api/scans/{id}` | ✓ | ✓ | Update scan |
-| DELETE | `/api/scans/{id}` | ✓ | ✓ | Delete scan |
-| GET | `/api/health` | — | — | Health check |
+| Method | Path                                        | Auth | Invitation (when enabled) | Purpose                      |
+| ------ | ------------------------------------------- | ---- | ------------------------- | ---------------------------- |
+| GET    | `/api/search?query=`                        | —    | —                         | Search campgrounds/rec areas |
+| GET    | `/api/providers`                            | —    | —                         | List providers               |
+| GET    | `/api/provider/{id}`                        | —    | —                         | Single provider              |
+| GET    | `/api/campground/{provider}/{id}`           | —    | —                         | Single campground            |
+| GET    | `/api/rec-area/{provider}/{id}`             | —    | —                         | Single rec area              |
+| GET    | `/api/rec-area/{provider}/{id}/campgrounds` | —    | —                         | Campgrounds in rec area      |
+| GET    | `/api/me`                                   | ✓    | —                         | Current user profile         |
+| PATCH  | `/api/me`                                   | ✓    | —                         | Update profile               |
+| GET    | `/api/scans`                                | ✓    | ✓                         | List user scans              |
+| POST   | `/api/scans`                                | ✓    | ✓                         | Create scan                  |
+| GET    | `/api/scans/{id}`                           | ✓    | ✓                         | Scan detail                  |
+| PATCH  | `/api/scans/{id}`                           | ✓    | ✓                         | Update scan                  |
+| DELETE | `/api/scans/{id}`                           | ✓    | ✓                         | Delete scan                  |
+| GET    | `/api/health`                               | —    | —                         | Health check                 |

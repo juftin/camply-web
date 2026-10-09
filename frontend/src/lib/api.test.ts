@@ -102,3 +102,12 @@ describe("API Client", () => {
     expect(result.name).toBe("Test CG");
   });
 });
+
+it("attaches only a bearer token for application authentication", async () => {
+  vi.resetModules();
+  const api = await import("@/lib/api");
+  api.setAccessTokenProvider(async () => "synthetic-access-token");
+  const interceptor = mockUseFn.mock.calls[0][0];
+  const request = await interceptor({ headers: {} });
+  expect(request.headers.Authorization).toBe("Bearer synthetic-access-token");
+});

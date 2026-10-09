@@ -55,7 +55,7 @@ export interface Campground {
 export interface MeResponse {
   id: string;
   email: string;
-  is_early_access_user: boolean;
+  is_invited: boolean;
   pushover_token: string | null;
 }
 
@@ -69,7 +69,7 @@ export interface ScanCreateRequest {
   provider_id: number;
   campground_id: string;
   start_date: string; // YYYY-MM-DD
-  end_date: string;   // YYYY-MM-DD
+  end_date: string; // YYYY-MM-DD
   min_stay_length?: number;
   preferred_types?: string[];
   require_electric?: boolean;

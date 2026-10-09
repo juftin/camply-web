@@ -7,14 +7,15 @@ import {
   type ReactNode,
 } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth0 } from "@auth0/auth0-react";
 import { AxiosError } from "axios";
+import { useAuth0 } from "@auth0/auth0-react";
 import {
   getMe,
+  logoutSession,
   updateMe,
   getApiErrorMessage,
   setAccessTokenProvider,
-  clearBasicAuth,
+  type AuthConfig,
 } from "@/lib/api";
 import type { MeResponse } from "@/lib/structs";
 
@@ -22,19 +23,23 @@ import type { MeResponse } from "@/lib/structs";
 // Types
 // ---------------------------------------------------------------------------
 
-export type AuthMode = "basic" | "auth0";
+export type AuthMode = AuthConfig["auth_mode"];
 
 export interface AuthState {
   user: MeResponse | null;
   isLoading: boolean;
   error: string | null;
-  isEarlyAccess: boolean;
+  isInvited: boolean;
   isReady: boolean;
   refresh: () => Promise<void>;
   updatePushoverToken: (token: string | null) => Promise<void>;
   signOut: () => void;
   login: () => void;
   authMode: AuthMode;
+  inviteOnly: boolean;
+  autoLogin: boolean;
+  signupEnabled: boolean;
+  accountPath: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -42,7 +47,15 @@ export interface AuthState {
 // ---------------------------------------------------------------------------
 
 /* eslint-disable-next-line react-refresh/only-export-components */
-export const AuthModeContext = createContext<AuthMode>("basic");
+export const AuthConfigContext = createContext<AuthConfig>({
+  auth_mode: "none",
+  auth0_domain: null,
+  auth0_client_id: null,
+  auth0_audience: null,
+  invite_only: false,
+  auto_login: true,
+  signup_enabled: false,
+});
 
 // ---------------------------------------------------------------------------
 // Internal context
@@ -52,10 +65,11 @@ export const AuthModeContext = createContext<AuthMode>("basic");
 export const AuthContext = createContext<AuthState | null>(null);
 
 // ---------------------------------------------------------------------------
-// Basic-auth provider (HTTP Basic Auth — no Auth0)
+// Automatic shared-account login or in-app password sessions
 // ---------------------------------------------------------------------------
 
-function BasicAuthProvider({ children }: { children: ReactNode }) {
+function CookieAuthProvider({ children }: { children: ReactNode }) {
+  const config = useContext(AuthConfigContext);
   const queryClient = useQueryClient();
   const [initialLoading, setInitialLoading] = useState(true);
   const [hasError, setHasError] = useState<string | null>(null);
@@ -72,24 +86,18 @@ function BasicAuthProvider({ children }: { children: ReactNode }) {
     staleTime: 5 * 60 * 1000,
   });
 
+  const signedOut =
+    !config.auto_login &&
+    error instanceof AxiosError &&
+    error.response?.status === 401;
+
   useEffect(() => {
     if (!isLoading) setInitialLoading(false);
   }, [isLoading]);
 
   useEffect(() => {
-    if (error) {
-      const axiosError = error as AxiosError;
-      // 401 just means not logged in — don't show as error, clear any stale creds
-      if (axiosError?.response?.status === 401) {
-        clearBasicAuth();
-        setHasError(null);
-      } else {
-        setHasError(getApiErrorMessage(error));
-      }
-    } else {
-      setHasError(null);
-    }
-  }, [error]);
+    setHasError(error && !signedOut ? getApiErrorMessage(error) : null);
+  }, [error, signedOut]);
 
   const pushoverMutation = useMutation({
     mutationFn: (token: string | null) => updateMe({ pushover_token: token }),
@@ -111,29 +119,46 @@ function BasicAuthProvider({ children }: { children: ReactNode }) {
     await refetch();
   }, [refetch]);
 
-  const signOut = useCallback(() => {
-    clearBasicAuth();
+  const signOut = useCallback(async () => {
+    if (config.auto_login) return;
+    try {
+      await logoutSession();
+    } catch (error) {
+      if (!(error instanceof AxiosError && error.response?.status === 401)) {
+        setHasError(getApiErrorMessage(error));
+        return;
+      }
+    }
+    await queryClient.cancelQueries();
+    queryClient.removeQueries({
+      predicate: (query) => query.queryKey[0] !== "me",
+    });
     queryClient.setQueryData(["me"], null);
     setHasError(null);
-  }, [queryClient]);
+  }, [config.auto_login, queryClient]);
+  const login = useCallback(() => {}, []);
 
-  /** Called by the /auth page to attempt login with credentials. */
-  const login = useCallback(async () => {
-    // No-op — actual login is handled by the /auth page's form which
-    // calls setBasicAuth() directly, then invalidates the ["me"] query.
-  }, []);
-
+  const currentUser = signedOut ? null : user;
   const value: AuthState = {
-    user: user ?? null,
+    user: currentUser ?? null,
     isLoading: isLoading || initialLoading,
     error: hasError,
-    isEarlyAccess: user?.is_early_access_user ?? false,
+    isInvited: currentUser?.is_invited ?? false,
     isReady: !initialLoading,
     refresh,
     updatePushoverToken,
     signOut,
     login,
-    authMode: "basic" as AuthMode,
+    authMode: config.auth_mode,
+    inviteOnly: config.invite_only,
+    autoLogin: config.auto_login,
+    signupEnabled: config.signup_enabled,
+    accountPath:
+      currentUser || config.auto_login
+        ? "/dashboard"
+        : config.signup_enabled
+          ? "/auth?mode=signup"
+          : "/auth",
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -144,6 +169,7 @@ function BasicAuthProvider({ children }: { children: ReactNode }) {
 // ---------------------------------------------------------------------------
 
 function Auth0AuthProvider({ children }: { children: ReactNode }) {
+  const config = useContext(AuthConfigContext);
   const {
     isAuthenticated,
     isLoading: auth0Loading,
@@ -212,7 +238,11 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
     await refetch();
   }, [refetch]);
 
-  const signOut = useCallback(() => {
+  const signOut = useCallback(async () => {
+    await queryClient.cancelQueries();
+    queryClient.removeQueries({
+      predicate: (query) => query.queryKey[0] !== "me",
+    });
     queryClient.setQueryData(["me"], null);
     setHasError(null);
     logout({ logoutParams: { returnTo: window.location.origin } });
@@ -226,29 +256,38 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
     user: user ?? null,
     isLoading: initialLoading,
     error: hasError,
-    isEarlyAccess: user?.is_early_access_user ?? false,
+    isInvited: user?.is_invited ?? false,
     isReady: !initialLoading,
     refresh,
     updatePushoverToken,
     signOut,
     login,
-    authMode: "auth0" as AuthMode,
+    authMode: config.auth_mode,
+    inviteOnly: config.invite_only,
+    autoLogin: config.auto_login,
+    signupEnabled: config.signup_enabled,
+    accountPath:
+      user || config.auto_login
+        ? "/dashboard"
+        : config.signup_enabled
+          ? "/auth?mode=signup"
+          : "/auth",
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 // ---------------------------------------------------------------------------
-// Top-level provider — picks basic or auth0 based on AuthModeContext
+// Top-level provider — owner-selected shared-account login or Auth0
 // ---------------------------------------------------------------------------
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const mode = useContext(AuthModeContext);
+  const config = useContext(AuthConfigContext);
 
-  if (mode === "auth0") {
+  if (config.auth_mode === "auth0") {
     return <Auth0AuthProvider>{children}</Auth0AuthProvider>;
   }
-  return <BasicAuthProvider>{children}</BasicAuthProvider>;
+  return <CookieAuthProvider>{children}</CookieAuthProvider>;
 }
 
 // ---------------------------------------------------------------------------

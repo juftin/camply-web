@@ -1,3 +1,4 @@
+import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import {
   Search,
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/card";
 
 export function HowItWorks() {
+  const { accountPath } = useAuth();
   return (
     <div className="container mx-auto py-12 px-4 max-w-6xl">
       {/* Hero Section */}
@@ -442,7 +444,7 @@ export function HowItWorks() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" asChild>
-                <Link to="/auth?mode=signup">
+                <Link to={accountPath}>
                   Start Monitoring
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Link>

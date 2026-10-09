@@ -29,7 +29,10 @@ class User(Base):
     )
     auth0_id: Mapped[str | None] = mapped_column(String(255), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    is_early_access_user: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_invited: Mapped[bool] = mapped_column(
+        "is_early_access_user", Boolean, default=False
+    )
+    """Invitation eligibility, backed by the existing access column."""
     pushover_token: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime.datetime] = mapped_column(
         default=partial(datetime.datetime.now, tz=datetime.timezone.utc),

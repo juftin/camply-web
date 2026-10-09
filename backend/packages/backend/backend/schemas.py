@@ -35,7 +35,7 @@ class MeResponse(BaseModel):
 
     id: uuid.UUID
     email: str
-    is_early_access_user: bool
+    is_invited: bool
     pushover_token: Optional[str] = None
 
 
@@ -43,6 +43,13 @@ class MeUpdateRequest(BaseModel):
     """Payload for ``PATCH /me``."""
 
     pushover_token: Optional[str] = None
+
+
+class SessionLoginRequest(BaseModel):
+    """Credentials submitted through the app's shared-account login form."""
+
+    username: str = Field(min_length=1, max_length=255)
+    password: str = Field(min_length=1, max_length=1024, repr=False)
 
 
 # ===========================================================================
@@ -53,7 +60,7 @@ class MeUpdateRequest(BaseModel):
 class AccessRequestCreate(BaseModel):
     """Payload for ``POST /request-access``."""
 
-    email: str = Field(..., description="Email address requesting early access")
+    email: str = Field(..., description="Email address requesting an invitation")
     name: Optional[str] = Field(default=None, description="Optional name")
 
 

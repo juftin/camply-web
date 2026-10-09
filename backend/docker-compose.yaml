@@ -41,12 +41,23 @@ services:
       CAMPLY_DB_DATABASE: ${POSTGRES_DB:-camply}
       CAMPLY_DB_PORT: 5432
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-4}
-      CAMPLY_BASIC_AUTH_USERNAME: ${CAMPLY_BASIC_AUTH_USERNAME:-admin}
-      CAMPLY_BASIC_AUTH_PASSWORD: ${CAMPLY_BASIC_AUTH_PASSWORD:-camply}
+      CAMPLY_ENVIRONMENT: ${CAMPLY_ENVIRONMENT:-local}
+      CAMPLY_AUTH_MODE: ${CAMPLY_AUTH_MODE:-none}
+      CAMPLY_LOGIN_USERNAME: ${CAMPLY_LOGIN_USERNAME:-}
+      CAMPLY_LOGIN_PASSWORD: ${CAMPLY_LOGIN_PASSWORD:-}
+      CAMPLY_SESSION_SECRET: ${CAMPLY_SESSION_SECRET:-}
+      CAMPLY_SESSION_MAX_AGE: ${CAMPLY_SESSION_MAX_AGE:-43200}
+      CAMPLY_SESSION_COOKIE_SECURE: ${CAMPLY_SESSION_COOKIE_SECURE:-true}
+      CAMPLY_ALLOWED_ORIGINS: '${CAMPLY_ALLOWED_ORIGINS:-["http://localhost:5173", "https://camply.juftin.dev"]}'
+      CAMPLY_INVITE_ONLY: ${CAMPLY_INVITE_ONLY:-false}
+      CAMPLY_ADMIN_EMAIL: ${CAMPLY_ADMIN_EMAIL:-admin@camply.local}
+      CAMPLY_AUTH0_DOMAIN: ${CAMPLY_AUTH0_DOMAIN:-}
+      CAMPLY_AUTH0_AUDIENCE: ${CAMPLY_AUTH0_AUDIENCE:-}
+      CAMPLY_AUTH0_CLIENT_ID: ${CAMPLY_AUTH0_CLIENT_ID:-}
       PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
       CAMPLY_PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
     healthcheck:
-      test: ["CMD", "curl", "-f", "-u", "${CAMPLY_BASIC_AUTH_USERNAME:-admin}:${CAMPLY_BASIC_AUTH_PASSWORD:-camply}", "http://localhost:8000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -138,7 +149,15 @@ services:
       - "--web.console.templates=/usr/share/prometheus/consoles"
       - "--storage.tsdb.retention.time=30d"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9090/-/healthy",
+        ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -157,7 +176,15 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-camply}
       GF_AUTH_ANONYMOUS_ENABLED: "true"
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3000/api/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://localhost:3000/api/health",
+        ]
       interval: 10s
       timeout: 5s
       retries: 3

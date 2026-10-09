@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Auth0Provider } from "@auth0/auth0-react";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
 import { Home } from "@/pages/Home";
 import { Providers } from "@/pages/Providers";
@@ -17,7 +18,7 @@ import { HowItWorks } from "@/pages/HowItWorks";
 import { Campground } from "@/pages/Campground";
 import { RecreationArea } from "@/pages/RecreationArea";
 import { ScanDetail } from "@/pages/ScanDetail";
-import { AuthProvider, AuthModeContext } from "@/hooks/useAuth";
+import { AuthProvider, AuthConfigContext } from "@/hooks/useAuth";
 import { fetchAuthConfig, type AuthConfig } from "@/lib/api";
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -42,11 +43,29 @@ function AppRoutes() {
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/contact" element={<Contact />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/profile" element={<Profile />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute requireInvite>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/dashboard/scans/:scanId"
-                  element={<ScanDetail />}
+                  element={
+                    <ProtectedRoute requireInvite>
+                      <ScanDetail />
+                    </ProtectedRoute>
+                  }
                 />
                 <Route
                   path="/campground/:providerId/:campgroundId"
@@ -67,10 +86,39 @@ function AppRoutes() {
 
 function App() {
   const [config, setConfig] = useState<AuthConfig | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAuthConfig().then(setConfig).catch(() => setConfig({ auth_mode: "basic", auth0_domain: null, auth0_client_id: null }));
+    fetchAuthConfig()
+      .then((loaded) => {
+        if (!["none", "session", "auth0"].includes(loaded.auth_mode)) {
+          throw new Error("Unsupported authentication configuration.");
+        }
+        if (
+          !loaded.auto_login &&
+          loaded.auth_mode === "auth0" &&
+          (!loaded.auth0_domain ||
+            !loaded.auth0_client_id ||
+            !loaded.auth0_audience)
+        ) {
+          throw new Error("Auth0 configuration is incomplete.");
+        }
+        setConfig(loaded);
+      })
+      .catch(() =>
+        setError(
+          "Unable to load authentication configuration. Please reload to try again.",
+        ),
+      );
   }, []);
+
+  if (error) {
+    return (
+      <div role="alert" className="p-8 text-center">
+        {error}
+      </div>
+    );
+  }
 
   if (!config) {
     return (
@@ -80,7 +128,7 @@ function App() {
     );
   }
 
-  const isAuth0 = config.auth_mode === "auth0" && config.auth0_domain && config.auth0_client_id;
+  const isAuth0 = !config.auto_login && config.auth_mode === "auth0";
 
   if (isAuth0) {
     return (
@@ -88,25 +136,29 @@ function App() {
         domain={config.auth0_domain!}
         clientId={config.auth0_client_id!}
         authorizationParams={{
-          redirect_uri: window.location.origin,
+          redirect_uri: new URL(
+            import.meta.env.BASE_URL,
+            window.location.origin,
+          ).href,
+          audience: config.auth0_audience!,
         }}
         cacheLocation="localstorage"
       >
-        <AuthModeContext.Provider value="auth0">
+        <AuthConfigContext.Provider value={config}>
           <AuthProvider>
             <AppRoutes />
           </AuthProvider>
-        </AuthModeContext.Provider>
+        </AuthConfigContext.Provider>
       </Auth0Provider>
     );
   }
 
   return (
-    <AuthModeContext.Provider value="basic">
+    <AuthConfigContext.Provider value={config}>
       <AuthProvider>
         <AppRoutes />
       </AuthProvider>
-    </AuthModeContext.Provider>
+    </AuthConfigContext.Provider>
   );
 }
 

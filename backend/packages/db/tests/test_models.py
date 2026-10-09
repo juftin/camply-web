@@ -76,18 +76,18 @@ def test_user_creation(session: Session):
 
     assert user.id is not None
     assert user.email == "test@example.com"
-    assert user.is_early_access_user is False
+    assert user.is_invited is False
 
 
 def test_user_early_access(session: Session):
     """
     US1: Test setting early access flag
     """
-    user = User(email="beta@example.com", is_early_access_user=True)
+    user = User(email="beta@example.com", is_invited=True)
     session.add(user)
     session.commit()
 
-    assert user.is_early_access_user is True
+    assert user.is_invited is True
 
 
 def test_user_unique_email(session: Session):

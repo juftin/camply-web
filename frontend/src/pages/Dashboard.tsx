@@ -13,7 +13,12 @@ import { Label } from "@/components/ui/label";
 import { ScanCard } from "@/components/ScanCard";
 import { ScanForm } from "@/components/ScanForm";
 import { useAuth } from "@/hooks/useAuth";
-import { useScans, useUpdateScan, useDeleteScan, getApiErrorMessage } from "@/hooks/useScans";
+import {
+  useScans,
+  useUpdateScan,
+  useDeleteScan,
+  getApiErrorMessage,
+} from "@/hooks/useScans";
 
 export function Dashboard() {
   const {
@@ -22,6 +27,7 @@ export function Dashboard() {
     isLoading: authLoading,
     updatePushoverToken,
     signOut,
+    autoLogin,
   } = useAuth();
 
   const {
@@ -35,7 +41,9 @@ export function Dashboard() {
   const deleteScan = useDeleteScan();
 
   const [showSettings, setShowSettings] = useState(false);
-  const [pushoverToken, setPushoverToken] = useState(user?.pushover_token ?? "");
+  const [pushoverToken, setPushoverToken] = useState(
+    user?.pushover_token ?? "",
+  );
   const [pushoverSaving, setPushoverSaving] = useState(false);
   const [pushoverError, setPushoverError] = useState<string | null>(null);
   const [pushoverSuccess, setPushoverSuccess] = useState(false);
@@ -44,7 +52,10 @@ export function Dashboard() {
   const handleToggleActive = useCallback(
     async (scanId: string, isActive: boolean) => {
       try {
-        await updateScan.mutateAsync({ scanId, payload: { is_active: isActive } });
+        await updateScan.mutateAsync({
+          scanId,
+          payload: { is_active: isActive },
+        });
       } catch {
         // error is surfaced via the mutation state
       }
@@ -110,10 +121,12 @@ export function Dashboard() {
             <Settings className="h-4 w-4 mr-1" />
             Settings
           </Button>
-          <Button variant="ghost" size="sm" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-1" />
-            Sign Out
-          </Button>
+          {!autoLogin && (
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-1" />
+              Sign Out
+            </Button>
+          )}
         </div>
       </div>
 
@@ -158,10 +171,7 @@ export function Dashboard() {
                   value={pushoverToken}
                   onChange={(e) => setPushoverToken(e.target.value)}
                 />
-                <Button
-                  onClick={handleSavePushover}
-                  disabled={pushoverSaving}
-                >
+                <Button onClick={handleSavePushover} disabled={pushoverSaving}>
                   {pushoverSaving ? "Saving..." : "Save"}
                 </Button>
               </div>
@@ -199,9 +209,7 @@ export function Dashboard() {
         </div>
       ) : scansError ? (
         <div className="rounded-md bg-destructive/10 p-6 text-center">
-          <p className="text-destructive font-medium">
-            Failed to load scans
-          </p>
+          <p className="text-destructive font-medium">Failed to load scans</p>
           <Button
             variant="outline"
             size="sm"
@@ -221,7 +229,12 @@ export function Dashboard() {
             </p>
             <ScanForm
               onSuccess={() => refetchScans()}
-              trigger={<Button><Plus className="h-4 w-4 mr-1" />Create Scan</Button>}
+              trigger={
+                <Button>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Create Scan
+                </Button>
+              }
             />
           </CardContent>
         </Card>
@@ -234,8 +247,7 @@ export function Dashboard() {
               onToggleActive={handleToggleActive}
               onDelete={handleDelete}
               toggling={
-                updateScan.isPending &&
-                updateScan.variables?.scanId === scan.id
+                updateScan.isPending && updateScan.variables?.scanId === scan.id
               }
             />
           ))}

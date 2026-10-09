@@ -13,7 +13,7 @@ Represents a platform user with early access flags and notification tokens.
 - `id`: UUID (Primary Key)
 - `auth0_id`: String (Unique, Nullable)
 - `email`: String (Unique, Index)
-- `is_early_access_user`: Boolean (Defaults to False)
+- `is_invited`: Boolean (defaults to False; stored in the existing `is_early_access_user` column)
 - `pushover_token`: String (Nullable)
 
 ### UniqueTarget
