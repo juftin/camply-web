@@ -96,6 +96,23 @@ CAMPGROUND_API_ERRORS_TOTAL = Counter(
     labelnames=["provider"],
 )
 
+PROVIDER_CHECKS_TOTAL = Counter(
+    f"{METRICS_PREFIX}_provider_checks_total",
+    "Total provider availability checks attempted",
+    labelnames=["provider", "status"],
+)
+
+TARGETS_CHECKED_TOTAL = Counter(
+    f"{METRICS_PREFIX}_targets_checked_total",
+    "Total target check executions",
+)
+
+APPLICATION_OUTCOMES_TOTAL = Counter(
+    f"{METRICS_PREFIX}_application_outcomes_total",
+    "Normalized application outcomes across worker tasks",
+    labelnames=["task_name", "outcome"],
+)
+
 
 # ---------------------------------------------------------------------------
 # Task timing storage (thread-local for asyncio.run safety)

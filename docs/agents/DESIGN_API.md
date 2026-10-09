@@ -3,6 +3,7 @@
 This document defines the interface between the `camply-backend` (FastAPI) and `camply-frontend` (React). It also outlines the security flow for Auth0 and early access whitelisting.
 
 ## 🎯 API Philosophy
+
 1. **OpenAPI-First**: Every endpoint must be documented so that the frontend TypeScript client can be automatically generated.
 2. **Standardized Responses**: All successful responses use `ORJSONResponse` for performance.
 3. **Strict Validation**: Every request payload must be a Pydantic v2 model.
@@ -13,20 +14,24 @@ This document defines the interface between the `camply-backend` (FastAPI) and `
 ## 🔒 Security & Middleware
 
 ### 1. Auth Modes
+
 The backend supports two authentication modes, controlled by the `CAMPLY_AUTH_MODE` environment variable:
 
 **Local mode** (`auth_mode=local` — default):
+
 - No bearer token is required.
 - A synthetic admin user is created on first access, configured via `CAMPLY_ADMIN_EMAIL`.
 - Suitable for single-user self-hosted deployments.
 
 **Auth0 mode** (`auth_mode=auth0`):
+
 - Frontend sends the Auth0 JWT in the `Authorization: Bearer <token>` header.
 - Backend validates the signature, issuer, and audience against Auth0's JWKS endpoint.
 - Users are upserted into the database on first login.
 - See `backend/packages/backend/backend/auth.py` for implementation details.
 
 ### 2. Early Access (Whitelist) Middleware
+
 - **Check**: For every request to `/api/v1/scans/*`, the backend checks the user's `is_early_access_user` flag.
 - **Action**: If the user is not whitelisted, the backend returns `403 Forbidden` with error code `ERR_EARLY_ACCESS_REQUIRED`.
 - **UI Interaction**: The frontend catches `403` and the `Dashboard` component redirects to the Early Access page.
@@ -36,6 +41,7 @@ The backend supports two authentication modes, controlled by the `CAMPLY_AUTH_MO
 ## 🏗️ Endpoint Definitions
 
 ### 1. Search & Metadata (Public/Auth-Light)
+
 - **`GET /api/search?query=<term>`**: Full-text search for campgrounds and recreation areas (uses the `Search` FTS table).
 - **`GET /api/providers`**: List supported providers and their scanning capabilities.
 - **`GET /api/provider/{id}`**: Get a single provider by ID.
@@ -44,17 +50,35 @@ The backend supports two authentication modes, controlled by the `CAMPLY_AUTH_MO
 - **`GET /api/rec-area/{provider}/{id}/campgrounds`**: List campgrounds within a recreation area.
 
 ### 2. User & Profile (Auth-Required)
+
 - **`GET /api/me`**: Get current user profile and whitelist status.
 - **`PATCH /api/me`**: Update user-specific settings (e.g., `pushover_token`).
 
 ### 3. Scan Management (Auth-Required + Whitelist)
+
 - **`GET /api/scans`**: List all scans belonging to the current user (paginated).
 - **`POST /api/scans`**: Create a new scan.
-    - **Logic**: Backend calculates the target `hash`, creates/links the `UniqueTarget` (de-duplication), and creates the `UserScan`.
-    - Returns `201 Created` on success, `409 Conflict` if a duplicate scan exists.
+  - **Logic**: Backend calculates the target `hash`, creates/links the `UniqueTarget` (de-duplication), and creates the `UserScan`.
+  - Returns `201 Created` on success, `409 Conflict` if a duplicate scan exists.
 - **`GET /api/scans/{id}`**: Detailed view of a scan, including recent `scan_results`.
 - **`PATCH /api/scans/{id}`**: Update scan filters (`min_stay_length`, `preferred_types`, `require_electric`) or toggle `is_active`.
 - **`DELETE /api/scans/{id}`**: Unsubscribe from a scan (returns `204 No Content`).
+
+### 4. Administration & Operations (Admin-Only)
+
+- **`GET /api/admin/overview`**: Summary counts (users, active scans, targets, 24h results).
+- **`GET /api/admin/users`**: List users with scanning status, scan counts, pagination, and search.
+- **`GET /api/admin/users/{id}`**: User detail with scans and audit history.
+- **`PATCH /api/admin/users/{id}`**: Update user status (e.g., toggle `scanning_enabled`).
+- **`GET /api/admin/scans`**: List all system scans with filters and pagination.
+- **`GET /api/admin/scans/{id}`**: Scan detail including target and subscriber info.
+- **`PATCH /api/admin/scans/{id}`**: Update scan status (e.g., toggle `is_active`).
+- **`GET /api/admin/targets/{id}`**: Shared target detail and subscribers.
+- **`GET /api/admin/audit`**: Immutable admin audit event log with pagination.
+- **`GET /api/admin/operations`**: Celery worker states, queue depth, discovery metadata, and recent tasks.
+- **`GET /api/admin/operations/tasks`**: Paginated Valkey telemetry stream for recent task executions.
+- **`GET /api/admin/operations/tasks/{task_id}`**: Detailed telemetry for a single task execution.
+- **`GET /api/admin/trends`**: Server-side Prometheus query proxy for `usage`, `api`, `worker`, and `provider` metrics across `24h`, `7d`, `30d`.
 
 ---
 
@@ -63,6 +87,7 @@ The backend supports two authentication modes, controlled by the `CAMPLY_AUTH_MO
 All schemas are defined in `backend/packages/backend/backend/schemas.py`.
 
 ### `ScanCreateRequest`
+
 ```python
 class ScanCreateRequest(BaseModel):
     provider_id: int = Field(..., description="Provider identifier")
@@ -75,6 +100,7 @@ class ScanCreateRequest(BaseModel):
 ```
 
 ### `ScanResponse`
+
 ```python
 class ScanResponse(BaseModel):
     id: UUID
@@ -94,12 +120,15 @@ class ScanResponse(BaseModel):
 ```
 
 ### `ScanDetailResponse` extends `ScanResponse`
+
 Adds:
+
 ```python
     results: list[ScanResultItem]
 ```
 
 ### `ScanResultItem`
+
 ```python
 class ScanResultItem(BaseModel):
     campsite_id: str
@@ -110,31 +139,45 @@ class ScanResultItem(BaseModel):
 ---
 
 ## 🔄 Client Generation Workflow
+
 1. Backend developer updates the FastAPI router.
 2. Run `task backend:check` to ensure types are correct.
 3. Start the backend: `task backend:dev`.
 4. Run: `npx tsx src/lib/codegen.ts` from `frontend/`.
-    - Fetches `http://localhost:8000/api/openapi.json`.
-    - Generates TypeScript types in `frontend/src/lib/api/generated/schema.ts`.
+   - Fetches `http://localhost:8000/api/openapi.json`.
+   - Generates TypeScript types in `frontend/src/lib/api/generated/schema.ts`.
 5. Register new endpoints in `frontend/src/lib/api.ts` and `frontend/src/lib/structs.ts`.
 
 ---
 
 ## 🗺️ Endpoint Summary
 
-| Method | Path | Auth | Whitelist | Purpose |
-|--------|------|------|-----------|---------|
-| GET | `/api/search?query=` | — | — | Search campgrounds/rec areas |
-| GET | `/api/providers` | — | — | List providers |
-| GET | `/api/provider/{id}` | — | — | Single provider |
-| GET | `/api/campground/{provider}/{id}` | — | — | Single campground |
-| GET | `/api/rec-area/{provider}/{id}` | — | — | Single rec area |
-| GET | `/api/rec-area/{provider}/{id}/campgrounds` | — | — | Campgrounds in rec area |
-| GET | `/api/me` | ✓ | — | Current user profile |
-| PATCH | `/api/me` | ✓ | — | Update profile |
-| GET | `/api/scans` | ✓ | ✓ | List user scans |
-| POST | `/api/scans` | ✓ | ✓ | Create scan |
-| GET | `/api/scans/{id}` | ✓ | ✓ | Scan detail |
-| PATCH | `/api/scans/{id}` | ✓ | ✓ | Update scan |
-| DELETE | `/api/scans/{id}` | ✓ | ✓ | Delete scan |
-| GET | `/api/health` | — | — | Health check |
+| Method | Path                                        | Auth      | Whitelist | Purpose                       |
+| ------ | ------------------------------------------- | --------- | --------- | ----------------------------- |
+| GET    | `/api/search?query=`                        | —         | —         | Search campgrounds/rec areas  |
+| GET    | `/api/providers`                            | —         | —         | List providers                |
+| GET    | `/api/provider/{id}`                        | —         | —         | Single provider               |
+| GET    | `/api/campground/{provider}/{id}`           | —         | —         | Single campground             |
+| GET    | `/api/rec-area/{provider}/{id}`             | —         | —         | Single rec area               |
+| GET    | `/api/rec-area/{provider}/{id}/campgrounds` | —         | —         | Campgrounds in rec area       |
+| GET    | `/api/me`                                   | ✓         | —         | Current user profile          |
+| PATCH  | `/api/me`                                   | ✓         | —         | Update profile                |
+| GET    | `/api/scans`                                | ✓         | ✓         | List user scans               |
+| POST   | `/api/scans`                                | ✓         | ✓         | Create scan                   |
+| GET    | `/api/scans/{id}`                           | ✓         | ✓         | Scan detail                   |
+| PATCH  | `/api/scans/{id}`                           | ✓         | ✓         | Update scan                   |
+| DELETE | `/api/scans/{id}`                           | ✓         | ✓         | Delete scan                   |
+| GET    | `/api/admin/overview`                       | ✓ (Admin) | —         | Admin KPI overview            |
+| GET    | `/api/admin/users`                          | ✓ (Admin) | —         | List users with status        |
+| GET    | `/api/admin/users/{id}`                     | ✓ (Admin) | —         | User details and audit        |
+| PATCH  | `/api/admin/users/{id}`                     | ✓ (Admin) | —         | Update user (toggle scanning) |
+| GET    | `/api/admin/scans`                          | ✓ (Admin) | —         | List all system scans         |
+| GET    | `/api/admin/scans/{id}`                     | ✓ (Admin) | —         | Scan detail and target info   |
+| PATCH  | `/api/admin/scans/{id}`                     | ✓ (Admin) | —         | Update scan (toggle active)   |
+| GET    | `/api/admin/targets/{id}`                   | ✓ (Admin) | —         | Shared target detail          |
+| GET    | `/api/admin/audit`                          | ✓ (Admin) | —         | Immutable audit event log     |
+| GET    | `/api/admin/operations`                     | ✓ (Admin) | —         | Celery worker states & queue  |
+| GET    | `/api/admin/operations/tasks`               | ✓ (Admin) | —         | Valkey telemetry stream       |
+| GET    | `/api/admin/operations/tasks/{id}`          | ✓ (Admin) | —         | Task execution telemetry      |
+| GET    | `/api/admin/trends`                         | ✓ (Admin) | —         | Prometheus metrics proxy      |
+| GET    | `/api/health`                               | —         | —         | Health check                  |

@@ -12,10 +12,10 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-backend = {workspace = true}
-db = {workspace = true}
-providers = {workspace = true}
-worker = {workspace = true}
+backend = { workspace = true }
+db = { workspace = true }
+providers = { workspace = true }
+worker = { workspace = true }
 
 [tool.uv.workspace]
 members = ["packages/*"]
@@ -54,8 +54,16 @@ known-first-party = ["backend", "db", "providers", "worker"]
 [tool.ruff.lint.per-file-ignores]
 # Tests can use magic values, assertions, and relative imports
 "**/tests/**/*" = ["PLR2004", "S101", "TID252"]
+# FastAPI routers use Query/Depends in argument defaults
+"**/routers/*" = ["B008"]
 # Scanner task orchestrates many steps (lock, DB, provider, diff, fan-out)
 "**/worker/tasks/scanner.py" = ["C901", "PLR0911", "PLR0912", "PLR0915"]
+# Trends service orchestrates Prometheus queries across 4 groups
+"**/services/trends.py" = ["C901", "PLR0912", "PLR0915"]
+# Notification dispatch and telemetry normalization have multiple exit states
+"**/worker/tasks/notifications.py" = ["C901", "PLR0911"]
+"**/worker/telemetry.py" = ["PLR0911", "PLW0603"]
+"**/services/operations.py" = ["PLW0603", "PLR2004"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
@@ -65,16 +73,16 @@ ignore_missing_imports = false
 
 [[tool.mypy.overrides]]
 module = [
-    "orjson",
-    "uvicorn_worker",
-    "celery.*",
-    "aiosqlite",
-    "fake_useragent",
-    "importlib_metadata",
+  "orjson",
+  "uvicorn_worker",
+  "celery.*",
+  "aiosqlite",
+  "fake_useragent",
+  "importlib_metadata"
 ]
 ignore_missing_imports = true
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.1",
+  "httpx>=0.28.1"
 ]

@@ -363,16 +363,13 @@ class TestScannerTaskAsync:
             mock_session.execute.side_effect = [
                 MagicMock(scalar_one_or_none=MagicMock(return_value=mock_target)),
                 MagicMock(scalar_one_or_none=MagicMock(return_value=mock_campground)),
+                MagicMock(scalar=MagicMock(return_value=1)),
                 MagicMock(
                     scalars=MagicMock(
                         return_value=MagicMock(all=MagicMock(return_value=[]))
                     )
                 ),
-                MagicMock(
-                    scalars=MagicMock(
-                        return_value=MagicMock(all=MagicMock(return_value=[]))
-                    )
-                ),
+                MagicMock(),
                 MagicMock(
                     scalars=MagicMock(
                         return_value=MagicMock(all=MagicMock(return_value=[]))

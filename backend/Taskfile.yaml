@@ -78,6 +78,15 @@ tasks:
     env:
       UV_LOCKED: 0
 
+  admin:provision:
+    desc: Provision an administrator by User UUID
+    cmds:
+      - uv run python -m backend.provision {{.CLI_ARGS}}
+    deps: [sync]
+    preconditions:
+      - sh: '[[ -z "{{.CLI_ARGS}}" ]] && exit 1 || exit 0'
+        msg: User UUID is required
+
   ########################
   # ALEMBIC
   ########################

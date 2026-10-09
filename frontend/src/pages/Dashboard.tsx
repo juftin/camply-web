@@ -1,5 +1,12 @@
 import { useState, useCallback } from "react";
-import { Plus, Loader2, Frown, LogOut, Settings } from "lucide-react";
+import {
+  Plus,
+  Loader2,
+  Frown,
+  LogOut,
+  Settings,
+  AlertTriangle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,7 +20,12 @@ import { Label } from "@/components/ui/label";
 import { ScanCard } from "@/components/ScanCard";
 import { ScanForm } from "@/components/ScanForm";
 import { useAuth } from "@/hooks/useAuth";
-import { useScans, useUpdateScan, useDeleteScan, getApiErrorMessage } from "@/hooks/useScans";
+import {
+  useScans,
+  useUpdateScan,
+  useDeleteScan,
+  getApiErrorMessage,
+} from "@/hooks/useScans";
 
 export function Dashboard() {
   const {
@@ -35,21 +47,34 @@ export function Dashboard() {
   const deleteScan = useDeleteScan();
 
   const [showSettings, setShowSettings] = useState(false);
-  const [pushoverToken, setPushoverToken] = useState(user?.pushover_token ?? "");
+  const [pushoverToken, setPushoverToken] = useState(
+    user?.pushover_token ?? "",
+  );
   const [pushoverSaving, setPushoverSaving] = useState(false);
   const [pushoverError, setPushoverError] = useState<string | null>(null);
   const [pushoverSuccess, setPushoverSuccess] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // ---- Handlers (must be before early returns) ----
   const handleToggleActive = useCallback(
     async (scanId: string, isActive: boolean) => {
+      setActionError(null);
+      if (isActive && user?.scanning_enabled === false) {
+        setActionError(
+          "Cannot resume scan: automated scanning is suspended for your account.",
+        );
+        return;
+      }
       try {
-        await updateScan.mutateAsync({ scanId, payload: { is_active: isActive } });
-      } catch {
-        // error is surfaced via the mutation state
+        await updateScan.mutateAsync({
+          scanId,
+          payload: { is_active: isActive },
+        });
+      } catch (err) {
+        setActionError(getApiErrorMessage(err));
       }
     },
-    [updateScan],
+    [updateScan, user?.scanning_enabled],
   );
 
   const handleDelete = useCallback(
@@ -117,6 +142,38 @@ export function Dashboard() {
         </div>
       </div>
 
+      {/* ---- Suspension Alert ---- */}
+      {user?.scanning_enabled === false && (
+        <div className="mb-6 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-4 text-amber-900 dark:text-amber-200 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-sm">
+              Scanning Privileges Suspended
+            </p>
+            <p className="text-xs text-amber-800 dark:text-amber-300 mt-0.5">
+              Automated campsite scanning has been suspended for your account.
+              You can view past results and edit settings, but background
+              pollers will not monitor these targets and you cannot activate new
+              scans. Contact support or an administrator to re-enable scanning.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Action Error Alert ---- */}
+      {actionError && (
+        <div className="mb-6 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive flex items-center justify-between text-sm">
+          <span>{actionError}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActionError(null)}
+          >
+            Dismiss
+          </Button>
+        </div>
+      )}
+
       {/* ---- Stats ---- */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
         <Card>
@@ -158,10 +215,7 @@ export function Dashboard() {
                   value={pushoverToken}
                   onChange={(e) => setPushoverToken(e.target.value)}
                 />
-                <Button
-                  onClick={handleSavePushover}
-                  disabled={pushoverSaving}
-                >
+                <Button onClick={handleSavePushover} disabled={pushoverSaving}>
                   {pushoverSaving ? "Saving..." : "Save"}
                 </Button>
               </div>
@@ -190,7 +244,18 @@ export function Dashboard() {
       {/* ---- Scans list ---- */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">Your Scans</h2>
-        <ScanForm onSuccess={() => refetchScans()} />
+        {user?.scanning_enabled !== false ? (
+          <ScanForm onSuccess={() => refetchScans()} />
+        ) : (
+          <Button
+            disabled
+            variant="outline"
+            size="sm"
+            title="Scanning is suspended for your account"
+          >
+            <Plus className="h-4 w-4 mr-1" /> Create Scan (Suspended)
+          </Button>
+        )}
       </div>
 
       {scansLoading ? (
@@ -199,9 +264,7 @@ export function Dashboard() {
         </div>
       ) : scansError ? (
         <div className="rounded-md bg-destructive/10 p-6 text-center">
-          <p className="text-destructive font-medium">
-            Failed to load scans
-          </p>
+          <p className="text-destructive font-medium">Failed to load scans</p>
           <Button
             variant="outline"
             size="sm"
@@ -219,10 +282,21 @@ export function Dashboard() {
             <p className="text-muted-foreground mb-4 max-w-sm">
               Create your first scan to start monitoring campsite availability.
             </p>
-            <ScanForm
-              onSuccess={() => refetchScans()}
-              trigger={<Button><Plus className="h-4 w-4 mr-1" />Create Scan</Button>}
-            />
+            {user?.scanning_enabled !== false ? (
+              <ScanForm
+                onSuccess={() => refetchScans()}
+                trigger={
+                  <Button>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Create Scan
+                  </Button>
+                }
+              />
+            ) : (
+              <Button disabled variant="outline">
+                <Plus className="h-4 w-4 mr-1" /> Create Scan (Suspended)
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -234,8 +308,7 @@ export function Dashboard() {
               onToggleActive={handleToggleActive}
               onDelete={handleDelete}
               toggling={
-                updateScan.isPending &&
-                updateScan.variables?.scanId === scan.id
+                updateScan.isPending && updateScan.variables?.scanId === scan.id
               }
             />
           ))}

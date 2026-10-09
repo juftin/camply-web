@@ -15,7 +15,9 @@ let mockAuthState: AuthState;
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => mockAuthState,
   AuthProvider: ({ children }: { children: ReactNode }) => children,
-  AuthModeContext: { Provider: ({ children }: { children: ReactNode }) => children },
+  AuthModeContext: {
+    Provider: ({ children }: { children: ReactNode }) => children,
+  },
 }));
 
 function renderProfile(overrides: Partial<AuthState> = {}) {
@@ -24,11 +26,15 @@ function renderProfile(overrides: Partial<AuthState> = {}) {
       id: "test-user-id",
       email: "test@example.com",
       is_early_access_user: true,
+      is_admin: false,
+      scanning_enabled: true,
       pushover_token: "existing-token",
     },
     isLoading: false,
     error: null,
     isEarlyAccess: true,
+    isAdmin: false,
+    isScanningEnabled: true,
     isReady: true,
     refresh: vi.fn(),
     updatePushoverToken: vi.fn().mockResolvedValue(undefined),
@@ -75,6 +81,8 @@ describe("Profile", () => {
         id: "test-user-id",
         email: "test@example.com",
         is_early_access_user: false,
+        is_admin: false,
+        scanning_enabled: true,
         pushover_token: null,
       },
       isEarlyAccess: false,

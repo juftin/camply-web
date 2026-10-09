@@ -35,7 +35,9 @@ export function EarlyAccess() {
       setSubmitted(true);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to submit. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Failed to submit. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -74,7 +76,8 @@ export function EarlyAccess() {
             {submitted ? (
               <div className="rounded-md bg-green-50 dark:bg-green-950 p-4 border border-green-200 dark:border-green-800">
                 <p className="text-sm text-green-800 dark:text-green-200">
-                  We're working hard to get camply ready for you. Check back soon!
+                  We're working hard to get camply ready for you. Check back
+                  soon!
                 </p>
               </div>
             ) : (
@@ -98,9 +101,7 @@ export function EarlyAccess() {
                     onChange={(e) => setName(e.target.value)}
                   />
                 </div>
-                {error && (
-                  <p className="text-sm text-destructive">{error}</p>
-                )}
+                {error && <p className="text-sm text-destructive">{error}</p>}
                 <Button type="submit" className="w-full" disabled={submitting}>
                   {submitting ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />

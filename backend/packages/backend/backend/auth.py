@@ -30,6 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.config import AuthMode, backend_config
 from backend.dependencies import SessionDep
+from backend.metrics import USERS_CREATED_TOTAL
 from db.models import User
 
 logger = structlog.getLogger(__name__)
@@ -101,6 +102,8 @@ class CurrentUser(BaseModel):
     id: uuid.UUID
     email: str
     is_early_access_user: bool
+    is_admin: bool = False
+    scanning_enabled: bool = True
     pushover_token: Optional[str] = None
 
 
@@ -119,8 +122,18 @@ async def _get_or_create_basic_user(session: AsyncSession) -> User:
         user = User(
             email=backend_config.admin_email,
             is_early_access_user=True,
+            is_admin=True,
+            scanning_enabled=True,
         )
         session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        try:
+            USERS_CREATED_TOTAL.inc()
+        except Exception:
+            pass
+    elif not user.is_admin:
+        user.is_admin = True
         await session.commit()
         await session.refresh(user)
     return user
@@ -136,8 +149,18 @@ async def _get_or_create_local_user(session: AsyncSession) -> User:
         user = User(
             email=backend_config.admin_email,
             is_early_access_user=True,
+            is_admin=True,
+            scanning_enabled=True,
         )
         session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        try:
+            USERS_CREATED_TOTAL.inc()
+        except Exception:
+            pass
+    elif not user.is_admin:
+        user.is_admin = True
         await session.commit()
         await session.refresh(user)
     return user
@@ -198,6 +221,8 @@ async def resolve_current_user(
             id=user.id,
             email=user.email,
             is_early_access_user=user.is_early_access_user,
+            is_admin=user.is_admin,
+            scanning_enabled=user.scanning_enabled,
             pushover_token=user.pushover_token,
         )
 
@@ -207,6 +232,8 @@ async def resolve_current_user(
             id=user.id,
             email=user.email,
             is_early_access_user=user.is_early_access_user,
+            is_admin=user.is_admin,
+            scanning_enabled=user.scanning_enabled,
             pushover_token=user.pushover_token,
         )
 
@@ -228,6 +255,8 @@ async def resolve_current_user(
             auth0_id=auth0_id,
             email=email,
             is_early_access_user=False,
+            is_admin=False,
+            scanning_enabled=True,
         )
         session.add(auth0_user)
         try:
@@ -240,11 +269,17 @@ async def resolve_current_user(
             auth0_user = result.scalar_one()
         else:
             await session.refresh(auth0_user)
+            try:
+                USERS_CREATED_TOTAL.inc()
+            except Exception:
+                pass
 
     return CurrentUser(
         id=auth0_user.id,
         email=auth0_user.email,
         is_early_access_user=auth0_user.is_early_access_user,
+        is_admin=auth0_user.is_admin,
+        scanning_enabled=auth0_user.scanning_enabled,
         pushover_token=auth0_user.pushover_token,
     )
 
@@ -267,7 +302,26 @@ def require_early_access(current_user: CurrentUserDep) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Annotated type for FastAPI injection
+# Admin guard
+# ---------------------------------------------------------------------------
+
+
+def require_admin(current_user: CurrentUserDep) -> CurrentUser:
+    """Raise 403 if the authenticated user is not an administrator."""
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "ERR_ADMIN_REQUIRED",
+                "message": "Administrator access required.",
+            },
+        )
+    return current_user
+
+
+# ---------------------------------------------------------------------------
+# Annotated types for FastAPI injection
 # ---------------------------------------------------------------------------
 
 CurrentUserDep = Annotated[CurrentUser, Depends(resolve_current_user)]
+AdminUserDep = Annotated[CurrentUser, Depends(require_admin)]

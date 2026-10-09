@@ -17,9 +17,9 @@ export function PrivacyPolicy() {
           </p>
           <p className="mb-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
             <strong>Our Commitment:</strong> camply is a free service. We will{" "}
-            <strong>never sell your personal data</strong> to third parties.
-            Our mission is to help outdoor enthusiasts find campsites, and we
-            are committed to operating ethically and transparently.
+            <strong>never sell your personal data</strong> to third parties. Our
+            mission is to help outdoor enthusiasts find campsites, and we are
+            committed to operating ethically and transparently.
           </p>
         </section>
 
@@ -64,8 +64,8 @@ export function PrivacyPolicy() {
           <h2 className="text-2xl font-semibold mb-4">Information Sharing</h2>
           <p className="mb-4">
             <strong>We will never sell your personal data.</strong> We do not
-            sell, trade, rent, or monetize your personal information in any
-            way. We may share your information only in the following limited
+            sell, trade, rent, or monetize your personal information in any way.
+            We may share your information only in the following limited
             circumstances:
           </p>
           <ul className="list-disc list-inside mb-4 space-y-2">

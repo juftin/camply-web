@@ -1,10 +1,13 @@
 # AGENTS.md
 
 ## Project Overview
+
 **`camply`**, the campsite finder ⛺️, is a tool to help you book a campsite online. It is transitioning from a legacy CLI tool into a modern, full-stack, community-facing web application.
 
 ## 📚 Key Documentation & Pointers
+
 Before modifying the system, review the relevant architectural blueprints:
+
 - 👉 **[Roadmap & Plan](docs/agents/PLAN.md)**: The definitive path forward and current phases.
 - 👉 **[Feature Checklist](docs/agents/CHECKLIST.md)**: Granular implementation tasks. (Update this before every PR!).
 - 👉 **[Developer Guide](docs/agents/DEVELOPER_GUIDE.md)**: Quickstart, workflows, and local setup.
@@ -21,7 +24,9 @@ Before modifying the system, review the relevant architectural blueprints:
 - 👉 **[Project Constitution](.specify/memory/constitution.md)**: Core engineering principles and governance rules.
 
 ## 🤖 Agent Lifecycle & Spec-Kit
-This project uses **Spec-Kit** for formal feature definition and task tracking. 
+
+This project uses **Spec-Kit** for formal feature definition and task tracking.
+
 1. **Research**: Use `/speckit.analyze` to audit existing logic.
 2. **Specify**: Use `/speckit.specify` to define user stories and requirements in a `spec.md`.
 3. **Design**: Use `/speckit.plan` to create a `plan.md` for the technical implementation.
@@ -30,6 +35,7 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
 6. **Closing**: Update the global **[docs/agents/CHECKLIST.md](docs/agents/CHECKLIST.md)** before finalizing your PR.
 
 ## 🏗️ Directory Structure
+
 - `backend/`: FastAPI Python application (`uv` workspace).
   - `packages/backend/`: FastAPI application & API endpoints.
   - `packages/db/`: Database models and migrations (Alembic).
@@ -41,6 +47,7 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
 - `.worktrees/`: Git worktrees directory for parallel isolated development.
 
 ## ⚙️ Technology Stack & Standards
+
 - **Backend**: Python 3.12 managed by `uv`. FastAPI for web services.
 - **Frontend**: React 18+ with TypeScript, built via Vite. Tailwind CSS + Shadcn/UI.
 - **Database**: PostgreSQL (SQLAlchemy + Alembic).
@@ -50,7 +57,9 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
 - **Quality Gates**: `mypy`, `tsc`, `ruff`, `eslint`, `pytest`, `vitest`.
 
 ## 🌳 Working with Git Worktrees
+
 To keep feature development isolated and avoid messing up the main repository state, we use git worktrees in the `.worktrees/` directory:
+
 1. Create a new worktree for your feature:
    ```bash
    git worktree add .worktrees/feature-name -b feature-name
@@ -65,6 +74,7 @@ To keep feature development isolated and avoid messing up the main repository st
    ```
 
 ## 🛠️ Development Tasks
+
 All commands use `go-task` (`Taskfile.yaml`) for consistent execution.
 
 - **Setup & Install**:
@@ -79,6 +89,7 @@ All commands use `go-task` (`Taskfile.yaml`) for consistent execution.
   - `task check`: Run static type checking (`mypy` for backend, `tsc` for frontend).
 
 ## 🧪 Testing Locally
+
 The project mandates automated verification for all features. Tests must be written and executed locally before proposing changes.
 
 - **Run all tests**:
@@ -90,7 +101,9 @@ The project mandates automated verification for all features. Tests must be writ
   - Ensure you write or update tests alongside your feature logic. Run the specific test you are working on directly if needed (e.g. `uv run pytest path/to/test.py`).
 
 ### 🔄 VCR Cassette Maintenance
+
 To ensure tests remain accurate as external provider APIs evolve, we follow a regular renewal plan:
+
 - **Frequency**: Every 30 days or whenever a provider API changes its response structure.
 - **How to Renew**: Run the test suite with the record mode enabled (requires valid API credentials):
   ```bash
@@ -99,7 +112,9 @@ To ensure tests remain accurate as external provider APIs evolve, we follow a re
 - **Validation**: After renewing, verify the new cassettes don't contain sensitive credentials before committing.
 
 ## ✅ Pull Request Checklist
+
 Before creating a PR, agents and contributors must ensure the following:
+
 - [ ] **Tests Pass**: `task test` completes successfully without errors.
 - [ ] **Type Check Passes**: `task check` returns no type violations.
 - [ ] **Linting Passes**: `task lint` is clean (run `task fix` to resolve auto-fixable issues).

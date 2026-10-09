@@ -10,7 +10,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from db.eligibility import (
+    eligible_scan_condition,
+    is_scan_eligible,
+    is_user_scan_eligible,
+)
 from db.models import (
+    AdminAuditEvent,
     Base,
     Campground,
     Provider,
@@ -77,6 +83,93 @@ def test_user_creation(session: Session):
     assert user.id is not None
     assert user.email == "test@example.com"
     assert user.is_early_access_user is False
+    assert user.is_admin is False
+    assert user.scanning_enabled is True
+
+
+def test_user_admin_and_scanning_flags(session: Session):
+    """
+    Test setting is_admin and scanning_enabled flags on User
+    """
+    user = User(
+        email="admin@example.com",
+        is_admin=True,
+        scanning_enabled=False,
+    )
+    session.add(user)
+    session.commit()
+
+    assert user.is_admin is True
+    assert user.scanning_enabled is False
+
+
+def test_admin_audit_event_creation(session: Session, user: User):
+    """
+    Test creating an AdminAuditEvent linked to an actor User
+    """
+    audit = AdminAuditEvent(
+        actor_id=user.id,
+        action="user.scanning_enabled",
+        subject_type="user",
+        subject_id=user.id,
+        prev_value=True,
+        new_value=False,
+    )
+    session.add(audit)
+    session.commit()
+
+    assert audit.id is not None
+    assert audit.actor_id == user.id
+    assert audit.actor.email == user.email
+    assert audit.action == "user.scanning_enabled"
+    assert audit.prev_value is True
+    assert audit.new_value is False
+    assert audit.created_at is not None
+    assert len(user.audit_events) == 1
+
+
+def test_eligibility_helpers(session: Session, user: User, target: UniqueTarget):
+    """
+    Test shared eligibility helpers: is_scan_eligible, is_user_scan_eligible, and eligible_scan_condition
+    """
+    scan = UserScan(
+        user_id=user.id,
+        target_id=target.id,
+        is_active=True,
+    )
+    session.add(scan)
+    session.commit()
+
+    # User scanning enabled (True) + scan active (True) => eligible
+    assert is_scan_eligible(user.scanning_enabled, scan.is_active) is True
+    assert is_user_scan_eligible(user, scan) is True
+
+    # User suspended (scanning_enabled=False) + scan active (True) => not eligible
+    user.scanning_enabled = False
+    session.commit()
+    assert is_scan_eligible(user.scanning_enabled, scan.is_active) is False
+    assert is_user_scan_eligible(user, scan) is False
+
+    # User enabled + scan inactive (False) => not eligible
+    user.scanning_enabled = True
+    scan.is_active = False
+    session.commit()
+    assert is_scan_eligible(user.scanning_enabled, scan.is_active) is False
+    assert is_user_scan_eligible(user, scan) is False
+
+    # Test eligible_scan_condition query
+    from sqlalchemy import select
+
+    stmt = (
+        select(UserScan)
+        .join(User, User.id == UserScan.user_id)
+        .where(eligible_scan_condition())
+    )
+    assert len(session.execute(stmt).scalars().all()) == 0
+
+    scan.is_active = True
+    session.commit()
+    assert len(session.execute(stmt).scalars().all()) == 1
 
 
 def test_user_early_access(session: Session):

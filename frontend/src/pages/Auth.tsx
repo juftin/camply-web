@@ -16,7 +16,12 @@ import { Label } from "@/components/ui/label";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
-import { getMe, setBasicAuth, clearBasicAuth, getApiErrorMessage } from "@/lib/api";
+import {
+  getMe,
+  setBasicAuth,
+  clearBasicAuth,
+  getApiErrorMessage,
+} from "@/lib/api";
 
 function Auth0Content() {
   const [searchParams] = useSearchParams();
@@ -135,8 +140,10 @@ function BasicContent() {
     setSubmitting(true);
 
     const form = e.currentTarget;
-    const username = (form.elements.namedItem("username") as HTMLInputElement).value;
-    const password = (form.elements.namedItem("password") as HTMLInputElement).value;
+    const username = (form.elements.namedItem("username") as HTMLInputElement)
+      .value;
+    const password = (form.elements.namedItem("password") as HTMLInputElement)
+      .value;
 
     setBasicAuth(username, password);
 

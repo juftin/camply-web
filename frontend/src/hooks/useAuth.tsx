@@ -29,6 +29,8 @@ export interface AuthState {
   isLoading: boolean;
   error: string | null;
   isEarlyAccess: boolean;
+  isAdmin: boolean;
+  isScanningEnabled: boolean;
   isReady: boolean;
   refresh: () => Promise<void>;
   updatePushoverToken: (token: string | null) => Promise<void>;
@@ -128,6 +130,8 @@ function BasicAuthProvider({ children }: { children: ReactNode }) {
     isLoading: isLoading || initialLoading,
     error: hasError,
     isEarlyAccess: user?.is_early_access_user ?? false,
+    isAdmin: user?.is_admin ?? false,
+    isScanningEnabled: user?.scanning_enabled ?? true,
     isReady: !initialLoading,
     refresh,
     updatePushoverToken,
@@ -227,6 +231,8 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
     isLoading: initialLoading,
     error: hasError,
     isEarlyAccess: user?.is_early_access_user ?? false,
+    isAdmin: user?.is_admin ?? false,
+    isScanningEnabled: user?.scanning_enabled ?? true,
     isReady: !initialLoading,
     refresh,
     updatePushoverToken,

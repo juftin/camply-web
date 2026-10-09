@@ -36,9 +36,7 @@ async function generate(): Promise<void> {
     writeFileSync(TEMP_SCHEMA, JSON.stringify(schema, null, 2));
     console.log(`Schema saved to ${TEMP_SCHEMA}`);
   } catch (err) {
-    console.error(
-      "Failed to fetch OpenAPI schema. Is the backend running?",
-    );
+    console.error("Failed to fetch OpenAPI schema. Is the backend running?");
     console.error(err);
     process.exit(1);
   }

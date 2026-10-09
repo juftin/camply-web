@@ -94,8 +94,9 @@ def configure_celery_logging(**kwargs: object) -> None:
 
 celery_app = create_celery_app()
 
-# Import metrics module to register Celery signal handlers (task_prerun, task_postrun)
-import worker.metrics  # noqa: E402, F401
+# Import metrics and telemetry modules to register Celery signal handlers
+import worker.metrics  # noqa: E402
+import worker.telemetry  # noqa: E402, F401
 
 
 @worker_init.connect
