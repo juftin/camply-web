@@ -5,7 +5,7 @@
   "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --config vite.config.ts",
+    "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "tsc -b tsconfig.json && vite build --config vite.config.ts",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "fix": "eslint src --ext ts,tsx --fix && prettier --write .",
@@ -15,7 +15,10 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
-    "codegen": "npx tsx src/lib/codegen.ts"
+    "codegen": "npx tsx src/lib/codegen.ts",
+    "snapshot": "tsx scripts/run-snapshots.ts",
+    "snapshot:update": "tsx scripts/run-snapshots.ts --update",
+    "snapshot:check": "tsx scripts/run-snapshots.ts --check"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.17.0",
@@ -48,10 +51,13 @@
   },
   "devDependencies": {
     "@openapitools/openapi-generator-cli": "^2.34.0",
+    "@playwright/test": "^1.64.0",
     "@testing-library/jest-dom": "^6.6.4",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/google-map-react": "^2.1.10",
+    "@types/pixelmatch": "^5.2.6",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
@@ -62,7 +68,10 @@
     "eslint-plugin-react-refresh": "^0.4.14",
     "jsdom": "^26.1.0",
     "openapi-typescript": "^7.13.0",
+    "pixelmatch": "^8.0.0",
+    "pngjs": "^7.0.0",
     "prettier": "^3.6.2",
+    "tsx": "^4.23.15",
     "typescript": "~5.6.2",
     "vite": "^6.0.1",
     "vitest": "^3.2.4"

@@ -17,6 +17,8 @@ import { HowItWorks } from "@/pages/HowItWorks";
 import { Campground } from "@/pages/Campground";
 import { RecreationArea } from "@/pages/RecreationArea";
 import { ScanDetail } from "@/pages/ScanDetail";
+import { EarlyAccess } from "@/pages/EarlyAccess";
+import { DevPreview } from "@/pages/DevPreview";
 import { AuthProvider, AuthModeContext } from "@/hooks/useAuth";
 import { fetchAuthConfig, type AuthConfig } from "@/lib/api";
 
@@ -56,6 +58,8 @@ function AppRoutes() {
                   path="/rec-area/:providerId/:recreationAreaId"
                   element={<RecreationArea />}
                 />
+                <Route path="/early-access" element={<EarlyAccess />} />
+                <Route path="/dev/preview" element={<DevPreview />} />
               </Routes>
             </Layout>
           }
@@ -69,7 +73,15 @@ function App() {
   const [config, setConfig] = useState<AuthConfig | null>(null);
 
   useEffect(() => {
-    fetchAuthConfig().then(setConfig).catch(() => setConfig({ auth_mode: "basic", auth0_domain: null, auth0_client_id: null }));
+    fetchAuthConfig()
+      .then(setConfig)
+      .catch(() =>
+        setConfig({
+          auth_mode: "basic",
+          auth0_domain: null,
+          auth0_client_id: null,
+        }),
+      );
   }, []);
 
   if (!config) {
@@ -80,7 +92,10 @@ function App() {
     );
   }
 
-  const isAuth0 = config.auth_mode === "auth0" && config.auth0_domain && config.auth0_client_id;
+  const isAuth0 =
+    config.auth_mode === "auth0" &&
+    config.auth0_domain &&
+    config.auth0_client_id;
 
   if (isAuth0) {
     return (
