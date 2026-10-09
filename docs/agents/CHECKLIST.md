@@ -105,6 +105,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T4.3.1 Research Campflare/Campnab and audit current discovery-to-alert behavior.
 - [x] T4.3.2 Define the [proposed UI/UX specification, plan, and staged tasks](../../specs/002-campsite-discovery/plan.md).
 - [x] T4.3.2a Detail first-release work packages and create a local clickable planning wireframe.
+- [x] T4.3.2b Align planning and wireframes with incremental additions to the existing UI.
 - [ ] T4.3.3 Validate wireframes/prototype and resolve date, access, and notification decisions.
 - [ ] T4.3.4 Implement correctness and accessible interaction foundations (Phase A).
 - [ ] T4.3.5 Implement and verify the complete discovery-to-alert journey (Phase B).

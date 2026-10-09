@@ -2,17 +2,22 @@
 
 Status: proposed; planning/research session only. No application code changed.
 
-The recommended direction is **a calm, outdoors-oriented companion for finding a
-place to camp**. The primary journey is Explore → Choose campground → Choose stay
-→ Enable notifications → Watch → Book with the provider. Visual design should
-support that journey and convey anticipation without obscuring the utility.
+The direction is **incremental improvements to the existing camply UI**. Preserve
+the blue theme, centered home hero, navigation, card layouts, dashboard, and
+single-dialog alert setup. Make finding a campground and setting up alerts easier
+through better search, useful suggestions, clearer summaries, and reliable recovery.
+Campflare and Campnab inform interaction details, while camply keeps its identity.
+
+**First-release boundary:** no rebrand, replacement home composition, new primary
+navigation, dedicated alert-builder route, or mandatory multistep wizard. Broader
+ideas below are optional later candidates with separate validation gates.
 
 This plan extends the existing frontend blueprint rather than replacing the
 poller architecture. Read [the specification](spec.md) for acceptance criteria and
 [the research](research.md) for source evidence and capability limitations.
 
 The [first-release brief](implementation.md) defines concrete work packages;
-[design review](design-review.md) records candidate visual tokens and additional
+[design review](design-review.md) records existing UI constraints and additional
 feature opportunities. Use the [clickable wireframe](wireframes.html) to review
 the proposed core journey before implementing it.
 
@@ -33,70 +38,56 @@ the proposed core journey before implementing it.
 7. **A list must stand on its own.** Maps enrich discovery, but the experience works
    on a phone, with low bandwidth, or without map configuration.
 
-A full-page alert builder is recommended for the main journey: it has room for
-notification setup, survives navigation, and handles the phone keyboard better
-than a long nested dialog. Retain a lightweight dialog only for editing existing
-filters if testing supports it. Avoid maintaining separate search/form behavior
-for dashboard and campground entry points.
+Enhance the existing `ScanForm` dialog for both campground and dashboard entry
+points. Keep dates, minimum stay, type choices, and electric requirement together;
+add concise help, validation, a stay summary, and delivery readiness. Preserve its
+current visual treatment and actions. Improve height/overflow and focus handling
+for small screens. A dedicated page or wizard is a later experiment only if observed
+usability problems cannot be solved inside the existing dialog.
 
 ## 2. Information architecture
 
-| Destination           | User-facing purpose                                     | Proposed route and migration                                                                           |
-| --------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Home                  | Start finding a place; understand the service.          | Keep `/`; one search entry plus suggestions.                                                           |
-| Explore               | Browse and refine search; eventually map/list.          | New `/explore`; preserve query in URL; add complete results API before claiming comprehensive filters. |
-| Park                  | Compare campground options.                             | Keep `/rec-area/:providerId/:recreationAreaId`; use friendlier display language.                       |
-| Campground            | Understand the place; start an alert or visit provider. | Keep `/campground/:providerId/:campgroundId`.                                                          |
-| Alert builder         | Choose dates, requirements, and notification setup.     | New `/alerts/new` with validated campground reference; draft kept separately from URL.                 |
-| My alerts             | See and manage monitoring.                              | Keep `/dashboard` initially; rename label; consider `/alerts` alias without breaking links.            |
-| Alert detail          | View matching observations and take action.             | Keep current detail route initially; future alias must preserve notification deep links.               |
-| Notification settings | Configure supported delivery channels.                  | Keep `/profile`; consolidate duplicated dashboard setup.                                               |
-| Coverage and help     | Understand supported booking systems and setup.         | Keep `/providers`, `/how-it-works`, `/faq`; call Providers “Where we search.”                          |
+| Existing surface      | Incremental improvement                                                   | Route/container policy                                                  |
+| --------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Home                  | Suggestions and accurate introductory copy beside existing search.        | Keep `/` and current hero/sections.                                     |
+| Park                  | Name filter, visible counts, semantic campground links.                   | Keep `/rec-area/:providerId/:recreationAreaId` and card/list layout.    |
+| Campground            | Clear alert wording, eligibility help, official reservation link.         | Keep `/campground/:providerId/:campgroundId` and description/map cards. |
+| Alert setup           | Human-readable selection, validation, stay summary, readiness.            | Keep `ScanForm` dialog opened from campground or dashboard.             |
+| Dashboard             | Clear per-scan status, correct totals, separate controls, visible errors. | Keep `/dashboard`, heading, statistics, settings, and card grid.        |
+| Alert detail          | Matching nights, observation time, booking link.                          | Keep current detail route and Overview/Availability cards.              |
+| Notification settings | Reuse setup help and communicate configuration honestly.                  | Keep `/profile` and existing dashboard settings entry.                  |
+| Help and coverage     | Accurate supported providers/channels.                                    | Keep `/providers`, `/how-it-works`, `/faq` and current navigation.      |
 
-Desktop navigation: Explore, My alerts when signed in, How it works; account/theme
-controls on the right. Move project philosophy/contribution links to the footer.
-Mobile: compact header plus persistent access to Explore/My alerts/Account when
-that navigation exists. Do not hide critical navigation solely because scrolling
-moves down. Implement a skip link, route-change focus handling, and current-page
-indication. Show Basic sign-in versus Auth0 signup actions appropriately.
+Retain Providers, How it works, Ethos, Contribute, account/theme controls, and the
+existing mobile menu. Add a skip link, current-page semantics, route-change focus,
+and auth-mode-aware actions in place. Keep critical controls reachable when the
+header's scroll behavior changes. Do not introduce bottom navigation or relocate
+community links in this first pass. `/explore` is an optional later route requiring
+complete results infrastructure; no `/alerts/new` route or `/alerts` alias is needed.
 
 ## 3. Screen proposals
 
-### 3.1 Home: make the first minute inviting
+### 3.1 Existing home: make the first minute inviting
 
-Suggested hierarchy:
+Keep the existing centered heading **“Find Campsites at Sold-Out Campgrounds”**,
+blue primary color, search width, feature cards, How It Works, and closing CTA.
 
-```text
-camply                 Explore   How it works       Sign in
+Small additions inside that structure:
 
-More time outside.
-Less time refreshing.
-Find a campground. We'll watch for an opening.
-
-Where would you love to camp?
-[ Search a park or campground                         ]
-Try a favorite:  [Yosemite] [Joshua Tree] [Rocky Mountain]
-
-Pick a place → Choose your stay → Get a notification
-
-A few places to start
-[Destination image + name] [Destination] [Destination]
-
-Free and open source · Book through official reservation sites
-```
-
-- Put search in the first mobile viewport, before large decorative imagery.
-- Use one outdoors image or local illustration; desktop can pair it with text,
-  while mobile uses a shallow crop. No background-video dependency.
-- Destination suggestions populate/focus actual search. Curated cards must resolve
-  to supported metadata; do not call them trending without measured popularity.
-- A returning visitor can see “Continue your alert” when a valid draft exists and
-  “View my alerts” after authentication, without replacing discovery.
-- State current beta status compactly and access limitations before final save.
-  Remove unsupported channel, provider, user-count, and speed claims.
-- Reserve scenic cards for discovery; avoid generic SaaS benefit/stat-card overload.
-- Keep helpful explanations inline: “We notify you about openings. You book directly
-  with the campground's reservation service.”
+- Add a visible search label and two or three supported destination suggestions
+  directly beneath `SearchBar`. Suggestions populate/focus the actual search;
+  verify metadata before choosing real destinations. No new scenic hero is required.
+- Clarify the introduction: camply watches for openings; campers book directly
+  through the official reservation provider. Correct unsupported channel/provider
+  claims without rewriting the whole page's tone.
+- Retain the signup CTA, adapting its wording/action to Basic versus Auth0 and
+  signed-in state. Keep search as the direct path for people ready to choose a place.
+- Preserve existing feature-card layout and artwork. Update only claims that exceed
+  supported behavior. A compact draft-resume link can sit near search after recovery
+  exists, without changing the hero composition.
+- Keep the development notice and clear access information. Verify whether search
+  is visible on a small phone; adjust hero padding only if measured viewport tests
+  show it is pushed out of reach.
 
 ### 3.2 Search: predictable, useful, accessible
 
@@ -123,7 +114,7 @@ consistent autocomplete everywhere, then add complete browse/search infrastructu
 - Spelling suggestions, aliases, and name ranking are a backend search increment;
   use deterministic examples and avoid fuzzy matches presented as certainty.
 
-### 3.3 Explore and park pages: choose with confidence
+### 3.3 Existing park pages: choose with confidence
 
 First iteration uses the existing park campground list:
 
@@ -139,7 +130,7 @@ First iteration uses the existing park campground list:
 - Use absent metadata placeholders sparingly: omit decorative gaps, explain unknown
   requirements where they affect suitability.
 
-Later full Explore layout:
+**Optional later experiment, outside the first release:** full Explore layout:
 
 ```text
 [Destination / area] [Date intent, optional] [Filters]      List | Map
@@ -159,13 +150,15 @@ public map/home suggest the direction; detailed map interactions remain our prop
 
 ### 3.4 Campground details: support the decision and next step
 
-Above the fold: park breadcrumb, campground name/location, concise description,
-source link, and primary “Set an alert.” Secondary action: “View reservation site.”
+Keep the current name/provider/breadcrumb header, Monitor trigger, description/map
+card, and alternatives card. Test clarifying the trigger to “Set an alert” in the
+same position. Add “View reservation site” using the existing metadata URL without
+recomposing the page.
 
 - Show what is known about reservation/monitoring support, not an “Active” badge
   that could mean either metadata configuration or live monitoring.
-- Mobile primary action can be sticky above safe-area/bottom navigation; ensure it
-  does not obscure content or focused fields at zoom.
+- Keep the action in its current header position. First verify wrapping, touch targets,
+  and zoom. A sticky action is an optional experiment only if discoverability suffers.
 - Detail groups: overview/location, supported camping information, official rules
   link, and nearby alternatives within the same park. Amenities/equipment suitability
   appear only when reliable metadata exists.
@@ -177,35 +170,46 @@ source link, and primary “Set an alert.” Secondary action: “View reservati
 - Existing campground endpoint rejects unreservable metadata; resolve whether to
   expose browse-only details or exclude such entries consistently before the UI.
 
-### 3.5 Alert builder: the central product experience
+### 3.5 Existing alert dialog: make the matching rule easy to understand
 
-Use three short stages: **Stay → Preferences → Notifications & review**. Campground
-selection happens before the builder; entering from My alerts starts with search.
-Stage labels and a persistent summary explain progress, but avoid forcing a fourth
-step for a detail already known. Preserve fields when moving back.
+Keep **one existing ScanForm dialog**, opened by the current campground Monitor
+or dashboard New Scan action. Do not split its fields into mandatory stages.
 
 ```text
-Set an alert                                     Stay • Preferences • Review
-Upper Pines · Yosemite
+Create a New Scan                                      [Close]
+Monitor a campground for cancellations.
 
-When can you camp?
-(•) Specific stay       ( ) Flexible window
-[ Arrival ] [ Departure ]
+Campground
+[Pine Creek · Cedar Valley                         Change]
 
-Stay summary: two consecutive camping nights
+[Check-in]                           [Check-out]
+[Minimum Stay (nights)]
+Help: choose the full window length to require every night.
+Summary: at least 2 consecutive nights, June 18–23.
 
-[ Optional campsite preferences ]
+Preferred Campsite Types   [Tent] [RV] [Cabin] [Other]
+[Electric Hookup Required]
 
-                       Continue
+Notifications: not configured. [Set up]
+[ ] Monitor without notifications (explicit choice if approved)
+
+[Cancel]                                      [Create Scan]
 ```
+
+Retain existing field order, dialog width, buttons, and badge appearance. Replace
+nonsemantic clickable badges with keyboard-operable controls styled the same way.
+Human place names replace internal IDs. A short inline summary explains the match
+rule; help/setup can expand in place rather than adding another navigation step.
 
 **Date intent**
 
-- Specific stay means the complete selected stay in one campsite. Derive minimum
-  nights from arrival/departure; do not accidentally default an exact three-night
-  trip to any one-night match.
-- Flexible window means any consecutive stay of at least N nights inside the window.
-  Use “Earliest camping night” and “Latest departure” or equally unambiguous labels.
+- The current window/minimum form can express both rules. Requiring every night
+  means minimum nights equals the window length. A shorter minimum means any
+  consecutive stay of at least N nights within that window. Show this plainly.
+- Preserve Check-in/Check-out labels once departure semantics are corrected; helper
+  text explains that they bound a search window. Do not label the default minimum-1
+  configuration an exact stay. Test a compact “Require all nights” shortcut only if
+  the inline summary/help proves insufficient; a mode selector is not required.
 - Always show a sentence preview: “Watch for at least 2 consecutive nights in one
   campsite between June 12 and June 16.” Examples use synthetic future dates in tests.
 - Optional quick choices: next weekend or ±2 arrival days. Compute in the chosen
@@ -246,19 +250,22 @@ Stay summary: two consecutive camping nights
   whether this choice causes more confusion than requiring notification setup.
 - Add “Send test notification” only with a real server endpoint and user acknowledgement.
   Distinguish sent-to-provider from confirmed received on-device; avoid a fake checkmark.
-- Primary action: “Start watching.” During save, disable duplicate submission and
+- Preserve Create Scan as the primary action initially; test “Start watching” as a
+  focused copy change. During save, disable duplicate submission and
   preserve the draft on failure. A duplicate response offers “View existing alert.”
-- Completion: “You're watching Upper Pines,” summary, actual notification readiness,
-  link to My alerts, and “Add another campground.” Use a small static celebratory
-  illustration; never celebrate as though a booking happened.
+- Completion fits the existing toast/detail transition: watched place, date summary,
+  actual notification readiness, and link to the scan. A short friendly confirmation
+  is enough; no replacement success page or illustration is required.
 - If beta access is required, show it before final save and preserve the draft through
   the access request. Verify actual policy enforcement/routes before designing around it.
 
-### 3.6 My alerts: reassure, organize, and act
+### 3.6 Existing dashboard: reassure, organize, and act
 
-Replace the generic dashboard emphasis with “My alerts,” an obvious “New alert,”
-and active/paused/ended filters. Search campground/trip labels locally only over a
-fully loaded dataset; implement pagination accurately as datasets grow.
+Keep the Dashboard heading, New Scan action, statistic cards, settings panel, and
+scan grid. Add clearer watched-stay/status/readiness information inside `ScanCard`,
+with visual treatment matching current cards. Optional filters should earn their
+space through usage evidence and apply accurately across pagination; no mandatory
+rename to My alerts or replacement management page.
 
 - Cards show campground/park, date rule, requirements, state, last check, and delivery
   readiness. One title link opens details; pause/delete are separate controls.
@@ -274,16 +281,17 @@ fully loaded dataset; implement pagination accurately as datasets grow.
   API unless a real restore strategy exists.
 - First empty state explains how to get started; filtered empty state offers reset.
   Avoid sad/failure imagery for somebody who simply has not created an alert.
-- Keep summary statistics secondary and accurate. A loaded subset is not the overall
-  total, shared observations are not user-matching openings, and openings are not bookings.
+- Retain the statistic cards and correct their data/labels. A loaded subset is not
+  the overall total, shared observations are not user-matching openings, and openings
+  are not bookings. Do not demote or remove statistics solely for a new visual hierarchy.
 - Future trip labels such as “Birthday weekend” help distinguish similar alerts.
   Trip groups, bulk pause, and archive require models/endpoints and warrant separate work.
 
 ### 3.7 Alert detail and reservation handoff
 
-Lead with what the camper can do now. Display the alert's rule and status, then
-matching observations as consecutive date blocks with campsite identity, check time,
-and provider booking action.
+Keep ScanDetail's Overview and Availability cards. Add matching consecutive date
+blocks, campsite identity, check time, and a provider booking action within those
+cards. Preserve the current heading and page layout.
 
 - Initial booking link can use the existing campground metadata URL. Specific
   campsite/date links need provider adapters; never fabricate URL parameters.
@@ -320,14 +328,15 @@ Email/SMS toggles as a promise of forthcoming support.
 
 ## 4. Visual and interaction system
 
-- **Palette:** forest green for primary action, warm neutral surfaces, slate text,
-  muted earth tones for secondary accents. Maintain measured contrast in both themes;
-  do not pick final token values before checking real components.
+- **Palette:** retain the current blue primary, white/slate surfaces, existing
+  light/dark tokens, and brand identity in `frontend/src/index.css`. Audit rendered
+  contrast and repair specific defects; no palette replacement is part of this plan.
 - **Typography:** keep a readable sans-serif (current system stack or existing font),
   16px form text, clear heading hierarchy, comfortable line height. Avoid all-caps
   provider names and tiny status badges as the only status presentation.
-- **Layout:** consistent page widths/gutters, 8px spacing rhythm, modest rounded
-  cards, and intentional whitespace. Search and builder summaries align with content.
+- **Layout:** preserve current page widths, gutters, rounded cards, and section order.
+  Add help/counts/summary inside existing components. Adjust only spacing that fails
+  small-screen, long-name, keyboard, or zoom checks.
 - **Images:** responsive, compressed, licensed, sized to prevent shifts. Lazy-load
   below-the-fold images; fallback backgrounds preserve layout.
 - **Icons:** existing Lucide set with text for important actions. Label every icon-only
@@ -352,7 +361,7 @@ Email/SMS toggles as a promise of forthcoming support.
 | Campground    | Loading, details, unknown metadata, unsupported, removed, network error.                         | Official site, other campgrounds, retry, return to results.            |
 | Builder       | Draft, valid/invalid fields, auth required, setup required, saving, duplicate, failure, success. | Retain values, resume after detour, existing-alert link, retry.        |
 | Notifications | Unconfigured, configured, unavailable host channel, testing, failed, sent, receipt confirmed.    | Setup/help, retry test, explicit save without notifications if chosen. |
-| My alerts     | None, loading, populated, filtered empty, mutation pending/failed, paused/ended.                 | New alert, reset filters, retry, resume/edit/confirm delete.           |
+| Dashboard     | None, loading, populated, filtered empty, mutation pending/failed, paused/ended.                 | New alert, reset filters, retry, resume/edit/confirm delete.           |
 | Results       | First check pending, no current matches, matches, stale observation, provider delay/error.       | Show honest status, supported edits, official booking link.            |
 | Auth/access   | Basic login, Auth0 login/signup, cancelled/error, beta access pending.                           | Return to draft, retry, explore publicly; preserve intent.             |
 
@@ -392,15 +401,15 @@ not merely a frontend call to an existing endpoint.
 | UX-03 | User-filtered result blocks and accurate counts.                               | P0       | M      | Backend snapshot metadata/filter contract.                               |
 | UX-04 | Shared accessible search; stale-response prevention and clear recovery.        | P0       | M      | Existing API; eligible entity filter may extend it.                      |
 | UX-05 | Semantic navigation/controls and visible mutation errors.                      | P0       | S–M    | Existing frontend components.                                            |
-| UX-06 | Discovery-led landing, nature palette, destination suggestions.                | P1       | M      | Accurate support data; approved licensed assets.                         |
-| UX-07 | Task-oriented header, auth-aware actions, skip link/route focus.               | P1       | S      | Auth/capability policy.                                                  |
+| UX-06 | Existing home: accurate copy and destination suggestions.                      | P1       | M      | Accurate support data; existing Home components.                         |
+| UX-07 | Existing header: auth-aware actions, skip link/route focus.                    | P1       | S      | Auth/capability policy.                                                  |
 | UX-08 | Park list filtering, counts, stable sorting and map fallback.                  | P1       | M      | Existing full park list; eligibility decision.                           |
-| UX-09 | Campground decision page with Set an alert / reservation site actions.         | P1       | M      | UX-01; metadata fallback.                                                |
-| UX-10 | Responsive guided alert builder with supported preferences and summary.        | P1       | L      | UX-02, UX-04, UX-09.                                                     |
-| UX-11 | Safe draft preservation and auth/access return flow.                           | P1       | M      | Builder route + verified access policy.                                  |
+| UX-09 | Existing campground page: clearer alert / reservation actions.                 | P1       | M      | UX-01; metadata fallback.                                                |
+| UX-10 | Enhance existing ScanForm dialog with validation and summary.                  | P1       | L      | UX-02, UX-04, UX-09.                                                     |
+| UX-11 | Safe draft preservation and auth/access return flow.                           | P1       | M      | Dialog restore + verified access policy.                                 |
 | UX-12 | Notification onboarding/readiness and deliberate monitoring-only option.       | P1       | M      | Host capability + product decision.                                      |
 | UX-13 | Real test-notification journey and duplicate-alert resolution.                 | P1       | M      | Backend test/delivery endpoint; duplicate lookup.                        |
-| UX-14 | My alerts state model, accurate pagination/totals, pause/delete feedback.      | P1       | M      | UX-03; operational state as available.                                   |
+| UX-14 | Existing dashboard: clear status, accurate totals, action feedback.            | P1       | M      | UX-03; operational state as available.                                   |
 | UX-15 | Result cards with freshness, matching nights and booking handoff.              | P1       | M      | UX-02/03; existing metadata URL.                                         |
 | UX-16 | Mobile, dark-theme, keyboard and low-bandwidth acceptance pass.                | P1       | M      | Every core screen.                                                       |
 | UX-17 | Full Explore search with bookmarkable filters and complete result totals.      | P2       | L      | Backend browse/pagination/filter API.                                    |
@@ -433,10 +442,10 @@ matching results, real coverage, and actionable state; repair shared search and
 control/navigation issues. Verify with behavioral tests and concrete date fixtures.
 Gate: no UI labels imply unsupported capabilities or mismatched openings.
 
-**Phase B — one excellent end-to-end journey.** UX-06–16. Build the design tokens,
-landing/search/park/detail experience, then guided alert/draft/notifications, then
-My alerts/results. Ship vertical slices, not a palette refresh followed months later
-by functional usability. Gate: public discovery → auth return → saved useful alert
+**Phase B — improve the existing end-to-end journey.** UX-06–16. Add suggestions
+and accurate copy to Home, filtering to park cards, clear actions to details, and
+summary/recovery/readiness to ScanForm. Improve dashboard/results in their current
+layouts. Ship small component-focused slices with before/after screenshots. Gate: public discovery → auth return → saved useful alert
 → booking handoff passes acceptance tasks on phone and desktop.
 
 **Phase C — broad discovery and easier delivery.** UX-17–20, UX-28. Extend result
@@ -460,7 +469,7 @@ checkout-night inclusion, mismatched result counts, lost auth drafts, and contro
 nested in navigation links.
 
 - Component tests: keyboard search, every search state, clear/retry, campground
-  filtering, accessible preference selection, builder progression/validation,
+  filtering, accessible preference selection, dialog validation/focus/restore,
   duplicate handling, save errors, and pause/delete failure behavior.
 - API/worker tests: overnight boundary/DST/leap-day/month/year transitions, matching
   counts vs shared snapshots, unsupported capabilities, auth ownership, retargeting,
@@ -477,8 +486,8 @@ nested in navigation links.
   real baseline/device/network measurements rather than fabricated timings.
 - Quality workflows: `task fix`, `task lint`, `task check`, `task test`, applicable
   pre-commit hooks, and production frontend compilation. Run focused tests per slice;
-  full checks before a PR. No application quality gates are claimed for this planning
-  session because application code is unchanged.
+  full checks before a PR. Planning artifacts receive the repository quality gates; application-feature
+  acceptance remains pending because application code is unchanged.
 
 Usability study: 5–8 campers perform park-to-alert, exact two-night stay, flexible
 weekend, auth interruption, notification readiness, and booking handoff tasks. Record
@@ -486,36 +495,37 @@ completion/assistance, misunderstandings, time, and a brief confidence/ease rati
 Recruit separately rather than contacting people in this session. Include a camper
 with mandatory equipment/access needs and keyboard/assistive-technology use.
 
-Minimal optional funnel events: search initiated, destination selected, builder
-stage completed/abandoned, auth return completed, alert saved/duplicate, notification
+Minimal optional funnel events: search initiated, destination selected, form
+opened/completed/abandoned, auth return completed, alert saved/duplicate, notification
 configured/test outcome, and reservation link opened. Avoid raw query/date/location
 or personal/credential payloads. Study booking outcomes only via explicit feedback.
 
 ## 10. Decisions to settle before implementation
 
-| Decision                  | Recommended starting point                                  | Alternative / remaining evidence                                                |
-| ------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Primary experience        | Public discovery followed by guided alert setup.            | Existing users may need a shorter direct path; test both.                       |
-| Builder container         | Dedicated responsive page with shared state.                | Small dialog for quick edits; avoid duplicating full flows.                     |
-| Date model                | Exact stay + flexible window, departure exclusive.          | Preserve inclusive existing records only with explicit compatibility plan.      |
-| Notification requirement  | Encourage readiness, allow deliberate monitoring-only save. | Require configuration if testing shows users consistently miss the distinction. |
-| Next channel              | Research email and browser push; retain Pushover.           | Select based on audience/delivery/cost, not visual preference.                  |
-| First map increment       | List-first park view/fallback; full map discovery later.    | Map-first is useful only with complete geographic result coverage.              |
-| Multiple campground model | Separate alerts first; group later when needed.             | Atomic trip builder introduces persistence and partial-save complexity.         |
-| Favorites                 | Session recents first; optional persisted favorites later.  | Local-only saves are simpler but need clear device-specific wording.            |
-| Visual identity           | Forest/warm-neutral tokens and truthful outdoor imagery.    | Final palette/compositions require actual mockups and contrast review.          |
-| Access/coverage           | UI follows verified runtime policy/capabilities.            | Documentation currently differs from code; resolve before presenting promises.  |
+| Decision                  | Recommended starting point                                       | Alternative / remaining evidence                                                |
+| ------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Primary experience        | Existing public discovery followed by improved ScanForm dialog.  | Existing users may need a shorter direct path; test both.                       |
+| Builder container         | Current single dialog with shared validation and restored state. | Page/wizard only after evidence that targeted dialog fixes are insufficient.    |
+| Date model                | Existing window/minimum fields; departure exclusive.             | Preserve inclusive existing records only with explicit compatibility plan.      |
+| Notification requirement  | Encourage readiness, allow deliberate monitoring-only save.      | Require configuration if testing shows users consistently miss the distinction. |
+| Next channel              | Research email and browser push; retain Pushover.                | Select based on audience/delivery/cost, not visual preference.                  |
+| First map increment       | List-first park view/fallback; full map discovery later.         | Map-first is useful only with complete geographic result coverage.              |
+| Multiple campground model | Separate alerts first; group later when needed.                  | Atomic trip builder introduces persistence and partial-save complexity.         |
+| Favorites                 | Session recents first; optional persisted favorites later.       | Local-only saves are simpler but need clear device-specific wording.            |
+| Visual identity           | Retain current blue theme, typography, components, and layouts.  | Only measured contrast/spacing defects justify targeted visual changes.         |
+| Access/coverage           | UI follows verified runtime policy/capabilities.                 | Documentation currently differs from code; resolve before presenting promises.  |
 
 ## 11. Planned design deliverables
 
 The [implementation brief](implementation.md) now breaks the first release into
 seven work packages with dependency gates, precise date examples, draft recovery,
 and error behavior. The [responsive clickable wireframe](wireframes.html) covers
-Home, sample destination search, park list/filtering, campground details, three
-builder stages, an authentication detour, My alerts, and an opening layout.
+the existing home structure with suggestions, sample name search, the park card
+list with filtering, campground cards, one ScanForm-style dialog, Dashboard cards,
+and an opening inside the existing Availability layout.
 It uses fictional places and local-only state; it creates no real alerts.
 
-Full visual browser review, actual notification onboarding, complete empty/error/loading
+Full visual browser review, actual notification onboarding/auth detours, complete empty/error/loading
 state sheets, high-fidelity assets, and camper usability sessions remain future
 work. DOM-level checks exercise prototype behavior but do not establish visual or
 screen-reader quality. The wireframe is a design artifact, not application code.
@@ -523,7 +533,7 @@ screen-reader quality. The wireframe is a design artifact, not application code.
 PR preparation includes limited Chrome spot-checks at 1440px desktop and 390px
 mobile widths, with no horizontal overflow at either capture size. See the
 [desktop home screenshot](screenshots/home-desktop.png) and
-[mobile stay screenshot](screenshots/stay-mobile.png). These captures validate
+[mobile alert-dialog screenshot](screenshots/stay-mobile.png). These captures validate
 example layouts only; they do not complete the device/accessibility audit.
 
 ```mermaid
@@ -536,7 +546,7 @@ flowchart LR
     F --> G[Notifications and review]
     E -- Yes --> G
     G --> H[Start watching]
-    H --> I[My alerts and matching observations]
+    H --> I[Dashboard and matching observations]
     I --> J[Open official reservation site]
     J --> K[Camper completes booking with provider]
 ```

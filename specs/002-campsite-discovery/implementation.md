@@ -12,7 +12,10 @@ configure supported preferences, preserve their choices through sign-in, deliber
 choose notification setup or monitoring-only, and manage a saved alert. Matching
 observations lead directly to the official booking system.
 
-The first release includes the existing name-search/park-list discovery model.
+The first release enhances the existing name-search/park-list discovery model,
+blue theme, page structures, Dashboard, and ScanForm dialog. New help and controls
+fit those components; no new alert route, replacement hero, rebrand, or mandatory
+wizard. Review each slice with before/after screenshots of the existing app.
 Geographic exploration, new notification channels, favorites, trip groups, advanced
 metadata, and a custom range calendar can follow independently. Neither a broad
 map inventory nor external notification infrastructure should hold up accessible
@@ -25,12 +28,12 @@ These are recommendations to prototype and review, not recorded user approvals.
 | Topic                | Recommended first-release behavior                                                | Reason                                                                                        |
 | -------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | First action         | Search a park or campground without signing in.                                   | Lets campers establish a destination before committing.                                       |
-| Builder entry        | Dedicated page; selected campground shown immediately.                            | More space for explanation and reliable mobile navigation.                                    |
-| Progress             | Stay → Preferences → Review; notification readiness is part of review.            | Three comprehensible stages; returning users can skip optional refinement.                    |
-| Specific stay        | Arrival/departure, with required nights derived from the dates.                   | Prevents a multi-night vacation from becoming a partial-stay alert.                           |
-| Flexible window      | Earliest arrival/latest departure plus minimum consecutive nights.                | Expresses flexibility without implying all nights must be open.                               |
+| Builder entry        | Existing ScanForm dialog; selected campground shown immediately.                  | Preserves familiar flow; repair overflow/focus instead of replacing it.                       |
+| Progress             | Single form; inline summary and concise readiness help.                           | Keeps existing field order and avoids extra clicks for a simple alert.                        |
+| Specific stay        | Window/minimum equality means all nights; describe this inline.                   | Prevents a multi-night vacation from becoming a partial-stay alert.                           |
+| Flexible window      | Same date fields with a shorter minimum; summary explains flexibility.            | Expresses flexibility without implying all nights must be open.                               |
 | Campground changes   | Preserve date/preferences; revalidate support and clear stale eligibility.        | Avoids needless re-entry without carrying unsupported requirements silently.                  |
-| Authentication       | Configure first, sign in immediately before save, then resume review.             | Maintains intent; returning signed-in users bypass the detour.                                |
+| Authentication       | Preserve dialog choices through sign-in and reopen on return.                     | Maintains intent; returning signed-in users bypass the detour.                                |
 | No notifications     | Explicit “Monitor without notifications,” with explanation and persistent status. | Makes in-app monitoring possible while acknowledging messages will not arrive.                |
 | Missing host channel | Describe host configuration issue separately from missing user setup.             | A user cannot repair an absent application token by re-entering their own key.                |
 | Test message         | Provider-accepted test status; optional user acknowledgement of receipt.          | API acceptance cannot prove that a phone displayed the notification.                          |
@@ -38,9 +41,10 @@ These are recommendations to prototype and review, not recorded user approvals.
 | Pause/delete         | Actions separate from title link; confirmed delete remains explicit.              | Stops accidental navigation and destructive ambiguity.                                        |
 | Opening action       | “View reservation site,” with campsite/dates visible nearby.                      | The reviewed provider URL identifies a campground rather than guaranteed exact-site checkout. |
 
-Prototype limitation: wireframe navigation, date intent, preferences, sign-in detour,
-monitoring-only selection, and pause/resume are interactive. Search, provider support,
-sign-in, monitoring, and observations are fictional demonstrations. Notification
+Prototype limitation: navigation, name lookup, park filtering, single-dialog
+dates/preferences/summary, monitoring-only choice, and pause/resume are interactive. Destinations,
+provider support, monitoring, and observations are fictional. Authentication is
+not simulated; a help dialog describes the planned return flow. Notification
 setup/test and official booking are explanatory placeholders.
 
 ## Work packages and order
@@ -71,18 +75,19 @@ touch, or assistive technology; ordinary card controls do not navigate unexpecte
 
 **Gate:** rapidly changing search never opens an old destination; pause/delete never
 opens details; keyboard-only discovery and reset/retry work. This package can ship
-without the new builder or date-contract changes.
+without changes to the alert dialog or date contract.
 
 ### W2 — Truthful discovery and campground decisions (UX-01/06/08/09)
 
 **Outcome:** the home page invites a search; park pages help choose; details offer
 one clear alert action and a real reservation-site link.
 
-**Touch points:** Home/Header/Providers/RecreationArea/Campground pages, shared
-visual tokens, existing provider/campground metadata client calls.
+**Touch points:** Home/Header/Providers/RecreationArea/Campground pages,
+existing Shadcn primitives and provider/campground metadata client calls.
 
-- Adopt measured forest/neutral tokens, sensible page widths, and mobile search
-  above decorative imagery. Destination suggestions trigger supported name searches.
+- Retain existing blue light/dark tokens, hero text/composition, feature sections,
+  navigation, and page widths. Add supported suggestions beneath SearchBar. Adjust
+  spacing only where small-screen/zoom checks demonstrate a problem.
 - Replace static integration/channel claims with supported capabilities. Until a
   safe capabilities API exists, restrict public claims to verified integration support.
 - Name-filter the complete park list; distinguish reservable metadata from availability.
@@ -103,9 +108,9 @@ worker matching/snapshot storage, scan list/detail serialization, relevant tests
 OpenAPI-generated frontend types.
 
 - Standardize `start_date` as earliest camping night and `end_date` as exclusive
-  departure. Specific stay sets minimum nights to the window length; flexible mode
-  allows a shorter minimum. Store explicit date intent only if future display/edit
-  behavior cannot be derived reliably from the existing window/minimum rule.
+  departure. A minimum equal to window length requires every night; a shorter
+  minimum allows flexible matching. Keep these rules in the existing fields and
+  inline summary. A separate intent selector/storage field is not a prerequisite.
 - Decide compatibility before changing extraction: existing stored end dates may
   have been entered as departure while executed inclusively. Enumerate which records
   can be interpreted safely; unknown intent cannot be reconstructed automatically.
@@ -121,17 +126,22 @@ OpenAPI-generated frontend types.
 shared-target scans with different requirements receive appropriately different
 results. Do not release exact-stay wording before this gate.
 
-### W4 — Guided builder and recovery (UX-10/11)
+### W4 — Existing dialog improvements and recovery (UX-10/11)
 
-**Outcome:** one reusable journey works from campground details or My alerts and
+**Outcome:** one reusable journey works from campground details or Dashboard and
 survives sign-in, back navigation, and errors.
 
-**Touch points:** App routes, ScanForm extraction/replacement, Auth return handling,
+**Touch points:** existing ScanForm/dialog primitives, Auth return handling,
 existing scan mutation hook/client, safe draft storage, shared search selection.
 
-- Implement one page-based builder and one validation/mapping path. Keep existing
-  scan endpoints/internal names while using friendlier display wording.
-- Scope draft to place/date intent/preferences/current stage, with a schema version,
+- Enhance ScanForm in place with one validation/mapping path shared across its
+  existing entry points. Keep single-form field order and appearance; use real
+  buttons/checkboxes styled like current badges. Add inline date summary, human
+  campground context, errors, and readiness help; preserve existing footer actions.
+- Retain dialog focus trapping/return. Bound height to the viewport with usable
+  scrolling; verify software keyboard/zoom. Do not introduce a separate page or stages.
+- Scope draft to place/window/minimum/preferences and originating route, with a
+  schema version,
   short expiration, and explicit start-over. Use session storage for initial draft
   continuity; store no passwords, tokens, or notification credentials there.
 - A recommended draft lifetime is 24 hours, validated on restore; closing a session
@@ -172,12 +182,12 @@ create-scan conflict response, builder completion.
 - Setup links return to the current draft. Explain third-party requirements before
   asking for keys. User acknowledgement can say “I received the test,” distinct from
   server evidence; do not block saving forever because acknowledgement is missing.
-- Monitoring-only choice stays visible on completion and My alerts. If the user removes
+- Monitoring-only choice stays visible on completion and Dashboard. If the user removes
   their destination later, all affected alerts reflect missing notification readiness.
 - Duplicate responses should identify the authorized existing alert or enable an exact
   lookup. The default paginated scan list is insufficient to guarantee discovery of it.
-- Once the POST succeeds, route to the created alert using its response ID. Clear draft
-  once success is known; do not infer failure solely from a delayed navigation.
+- Once the POST succeeds, use the existing completion transition to the created alert
+  using its response ID. Clear draft once success is known; do not infer failure solely from a delayed navigation.
 
 **Gate:** no key/test/message failure creates a false readiness checkmark; double submit
 creates at most one target subscription for the user; 409 yields a useful existing
@@ -194,7 +204,8 @@ matching result contract from W3, metadata URL client, optional monitoring-state
 
 - Use title links, separate pause/resume, and explicit delete confirmation. Prefer
   pessimistic updates first for simplicity; feedback keeps the current item stable.
-- My alerts uses returned total/pagination rather than counting the first page as all
+- Retain Dashboard headings, statistic cards, settings, and scan grid. Use returned
+  total/pagination rather than counting the first page as all
   alerts. State tabs must apply to the whole dataset; backend filtered totals currently
   need alignment. Cross-page sorting/search need a complete query contract.
 - Derive Waiting/Watching/Paused/Ended only from authoritative inputs. For legacy
@@ -224,11 +235,11 @@ Run each focused test suite while implementing, then full quality gates before P
 ```mermaid
 flowchart TD
     W1[W1 Search and navigation] --> W2[W2 Discovery and detail]
-    W3[W3 Overnight and matching contract] --> W4[W4 Builder and recovery]
+    W3[W3 Overnight and matching contract] --> W4[W4 Dialog and recovery]
     W1 --> W4
     W2 --> W4
     W4 --> W5[W5 Notifications and completion]
-    W3 --> W6[W6 My alerts and booking]
+    W3 --> W6[W6 Dashboard and booking]
     W5 --> W6
     W6 --> W7[W7 Complete-journey acceptance]
 ```
@@ -252,9 +263,9 @@ is exclusive. A matching stay must be in one campsite; merging across sites is i
 | Type mismatch                  | Tent required; same dates   | RV-only site open all nights     | No user match even if shared target contains the site.     |
 | Invalid minimum                | June 18–20; minimum 3       | Any data                         | Reject configuration; window has only 2 camping nights.    |
 
-Exact and flexible modes can express the same rule if minimum equals window length.
-If the UI must retain which mode the camper chose despite equivalence, persist intent
-explicitly; otherwise do not invent a reliable historical mode from insufficient data.
+These examples define matching rules, not a requirement for separate UI modes.
+The existing window/minimum controls can express both. A later intent selector
+would need its own usability rationale and persistence decision.
 
 ## Errors as planned product behavior
 
@@ -262,7 +273,7 @@ explicitly; otherwise do not invent a reliable historical mode from insufficient
 | ---------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------ |
 | Search timeout                                 | “We couldn't load places. Try again.”                           | Preserve query; old results are not selectable.              |
 | Required fields invalid                        | Specific date/selection instruction beside field.               | Focus first invalid field; preserve other values.            |
-| Auth cancelled/expired                         | “Your choices are saved for this session. Sign in to continue.” | Resume review; revalidate profile and campground.            |
+| Auth cancelled/expired                         | “Your choices are saved for this session. Sign in to continue.” | Reopen dialog; revalidate profile and campground.            |
 | Access policy denies save                      | Explain actual access requirement and request path.             | Preserve draft; return to public exploration if desired.     |
 | Preference unsupported after campground change | Explain which requirement needs attention.                      | Require deliberate revision; never silently relax it.        |
 | Channel unavailable on host                    | “Notifications aren't available on this installation.”          | Offer agreed monitor-only choice; no pointless key re-entry. |
@@ -276,12 +287,13 @@ explicitly; otherwise do not invent a reliable historical mode from insufficient
 
 1. Can a first-time camper explain the difference between an exact stay and a
    flexible window from the labels and summary alone?
-2. Does Preferences deserve its own stage, or should it collapse into Stay for
-   campers without site requirements? Start with a skippable stage and compare.
+2. Is the existing single dialog easy to complete with inline help and a summary?
+   Test the compact form first; consider progressive disclosure only for demonstrated
+   clutter. A dedicated page/wizard needs separate evidence and review.
 3. Can a camper tell that monitoring-only will not send a message without being
    forced through external setup? Should this choice be uncommon but available?
-4. Is a specific alert's last check and notification readiness more helpful than
-   aggregate dashboard statistics? Prioritize those on the cards in the prototype.
+4. Do added last-check/readiness labels clarify the existing scan cards while
+   preserving the dashboard layout and statistics users already recognize?
 5. Does having both Set an alert and View reservation site clarify the next action
    for someone who thinks camply books for them?
 
@@ -295,6 +307,6 @@ explicitly; otherwise do not invent a reliable historical mode from insufficient
 - Tests: acceptance cases and recovery paths specified; not yet executed against
   a new application implementation.
 - Assets: wireframe uses local vector shapes, system fonts, and fictional data;
-  actual campground photography remains a licensed-content decision.
+  no new photography is required for the first release.
 - Scope: W1/W2 can deliver independently; W3 gates exact-date/matching claims;
   W4–W7 produce the coherent first-release journey.

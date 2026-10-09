@@ -103,10 +103,11 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 ## Proposed Discovery & Alert Experience (Planning Only)
 
 The [campsite experience plan](../../specs/002-campsite-discovery/plan.md)
-proposes a search-led discovery journey through campground selection, exact or
-flexible stays, notification onboarding, alert management, and official booking
-handoff. It includes screen proposals, accessibility/mobile requirements, a
-prioritized backlog, backend prerequisites, and staged validation.
+proposes incremental improvements to the current discovery and alert journey.
+Preserve the blue theme, centered home hero, existing navigation/cards, Dashboard,
+and single ScanForm dialog. Add search accessibility, supported suggestions, clear
+stay summaries, notification readiness, recovery, and official booking handoff.
+It includes screen proposals, accessibility/mobile requirements, a prioritized backlog, backend prerequisites, and staged validation.
 
 See the accompanying [research](../../specs/002-campsite-discovery/research.md),
 [specification](../../specs/002-campsite-discovery/spec.md), and

@@ -3,18 +3,31 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Camply · Discovery and alert wireframe</title>
+    <title>Camply · Incremental UI improvements</title>
     <style>
       :root {
-        color-scheme: light dark;
-        --bg: #f7f6ef;
-        --card: #fff;
-        --text: #213b30;
-        --muted: #56685e;
-        --primary: #235642;
-        --on-primary: #fff;
-        --line: #ccd4c9;
-        --soft: #e9f2e8;
+        color-scheme: light;
+        --bg: hsl(0 0% 100%);
+        --text: hsl(222.2 84% 4.9%);
+        --primary: hsl(221.2 83.2% 53.3%);
+        --on-primary: hsl(210 40% 98%);
+        --muted: hsl(215.4 16.3% 46.9%);
+        --soft: hsl(210 40% 96%);
+        --line: hsl(214.3 31.8% 91.4%);
+        --error: #b91c1c;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --bg: hsl(222.2 84% 4.9%);
+          --text: hsl(210 40% 98%);
+          --primary: hsl(217.2 91.2% 59.8%);
+          --on-primary: hsl(222.2 84% 4.9%);
+          --muted: hsl(215 20.2% 65.1%);
+          --soft: hsl(217.2 32.6% 17.5%);
+          --line: hsl(217.2 32.6% 17.5%);
+          --error: #fca5a5;
+        }
       }
       * {
         box-sizing: border-box;
@@ -27,96 +40,78 @@
         background: var(--bg);
         color: var(--text);
         font:
-          16px/1.6 system-ui,
+          16px/1.5 system-ui,
           sans-serif;
       }
       button,
-      input,
-      select {
+      input {
         font: inherit;
       }
       button,
       a,
-      input,
-      select {
+      input {
         touch-action: manipulation;
       }
+      a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
       button {
+        cursor: pointer;
         min-height: 44px;
         border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 9px 16px;
+        border-radius: 0.5rem;
+        padding: 8px 16px;
+        background: var(--bg);
         color: var(--text);
-        background: var(--card);
-        cursor: pointer;
       }
       button:hover {
-        border-color: var(--primary);
-      }
-      button:disabled {
-        cursor: default;
-        opacity: 0.65;
-      }
-      :focus-visible {
-        outline: 3px solid var(--primary);
-        outline-offset: 4px;
+        background: var(--soft);
       }
       .primary {
         background: var(--primary);
         color: var(--on-primary);
         border-color: var(--primary);
-        font-weight: 650;
       }
-      .skip {
-        position: absolute;
-        left: 16px;
-        top: -100px;
-        z-index: 5;
-        background: var(--card);
-        padding: 12px;
+      .primary:hover {
+        background: var(--primary);
+        filter: brightness(0.95);
       }
-      .skip:focus {
-        top: 12px;
+      :focus-visible {
+        outline: 3px solid var(--primary);
+        outline-offset: 3px;
       }
-      .notice {
-        padding: 10px 16px;
-        text-align: center;
-        background: var(--soft);
+      input {
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+        min-height: 44px;
+        padding: 8px 12px;
+        background: var(--bg);
+        color: var(--text);
+        width: 100%;
+        min-width: 0;
+      }
+      input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        min-height: 20px;
+        accent-color: var(--primary);
+        flex: none;
+      }
+      label {
+        font-weight: 500;
+        font-size: 14px;
+      }
+      .muted,
+      small {
+        color: var(--muted);
+      }
+      small {
+        display: block;
         font-size: 13px;
-      }
-      header {
-        max-width: 1120px;
-        margin: auto;
-        padding: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-      }
-      .brand {
-        font-weight: 800;
-        font-size: 25px;
-        letter-spacing: -1px;
-      }
-      nav,
-      .actions,
-      .chips,
-      .steps {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 10px;
-      }
-      nav button {
-        background: transparent;
-      }
-      nav button[aria-current="page"] {
-        background: var(--soft);
-      }
-      main {
-        max-width: 1080px;
-        margin: auto;
-        padding: 26px 20px 64px;
       }
       h1,
       h2,
@@ -125,794 +120,1350 @@
         margin-top: 0;
       }
       h1 {
-        font-size: clamp(2rem, 5vw, 3.7rem);
-        line-height: 1.12;
-        letter-spacing: -0.045em;
-        margin-bottom: 20px;
+        font-size: 30px;
+        line-height: 1.2;
       }
       h2 {
-        font-size: 24px;
+        font-size: 22px;
         line-height: 1.3;
       }
       h3 {
-        font-size: 18px;
-        margin-bottom: 6px;
+        font-size: 17px;
+        margin-bottom: 8px;
       }
-      .eyebrow {
-        color: var(--muted);
-        text-transform: uppercase;
+      .notice {
+        background: var(--soft);
+        padding: 8px 16px;
+        text-align: center;
         font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.13em;
       }
-      .muted {
-        color: var(--muted);
+      .skip {
+        position: absolute;
+        top: -100px;
+        left: 16px;
+        padding: 12px;
+        background: var(--bg);
+        z-index: 5;
       }
-      .hero,
-      .layout {
-        display: grid;
-        grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-        gap: 32px;
-        align-items: start;
+      .skip:focus {
+        top: 4px;
       }
-      .hero {
-        align-items: center;
+      header {
+        border-bottom: 1px solid var(--line);
       }
-      .card {
-        background: var(--card);
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        padding: 24px;
-        margin-bottom: 18px;
-      }
-      .cards {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px;
-      }
-      .cards .card {
-        margin: 0;
-      }
-      .field {
-        display: block;
-        margin-bottom: 18px;
-      }
-      .field > span {
-        display: block;
-        font-weight: 650;
-        margin-bottom: 7px;
-      }
-      input:not([type="radio"]):not([type="checkbox"]),
-      select {
-        width: 100%;
-        min-width: 0;
-        min-height: 48px;
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 10px 12px;
-        background: var(--card);
-        color: var(--text);
-      }
-      input[type="radio"],
-      input[type="checkbox"] {
-        width: 20px;
-        height: 20px;
-        accent-color: var(--primary);
-        flex-shrink: 0;
-      }
-      fieldset {
-        border: 0;
-        padding: 0;
-        margin: 0 0 22px;
-        min-width: 0;
-      }
-      legend {
-        font-weight: 650;
-        margin-bottom: 12px;
-      }
-      .choice {
+      .header-inner {
+        max-width: 1200px;
+        margin: auto;
+        padding: 16px;
         display: flex;
         align-items: center;
-        gap: 10px;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .brand {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .brand svg {
+        color: var(--primary);
+        width: 32px;
+        height: 32px;
+      }
+      nav {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+      }
+      nav a {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .header-actions,
+      .actions,
+      .chips {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .menu-toggle {
+        display: none;
+      }
+      main {
+        padding-bottom: 48px;
+      }
+      .page {
+        max-width: 896px;
+        margin: 32px auto;
+        padding: 0 16px;
+      }
+      .dashboard {
+        max-width: 1024px;
+      }
+      .hero {
+        text-align: center;
+        padding: 80px 16px;
+        max-width: 1000px;
+        margin: auto;
+      }
+      .hero h1 {
+        font-size: clamp(2.2rem, 4vw, 3.75rem);
+        font-weight: 700;
+        max-width: 850px;
+        margin: 0 auto 24px;
+        letter-spacing: -0.035em;
+      }
+      .hero h1 span {
+        color: var(--primary);
+      }
+      .intro {
+        max-width: 680px;
+        margin: 0 auto 14px;
+        font-size: 20px;
+        color: var(--muted);
+      }
+      .free {
+        font-size: 14px;
+        margin-bottom: 30px;
+      }
+      .search {
+        max-width: 768px;
+        margin: auto;
+        text-align: left;
+        position: relative;
+      }
+      .search label {
+        display: block;
+        margin-bottom: 8px;
+      }
+      .search-row {
+        display: flex;
+        gap: 8px;
+      }
+      .search-row input {
+        flex: 1;
+      }
+      .suggestions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin: 16px 0 8px;
+      }
+      .suggestions button {
+        min-height: 36px;
+        padding: 4px 12px;
+        font-size: 13px;
+      }
+      .existing-links {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+        font-size: 14px;
+        margin: 20px 0 30px;
+      }
+      .listbox {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        z-index: 3;
+        background: var(--bg);
         border: 1px solid var(--line);
-        border-radius: 12px;
-        min-height: 48px;
+        border-radius: 0.5rem;
+        box-shadow: 0 6px 20px #0002;
+        margin: 4px 0;
+        padding: 0;
+        list-style: none;
+      }
+      .listbox li {
         padding: 12px;
         cursor: pointer;
+        border-bottom: 1px solid var(--line);
       }
-      .choice + .choice {
-        margin-top: 10px;
+      .listbox li:last-child {
+        border: 0;
+      }
+      .listbox [aria-selected="true"] {
+        background: var(--soft);
+      }
+      .listbox li small {
+        margin-top: 2px;
+      }
+      .search-feedback {
+        margin: 8px 0 0;
+        font-size: 14px;
+      }
+      .section {
+        max-width: 1200px;
+        margin: auto;
+        padding: 36px 16px;
+      }
+      .section h2 {
+        text-align: center;
+        margin-bottom: 28px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 20px;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+        padding: 24px;
+        background: var(--bg);
+      }
+      .features .card {
+        text-align: center;
+      }
+      .features p {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 0;
+      }
+      .icon {
+        color: var(--primary);
+        font-size: 24px;
+        margin-bottom: 12px;
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 32px;
+        text-align: center;
+      }
+      .steps p {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .cta {
+        background: var(--primary);
+        color: var(--on-primary);
+        text-align: center;
+        padding: 48px 16px;
+      }
+      .cta button {
+        margin-top: 8px;
+      }
+      .row {
+        display: flex;
+        gap: 16px;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .row h1 {
+        margin-bottom: 8px;
+      }
+      .page-search {
+        margin-bottom: 32px;
+      }
+      .tag {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 2px 9px;
+        font-size: 12px;
+        color: var(--muted);
+        display: inline-block;
+      }
+      .page .card {
+        margin-top: 24px;
+      }
+      .map-fallback {
+        background: var(--soft);
+        padding: 28px;
+        text-align: center;
+        border-radius: 0.5rem;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .campground-list {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .campground-list article {
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+        padding: 16px;
+      }
+      .campground-list h3 {
+        margin-bottom: 4px;
+      }
+      .campground-list p {
+        font-size: 14px;
+        margin: 4px 0 12px;
+      }
+      .filter {
+        max-width: 360px;
+      }
+      .filter label {
+        display: block;
+        margin-bottom: 6px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 20px;
+      }
+      .stat strong {
+        display: block;
+        font-size: 30px;
+      }
+      .stat p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .scan-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+      .scan-grid .card {
+        margin-top: 0;
+      }
+      .scan-grid {
+        margin-top: 24px;
+      }
+      .scan-grid h3 a {
+        color: var(--text);
+      }
+      .scan-grid p {
+        font-size: 14px;
+      }
+      .state {
+        font-size: 13px;
+        color: var(--primary);
+      }
+      .availability {
+        display: grid;
+        gap: 12px;
+      }
+      .availability article {
+        border: 1px solid var(--line);
+        padding: 16px;
+        border-radius: 0.5rem;
+      }
+      .availability h3 {
+        margin-bottom: 4px;
+      }
+      dialog {
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+        width: min(500px, calc(100% - 32px));
+        max-height: calc(100dvh - 32px);
+        padding: 24px;
+        color: var(--text);
+        background: var(--bg);
+        overflow: auto;
+        box-shadow: 0 10px 50px #0003;
+      }
+      dialog::backdrop {
+        background: #0009;
+      }
+      dialog h2 {
+        font-size: 20px;
+        margin: 0 36px 4px 0;
+      }
+      dialog > p {
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+      .close {
+        position: absolute;
+        right: 12px;
+        top: 12px;
+        border: 0;
+        padding: 4px 12px;
+        min-height: 36px;
+      }
+      .field {
+        margin-bottom: 16px;
+      }
+      .field > label {
+        display: block;
+        margin-bottom: 6px;
       }
       .dates {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 16px;
+        gap: 12px;
+      }
+      .selected-place {
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+        padding: 12px;
+      }
+      .selected-place p {
+        margin: 0;
+        font-size: 14px;
       }
       .summary {
-        padding: 16px;
         background: var(--soft);
-        border-radius: 12px;
-      }
-      .badge {
-        display: inline-block;
-        border: 1px solid var(--line);
-        border-radius: 99px;
-        padding: 4px 10px;
-        font-size: 13px;
-        margin: 0 6px 10px 0;
-      }
-      .steps {
-        margin-bottom: 24px;
+        border-radius: 0.5rem;
+        padding: 12px;
         font-size: 14px;
-        color: var(--muted);
+        margin: 12px 0 16px;
       }
-      .steps strong {
-        color: var(--text);
-      }
-      .row {
+      .type-chip {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        gap: 16px;
-      }
-      .row h3 {
-        margin: 0;
-      }
-      .result {
-        width: 100%;
-        text-align: left;
-        display: block;
-        margin-top: 10px;
-      }
-      .landscape {
-        width: 100%;
-        border-radius: 32px;
-        overflow: hidden;
-      }
-      .note {
+        gap: 6px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 6px 10px;
         font-size: 13px;
-        color: var(--muted);
-        border-left: 3px solid var(--line);
-        padding-left: 12px;
+        min-height: 44px;
       }
-      footer {
-        max-width: 1080px;
-        margin: auto;
-        padding: 20px;
-        border-top: 1px solid var(--line);
-        color: var(--muted);
+      .check-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid var(--line);
+        padding: 12px;
+        border-radius: 0.5rem;
+        margin-bottom: 16px;
+      }
+      .check-row span {
+        flex: 1;
+      }
+      .check-row small {
+        font-weight: 400;
+      }
+      .notification {
         font-size: 13px;
+        margin-bottom: 12px;
+      }
+      .notification p {
+        margin: 0 0 4px;
+      }
+      .monitor-only {
+        display: flex;
+        align-items: start;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 400;
+        margin: 12px 0 16px;
+      }
+      .dialog-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
       }
       .error {
-        color: var(--text);
-        font-weight: 650;
-        border-left: 3px solid var(--primary);
-        padding-left: 12px;
+        color: var(--error);
+        font-size: 14px;
       }
-      .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
+      .feedback {
+        background: var(--soft);
+        padding: 12px;
+        margin: 24px 0 0;
+        border-radius: 0.5rem;
+        font-size: 14px;
       }
-      @media (max-width: 720px) {
-        header {
-          flex-direction: column;
-          align-items: flex-start;
-          padding: 16px;
+      footer {
+        text-align: center;
+        border-top: 1px solid var(--line);
+        padding: 24px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      @media (max-width: 767px) {
+        .header-inner {
+          flex-wrap: wrap;
+          gap: 10px;
         }
-        main {
-          padding: 16px 16px 40px;
+        .menu-toggle {
+          display: block;
         }
-        .hero,
-        .layout,
-        .cards {
-          grid-template-columns: 1fr;
+        nav {
+          display: none;
+          flex-basis: 100%;
+          flex-wrap: wrap;
           gap: 16px;
         }
-        .landscape {
+        nav.open {
+          display: flex;
+        }
+        .header-actions > a {
           display: none;
         }
-        .card {
-          padding: 18px;
+        .hero {
+          padding: 48px 16px;
+        }
+        .intro {
+          font-size: 17px;
+        }
+        .hero h1 {
+          font-size: 36px;
+        }
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .steps {
+          grid-template-columns: 1fr;
         }
         .row {
+          align-items: flex-start;
           flex-wrap: wrap;
         }
-        .actions > button {
-          flex: 1;
+        .scan-grid {
+          grid-template-columns: 1fr;
+        }
+        .card {
+          padding: 20px;
+        }
+        .stats {
+          gap: 8px;
+        }
+        .stat {
+          padding: 16px !important;
+        }
+        .stat strong {
+          font-size: 26px;
         }
       }
-      @media (max-width: 360px) {
+      @media (max-width: 359px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
         .dates {
           grid-template-columns: 1fr;
-          gap: 0;
         }
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #14221c;
-          --card: #1e3026;
-          --text: #eef3e9;
-          --muted: #b9c9bc;
-          --primary: #b8dbc2;
-          --on-primary: #14221c;
-          --line: #597163;
-          --soft: #293f31;
+        .header-actions {
+          gap: 4px;
+        }
+        .header-actions button {
+          padding: 8px;
+        }
+        .brand {
+          font-size: 22px;
+        }
+        dialog {
+          padding: 18px;
+        }
+        .type-chip {
+          padding: 6px 8px;
         }
       }
     </style>
   </head>
   <body>
-    <a class="skip" href="#content">Skip to wireframe</a>
+    <a class="skip" href="#content">Skip to content</a>
     <div class="notice">
-      Planning prototype · Fictional places and sample dates · No real searches,
-      sign-ins, notifications, or bookings
+      Planning prototype · Existing UI with proposed additions · Fictional
+      places and observations
     </div>
     <header>
-      <div class="brand">⛺ camply</div>
-      <nav aria-label="Wireframe screens">
-        <button type="button" data-go="home">Explore</button>
-        <button type="button" data-go="park">Park</button>
-        <button type="button" data-go="campground">Campground</button>
-        <button type="button" data-go="alerts">My alerts</button>
-      </nav>
+      <div class="header-inner">
+        <a class="brand" href="#home" aria-label="camply home"
+          ><svg
+            viewBox="0 0 32 32"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <path
+              d="M2 27 13 7l11 20H2ZM13 7v20m0-8 5 8M24 4l-5 9h10l-5-9Zm0 9v7"
+            /></svg
+          >camply</a
+        >
+        <button
+          class="menu-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="navigation"
+          id="menu"
+        >
+          Menu
+        </button>
+        <nav id="navigation" aria-label="Main navigation">
+          <a href="#providers">Providers</a
+          ><a href="#how-it-works">How It Works</a><a href="#ethos">Ethos</a
+          ><a href="#contribute">Contribute</a>
+        </nav>
+        <div class="header-actions">
+          <a href="#dashboard">Dashboard</a
+          ><button type="button" id="sign-in">Sign in</button>
+        </div>
+      </div>
     </header>
     <main id="content" tabindex="-1">
-      <section id="home" data-screen>
+      <section data-screen id="home">
         <div class="hero">
-          <div>
-            <p class="eyebrow">Your next camping trip starts here</p>
-            <h1 tabindex="-1">More time outside.<br />Less time refreshing.</h1>
-            <p class="muted">
-              Find a campground. Choose your stay. We'll watch for an opening.
-            </p>
-            <label class="field"
-              ><span>Where would you love to camp?</span
-              ><input
+          <h1>Find Campsites at<br /><span>Sold-Out Campgrounds</span></h1>
+          <p class="intro">
+            Find your campground, choose your dates, and let camply watch for
+            openings. Book directly through the official reservation provider.
+          </p>
+          <p class="free">Free and Open Source</p>
+          <div class="search">
+            <label for="destination">Park or campground</label>
+            <div class="search-row">
+              <input
                 id="destination"
-                type="search"
-                placeholder="Try Cedar Valley or Pine Creek"
-                aria-describedby="search-note"
-            /></label>
-            <p id="search-note" class="note">
-              This wireframe searches two fictional examples only.
-            </p>
-            <div class="chips">
-              <span class="muted">Try a place</span
-              ><button type="button" data-query="Cedar Valley">
-                Cedar Valley</button
-              ><button type="button" data-query="Pine Creek">Pine Creek</button>
-            </div>
-            <div id="sample-results" aria-label="Sample destinations" hidden>
-              <button
+                placeholder="Search for a park or campground…"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded="false"
+                aria-controls="destinations"
+                autocomplete="off"
+              /><button
                 type="button"
-                class="result"
-                data-go="park"
-                data-match="cedar valley"
+                id="clear-search"
+                aria-label="Clear search"
               >
-                <strong>Cedar Valley</strong><br /><span class="muted"
-                  >Park · Explore campground options</span
-                >
+                Clear
               </button>
-              <button
-                type="button"
-                class="result"
-                data-go="campground"
-                data-match="pine creek cedar valley"
-              >
-                <strong>Pine Creek Campground</strong><br /><span class="muted"
-                  >Campground · Cedar Valley</span
-                >
-              </button>
-              <p id="no-matches" class="muted" hidden>
-                No sample matches. Try Cedar Valley or Pine Creek.
+            </div>
+            <ul
+              id="destinations"
+              class="listbox"
+              role="listbox"
+              aria-label="Destinations"
+              hidden
+            ></ul>
+            <p
+              id="search-status"
+              class="search-feedback muted"
+              role="status"
+            ></p>
+          </div>
+          <div class="suggestions">
+            <small>Try a destination:</small
+            ><button type="button" data-query="Cedar Valley">
+              Cedar Valley</button
+            ><button type="button" data-query="Pine Creek">Pine Creek</button>
+          </div>
+          <div class="existing-links">
+            <a href="#park">National Parks</a><a href="#park">State Parks</a
+            ><a href="#park">Recreation Areas</a>
+          </div>
+          <button class="primary" type="button" data-go="park">
+            Let’s Go Camping
+          </button>
+        </div>
+        <div class="section features">
+          <div class="grid">
+            <article class="card">
+              <div class="icon" aria-hidden="true">⌕</div>
+              <h3>Campsite Monitoring</h3>
+              <p>Watch for openings at supported campgrounds.</p>
+            </article>
+            <article class="card">
+              <div class="icon" aria-hidden="true">♧</div>
+              <h3>Get Alerts</h3>
+              <p>Configure Pushover to receive opening notifications.</p>
+            </article>
+            <article class="card">
+              <div class="icon" aria-hidden="true">✓</div>
+              <h3>Easy to Use</h3>
+              <p>Choose your dates and campsite requirements.</p>
+            </article>
+            <article class="card">
+              <div class="icon" aria-hidden="true">♡</div>
+              <h3>Free and Open Source</h3>
+              <p>Community-built tools for your next camping trip.</p>
+            </article>
+          </div>
+        </div>
+        <div class="section" id="how-it-works">
+          <h2>How It Works</h2>
+          <div class="steps">
+            <article>
+              <h3>1. Find a Campground</h3>
+              <p>Search for a campground or choose one in a park.</p>
+            </article>
+            <article>
+              <h3>2. Create a Scan</h3>
+              <p>Choose a date window and minimum stay.</p>
+            </article>
+            <article>
+              <h3>3. Get Notified</h3>
+              <p>
+                With notifications configured, receive matches and book with the
+                provider.
               </p>
-            </div>
+            </article>
           </div>
-          <svg
-            class="landscape"
-            viewBox="0 0 360 440"
-            role="img"
-            aria-label="Illustrated mountains and a tent, decorative concept artwork"
-          >
-            <rect width="360" height="440" fill="#dfe8db" />
-            <circle cx="258" cy="90" r="38" fill="#edc58a" />
-            <path
-              d="M0 270 95 100 186 235 248 156 360 286V440H0Z"
-              fill="#8da596"
-            />
-            <path d="m62 158 33-58 39 58-27-9-13-19-12 24Z" fill="#f7f6ef" />
-            <path
-              d="M0 302 84 246 186 312 292 231 360 294V440H0Z"
-              fill="#547660"
-            />
-            <path d="M0 370Q90 315 180 362T360 359V440H0Z" fill="#235642" />
-            <path d="m49 345 26-63 27 63Zm220 12 25-82 28 82Z" fill="#213b30" />
-            <path d="m143 380 48-65 46 65Z" fill="#edc58a" />
-            <path d="m180 380 11-41 16 41Z" fill="#213b30" />
-          </svg>
         </div>
-        <div class="card" style="margin-top: 32px">
-          <h2>From a place to a plan</h2>
-          <p class="muted">
-            Pick a campground → Choose your stay → Get a notification
-          </p>
-          <p class="note">
-            You make the reservation through the official booking site. Camply
-            watches for openings.
+        <div class="cta">
+          <h2>Ready for Your Next Adventure?</h2>
+          <p>Start by finding a campground you’d love to visit.</p>
+          <button type="button" data-go="park">Let’s Go Camping</button>
+        </div>
+        <div class="section" id="help">
+          <h2 id="help-title">About this prototype</h2>
+          <p id="help-copy" class="muted">
+            All destinations are fictional. This standalone review artifact
+            makes no API calls, signs into no accounts, and creates no real
+            alerts.
           </p>
         </div>
       </section>
-      <section id="park" data-screen hidden>
-        <p class="eyebrow">Explore / Fictional park</p>
-        <h1 tabindex="-1">Cedar Valley</h1>
-        <p class="muted">Choose a campground to learn more and set an alert.</p>
-        <label class="field"
-          ><span>Find a campground in this park</span
-          ><input
-            id="park-filter"
-            type="search"
-            placeholder="Filter campground names"
-        /></label>
-        <p id="park-count" role="status">2 sample campgrounds</p>
-        <div class="cards">
-          <article class="card" data-camp-name="pine creek">
-            <span class="badge">Example: monitoring supported</span>
-            <h2>Pine Creek Campground</h2>
-            <p class="muted">
-              Fictional campground in Cedar Valley. Reservation metadata is not
-              current availability.
-            </p>
-            <button type="button" class="primary" data-go="campground">
-              Explore Pine Creek
-            </button>
-          </article>
-          <article class="card" data-camp-name="meadow bend">
-            <span class="badge">Example: browse only</span>
-            <h2>Meadow Bend</h2>
-            <p class="muted">
-              Monitoring isn't supported in this example. Explain eligibility
-              before offering alert setup.
-            </p>
-            <button type="button" disabled>Official details placeholder</button>
-          </article>
+      <section data-screen id="park" class="page" hidden>
+        <div class="page-search">
+          <a href="#home">← Search parks and campgrounds</a>
         </div>
-        <p id="park-empty" hidden>
-          No campgrounds match.
-          <button type="button" id="clear-filter">Clear filter</button>
-        </p>
-        <p class="note" style="margin-top: 22px">
-          Map is secondary. The list remains useful without map configuration or
-          location permission.
-        </p>
-      </section>
-      <section id="campground" data-screen hidden>
-        <button type="button" data-go="park">← Back to Cedar Valley</button>
-        <p class="eyebrow" style="margin-top: 24px">Fictional campground</p>
-        <h1 tabindex="-1">Pine Creek Campground</h1>
-        <div class="layout">
-          <div class="card">
-            <h2>A place to make your own</h2>
-            <p class="muted">
-              Short, reliable campground information belongs here. Unknown
-              amenities should stay unknown.
-            </p>
-            <span class="badge">Example: alerts supported</span>
-            <p class="note">
-              No live availability is shown on this metadata page.
-            </p>
-            <button type="button" disabled>
-              View reservation site · placeholder
-            </button>
-          </div>
-          <aside class="card">
-            <h2>Have dates in mind?</h2>
-            <p class="muted">
-              Tell us when you can camp. We'll watch for a suitable opening.
-            </p>
-            <button type="button" class="primary" data-go="stay">
-              Set an alert
-            </button>
-            <p class="note" style="margin-top: 16px">
-              Draft choices survive navigation in this prototype, but are not
-              persisted after reload.
-            </p>
-          </aside>
-        </div>
-      </section>
-      <section id="stay" data-screen hidden>
-        <p class="eyebrow">Pine Creek · Cedar Valley</p>
-        <h1 tabindex="-1">When can you camp?</h1>
-        <p class="steps"><strong>1 Stay</strong> → 2 Preferences → 3 Review</p>
-        <div class="layout">
-          <div class="card">
-            <fieldset>
-              <legend>Choose your date intent</legend>
-              <label class="choice"
-                ><input type="radio" name="intent" value="exact" checked /><span
-                  ><strong>Specific stay</strong><br /><span class="muted"
-                    >All of these nights in one campsite.</span
-                  ></span
-                ></label
-              ><label class="choice"
-                ><input type="radio" name="intent" value="flexible" /><span
-                  ><strong>Flexible window</strong><br /><span class="muted"
-                    >A consecutive stay somewhere in this window.</span
-                  ></span
-                ></label
-              >
-            </fieldset>
-            <div class="dates">
-              <label class="field"
-                ><span id="arrival-label">Arrival</span
-                ><input
-                  id="arrival"
-                  type="date"
-                  value="2027-06-18"
-                  required /></label
-              ><label class="field"
-                ><span id="departure-label">Departure</span
-                ><input id="departure" type="date" value="2027-06-20" required
-              /></label>
-            </div>
-            <label id="minimum-field" class="field" hidden
-              ><span>Minimum consecutive nights</span
-              ><input id="minimum" type="number" value="2" min="1" step="1"
-            /></label>
-            <p id="date-error" class="error" role="alert" hidden></p>
-            <button type="button" class="primary" id="continue-stay">
-              Continue
-            </button>
-          </div>
-          <aside class="card">
-            <h2>Your stay</h2>
-            <p class="stay-summary summary" aria-live="polite"></p>
-            <p class="note">
-              Departure is the day you leave. Its night is excluded. Dates are
-              sample future calendar dates.
-            </p>
-          </aside>
-        </div>
-      </section>
-      <section id="preferences" data-screen hidden>
-        <p class="eyebrow">Pine Creek · Cedar Valley</p>
-        <h1 tabindex="-1">Make it a good fit.</h1>
-        <p class="steps">1 Stay → <strong>2 Preferences</strong> → 3 Review</p>
-        <div class="layout">
-          <div class="card">
-            <fieldset>
-              <legend>Campsite types · optional</legend>
-              <p class="muted">
-                Leave these unchecked to watch any supported type.
-              </p>
-              <label class="choice"
-                ><input
-                  type="checkbox"
-                  name="site-type"
-                  value="Tent"
-                />Tent</label
-              ><label class="choice"
-                ><input type="checkbox" name="site-type" value="RV" />RV</label
-              ><label class="choice"
-                ><input
-                  type="checkbox"
-                  name="site-type"
-                  value="Cabin"
-                />Cabin</label
-              >
-            </fieldset>
-            <label class="choice"
-              ><input id="electric" type="checkbox" />Electric hookup
-              required</label
-            >
-            <p class="note" style="margin-top: 16px">
-              Only supported requirements belong here. Unknown RV lengths or
-              accessibility data cannot be guessed.
-            </p>
-            <div class="actions">
-              <button type="button" data-go="stay">Back</button
-              ><button type="button" class="primary" data-go="review">
-                Continue to review
-              </button>
-            </div>
-          </div>
-          <aside class="card">
-            <h2>Your stay</h2>
-            <p class="stay-summary summary"></p>
-            <p class="preference-summary muted"></p>
-          </aside>
-        </div>
-      </section>
-      <section id="review" data-screen hidden>
-        <p class="eyebrow">Pine Creek · Cedar Valley</p>
-        <h1 tabindex="-1">Ready to start watching?</h1>
-        <p class="steps">1 Stay → 2 Preferences → <strong>3 Review</strong></p>
-        <div class="layout">
-          <div class="card">
-            <h2>Notifications</h2>
-            <p class="muted">
-              No notification destination is configured in this sample.
-            </p>
-            <button type="button" disabled>
-              Set up Pushover · future settings flow
-            </button>
-            <p class="note" style="margin-top: 12px">
-              Production setup must explain external requirements/costs. A saved
-              key does not prove delivery.
-            </p>
-            <label class="choice"
-              ><input id="monitor-only" type="checkbox" />Monitor without
-              notifications</label
-            >
-            <p class="muted">
-              You can check observations in My alerts, but no message will be
-              sent.
-            </p>
-            <p id="save-error" class="error" role="alert" hidden>
-              Choose monitoring-only to simulate saving, or configure
-              notifications in the future app.
-            </p>
-            <div class="actions">
-              <button type="button" data-go="preferences">Back</button
-              ><button type="button" class="primary" id="save-demo">
-                Preview saved alert
-              </button>
-            </div>
-          </div>
-          <aside class="card">
-            <h2>Review your alert</h2>
-            <h3>Pine Creek Campground</h3>
-            <p class="stay-summary summary"></p>
-            <p class="preference-summary muted"></p>
-            <button type="button" data-go="stay">Edit stay</button>
-            <hr />
-            <p id="auth-state" class="muted">
-              Try the sign-in interruption without losing your choices.
-            </p>
-            <button type="button" data-go="auth">Preview sign-in detour</button>
-          </aside>
-        </div>
-      </section>
-      <section id="auth" data-screen hidden>
-        <p class="eyebrow">Simulated authentication detour</p>
-        <h1 tabindex="-1">Your choices are still here.</h1>
-        <div class="card">
-          <p class="stay-summary summary"></p>
-          <p class="muted">
-            Actual sign-in depends on the installation. This prototype collects
-            no credentials.
+        <h1>Cedar Valley National Park</h1>
+        <p class="muted">Sample destination · Fictional park</p>
+        <span class="tag">Recreation.gov · illustrative provider label</span>
+        <article class="card">
+          <h2>About Cedar Valley</h2>
+          <p>
+            A fictional destination for reviewing the current park-page layout,
+            with proposed filtering added to its existing campground list.
           </p>
-          <div class="actions">
-            <button type="button" id="resume-demo" class="primary">
-              Simulate sign-in and return</button
-            ><button type="button" data-go="review">
-              Cancel and return to draft
-            </button>
-          </div>
-        </div>
-      </section>
-      <section id="alerts" data-screen hidden>
-        <p class="eyebrow">Returning camper</p>
-        <h1 tabindex="-1">My alerts</h1>
-        <p id="saved-note" class="summary" hidden>
-          Sample alert saved in this wireframe only. No monitoring or messages
-          have started.
-        </p>
-        <button type="button" class="primary" data-go="home">
-          Find another campground
-        </button>
-        <article class="card" style="margin-top: 24px">
-          <div class="row">
-            <h2>Pine Creek Campground</h2>
-            <span id="watch-state" class="badge"
-              >Sample: waiting for first check</span
-            >
-          </div>
-          <p class="stay-summary"></p>
-          <p class="preference-summary muted"></p>
-          <p class="note">
-            Notifications not configured · No check has actually run
-          </p>
-          <div class="actions">
-            <button type="button" data-go="opening">Preview an opening</button
-            ><button type="button" id="pause-demo">Pause sample alert</button
-            ><button type="button" data-go="stay">Revise sample draft</button>
+          <div class="map-fallback">
+            Map unavailable in this prototype. Campground choices remain usable
+            below.
           </div>
         </article>
-        <p class="note">
-          The app's real alert detail must distinguish waiting, no matches,
-          paused, ended, and delayed monitoring.
-        </p>
+        <article class="card">
+          <h2>Campgrounds</h2>
+          <div class="filter">
+            <label for="campground-filter">Filter by campground name</label
+            ><input id="campground-filter" placeholder="Find in this park…" />
+          </div>
+          <p class="muted" id="filter-count" role="status">2 campgrounds</p>
+          <div class="campground-list" id="campground-list">
+            <article data-name="pine creek">
+              <h3><a href="#campground">Pine Creek Campground</a></h3>
+              <p class="muted">
+                Fictional campground · Monitoring supported in this example
+              </p>
+              <a href="#campground">View campground →</a>
+            </article>
+            <article data-name="ridge meadow">
+              <h3>Ridge Meadow Campground</h3>
+              <p class="muted">
+                Fictional campground · Monitoring unsupported in this example
+              </p>
+              <small>Choose Pine Creek to review alert setup.</small>
+            </article>
+          </div>
+          <div id="filter-empty" hidden>
+            <p>No matching campground names.</p>
+            <button type="button" id="reset-filter">Clear filter</button>
+          </div>
+        </article>
       </section>
-      <section id="opening" data-screen hidden>
-        <button type="button" data-go="alerts">← My alerts</button>
-        <p class="eyebrow" style="margin-top: 24px">
-          Synthetic opening example · Not linked to real inventory
-        </p>
-        <h1 tabindex="-1">A stay to look forward to.</h1>
-        <div class="card">
-          <h2>Pine Creek · Sample site A</h2>
-          <p class="stay-summary summary"></p>
-          <p class="note">
-            This shows the proposed layout only. Real results must apply saved
-            requirements and display observed dates/check time from the API.
-          </p>
-          <button type="button" class="primary" disabled>
-            View reservation site · placeholder
+      <section data-screen id="campground" class="page" hidden>
+        <div class="page-search">
+          <a href="#home">← Search parks and campgrounds</a>
+        </div>
+        <div class="row">
+          <div>
+            <h1>Pine Creek Campground</h1>
+            <p class="muted">
+              Recreation.gov · <a href="#park">Cedar Valley National Park</a>
+            </p>
+          </div>
+          <button class="primary" type="button" data-open-scan>
+            Set an alert
           </button>
-          <p class="muted" style="margin-top: 16px">
-            You complete the reservation with the provider. An observation is
-            not a held campsite.
+        </div>
+        <small
+          >Proposed wording for the existing Monitor action; same position and
+          dialog.</small
+        >
+        <article class="card">
+          <h2>About this campground</h2>
+          <p>
+            A fictional campground in Cedar Valley. The existing overview and
+            map card remains the starting point for deciding where to camp.
           </p>
+          <p class="muted">
+            A scan watches for openings; camply does not make reservations.
+          </p>
+          <button type="button" data-book>View reservation site</button
+          ><small>No live booking link exists for this fictional place.</small>
+          <div class="map-fallback" style="margin-top: 20px">
+            Map unavailable in this prototype.
+          </div>
+        </article>
+        <article class="card">
+          <h2>Other campgrounds in Cedar Valley</h2>
+          <a href="#park">Return to the existing park list →</a>
+        </article>
+      </section>
+      <section data-screen id="dashboard" class="page dashboard" hidden>
+        <div class="row">
+          <div>
+            <h1>Dashboard</h1>
+            <p class="muted">Manage your campsite scans.</p>
+          </div>
+          <div class="actions">
+            <button type="button" data-setup>Settings</button
+            ><button class="primary" type="button" data-open-scan>
+              ＋ New Scan
+            </button>
+          </div>
+        </div>
+        <div class="stats">
+          <article class="card stat">
+            <strong>1</strong>
+            <p>Total Scans</p>
+          </article>
+          <article class="card stat">
+            <strong id="active-total">1</strong>
+            <p>Active Scans</p>
+          </article>
+          <article class="card stat">
+            <strong id="matching-total">1</strong>
+            <p>Matching Stays</p>
+          </article>
+        </div>
+        <p id="save-feedback" class="feedback" role="status" hidden></p>
+        <div class="scan-grid">
+          <article class="card">
+            <div class="row">
+              <h3><a href="#opening">Pine Creek Campground</a></h3>
+              <span id="scan-state" class="state">Watching</span>
+            </div>
+            <p id="scan-summary">
+              At least 2 consecutive nights, June 18–23, 2027.
+            </p>
+            <p class="muted" id="scan-preferences">
+              Any campsite type · Electric not required
+            </p>
+            <small>Last observed: sample timestamp · Fictional data</small
+            ><small id="scan-readiness">Notifications: not configured</small>
+            <div class="actions" style="margin-top: 16px">
+              <button type="button" id="pause">Pause</button
+              ><a href="#opening">View details</a>
+            </div>
+          </article>
         </div>
       </section>
-      <p id="screen-announcement" role="status" class="sr-only"></p>
+      <section data-screen id="opening" class="page" hidden>
+        <a href="#dashboard">← Dashboard</a>
+        <h1 style="margin-top: 24px">Pine Creek Campground</h1>
+        <article class="card">
+          <h2>Overview</h2>
+          <p id="opening-summary">
+            At least 2 consecutive nights, June 18–23, 2027.
+          </p>
+          <small id="opening-preferences"
+            >Any campsite type · Electric not required</small
+          >
+          <p class="muted">
+            Illustrative observed result, not live inventory or a reservation.
+          </p>
+        </article>
+        <article class="card">
+          <h2>Availability</h2>
+          <div class="availability">
+            <article>
+              <h3 id="opening-site">Sample campsite A</h3>
+              <p id="opening-dates">
+                Check-in June 20 · Check-out June 22 · 2 nights
+              </p>
+              <small
+                >Observed in a fictional example; availability can change before
+                booking.</small
+              ><button type="button" data-book style="margin-top: 12px">
+                View reservation site
+              </button>
+            </article>
+          </div>
+        </article>
+      </section>
     </main>
     <footer>
-      Low-fidelity planning artifact · Local vector illustration · No external
-      assets or services · Reload resets sample choices. Open implementation.md
-      for dependencies and acceptance criteria.
+      camply · Free and Open Source · Planning artifact; application code
+      unchanged
     </footer>
+    <dialog
+      id="scan-dialog"
+      aria-labelledby="scan-title"
+      aria-describedby="scan-description"
+    >
+      <button
+        class="close"
+        type="button"
+        id="close-scan"
+        aria-label="Close scan dialog"
+      >
+        ×
+      </button>
+      <h2 id="scan-title">Create a New Scan</h2>
+      <p id="scan-description" class="muted">
+        Monitor a campground for cancellations.
+      </p>
+      <form id="scan-form" novalidate>
+        <div class="field">
+          <label>Campground</label>
+          <div class="selected-place">
+            <p><strong>Pine Creek Campground</strong></p>
+            <small>Cedar Valley National Park · Sample campground</small>
+          </div>
+        </div>
+        <div class="dates">
+          <div class="field">
+            <label for="check-in">Check-in</label
+            ><input
+              id="check-in"
+              type="date"
+              value="2027-06-18"
+              aria-describedby="stay-summary form-error"
+              required
+            />
+          </div>
+          <div class="field">
+            <label for="check-out">Check-out</label
+            ><input
+              id="check-out"
+              type="date"
+              value="2027-06-23"
+              aria-describedby="stay-summary form-error"
+              required
+            />
+          </div>
+        </div>
+        <div class="field">
+          <label for="minimum">Minimum Stay (nights)</label
+          ><input
+            id="minimum"
+            type="number"
+            value="2"
+            min="1"
+            step="1"
+            aria-describedby="minimum-help stay-summary form-error"
+            required
+          /><small id="minimum-help"
+            >Require every night? Set the minimum to the full window length. A
+            shorter minimum allows flexible stays.</small
+          >
+        </div>
+        <div id="stay-summary" class="summary" role="status">
+          At least 2 consecutive nights in one campsite, June 18–23, 2027.
+          Check-out night is excluded.
+        </div>
+        <div class="field">
+          <label
+            >Preferred Campsite Types
+            <small>Optional · Any type when none selected</small></label
+          >
+          <div class="chips" role="group" aria-label="Preferred campsite types">
+            <label class="type-chip"
+              ><input type="checkbox" name="type" value="Tent" />Tent</label
+            ><label class="type-chip"
+              ><input type="checkbox" name="type" value="RV" />RV</label
+            ><label class="type-chip"
+              ><input type="checkbox" name="type" value="Cabin" />Cabin</label
+            ><label class="type-chip"
+              ><input type="checkbox" name="type" value="Other" />Other</label
+            >
+          </div>
+        </div>
+        <label class="check-row"
+          ><span
+            >Electric Hookup Required<small
+              >Only match sites with an electric hookup</small
+            ></span
+          ><input id="electric" type="checkbox"
+        /></label>
+        <div class="notification">
+          <p><strong>Notifications: not configured</strong></p>
+          <p class="muted">Pushover setup is required for phone messages.</p>
+          <button type="button" data-setup>Set up notifications</button>
+        </div>
+        <label class="monitor-only"
+          ><input id="monitor-only" type="checkbox" /><span
+            >Monitor without notifications.<small
+              >I will check results in Dashboard; no phone message will
+              arrive.</small
+            ></span
+          ></label
+        >
+        <p id="form-error" class="error" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button type="button" id="cancel-scan">Cancel</button
+          ><button class="primary" type="submit">Create Scan</button>
+        </div>
+        <small style="margin-top: 12px"
+          >Preview only. Values remain in this tab when you close and reopen; no
+          real scan is created.</small
+        >
+      </form>
+    </dialog>
+    <dialog id="info-dialog" aria-labelledby="info-title">
+      <h2 id="info-title">Prototype information</h2>
+      <p id="info-copy"></p>
+      <button type="button" id="close-info">Return to prototype</button>
+    </dialog>
     <script>
-      const screens = [...document.querySelectorAll("[data-screen]")];
-      const arrival = document.getElementById("arrival");
-      const departure = document.getElementById("departure");
-      const minimum = document.getElementById("minimum");
-      const intent = () =>
-        document.querySelector('input[name="intent"]:checked').value;
-      const dayNumber = (value) =>
-        value ? Date.parse(`${value}T00:00:00Z`) / 86400000 : NaN;
-      const formatDay = (value) =>
-        new Intl.DateTimeFormat("en-US", {
-          month: "short",
+      const $ = (id) => document.getElementById(id);
+      const scans = $("scan-dialog");
+      const info = $("info-dialog");
+      let scanTrigger = null;
+      let infoTrigger = null;
+      let active = true;
+      let activeOption = -1;
+      let matches = [];
+      const places = [
+        { name: "Cedar Valley National Park", type: "Park", screen: "park" },
+        {
+          name: "Pine Creek Campground",
+          type: "Campground",
+          screen: "campground",
+        },
+      ];
+      function showInfo(title, copy, trigger) {
+        infoTrigger = trigger;
+        $("info-title").textContent = title;
+        $("info-copy").textContent = copy;
+        info.showModal();
+      }
+      function openScan(trigger) {
+        scanTrigger = trigger;
+        updateSummary();
+        if (!scans.open) scans.showModal();
+      }
+      function closeScan() {
+        scans.close();
+        if (location.hash === "#stay") location.hash = "campground";
+        scanTrigger?.focus();
+      }
+      function route() {
+        const hash = location.hash.slice(1) || "home";
+        if (hash === "content") {
+          $("content").focus();
+          return;
+        }
+        const help = ["providers", "ethos", "contribute"].includes(hash);
+        const id =
+          hash === "stay"
+            ? "campground"
+            : help || hash === "how-it-works"
+              ? "home"
+              : hash;
+        const screen = document.querySelector(
+          `[data-screen][id="${["home", "park", "campground", "dashboard", "opening"].includes(id) ? id : "home"}"]`,
+        );
+        if (scans.open && hash !== "stay") scans.close();
+        document
+          .querySelectorAll("[data-screen]")
+          .forEach((el) => (el.hidden = el !== screen));
+        if (help) {
+          $("help-title").textContent =
+            hash === "providers"
+              ? "Providers"
+              : hash === "ethos"
+                ? "Ethos"
+                : "Contribute";
+          $("help-copy").textContent =
+            hash === "providers"
+              ? "Recreation.gov is the currently reviewed integration. Suggestions and provider labels in this prototype are fictional."
+              : hash === "ethos"
+                ? "Preserve camply’s community identity, existing design, and free, open-source direction."
+                : "The existing Contribute navigation remains in place. This prototype has no external contribution destination.";
+        }
+        $("navigation").classList.remove("open");
+        $("menu").setAttribute("aria-expanded", "false");
+        if (hash === "stay") {
+          openScan(null);
+          return;
+        }
+        $("content").focus({ preventScroll: true });
+        if (help || hash === "how-it-works")
+          $(help ? "help" : "how-it-works").scrollIntoView();
+        else window.scrollTo(0, 0);
+      }
+      window.addEventListener("hashchange", route);
+      $("menu").addEventListener("click", () => {
+        const open = $("navigation").classList.toggle("open");
+        $("menu").setAttribute("aria-expanded", String(open));
+      });
+      document
+        .querySelectorAll("[data-go]")
+        .forEach((el) =>
+          el.addEventListener("click", () => (location.hash = el.dataset.go)),
+        );
+      document
+        .querySelectorAll("[data-open-scan]")
+        .forEach((el) => el.addEventListener("click", () => openScan(el)));
+      $("close-scan").addEventListener("click", closeScan);
+      $("cancel-scan").addEventListener("click", closeScan);
+      scans.addEventListener("cancel", (event) => {
+        event.preventDefault();
+        closeScan();
+      });
+      $("close-info").addEventListener("click", () => {
+        info.close();
+        infoTrigger?.focus();
+      });
+      info.addEventListener("close", () => infoTrigger?.focus());
+      $("sign-in").addEventListener("click", (event) =>
+        showInfo(
+          "Sign-in recovery is planned",
+          "This prototype signs into no accounts. The implementation must preserve valid dialog fields through Basic/Auth0 sign-in and reopen the existing form on return.",
+          event.currentTarget,
+        ),
+      );
+      document
+        .querySelectorAll("[data-setup]")
+        .forEach((el) =>
+          el.addEventListener("click", () =>
+            showInfo(
+              "Notification setup is planned",
+              "Pushover is the currently implemented channel. Setup help will reuse existing settings. A saved key means configured, not tested. This prototype has no credentials, external setup, or test-message action.",
+              el,
+            ),
+          ),
+        );
+      document
+        .querySelectorAll("[data-book]")
+        .forEach((el) =>
+          el.addEventListener("click", () =>
+            showInfo(
+              "Official reservation handoff",
+              "The implemented action will open the provider URL from campground metadata. This fictional campground has no reservation URL and this prototype books nothing.",
+              el,
+            ),
+          ),
+        );
+      function closeResults() {
+        $("destinations").hidden = true;
+        $("destination").setAttribute("aria-expanded", "false");
+        $("destination").removeAttribute("aria-activedescendant");
+        activeOption = -1;
+      }
+      function paintSelection() {
+        [...$("destinations").children].forEach((el, index) =>
+          el.setAttribute("aria-selected", String(index === activeOption)),
+        );
+        if (activeOption >= 0)
+          $("destination").setAttribute(
+            "aria-activedescendant",
+            `destination-${activeOption}`,
+          );
+        else $("destination").removeAttribute("aria-activedescendant");
+      }
+      function choose(index) {
+        const item = matches[index];
+        if (!item) return;
+        closeResults();
+        location.hash = item.screen;
+      }
+      function search() {
+        const query = $("destination").value.trim().toLowerCase();
+        closeResults();
+        matches =
+          query.length >= 2
+            ? places.filter((place) => place.name.toLowerCase().includes(query))
+            : [];
+        $("destinations").replaceChildren();
+        $("search-status").textContent =
+          query.length < 2
+            ? ""
+            : matches.length
+              ? `${matches.length} sample ${matches.length === 1 ? "destination" : "destinations"}. Use arrow keys or Enter to choose.`
+              : "No matches. Try Cedar Valley or Pine Creek.";
+        matches.forEach((place, index) => {
+          const li = document.createElement("li");
+          li.id = `destination-${index}`;
+          li.setAttribute("role", "option");
+          li.setAttribute("aria-selected", "false");
+          const name = document.createElement("strong");
+          name.textContent = place.name;
+          const type = document.createElement("small");
+          type.textContent = `${place.type} · Fictional example`;
+          li.append(name, type);
+          li.addEventListener("mousedown", (event) => event.preventDefault());
+          li.addEventListener("click", () => choose(index));
+          $("destinations").append(li);
+        });
+        if (matches.length) {
+          $("destinations").hidden = false;
+          $("destination").setAttribute("aria-expanded", "true");
+        }
+      }
+      $("destination").addEventListener("input", search);
+      $("destination").addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeResults();
+          event.preventDefault();
+        } else if (
+          (event.key === "ArrowDown" || event.key === "ArrowUp") &&
+          matches.length
+        ) {
+          $("destinations").hidden = false;
+          $("destination").setAttribute("aria-expanded", "true");
+          activeOption =
+            event.key === "ArrowDown"
+              ? (activeOption + 1) % matches.length
+              : (activeOption + matches.length - 1) % matches.length;
+          paintSelection();
+          event.preventDefault();
+        } else if (
+          event.key === "Enter" &&
+          !$("destinations").hidden &&
+          matches.length
+        ) {
+          choose(activeOption < 0 ? 0 : activeOption);
+          event.preventDefault();
+        } else if (event.key === "Tab") closeResults();
+      });
+      $("destination").addEventListener("blur", closeResults);
+      $("clear-search").addEventListener("click", () => {
+        $("destination").value = "";
+        search();
+        $("destination").focus();
+      });
+      document.querySelectorAll("[data-query]").forEach((el) =>
+        el.addEventListener("click", () => {
+          $("destination").value = el.dataset.query;
+          search();
+          $("destination").focus();
+        }),
+      );
+      function filter() {
+        const query = $("campground-filter").value.trim().toLowerCase();
+        let count = 0;
+        document.querySelectorAll("[data-name]").forEach((el) => {
+          el.hidden = !el.dataset.name.includes(query);
+          if (!el.hidden) count++;
+        });
+        $("filter-count").textContent =
+          `${count} ${count === 1 ? "campground" : "campgrounds"}`;
+        $("filter-empty").hidden = count !== 0;
+      }
+      $("campground-filter").addEventListener("input", filter);
+      $("reset-filter").addEventListener("click", () => {
+        $("campground-filter").value = "";
+        filter();
+        $("campground-filter").focus();
+      });
+      function dateText(value) {
+        return new Intl.DateTimeFormat("en-US", {
+          month: "long",
           day: "numeric",
           year: "numeric",
           timeZone: "UTC",
         }).format(new Date(`${value}T00:00:00Z`));
-      const dateError = () => {
-        const nights = dayNumber(departure.value) - dayNumber(arrival.value);
-        if (!Number.isFinite(nights))
-          return "Choose an arrival and departure date.";
-        if (nights < 1) return "Departure must be after arrival.";
-        if (
-          intent() === "flexible" &&
-          (!Number.isInteger(Number(minimum.value)) ||
-            Number(minimum.value) < 1 ||
-            Number(minimum.value) > nights)
-        )
-          return `Choose a minimum between 1 and ${nights} consecutive nights.`;
-        return "";
-      };
-      const updateSummary = () => {
-        const flexible = intent() === "flexible";
-        document.getElementById("minimum-field").hidden = !flexible;
-        document.getElementById("arrival-label").textContent = flexible
-          ? "Earliest arrival"
-          : "Arrival";
-        document.getElementById("departure-label").textContent = flexible
-          ? "Latest departure"
-          : "Departure";
-        const nights = dayNumber(departure.value) - dayNumber(arrival.value);
-        const text =
-          dateError() ||
-          (flexible
-            ? `At least ${minimum.value} consecutive nights in one campsite between ${formatDay(arrival.value)} and ${formatDay(departure.value)}.`
-            : `${nights} consecutive ${nights === 1 ? "night" : "nights"} in one campsite. Arrive ${formatDay(arrival.value)}; leave ${formatDay(departure.value)}.`);
-        document.querySelectorAll(".stay-summary").forEach((node) => {
-          node.textContent = text;
-        });
-        const types = [
-          ...document.querySelectorAll('input[name="site-type"]:checked'),
-        ].map((node) => node.value);
-        const preferences = `${types.length ? types.join(" or ") : "Any supported campsite type"}${document.getElementById("electric").checked ? " · Electric hookup required" : ""}`;
-        document.querySelectorAll(".preference-summary").forEach((node) => {
-          node.textContent = preferences;
-        });
-      };
-      const showScreen = () => {
-        const requested = location.hash.slice(1);
-        if (requested === "content") return;
-        const active =
-          screens.find((screen) => screen.id === requested) || screens[0];
-        screens.forEach((screen) => {
-          screen.hidden = screen !== active;
-        });
-        document.querySelectorAll("nav [data-go]").forEach((button) => {
-          if (button.dataset.go === active.id)
-            button.setAttribute("aria-current", "page");
-          else button.removeAttribute("aria-current");
-        });
-        active.querySelector("h1").focus();
-        document.getElementById("screen-announcement").textContent =
-          `Wireframe screen: ${active.id}`;
-        updateSummary();
-      };
-      document.querySelectorAll("[data-go]").forEach((button) =>
-        button.addEventListener("click", () => {
-          location.hash = button.dataset.go;
-        }),
-      );
-      window.addEventListener("hashchange", showScreen);
-      document
-        .querySelectorAll("input")
-        .forEach((input) => input.addEventListener("input", updateSummary));
-      document.getElementById("continue-stay").addEventListener("click", () => {
-        const error = document.getElementById("date-error");
-        error.textContent = dateError();
-        error.hidden = !error.textContent;
-        if (!error.textContent) location.hash = "preferences";
-      });
-      document.getElementById("resume-demo").addEventListener("click", () => {
-        document.getElementById("auth-state").textContent =
-          "Sample sign-in completed. Your stay and preferences were preserved.";
-        location.hash = "review";
-      });
-      document.getElementById("save-demo").addEventListener("click", () => {
-        const invalid = !!dateError();
-        const ready = document.getElementById("monitor-only").checked;
-        document.getElementById("save-error").hidden = ready || invalid;
-        if (invalid) {
-          location.hash = "stay";
-          document.getElementById("date-error").textContent = dateError();
-          document.getElementById("date-error").hidden = false;
-        } else if (ready) {
-          document.getElementById("saved-note").hidden = false;
-          location.hash = "alerts";
-        }
-      });
-      let paused = false;
-      document
-        .getElementById("pause-demo")
-        .addEventListener("click", (event) => {
-          paused = !paused;
-          document.getElementById("watch-state").textContent = paused
-            ? "Sample: paused"
-            : "Sample: waiting for first check";
-          event.currentTarget.textContent = paused
-            ? "Resume sample alert"
-            : "Pause sample alert";
-        });
-      const search = document.getElementById("destination");
-      const updateSearch = () => {
-        const query = search.value.trim().toLowerCase();
-        document.getElementById("sample-results").hidden = !query;
-        let count = 0;
-        document.querySelectorAll("[data-match]").forEach((button) => {
-          button.hidden = !button.dataset.match.includes(query);
-          if (!button.hidden) count++;
-        });
-        document.getElementById("no-matches").hidden = count > 0;
-      };
-      search.addEventListener("input", updateSearch);
-      document.querySelectorAll("[data-query]").forEach((button) =>
-        button.addEventListener("click", () => {
-          search.value = button.dataset.query;
-          updateSearch();
-          search.focus();
-        }),
-      );
-      const filter = document.getElementById("park-filter");
-      const updateFilter = () => {
-        let count = 0;
-        document.querySelectorAll("[data-camp-name]").forEach((card) => {
-          card.hidden = !card.dataset.campName.includes(
-            filter.value.trim().toLowerCase(),
+      }
+      function getStay() {
+        const start = $("check-in").value;
+        const end = $("check-out").value;
+        const minimum = Number($("minimum").value);
+        const length =
+          (Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) /
+          86400000;
+        if (!start || !end || !Number.isFinite(length))
+          return {
+            error: "Choose check-in and check-out dates.",
+            field: !start ? "check-in" : "check-out",
+          };
+        if (length <= 0)
+          return {
+            error: "Check-out must be after check-in.",
+            field: "check-out",
+          };
+        if (!Number.isInteger(minimum) || minimum < 1 || minimum > length)
+          return {
+            error: `Choose a minimum of 1 to ${length} ${length === 1 ? "night" : "nights"} for this window.`,
+            field: "minimum",
+          };
+        const today = new Date();
+        const calendarToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+        if (start < calendarToday)
+          return {
+            error: "Choose a future camping window.",
+            field: "check-in",
+          };
+        const rule =
+          minimum === length
+            ? `All ${length} ${length === 1 ? "night" : "nights"}`
+            : `At least ${minimum} consecutive ${minimum === 1 ? "night" : "nights"}`;
+        return {
+          start,
+          end,
+          minimum,
+          length,
+          summary: `${rule} in one campsite, ${dateText(start)} to ${dateText(end)}. Check-out night is excluded.`,
+        };
+      }
+      function updateSummary() {
+        const stay = getStay();
+        $("stay-summary").textContent = stay.error || stay.summary;
+        return stay;
+      }
+      ["check-in", "check-out", "minimum"].forEach((id) =>
+        $(id).addEventListener("input", () => {
+          updateSummary();
+          $("form-error").hidden = true;
+          ["check-in", "check-out", "minimum"].forEach((field) =>
+            $(field).removeAttribute("aria-invalid"),
           );
-          if (!card.hidden) count++;
-        });
-        document.getElementById("park-count").textContent =
-          `${count} sample ${count === 1 ? "campground" : "campgrounds"}`;
-        document.getElementById("park-empty").hidden = count > 0;
-      };
-      filter.addEventListener("input", updateFilter);
-      document.getElementById("clear-filter").addEventListener("click", () => {
-        filter.value = "";
-        updateFilter();
-        filter.focus();
+        }),
+      );
+      $("monitor-only").addEventListener("change", () => {
+        $("monitor-only").removeAttribute("aria-invalid");
+        $("form-error").hidden = true;
       });
-      showScreen();
+      $("scan-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const stay = updateSummary();
+        const error =
+          stay.error ||
+          (!$("monitor-only").checked
+            ? "Choose notification setup or explicitly monitor without notifications."
+            : "");
+        if (error) {
+          $("form-error").textContent = error;
+          $("form-error").hidden = false;
+          const field = $(stay.field || "monitor-only");
+          field.setAttribute("aria-invalid", "true");
+          field.focus();
+          return;
+        }
+        const types = [
+          ...document.querySelectorAll('input[name="type"]:checked'),
+        ].map((el) => el.value);
+        const preferences = `${types.length ? types.join(", ") : "Any campsite type"} · Electric ${$("electric").checked ? "required" : "not required"}`;
+        $("scan-summary").textContent = stay.summary;
+        $("scan-preferences").textContent = preferences;
+        $("opening-summary").textContent = stay.summary;
+        $("opening-preferences").textContent = preferences;
+        $("scan-readiness").textContent = "Monitoring only · No notifications";
+        $("opening-site").textContent =
+          `Sample campsite A · ${types.length ? types[0] : "Tent"}${$("electric").checked ? " · Electric hookup" : ""}`;
+        const checkout = new Date(
+          Date.parse(`${stay.start}T00:00:00Z`) + stay.minimum * 86400000,
+        )
+          .toISOString()
+          .slice(0, 10);
+        $("opening-dates").textContent =
+          `Check-in ${dateText(stay.start)} · Check-out ${dateText(checkout)} · ${stay.minimum} ${stay.minimum === 1 ? "night" : "nights"}`;
+        active = true;
+        paintActive();
+        $("matching-total").textContent = "1";
+        $("save-feedback").textContent =
+          "Preview saved in this tab. Monitoring only; no phone messages and no real scan created.";
+        $("save-feedback").hidden = false;
+        scans.close();
+        location.hash = "dashboard";
+      });
+      function paintActive() {
+        $("scan-state").textContent = active ? "Watching" : "Paused";
+        $("pause").textContent = active ? "Pause" : "Resume";
+        $("active-total").textContent = active ? "1" : "0";
+      }
+      $("pause").addEventListener("click", () => {
+        active = !active;
+        paintActive();
+      });
+      route();
     </script>
   </body>
 </html>

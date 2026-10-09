@@ -19,7 +19,7 @@ have changed. Recommendations are design hypotheses, not measured user findings.
 | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | [Campflare home](https://campflare.com/)                                                 | Destination search, suggested campgrounds, map entry point, and a clear free-access proposition.                             | Lead with search; offer starting points; make map discovery a later companion to a usable list.          |
 | [Campflare FAQ](https://campflare.com/info)                                              | Explains notification behavior, cancellation of requests, and why longer consecutive stays are harder to find.               | Place small, relevant explanations next to date/stay choices and alert controls.                         |
-| [Campnab FAQ](https://campnab.com/faq)                                                   | Park → campground → filters → dates; flexible arrivals; specific-site filters; explicit handoff to the reservation provider. | Use a guided alert builder with optional refinement and an explicit booking handoff.                     |
+| [Campnab FAQ](https://campnab.com/faq)                                                   | Park → campground → filters → dates; flexible arrivals; specific-site filters; explicit handoff to the reservation provider. | Add helpful guidance within the existing alert dialog and an explicit booking handoff.                   |
 | [Campnab dashboard update](https://campnab.com/blog/improvements-to-the-dashboard)       | Scan summaries, visible state/actions, and links to alert records.                                                           | Make alert cards explain what is watched, whether monitoring is operating, and what action is available. |
 | [Campnab scan naming](https://campnab.com/blog/new-name-your-campnab-scans)              | User-defined names help distinguish scans.                                                                                   | Consider trip names after core management works; needs persisted metadata.                               |
 | [Campnab flexible-date announcement](https://campnab.com/blog/announcing-flexible-dates) | Early example of presenting date flexibility as a simple choice.                                                             | Separate exact stays from flexible windows; use current FAQ for present competitor behavior.             |
@@ -27,7 +27,9 @@ have changed. Recommendations are design hypotheses, not measured user findings.
 The inference: discoverability, understandable choices, and visible monitoring
 state are stronger starting points than copying branding, pricing mechanics, or
 adding many map layers. Camply can combine discovery with a friendly alert journey
-while preserving its free, open-source, self-hostable product direction.
+while preserving its current visual identity, familiar layouts, and free,
+open-source, self-hostable product direction. Competitor patterns do not imply
+copying their page layouts or replacing camply's existing alert dialog.
 
 ## Current camply journey: findings from source
 
@@ -85,7 +87,7 @@ and map inventories should not be simulated by filtering only 20 text-search hit
 The follow-up [implementation brief](implementation.md) checks notification-test
 semantics against [Pushover's API](https://pushover.net/api): destination validation,
 provider acceptance, and user-confirmed receipt are separate states. The
-[design review](design-review.md) adds calculated token contrast and proposed
+[design review](design-review.md) documents current-theme constraints and proposed
 availability previews, arrival weekdays, comparisons, and grouped notifications.
 These are planning/design findings, not a hands-on competitor assessment.
 
