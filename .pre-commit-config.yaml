@@ -37,11 +37,11 @@ repos:
         language: system
         types:
           - python
-      - id: prettier
-        name: prettier
+      - id: oxfmt
+        name: oxfmt
         description: Opinionated Code Formatter
-        entry: npm --prefix ./frontend run prettier --
-        args: [--write, --ignore-unknown]
+        entry: pnpm --dir ./frontend run format
+        args: [--write, --no-error-on-unmatched-pattern]
         language: system
         types:
           - text

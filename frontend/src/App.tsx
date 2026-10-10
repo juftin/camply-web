@@ -1,26 +1,74 @@
-import { useState, useEffect } from "react";
+import { lazy, useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Auth0Provider } from "@auth0/auth0-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
+import { PageLoader } from "@/components/PageLoader";
 import { Home } from "@/pages/Home";
-import { Providers } from "@/pages/Providers";
-import { Auth } from "@/pages/Auth";
-import { Dashboard } from "@/pages/Dashboard";
-import { Profile } from "@/pages/Profile";
-import { PrivacyPolicy } from "@/pages/PrivacyPolicy";
-import { TermsOfService } from "@/pages/TermsOfService";
-import { Contact } from "@/pages/Contact";
-import { Contribute } from "@/pages/Contribute";
-import { FAQ } from "@/pages/FAQ";
-import { Ethos } from "@/pages/Ethos";
-import { HowItWorks } from "@/pages/HowItWorks";
-import { Campground } from "@/pages/Campground";
-import { RecreationArea } from "@/pages/RecreationArea";
-import { ScanDetail } from "@/pages/ScanDetail";
-import { DevPreview } from "@/pages/DevPreview";
 import { AuthProvider, AuthConfigContext } from "@/hooks/useAuth";
 import { fetchAuthConfig, type AuthConfig } from "@/lib/api";
+
+const Providers = lazy(() =>
+  import("@/pages/Providers").then((module) => ({ default: module.Providers })),
+);
+const Auth = lazy(() =>
+  import("@/pages/Auth").then((module) => ({ default: module.Auth })),
+);
+const Dashboard = lazy(() =>
+  import("@/pages/Dashboard").then((module) => ({ default: module.Dashboard })),
+);
+const Profile = lazy(() =>
+  import("@/pages/Profile").then((module) => ({ default: module.Profile })),
+);
+const PrivacyPolicy = lazy(() =>
+  import("@/pages/PrivacyPolicy").then((module) => ({
+    default: module.PrivacyPolicy,
+  })),
+);
+const TermsOfService = lazy(() =>
+  import("@/pages/TermsOfService").then((module) => ({
+    default: module.TermsOfService,
+  })),
+);
+const Contact = lazy(() =>
+  import("@/pages/Contact").then((module) => ({ default: module.Contact })),
+);
+const Contribute = lazy(() =>
+  import("@/pages/Contribute").then((module) => ({
+    default: module.Contribute,
+  })),
+);
+const FAQ = lazy(() =>
+  import("@/pages/FAQ").then((module) => ({ default: module.FAQ })),
+);
+const Ethos = lazy(() =>
+  import("@/pages/Ethos").then((module) => ({ default: module.Ethos })),
+);
+const HowItWorks = lazy(() =>
+  import("@/pages/HowItWorks").then((module) => ({
+    default: module.HowItWorks,
+  })),
+);
+const Campground = lazy(() =>
+  import("@/pages/Campground").then((module) => ({
+    default: module.Campground,
+  })),
+);
+const RecreationArea = lazy(() =>
+  import("@/pages/RecreationArea").then((module) => ({
+    default: module.RecreationArea,
+  })),
+);
+const ScanDetail = lazy(() =>
+  import("@/pages/ScanDetail").then((module) => ({
+    default: module.ScanDetail,
+  })),
+);
+const DevPreview = lazy(() =>
+  import("@/pages/DevPreview").then((module) => ({
+    default: module.DevPreview,
+  })),
+);
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -28,56 +76,65 @@ function AppRoutes() {
   return (
     <Router basename={basename}>
       <Routes>
-        <Route path="/auth" element={<Auth />} />
+        <Route
+          path="/auth"
+          element={
+            <PageLoader>
+              <Auth />
+            </PageLoader>
+          }
+        />
 
         <Route
           path="/*"
           element={
             <Layout>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/providers" element={<Providers />} />
-                <Route path="/ethos" element={<Ethos />} />
-                <Route path="/how-it-works" element={<HowItWorks />} />
-                <Route path="/contribute" element={<Contribute />} />
-                <Route path="/faq" element={<FAQ />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/terms" element={<TermsOfService />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute requireInvite>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/dashboard/scans/:scanId"
-                  element={
-                    <ProtectedRoute requireInvite>
-                      <ScanDetail />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/campground/:providerId/:campgroundId"
-                  element={<Campground />}
-                />
-                <Route
-                  path="/rec-area/:providerId/:recreationAreaId"
-                  element={<RecreationArea />}
-                />
-                <Route path="/dev/preview" element={<DevPreview />} />
-              </Routes>
+              <PageLoader>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/providers" element={<Providers />} />
+                  <Route path="/ethos" element={<Ethos />} />
+                  <Route path="/how-it-works" element={<HowItWorks />} />
+                  <Route path="/contribute" element={<Contribute />} />
+                  <Route path="/faq" element={<FAQ />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsOfService />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute requireInvite>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/dashboard/scans/:scanId"
+                    element={
+                      <ProtectedRoute requireInvite>
+                        <ScanDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/campground/:providerId/:campgroundId"
+                    element={<Campground />}
+                  />
+                  <Route
+                    path="/rec-area/:providerId/:recreationAreaId"
+                    element={<RecreationArea />}
+                  />
+                  <Route path="/dev/preview" element={<DevPreview />} />
+                </Routes>
+              </PageLoader>
             </Layout>
           }
         />

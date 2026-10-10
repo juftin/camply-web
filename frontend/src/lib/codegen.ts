@@ -3,13 +3,13 @@
  *
  * Usage:
  *   1. Start the backend: `task backend:dev`
- *   2. Run: `npx tsx src/lib/codegen.ts`
+ *   2. Run: `task frontend:codegen`
  *
  * This script fetches the OpenAPI schema from the running backend
  * and generates TypeScript types into `src/lib/api/generated/`.
  */
 
-/* eslint-disable no-undef */
+/* oxlint-disable no-undef */
 
 import { execSync } from "node:child_process";
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -36,9 +36,7 @@ async function generate(): Promise<void> {
     writeFileSync(TEMP_SCHEMA, JSON.stringify(schema, null, 2));
     console.log(`Schema saved to ${TEMP_SCHEMA}`);
   } catch (err) {
-    console.error(
-      "Failed to fetch OpenAPI schema. Is the backend running?",
-    );
+    console.error("Failed to fetch OpenAPI schema. Is the backend running?");
     console.error(err);
     process.exit(1);
   }
@@ -48,7 +46,7 @@ async function generate(): Promise<void> {
 
   try {
     execSync(
-      `npx openapi-typescript ${TEMP_SCHEMA} -o ${OUTPUT_DIR}/schema.ts`,
+      `pnpm exec openapi-typescript ${TEMP_SCHEMA} -o ${OUTPUT_DIR}/schema.ts`,
       {
         stdio: "inherit",
         cwd: resolve(__dirname, "..", ".."),

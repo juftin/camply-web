@@ -67,7 +67,9 @@ Set `CAMPLY_AUTH_MODE=auth0`. All three of `CAMPLY_AUTH0_DOMAIN`, `CAMPLY_AUTH0_
 
 ### Cloudflare Pages frontend
 
-Use Pages project root `frontend`, build command `npm run build`, and output directory `dist`. Pages discovers `frontend/functions/api/[[path]].ts` alongside the frontend sources; deploy through Pages Git integration or Wrangler so the Function is included. Uploading only `dist` as static files does not include the proxy. The build copies `public/_routes.json` to `dist` to invoke the Function only for `/api` paths. Locally, build assets with `task frontend:build:static`; the Vite development server continues using its own `/api` proxy.
+Use Pages project root `frontend`, build command `pnpm run build`, and output directory `dist`. Pages discovers `frontend/functions/api/[[path]].ts` alongside the frontend sources; deploy through Pages Git integration or Wrangler so the Function is included. Uploading only `dist` as static files does not include the proxy. The build copies `public/_routes.json` to `dist` to invoke the Function only for `/api` paths. Locally, build assets with `task frontend:build:static`; the Vite development server continues using its own `/api` proxy.
+
+Use Node 24, selected by `frontend/.node-version`, and set `PNPM_VERSION=10.34.6` in both production and preview build environments. If the Pages project already overrides `NODE_VERSION`, set it to `24`. An existing `npm run build` command remains compatible with pnpm-installed dependencies.
 
 Set the Pages Functions compatibility date to `2024-11-11` or later (or enable `cache_option_enabled`) in the project's runtime settings. The proxy uses the standard Fetch `cache: "no-store"` option to bypass upstream caching; [older runtimes require that compatibility flag](https://developers.cloudflare.com/changelog/post/2024-11-11-cache-no-store/).
 
@@ -120,10 +122,11 @@ The Python model and API use `is_invited`; its existing database column remains 
 ## 🏗️ Docker & Infrastructure
 
 These variables are primarily used in `docker-compose.yaml`.
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `POSTGRES_USER` | DB Username | `camply` |
-| `POSTGRES_PASSWORD` | DB Password | `camply` |
-| `POSTGRES_DB` | DB Name | `camply` |
-| `BACKEND_VERSION` | Docker image tag for backend | `local` |
-| `FRONTEND_VERSION` | Docker image tag for frontend | `local` |
+
+| Variable            | Description                   | Default  |
+| ------------------- | ----------------------------- | -------- |
+| `POSTGRES_USER`     | DB Username                   | `camply` |
+| `POSTGRES_PASSWORD` | DB Password                   | `camply` |
+| `POSTGRES_DB`       | DB Name                       | `camply` |
+| `BACKEND_VERSION`   | Docker image tag for backend  | `local`  |
+| `FRONTEND_VERSION`  | Docker image tag for frontend | `local`  |

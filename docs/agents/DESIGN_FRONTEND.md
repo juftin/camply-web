@@ -72,6 +72,7 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 - **Form Handling**: **React Hook Form** + **Zod** for strict validation.
 - **API Client**: Axios-based client in `frontend/src/lib/api.ts` with auto-generated TypeScript types via `codegen.ts`.
 - **Routing**: **React Router** (v7) with nested routes in `App.tsx`.
+- **Route loading**: The home page stays eager; secondary pages use React lazy imports. Suspense keeps the shared header/footer visible while showing an accessible loading status, and protected routes enforce account/invitation gates before loading their page content. Failed page loads show an accessible error with a reload action; shared navigation remains available, and switching routes clears the error.
 - **Auth**: `AuthProvider` context wrapping the entire app in `main.tsx`.
 
 ### Key Files
