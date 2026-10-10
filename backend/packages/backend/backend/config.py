@@ -65,9 +65,10 @@ class BackendConfig(BaseSettings):
     ]
     """Allowed CORS origins list."""
     cors_origin_regex: Optional[str] = (
-        r"^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|100\.\d{1,3}\.\d{1,3}\.\d{1,3}|.*\.ts\.net)(:\d+)?$"
+        r"^(https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|100\.\d{1,3}\.\d{1,3}\.\d{1,3}|.*\.ts\.net)(:\d+)?"
+        r"|https://(?:[a-z0-9-]+\.)?camply-81r\.pages\.dev)$"
     )
-    """Regex pattern for allowed CORS origins (supports localhost and Tailscale IPs/domains)."""
+    """Trust local/Tailscale origins and HTTPS deployments of the camply Pages project."""
 
     @property
     def auto_login(self) -> bool:
