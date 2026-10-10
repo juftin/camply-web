@@ -243,3 +243,43 @@ def test_password_login_disabled_in_other_modes(test_client: TestClient) -> None
         "/api/login", json={"username": "test-admin", "password": "synthetic-password"}
     )
     assert response.status_code == 404
+
+
+def test_admin_session_suspension_and_csrf(
+    session_mode: None, test_client: TestClient
+) -> None:
+    """Admin sessions retain privileges and enforce CSRF during suspension."""
+    assert test_client.get("/api/admin/users").status_code == 401
+    _login(test_client)
+    profile = test_client.get("/api/me").json()
+    assert profile["is_admin"] is True
+    assert profile["scanning_enabled"] is True
+    assert test_client.get("/api/admin/users").status_code == 200
+    endpoint = f"/api/admin/users/{profile['id']}"
+    del test_client.headers["X-CSRF-Token"]
+    assert (
+        test_client.patch(endpoint, json={"scanning_enabled": False}).status_code == 403
+    )
+    test_client.headers["X-CSRF-Token"] = test_client.cookies["camply_csrf"]
+    assert (
+        test_client.patch(endpoint, json={"scanning_enabled": False}).status_code == 200
+    )
+    suspended_profile = test_client.get("/api/me").json()
+    assert suspended_profile["is_admin"] is True
+    assert suspended_profile["scanning_enabled"] is False
+    assert test_client.get("/api/admin/users").status_code == 200
+    assert (
+        test_client.post(
+            "/api/scans",
+            json={
+                "provider_id": 1,
+                "campground_id": "cg_1",
+                "start_date": "2027-07-01",
+                "end_date": "2027-07-05",
+            },
+        ).status_code
+        == 403
+    )
+    assert (
+        test_client.patch(endpoint, json={"scanning_enabled": True}).status_code == 200
+    )

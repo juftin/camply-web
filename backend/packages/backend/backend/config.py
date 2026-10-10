@@ -58,6 +58,14 @@ class BackendConfig(BaseSettings):
     # Prometheus multiprocess
     prometheus_multiproc_dir: Optional[str] = None
 
+    # Operations & Prometheus monitoring dependencies
+    valkey_url: str = "redis://localhost:6379/0"
+    prometheus_url: str = "http://localhost:9090"
+
+    # Worker timing mirrors (heartbeat & cooldown)
+    heartbeat_interval: int = 60
+    target_cooldown: int = 55
+
     # CORS
     cors_origins: list[str] = [
         "http://localhost:5173",

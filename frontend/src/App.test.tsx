@@ -85,6 +85,8 @@ const user = {
   id: "user",
   email: "user@example.com",
   is_invited: false,
+  is_admin: false,
+  scanning_enabled: true,
   pushover_token: null,
 };
 

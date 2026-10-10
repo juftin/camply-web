@@ -3,6 +3,7 @@ Database Models
 """
 
 from .access_request import AccessRequest
+from .admin_audit import AdminAuditEvent
 from .base import Base
 from .campgrounds import Campground
 from .providers import Provider
@@ -15,6 +16,7 @@ from .users import User
 
 __all__ = [
     "AccessRequest",
+    "AdminAuditEvent",
     "Base",
     "Campground",
     "Provider",

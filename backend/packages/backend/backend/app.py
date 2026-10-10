@@ -15,6 +15,7 @@ from backend.metrics import (
     refresh_db_gauges,
 )
 from backend.routers.access import access_router
+from backend.routers.admin import admin_router
 from backend.routers.auth_config import auth_config_router
 from backend.routers.campgrounds import campground_router
 from backend.routers.health import health_router
@@ -89,6 +90,7 @@ API_ROUTERS: list[APIRouter] = [
     provider_router,
     scan_router,
     me_router,
+    admin_router,
 ]
 
 for router in API_ROUTERS:

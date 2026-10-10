@@ -83,6 +83,13 @@ tasks:
       - test ! -f .pre-commit-config.yaml
     deps: [pre-commit-install]
 
+  admin:provision:
+    desc: Provision an Administrator by User UUID
+    cmds:
+      - task: backend:admin:provision
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
   dev:
     desc: Run Full Stack Development (Backend + Frontend)
     deps: ["frontend:dev", "backend:dev"]

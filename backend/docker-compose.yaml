@@ -5,8 +5,6 @@ volumes:
     driver: local
   prometheus_data:
     driver: local
-  grafana_data:
-    driver: local
 
 services:
   valkey:
@@ -56,6 +54,8 @@ services:
       CAMPLY_AUTH0_CLIENT_ID: ${CAMPLY_AUTH0_CLIENT_ID:-}
       PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
       CAMPLY_PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
+      CAMPLY_VALKEY_URL: "redis://valkey:6379/0"
+      CAMPLY_PROMETHEUS_URL: "http://prometheus:9090"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
@@ -167,32 +167,4 @@ services:
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
-    restart: unless-stopped
-
-  grafana:
-    image: grafana/grafana:latest
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-camply}
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-q",
-          "-O",
-          "/dev/null",
-          "http://localhost:3000/api/health",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - grafana_data:/var/lib/grafana
     restart: unless-stopped

@@ -21,7 +21,7 @@ The owner selects `none`, `session`, or `auth0` with `CAMPLY_AUTH_MODE`, indepen
 - **Password sessions (`session`)**: the app posts username/password JSON to `POST /api/login`. The response contains the profile and sets a signed HTTP-only session cookie plus a CSRF cookie. The frontend confirms the cookie with `GET /api/me` before opening the dashboard; rejected cookies keep the user on the login form with setup guidance. Scan queries do not automatically retry 401/403 responses. A scan query's 401 clears the cached profile and scans, cancels any profile refresh, and returns the user to sign-in. Mutations require `X-CSRF-Token` matching the signed session. `POST /api/logout` clears the cookies. The shared account has no signup. Cookies have an absolute lifetime, and credential/secret changes invalidate them.
 - **Auth0 (`auth0`)**: requests require an RS256 bearer token validated against issuer and API audience. Users are provisioned by subject on first access. The application starts sign-in on `/auth` and uses the Auth0 SDK.
 - **`GET /api/auth-config`**: public configuration returns `auth_mode`, `auth0_domain`, `auth0_client_id`, `auth0_audience`, `auto_login`, `signup_enabled`, and `invite_only`. The React SDK requests the returned audience. Auth0 mode must supply domain, audience, and client ID.
-- **`GET /api/me`**: the profile exposes `is_invited`. The existing database column remains `is_early_access_user` for compatibility with stored data.
+- **`GET /api/me`**: the profile exposes `is_invited`, `is_admin`, and `scanning_enabled`. The existing database column remains `is_early_access_user` for compatibility with stored data.
 
 ### 2. Optional invite-only guard
 
@@ -48,7 +48,7 @@ The owner selects `none`, `session`, or `auth0` with `CAMPLY_AUTH_MODE`, indepen
 
 ### 2. User & Profile (Auth-Required)
 
-- **`GET /api/me`**: Get current user profile and whitelist status.
+- **`GET /api/me`**: Get current user profile, invitation status, administrator role, and scanning eligibility.
 - **`PATCH /api/me`**: Update user-specific settings (e.g., `pushover_token`).
 
 ### 3. Scan Management (Auth-Required + Optional Invitation)
@@ -60,6 +60,22 @@ The owner selects `none`, `session`, or `auth0` with `CAMPLY_AUTH_MODE`, indepen
 - **`GET /api/scans/{id}`**: Detailed view of a scan, including recent `scan_results`.
 - **`PATCH /api/scans/{id}`**: Update scan filters (`min_stay_length`, `preferred_types`, `require_electric`) or toggle `is_active`.
 - **`DELETE /api/scans/{id}`**: Unsubscribe from a scan (returns `204 No Content`).
+
+### 4. Administration & Operations (Admin-Only)
+
+- **`GET /api/admin/overview`**: Summary counts (users, active scans, targets, 24h results).
+- **`GET /api/admin/users`**: List users with scanning status, scan counts, pagination, and search.
+- **`GET /api/admin/users/{id}`**: User detail with scans and audit history.
+- **`PATCH /api/admin/users/{id}`**: Update user status (e.g., toggle `scanning_enabled`).
+- **`GET /api/admin/scans`**: List all system scans with filters and pagination.
+- **`GET /api/admin/scans/{id}`**: Scan detail including target and subscriber info.
+- **`PATCH /api/admin/scans/{id}`**: Update scan status (e.g., toggle `is_active`).
+- **`GET /api/admin/targets/{id}`**: Shared target detail and subscribers.
+- **`GET /api/admin/audit`**: Immutable admin audit event log with pagination.
+- **`GET /api/admin/operations`**: Celery worker states, queue depth, discovery metadata, and recent tasks.
+- **`GET /api/admin/operations/tasks`**: Paginated Valkey telemetry stream for recent task executions.
+- **`GET /api/admin/operations/tasks/{task_id}`**: Detailed telemetry for a single task execution.
+- **`GET /api/admin/trends`**: Server-side Prometheus query proxy for `usage`, `api`, `worker`, and `provider` metrics across `24h`, `7d`, `30d`.
 
 ---
 
@@ -133,19 +149,32 @@ class ScanResultItem(BaseModel):
 
 ## 🗺️ Endpoint Summary
 
-| Method | Path                                        | Auth | Invitation (when enabled) | Purpose                      |
-| ------ | ------------------------------------------- | ---- | ------------------------- | ---------------------------- |
-| GET    | `/api/search?query=`                        | —    | —                         | Search campgrounds/rec areas |
-| GET    | `/api/providers`                            | —    | —                         | List providers               |
-| GET    | `/api/provider/{id}`                        | —    | —                         | Single provider              |
-| GET    | `/api/campground/{provider}/{id}`           | —    | —                         | Single campground            |
-| GET    | `/api/rec-area/{provider}/{id}`             | —    | —                         | Single rec area              |
-| GET    | `/api/rec-area/{provider}/{id}/campgrounds` | —    | —                         | Campgrounds in rec area      |
-| GET    | `/api/me`                                   | ✓    | —                         | Current user profile         |
-| PATCH  | `/api/me`                                   | ✓    | —                         | Update profile               |
-| GET    | `/api/scans`                                | ✓    | ✓                         | List user scans              |
-| POST   | `/api/scans`                                | ✓    | ✓                         | Create scan                  |
-| GET    | `/api/scans/{id}`                           | ✓    | ✓                         | Scan detail                  |
-| PATCH  | `/api/scans/{id}`                           | ✓    | ✓                         | Update scan                  |
-| DELETE | `/api/scans/{id}`                           | ✓    | ✓                         | Delete scan                  |
-| GET    | `/api/health`                               | —    | —                         | Health check                 |
+| Method | Path                                        | Auth      | Invitation (when enabled) | Purpose                       |
+| ------ | ------------------------------------------- | --------- | ------------------------- | ----------------------------- |
+| GET    | `/api/search?query=`                        | —         | —                         | Search campgrounds/rec areas  |
+| GET    | `/api/providers`                            | —         | —                         | List providers                |
+| GET    | `/api/provider/{id}`                        | —         | —                         | Single provider               |
+| GET    | `/api/campground/{provider}/{id}`           | —         | —                         | Single campground             |
+| GET    | `/api/rec-area/{provider}/{id}`             | —         | —                         | Single rec area               |
+| GET    | `/api/rec-area/{provider}/{id}/campgrounds` | —         | —                         | Campgrounds in rec area       |
+| GET    | `/api/me`                                   | ✓         | —                         | Current user profile          |
+| PATCH  | `/api/me`                                   | ✓         | —                         | Update profile                |
+| GET    | `/api/scans`                                | ✓         | ✓                         | List user scans               |
+| POST   | `/api/scans`                                | ✓         | ✓                         | Create scan                   |
+| GET    | `/api/scans/{id}`                           | ✓         | ✓                         | Scan detail                   |
+| PATCH  | `/api/scans/{id}`                           | ✓         | ✓                         | Update scan                   |
+| DELETE | `/api/scans/{id}`                           | ✓         | ✓                         | Delete scan                   |
+| GET    | `/api/health`                               | —         | —                         | Health check                  |
+| GET    | `/api/admin/overview`                       | ✓ (Admin) | —                         | Admin KPI overview            |
+| GET    | `/api/admin/users`                          | ✓ (Admin) | —                         | List users with status        |
+| GET    | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | User details and audit        |
+| PATCH  | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | Update user (toggle scanning) |
+| GET    | `/api/admin/scans`                          | ✓ (Admin) | —                         | List all system scans         |
+| GET    | `/api/admin/scans/{id}`                     | ✓ (Admin) | —                         | Scan detail and target info   |
+| PATCH  | `/api/admin/scans/{id}`                     | ✓ (Admin) | —                         | Update scan (toggle active)   |
+| GET    | `/api/admin/targets/{id}`                   | ✓ (Admin) | —                         | Shared target detail          |
+| GET    | `/api/admin/audit`                          | ✓ (Admin) | —                         | Immutable audit event log     |
+| GET    | `/api/admin/operations`                     | ✓ (Admin) | —                         | Celery worker states & queue  |
+| GET    | `/api/admin/operations/tasks`               | ✓ (Admin) | —                         | Valkey telemetry stream       |
+| GET    | `/api/admin/operations/tasks/{id}`          | ✓ (Admin) | —                         | Task execution telemetry      |
+| GET    | `/api/admin/trends`                         | ✓ (Admin) | —                         | Prometheus metrics proxy      |

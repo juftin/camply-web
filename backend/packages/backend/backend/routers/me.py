@@ -30,6 +30,8 @@ async def get_me(current_user: CurrentUserDep) -> MeResponse:
         id=current_user.id,
         email=current_user.email,
         is_invited=current_user.is_invited,
+        is_admin=current_user.is_admin,
+        scanning_enabled=current_user.scanning_enabled,
         pushover_token=current_user.pushover_token,
     )
 
@@ -63,5 +65,7 @@ async def update_me(
         id=user.id,
         email=user.email,
         is_invited=user.is_invited,
+        is_admin=user.is_admin,
+        scanning_enabled=user.scanning_enabled,
         pushover_token=user.pushover_token,
     )

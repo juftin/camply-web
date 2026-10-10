@@ -19,6 +19,15 @@ import { Campground } from "@/pages/Campground";
 import { RecreationArea } from "@/pages/RecreationArea";
 import { ScanDetail } from "@/pages/ScanDetail";
 import { DevPreview } from "@/pages/DevPreview";
+import { AdminRoute } from "@/components/AdminRoute";
+import { AdminOverview } from "@/pages/admin/AdminOverview";
+import { AdminUsers } from "@/pages/admin/AdminUsers";
+import { AdminUserDetail } from "@/pages/admin/AdminUserDetail";
+import { AdminScans } from "@/pages/admin/AdminScans";
+import { AdminScanDetail } from "@/pages/admin/AdminScanDetail";
+import { AdminTargetDetail } from "@/pages/admin/AdminTargetDetail";
+import { AdminOperations } from "@/pages/admin/AdminOperations";
+import { AdminAudit } from "@/pages/admin/AdminAudit";
 import { AuthProvider, AuthConfigContext } from "@/hooks/useAuth";
 import { fetchAuthConfig, type AuthConfig } from "@/lib/api";
 
@@ -77,6 +86,72 @@ function AppRoutes() {
                   element={<RecreationArea />}
                 />
                 <Route path="/dev/preview" element={<DevPreview />} />
+
+                {/* Admin routes */}
+                <Route
+                  path="/admin"
+                  element={
+                    <AdminRoute>
+                      <AdminOverview />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/users"
+                  element={
+                    <AdminRoute>
+                      <AdminUsers />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/users/:userId"
+                  element={
+                    <AdminRoute>
+                      <AdminUserDetail />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/scans"
+                  element={
+                    <AdminRoute>
+                      <AdminScans />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/scans/:scanId"
+                  element={
+                    <AdminRoute>
+                      <AdminScanDetail />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/targets/:targetId"
+                  element={
+                    <AdminRoute>
+                      <AdminTargetDetail />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/operations"
+                  element={
+                    <AdminRoute>
+                      <AdminOperations />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/audit"
+                  element={
+                    <AdminRoute>
+                      <AdminAudit />
+                    </AdminRoute>
+                  }
+                />
               </Routes>
             </Layout>
           }

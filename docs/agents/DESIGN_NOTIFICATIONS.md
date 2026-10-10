@@ -3,6 +3,7 @@
 This document defines the architecture for the notification layer in `camply`, focusing on a standardized interface, multiple provider support, and asynchronous delivery.
 
 ## 🎯 Architecture Goals
+
 1. **Standardization**: All notification channels must implement a unified `BaseNotificationProvider`.
 2. **Asynchronous Delivery**: Notifications are handled by dedicated Celery tasks to avoid blocking the scanning worker.
 3. **User-Centric**: Users can configure their own notification preferences and keys (e.g., Pushover user key, Webhook URL).
@@ -50,13 +51,17 @@ The data structure sent to the notification providers.
 ## 🚀 Notification Workflow
 
 ### 1. Detection
+
 The **Smart Poller** identifies a match between a `ScanResult` and a `UserScan`.
 
 ### 2. Dispatch
+
 The worker enqueues a Celery task: `send_notification_task(user_id, notification_dto)`.
 
 ### 3. Delivery
+
 The `send_notification_task` does the following:
+
 1. Fetches the user's `pushover_token` or other configured provider keys from the DB.
 2. Selects the appropriate `BaseNotificationProvider`.
 3. Calls `provider.send_alert(user_config, notification_dto)`.
@@ -67,24 +72,25 @@ The `send_notification_task` does the following:
 ## 🛠️ Supported Providers (Roadmap)
 
 1. **Pushover (MVP)**:
-   - *Config*: `user_key`
-   - *Status*: High Priority
+   - _Config_: `user_key`
+   - _Status_: High Priority
 2. **Webhooks**:
-   - *Config*: `webhook_url`
-   - *Status*: High Priority (Discord, Slack, etc.)
+   - _Config_: `webhook_url`
+   - _Status_: High Priority (Discord, Slack, etc.)
 3. **Email (SMTP)**:
-   - *Config*: `email_address`
-   - *Status*: Medium Priority
+   - _Config_: `email_address`
+   - _Status_: Medium Priority
 4. **Apprise**:
-   - *Config*: `email_address`
-   - *Status*: Medium Priority (Universal wrapper for 50+ services)
+   - _Config_: `email_address`
+   - _Status_: Medium Priority (Universal wrapper for 50+ services)
 5. **Ntfy**:
-   - *Config*: `topic_url`
-   - *Status*: Medium Priority
+   - _Config_: `topic_url`
+   - _Status_: Medium Priority
 
 ---
 
 ## 🔒 Security & Performance
+
 - **Secrets Management**: User notification tokens must be handled securely in the database.
 - **Rate Limiting**: Implementation of provider-specific rate limiting (e.g., Twilio/SMS limits) to prevent excessive costs or API bans.
 - **Failover**: If a primary notification method fails, we can optionally fall back to a secondary method if configured.

@@ -63,6 +63,16 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 - **Delete**: Each scan card has a delete button (with confirmation via trash icon).
 - **Detail View**: Clicking through from the dashboard is routed to a dedicated detail view.
 
+### 5. Administration & Operations (`/admin/*`)
+
+- **AdminRoute Guard**: Protects `/admin/*` routes, checking `user.is_admin`. Non-admin users are denied access.
+- **Admin Overview (`/admin`)**: Top-level KPI stat cards (users, active scans, targets, 24h results) plus native usage trend charts (`AdminTrendsPanel`).
+- **User Management (`/admin/users`, `/admin/users/:id`)**: Searchable user table, per-user scanning suspension toggle, scan list, and audit trail. Suspended users are clearly badged.
+- **Scan Management (`/admin/scans`, `/admin/scans/:id`)**: System-wide scan table with status filter, active toggle, and links to target and owner details.
+- **Target Detail (`/admin/targets/:id`)**: Shared target inspection displaying provider details, date ranges, and list of all subscribing user scans.
+- **Operations & Health (`/admin/operations`)**: Worker status cards, queue depth, discovery run metadata, recent task execution stream (Valkey telemetry, auto-refreshed every 15s) with task detail dialog, and worker/API/provider performance trend graphs.
+- **Audit Log (`/admin/audit`)**: Immutable log of administrative actions with timestamps, admin email, action type, target ID, and metadata inspector.
+
 ---
 
 ## 🔄 Frontend Architecture (Implemented)
@@ -76,20 +86,28 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 
 ### Key Files
 
-| File                          | Purpose                                                    |
-| ----------------------------- | ---------------------------------------------------------- |
-| `src/main.tsx`                | Root render with `QueryClientProvider` and `ThemeProvider` |
-| `src/App.tsx`                 | Route definitions (root, dashboard, campgrounds, etc.)     |
-| `src/lib/api.ts`              | Axios HTTP client for all backend endpoints                |
-| `src/lib/structs.ts`          | TypeScript interfaces matching backend Pydantic models     |
-| `src/lib/codegen.ts`          | OpenAPI → TypeScript codegen script                        |
-| `src/hooks/useAuth.tsx`       | Auth context provider (current user, login, sign-out)      |
-| `src/hooks/useScans.ts`       | TanStack Query hooks for scan CRUD                         |
-| `src/hooks/useSearch.ts`      | TanStack Query hook for campground search                  |
-| `src/pages/Dashboard.tsx`     | Scan management dashboard                                  |
-| `src/pages/InviteOnly.tsx`    | Optional invitation gate page                              |
-| `src/components/ScanCard.tsx` | Individual scan status card                                |
-| `src/components/ScanForm.tsx` | Dialog-based scan creation form                            |
+| File                                        | Purpose                                                       |
+| ------------------------------------------- | ------------------------------------------------------------- |
+| `src/main.tsx`                              | Root render with `QueryClientProvider` and `ThemeProvider`    |
+| `src/App.tsx`                               | Route definitions (root, dashboard, campgrounds, etc.)        |
+| `src/lib/api.ts`                            | Axios HTTP client for all backend endpoints                   |
+| `src/lib/structs.ts`                        | TypeScript interfaces matching backend Pydantic models        |
+| `src/lib/codegen.ts`                        | OpenAPI → TypeScript codegen script                           |
+| `src/hooks/useAuth.tsx`                     | Auth context provider (current user, login, sign-out)         |
+| `src/hooks/useScans.ts`                     | TanStack Query hooks for scan CRUD                            |
+| `src/hooks/useSearch.ts`                    | TanStack Query hook for campground search                     |
+| `src/pages/Dashboard.tsx`                   | Scan management dashboard                                     |
+| `src/pages/InviteOnly.tsx`                  | Optional invitation gate page                                 |
+| `src/components/ScanCard.tsx`               | Individual scan status card                                   |
+| `src/components/ScanForm.tsx`               | Dialog-based scan creation form                               |
+| `src/components/AdminRoute.tsx`             | Administrator route authorization guard                       |
+| `src/components/AdminNav.tsx`               | Administration tabbed sub-navigation                          |
+| `src/components/admin/AdminTrendsPanel.tsx` | Reusable Recharts metrics visualization with accessible table |
+| `src/pages/admin/AdminOverview.tsx`         | System overview KPIs and usage trend charts                   |
+| `src/pages/admin/AdminUsers.tsx`            | User management and scanning suspension controls              |
+| `src/pages/admin/AdminScans.tsx`            | System scan management and active status toggling             |
+| `src/pages/admin/AdminOperations.tsx`       | Worker health, queue telemetry, and operational trend charts  |
+| `src/pages/admin/AdminAudit.tsx`            | Immutable audit event log inspector                           |
 
 ---
 

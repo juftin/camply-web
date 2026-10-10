@@ -3,7 +3,9 @@
 This document explains the technical implementation and reasoning behind the core scanning engine of `camply`.
 
 ## 🎯 The Problem: API Bans & Inefficiency
+
 In a multi-user system, multiple users often want to watch the same popular campgrounds (e.g., Lower Pines in Yosemite) for the same dates.
+
 - **Legacy Approach**: 10 users = 10 API calls every minute. **Result**: IP ban from Recreation.gov.
 - **Smart Approach**: 10 users = 1 API call every minute. **Result**: High performance and API safety.
 
@@ -17,17 +19,17 @@ graph TD
     B -->|Calculate Hash| C{Unique Target Exists?}
     C -->|No| D[Create New UniqueTarget]
     C -->|Yes| E[Link UserScan to Existing]
-    
+
     F[Celery Beat Scheduler] -->|Every 60s| G[Identify Targets to Check]
     G -->|Enqueue| H[check_target_availability Task]
-    
+
     H -->|Hit Provider API| I[Raw Results]
     I -->|Update Cache| J[scan_results Table]
-    
+
     J -->|New Opening Found| K[Fan-out: Match UserScans]
     K -->|User A matches| L[Enqueue send_notification]
     K -->|User B matches| M[Enqueue send_notification]
-    
+
     L -->|Pushover API| N[User Mobile Alert]
 ```
 
@@ -52,8 +54,8 @@ We separate **Checking** from **Notifying** to ensure high throughput.
 2.  **Standardization**: Raw results are converted into `CampsiteDTO`s.
 3.  **Matching**: The worker queries the `user_scans` table for that `target_id`.
 4.  **Filtering**:
-    - *User A* only wants **Electric** sites.
-    - *User B* wants **any** site but for **3+ nights**.
+    - _User A_ only wants **Electric** sites.
+    - _User B_ wants **any** site but for **3+ nights**.
     - The worker checks the `CampsiteDTO` list against these filters.
 5.  **Individual Alerts**: A user is only alerted if their specific criteria are met, even if other sites are open.
 
@@ -62,6 +64,7 @@ We separate **Checking** from **Notifying** to ensure high throughput.
 ## 🔒 Concurrency & Locking
 
 To prevent race conditions (two workers checking the same park simultaneously):
+
 - We use **Valkey Distributed Locks**.
 - Before a `check_target_availability` task starts, it attempts to acquire a lock: `lock:target_id`.
 - If the lock is held, the task exits immediately.

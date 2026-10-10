@@ -36,7 +36,7 @@ Database config uses `CAMPLY_DB_` prefix (defined in `backend/packages/db/db/con
 | `CAMPLY_DB_HOST`       | Database host/path | `~/.local/share/camply/camply.db` |
 | `CAMPLY_DB_DATABASE`   | Database name      | `camply`                          |
 
-Valkey/Celery config:
+Valkey/Celery & Operations config:
 
 | Variable     | Description                         | Default                    |
 | ------------ | ----------------------------------- | -------------------------- |
@@ -114,6 +114,14 @@ The Python model and API use `is_invited`; its existing database column remains 
 ---
 
 ## 📈 Monitoring & Observability
+
+### Native Admin UI Monitoring (Prometheus-backed)
+
+The Admin UI provides native monitoring dashboards for usage trends, API latency/errors, worker throughput/outcomes, and provider performance, querying an internal Prometheus instance via FastAPI proxy (`GET /api/admin/trends`). Grafana is decommissioned and no longer deployed.
+
+| Variable                | Description                | Default                 |
+| ----------------------- | -------------------------- | ----------------------- |
+| `CAMPLY_PROMETHEUS_URL` | Prometheus server base URL | `http://localhost:9090` |
 
 ### Sentry
 

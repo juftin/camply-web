@@ -113,6 +113,20 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ## 🛠️ Phase 3: Provider Parity & Advanced Features
 
+### Admin UI ✅
+
+Implementation specification and tasks: [Admin UI plan](../../specs/002-admin-ui/plan.md).
+
+- [x] Add administrator authorization and scanning suspension while preserving login and saved scan state.
+- [x] Build user, scan, and shared-target administration with audited changes.
+- [x] Add backend-only, read-only Celery/Valkey visibility and bounded recent task outcomes.
+- [x] Add user, scan, lookup-request, and operational trend graphs through backend Prometheus aggregates.
+- [x] Replace all relevant Grafana dashboard capabilities with native admin monitoring and remove Grafana deployment/provisioning.
+- [x] Build admin frontend routes and verify authorization, suspension, shared targets, and operations outages.
+- [x] Integrate current session/invitation authentication and capture deterministic admin screenshots across desktop/mobile and light/dark views.
+- [x] Integrate pnpm tooling and local Docker session fixes while preserving scan suspension controls.
+- [x] Update architecture documentation and pass implementation quality gates.
+
 ### 3.1 Migration
 
 - [ ] T3.1.1 Migrate `usedirect` (California State Parks, etc.).
@@ -133,7 +147,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 - [ ] T4.1.1 Implement proxy rotation logic for provider requests.
 - [x] T4.1.2 Implement backoff/retry strategy for provider API failures.
-- [x] T4.1.3 Setup Prometheus/Grafana dashboard for scan success metrics.
+- [x] T4.1.3 Setup Prometheus-backed native Admin UI monitoring for scan success metrics (Grafana replaced).
 
 ### 4.2 Deployment
 
