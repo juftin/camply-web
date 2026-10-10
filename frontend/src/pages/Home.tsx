@@ -1,3 +1,4 @@
+import { useAuth } from "@/hooks/useAuth";
 import { MapPin, Clock, Shield, Star, Heart, Tent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +12,7 @@ import { DismissibleBanner } from "@/components/DismissibleBanner";
 import { SearchBar } from "@/components/SearchBar";
 
 export function Home() {
+  const { accountPath } = useAuth();
   return (
     <>
       {/* Development Banner */}
@@ -85,7 +87,7 @@ export function Home() {
           {/* Let's Go Camping CTA */}
           <div className="mt-8">
             <Button size="lg" asChild className="text-lg px-8 py-3">
-              <Link to="/auth?mode=signup">⛺️ Let's Go Camping</Link>
+              <Link to={accountPath}>⛺️ Let's Go Camping</Link>
             </Button>
           </div>
         </div>
@@ -207,7 +209,7 @@ export function Home() {
             .
           </p>
           <Button size="lg" variant="secondary" asChild>
-            <Link to="/auth?mode=signup">Get Started</Link>
+            <Link to={accountPath}>Get Started</Link>
           </Button>
         </div>
       </section>

@@ -24,6 +24,7 @@ This guide walks you through setting up the `camply` development environment.
 2.  **Configure Environment**:
     - Copy `.env.example` to `.env`: `cp .env.example .env`.
     - Adjust any settings as needed (see [docs/CONFIGURATION.md](CONFIGURATION.md)).
+    - Choose `CAMPLY_AUTH_MODE=none` (default automatic admin login), `session` (in-app password login), or `auth0`. The choice is independent of `CAMPLY_ENVIRONMENT`; see CONFIGURATION.md for the required settings.
 
 3.  **Start the Stack**:
 

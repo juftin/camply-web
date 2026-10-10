@@ -3,9 +3,9 @@ Scan management router — ``/api/scans`` endpoints.
 
 All endpoints are auth-gated through the ``CurrentUserDep`` dependency:
 
-* **basic mode** — HTTP Basic Auth required (default).
-* **local mode** — a synthetic admin user is created on first access
-  (configured via ``CAMPLY_ADMIN_EMAIL``).
+* **none mode** — the configured admin is automatically logged in.
+* **session mode** — an in-app password login establishes a session cookie.
+* **invite-only** — uninvited users cannot manage scans when enabled.
 * **auth0 mode** — a valid ``Authorization: Bearer <JWT>`` header is required;
   users are upserted into the database automatically.
 """
@@ -15,12 +15,12 @@ from __future__ import annotations
 import uuid
 
 import structlog
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from backend.auth import CurrentUserDep
+from backend.auth import CurrentUserDep, require_invitation
 from backend.dependencies import SessionDep
 from backend.schemas import (
     ScanCreateRequest,
@@ -46,6 +46,7 @@ logger = structlog.getLogger(__name__)
 scan_router = APIRouter(
     prefix="/scans",
     tags=["scans"],
+    dependencies=[Depends(require_invitation)],
 )
 
 

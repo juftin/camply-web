@@ -134,17 +134,17 @@ const SCENARIOS: Scenario[] = [
   },
   {
     name: "early-access-desktop-light",
-    route: "/early-access",
+    route: "/dashboard",
     viewport: { width: 1280, height: 800 },
     theme: "light",
-    description: "Early access whitelist request gate (Desktop, Light)",
+    description: "Invite-only request gate (Desktop, Light)",
   },
   {
     name: "early-access-mobile-light",
-    route: "/early-access",
+    route: "/dashboard",
     viewport: { width: 390, height: 844 },
     theme: "light",
-    description: "Early access whitelist request gate (Mobile, Light)",
+    description: "Invite-only request gate (Mobile, Light)",
   },
   {
     name: "auth-desktop-light",
@@ -199,7 +199,7 @@ const SCENARIOS: Scenario[] = [
 const MOCK_USER = {
   id: "user-snap-1",
   email: "camper@camply.app",
-  is_early_access_user: true,
+  is_invited: true,
   pushover_token: "mock-token-xyz",
 };
 
@@ -366,16 +366,22 @@ async function ensureServerRunning(): Promise<ChildProcess | null> {
  * ----------
  * page : Page
  *     Playwright page.
- * emptyScans : boolean
- *     Whether to mock empty scan list.
+ * scenario : Scenario
+ *     Auth and scan state needed for the requested snapshot.
  */
-async function setupPageMocks(page: Page, emptyScans = false): Promise<void> {
+async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
+  const invitationRequired = scenario.name.startsWith("early-access-");
+  const signedOut = scenario.route === "/auth";
   await page.route("**/api/auth-config", (route) => {
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        auth_mode: "basic",
+        auth_mode: "session",
+        auth0_audience: null,
+        auto_login: false,
+        signup_enabled: false,
+        invite_only: invitationRequired,
         auth0_domain: null,
         auth0_client_id: null,
       }),
@@ -384,9 +390,9 @@ async function setupPageMocks(page: Page, emptyScans = false): Promise<void> {
 
   await page.route("**/api/me", (route) => {
     route.fulfill({
-      status: 200,
+      status: signedOut ? 401 : 200,
       contentType: "application/json",
-      body: JSON.stringify(MOCK_USER),
+      body: JSON.stringify({ ...MOCK_USER, is_invited: !invitationRequired }),
     });
   });
 
@@ -395,8 +401,8 @@ async function setupPageMocks(page: Page, emptyScans = false): Promise<void> {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        scans: emptyScans ? [] : MOCK_SCANS,
-        total: emptyScans ? 0 : MOCK_SCANS.length,
+        scans: scenario.emptyScans ? [] : MOCK_SCANS,
+        total: scenario.emptyScans ? 0 : MOCK_SCANS.length,
       }),
     });
   });
@@ -476,7 +482,7 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
     { theme: scenario.theme },
   );
 
-  await setupPageMocks(page, scenario.emptyScans);
+  await setupPageMocks(page, scenario);
 
   await page.goto(`${BASE_URL}${scenario.route}`, { waitUntil: "networkidle" });
 
