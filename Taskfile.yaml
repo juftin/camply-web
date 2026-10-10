@@ -95,7 +95,7 @@ tasks:
   compose:up:
     desc: Start All Services in Background with Docker Compose
     cmds:
-      - docker compose up -d {{.CLI_ARGS}}
+      - docker compose up -d --build {{.CLI_ARGS}}
 
   compose:down:
     desc: Stop All Docker Compose Services
