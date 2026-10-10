@@ -35,7 +35,7 @@ class MeResponse(BaseModel):
 
     id: uuid.UUID
     email: str
-    is_early_access_user: bool
+    is_invited: bool
     is_admin: bool = False
     scanning_enabled: bool = True
     pushover_token: Optional[str] = None
@@ -47,6 +47,13 @@ class MeUpdateRequest(BaseModel):
     pushover_token: Optional[str] = None
 
 
+class SessionLoginRequest(BaseModel):
+    """Credentials submitted through the app's shared-account login form."""
+
+    username: str = Field(min_length=1, max_length=255)
+    password: str = Field(min_length=1, max_length=1024, repr=False)
+
+
 # ===========================================================================
 # Access Requests
 # ===========================================================================
@@ -55,7 +62,7 @@ class MeUpdateRequest(BaseModel):
 class AccessRequestCreate(BaseModel):
     """Payload for ``POST /request-access``."""
 
-    email: str = Field(..., description="Email address requesting early access")
+    email: str = Field(..., description="Email address requesting an invitation")
     name: Optional[str] = Field(default=None, description="Optional name")
 
 
@@ -180,7 +187,7 @@ class AdminUserItem(BaseModel):
     id: uuid.UUID
     email: str
     is_admin: bool
-    is_early_access_user: bool
+    is_invited: bool
     scanning_enabled: bool
     has_pushover_token: bool
     total_scans: int
@@ -202,7 +209,7 @@ class AdminUserDetailResponse(BaseModel):
     email: str
     auth0_id: Optional[str] = None
     is_admin: bool
-    is_early_access_user: bool
+    is_invited: bool
     scanning_enabled: bool
     has_pushover_token: bool
     total_scans: int

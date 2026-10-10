@@ -195,7 +195,7 @@ async def list_users(
     session: SessionDep,
     search: Optional[str] = Query(default=None),
     scanning_enabled: Optional[bool] = Query(default=None),
-    is_early_access_user: Optional[bool] = Query(default=None),
+    is_invited: Optional[bool] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ) -> AdminUserListResponse:
@@ -213,8 +213,8 @@ async def list_users(
         )
     if scanning_enabled is not None:
         conditions.append(User.scanning_enabled == scanning_enabled)
-    if is_early_access_user is not None:
-        conditions.append(User.is_early_access_user == is_early_access_user)
+    if is_invited is not None:
+        conditions.append(User.is_invited == is_invited)
 
     stmt = select(User)
     count_stmt = select(func.count(User.id))
@@ -252,7 +252,7 @@ async def list_users(
             id=u.id,
             email=u.email,
             is_admin=u.is_admin,
-            is_early_access_user=u.is_early_access_user,
+            is_invited=u.is_invited,
             scanning_enabled=u.scanning_enabled,
             has_pushover_token=bool(u.pushover_token),
             total_scans=scan_counts.get(u.id, (0, 0))[0],
@@ -298,7 +298,7 @@ async def get_user_detail(
         email=user.email,
         auth0_id=user.auth0_id,
         is_admin=user.is_admin,
-        is_early_access_user=user.is_early_access_user,
+        is_invited=user.is_invited,
         scanning_enabled=user.scanning_enabled,
         has_pushover_token=bool(user.pushover_token),
         total_scans=total_s or 0,
@@ -357,7 +357,7 @@ async def update_user(
         email=user.email,
         auth0_id=user.auth0_id,
         is_admin=user.is_admin,
-        is_early_access_user=user.is_early_access_user,
+        is_invited=user.is_invited,
         scanning_enabled=user.scanning_enabled,
         has_pushover_token=bool(user.pushover_token),
         total_scans=total_s or 0,

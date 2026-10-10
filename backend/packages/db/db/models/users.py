@@ -26,9 +26,10 @@ class User(Base):
     __tablename__ = "users"
 
     def __init__(self, **kwargs: Any) -> None:
+        """Initialize invitation and scanning flags before persistence."""
         kwargs.setdefault("is_admin", False)
         kwargs.setdefault("scanning_enabled", True)
-        kwargs.setdefault("is_early_access_user", False)
+        kwargs.setdefault("is_invited", False)
         super().__init__(**kwargs)
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -36,7 +37,10 @@ class User(Base):
     )
     auth0_id: Mapped[str | None] = mapped_column(String(255), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    is_early_access_user: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_invited: Mapped[bool] = mapped_column(
+        "is_early_access_user", Boolean, default=False
+    )
+    """Invitation eligibility, backed by the existing access column."""
     pushover_token: Mapped[str | None] = mapped_column(String(255))
     is_admin: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=func.false()

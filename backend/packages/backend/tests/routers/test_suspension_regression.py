@@ -45,12 +45,12 @@ class TestSuspensionAndAdminAuth:
             admin_user = User(
                 email=admin_email,
                 is_admin=True,
-                is_early_access_user=True,
+                is_invited=True,
             )
             regular_user = User(
                 email=regular_email,
                 is_admin=False,
-                is_early_access_user=True,
+                is_invited=True,
             )
             session.add_all([admin_user, regular_user])
             await session.commit()
@@ -63,7 +63,7 @@ class TestSuspensionAndAdminAuth:
         app.dependency_overrides[resolve_current_user] = lambda: CurrentUser(
             id=regular_user.id,
             email=regular_email,
-            is_early_access_user=True,
+            is_invited=True,
             is_admin=False,
             scanning_enabled=True,
         )
@@ -76,7 +76,7 @@ class TestSuspensionAndAdminAuth:
         app.dependency_overrides[resolve_current_user] = lambda: CurrentUser(
             id=admin_user.id,
             email=admin_email,
-            is_early_access_user=True,
+            is_invited=True,
             is_admin=True,
             scanning_enabled=True,
         )
@@ -103,7 +103,7 @@ class TestSuspensionAndAdminAuth:
                 email=user_email,
                 is_admin=False,
                 scanning_enabled=False,
-                is_early_access_user=True,
+                is_invited=True,
             )
             session.add(user)
 
@@ -133,7 +133,7 @@ class TestSuspensionAndAdminAuth:
         app.dependency_overrides[resolve_current_user] = lambda: CurrentUser(
             id=user_id,
             email=user_email,
-            is_early_access_user=True,
+            is_invited=True,
             is_admin=False,
             scanning_enabled=False,
         )
@@ -207,7 +207,7 @@ class TestSuspensionAndAdminAuth:
                 email=user_email,
                 is_admin=False,
                 scanning_enabled=True,
-                is_early_access_user=True,
+                is_invited=True,
             )
             session.add(user)
 

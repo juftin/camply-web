@@ -66,7 +66,7 @@ Stores individual site metadata. Populated during scans or full metadata syncs.
 - `id`: `UUID` (Primary Key)
 - `auth0_id`: `String` (Unique)
 - `email`: `String`
-- `is_early_access_user`: `Boolean`
+- `is_invited`: `Boolean` (mapped to the existing `is_early_access_user` database column)
 - `pushover_token`: `String` (Optional)
 
 ### 7. `unique_targets` Table (The "What" - New)

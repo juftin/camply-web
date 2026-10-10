@@ -15,7 +15,7 @@ let mockAuthState: AuthState;
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => mockAuthState,
   AuthProvider: ({ children }: { children: ReactNode }) => children,
-  AuthModeContext: {
+  AuthConfigContext: {
     Provider: ({ children }: { children: ReactNode }) => children,
   },
 }));
@@ -25,14 +25,14 @@ function renderProfile(overrides: Partial<AuthState> = {}) {
     user: {
       id: "test-user-id",
       email: "test@example.com",
-      is_early_access_user: true,
+      is_invited: true,
       is_admin: false,
       scanning_enabled: true,
       pushover_token: "existing-token",
     },
     isLoading: false,
     error: null,
-    isEarlyAccess: true,
+    isInvited: true,
     isAdmin: false,
     isScanningEnabled: true,
     isReady: true,
@@ -40,7 +40,11 @@ function renderProfile(overrides: Partial<AuthState> = {}) {
     updatePushoverToken: vi.fn().mockResolvedValue(undefined),
     signOut: vi.fn(),
     login: vi.fn(),
-    authMode: "basic",
+    authMode: "session",
+    inviteOnly: false,
+    autoLogin: false,
+    signupEnabled: false,
+    accountPath: "/dashboard",
     ...overrides,
   };
 
@@ -70,22 +74,22 @@ describe("Profile", () => {
     expect(input).toHaveValue("existing-token");
   });
 
-  it("shows dashboard link when user is early access", () => {
+  it("shows dashboard link when user is invited", () => {
     renderProfile();
     expect(screen.getByText("Go to Dashboard")).toBeInTheDocument();
   });
 
-  it("shows dashboard link even when user is not early access", () => {
+  it("shows dashboard link even when user is not invited", () => {
     renderProfile({
       user: {
         id: "test-user-id",
         email: "test@example.com",
-        is_early_access_user: false,
+        is_invited: false,
         is_admin: false,
         scanning_enabled: true,
         pushover_token: null,
       },
-      isEarlyAccess: false,
+      isInvited: false,
     });
     expect(screen.getByText("Go to Dashboard")).toBeInTheDocument();
   });
@@ -117,4 +121,11 @@ describe("Profile", () => {
     renderProfile({ user: null, isLoading: false });
     expect(screen.getByText("Not signed in")).toBeInTheDocument();
   });
+});
+
+it("hides sign-out during automatic local login", () => {
+  renderProfile({ autoLogin: true });
+  expect(
+    screen.queryByRole("button", { name: "Sign Out" }),
+  ).not.toBeInTheDocument();
 });

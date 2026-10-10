@@ -168,9 +168,9 @@ def start_metrics_server(port: int = 8001) -> None:
         if _multiproc_dir:
             registry = prometheus_client.CollectorRegistry()
             MultiProcessCollector(registry)
-            prometheus_client.start_http_server(port, registry=registry)
+            prometheus_client.start_http_server(port, addr="0.0.0.0", registry=registry)
         else:
-            prometheus_client.start_http_server(port)
+            prometheus_client.start_http_server(port, addr="0.0.0.0")
         logger.info("Worker metrics server started", port=port)
     except Exception:
         logger.exception("Failed to start worker metrics server", port=port)

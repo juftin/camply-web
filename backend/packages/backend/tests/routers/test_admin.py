@@ -32,7 +32,7 @@ def admin_user_data() -> dict:
         "email": f"admin_test_{u_id.hex[:6]}@camply.local",
         "is_admin": True,
         "scanning_enabled": True,
-        "is_early_access_user": True,
+        "is_invited": True,
     }
 
 
@@ -44,7 +44,7 @@ def regular_user_data() -> dict:
         "email": f"regular_test_{u_id.hex[:6]}@camply.local",
         "is_admin": False,
         "scanning_enabled": True,
-        "is_early_access_user": True,
+        "is_invited": True,
     }
 
 
@@ -53,7 +53,7 @@ def override_admin(admin_user_data: dict) -> Generator[CurrentUser, None, None]:
     curr = CurrentUser(
         id=admin_user_data["id"],
         email=admin_user_data["email"],
-        is_early_access_user=True,
+        is_invited=True,
         is_admin=True,
         scanning_enabled=True,
     )
@@ -67,7 +67,7 @@ def override_non_admin(regular_user_data: dict) -> Generator[CurrentUser, None, 
     curr = CurrentUser(
         id=regular_user_data["id"],
         email=regular_user_data["email"],
-        is_early_access_user=True,
+        is_invited=True,
         is_admin=False,
         scanning_enabled=True,
     )
@@ -192,7 +192,7 @@ class TestAdminEndpoints:
                 email=user_email,
                 pushover_token="secret_token_123",
                 scanning_enabled=True,
-                is_early_access_user=True,
+                is_invited=True,
             )
             session.add(u)
             await session.commit()

@@ -14,9 +14,11 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { submitAccessRequest } from "@/lib/api";
 
-export function EarlyAccess() {
+export function InviteOnly() {
   const { user } = useAuth();
-  const email = user?.email ?? "";
+  const [email, setEmail] = useState(
+    user?.email.includes("@") ? user.email : "",
+  );
 
   const [name, setName] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -64,38 +66,38 @@ export function EarlyAccess() {
               )}
             </div>
             <CardTitle className="text-xl">
-              {submitted ? "You're on the List!" : "Early Access Required"}
+              {submitted ? "You're on the List!" : "Invitation Required"}
             </CardTitle>
             <CardDescription className="text-sm mt-2">
               {submitted
-                ? `Thanks, ${name || email}! We'll notify you when early access becomes available.`
-                : "camply is currently in private beta. Request early access to start monitoring campsites."}
+                ? `Thanks, ${name || email}! Your invitation request has been received.`
+                : "This camply instance is invite-only. Request an invitation to start monitoring campsites."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {submitted ? (
               <div className="rounded-md bg-green-50 dark:bg-green-950 p-4 border border-green-200 dark:border-green-800">
                 <p className="text-sm text-green-800 dark:text-green-200">
-                  We're working hard to get camply ready for you. Check back
-                  soon!
+                  Your request is pending. Check back for access.
                 </p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="space-y-1">
-                  <Label htmlFor="ea-email">Email</Label>
+                  <Label htmlFor="invite-email">Email</Label>
                   <Input
-                    id="ea-email"
+                    id="invite-email"
                     type="email"
                     value={email}
-                    disabled
+                    onChange={(event) => setEmail(event.target.value)}
+                    required
                     className="text-muted-foreground"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="ea-name">Name (optional)</Label>
+                  <Label htmlFor="invite-name">Name (optional)</Label>
                   <Input
-                    id="ea-name"
+                    id="invite-name"
                     placeholder="Your name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}

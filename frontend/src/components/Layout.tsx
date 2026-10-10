@@ -47,9 +47,6 @@ export function Layout({ children }: LayoutProps) {
               </a>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-            © 2025 camply. All rights reserved.
-          </div>
         </div>
       </footer>
     </div>

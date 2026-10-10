@@ -12,7 +12,7 @@ interface HeaderProps {
 export function Header({ showLogo = true }: HeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signupEnabled, autoLogin } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = React.useState(true);
   const [lastScrollY, setLastScrollY] = React.useState(0);
@@ -162,7 +162,7 @@ export function Header({ showLogo = true }: HeaderProps) {
                   <User className="h-4 w-4" />
                 </Button>
               </>
-            ) : (
+            ) : !autoLogin ? (
               <>
                 <Button
                   variant="outline"
@@ -170,11 +170,13 @@ export function Header({ showLogo = true }: HeaderProps) {
                 >
                   Sign In
                 </Button>
-                <Button onClick={() => handleAuthNavigation("signup")}>
-                  Sign Up
-                </Button>
+                {signupEnabled && (
+                  <Button onClick={() => handleAuthNavigation("signup")}>
+                    Sign Up
+                  </Button>
+                )}
               </>
-            )}
+            ) : null}
           </div>
         </div>
       </header>
@@ -258,7 +260,7 @@ export function Header({ showLogo = true }: HeaderProps) {
                       Profile
                     </Button>
                   </>
-                ) : (
+                ) : !autoLogin ? (
                   <>
                     <Button
                       variant="outline"
@@ -269,16 +271,18 @@ export function Header({ showLogo = true }: HeaderProps) {
                     >
                       Sign In
                     </Button>
-                    <Button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        handleAuthNavigation("signup");
-                      }}
-                    >
-                      Sign Up
-                    </Button>
+                    {signupEnabled && (
+                      <Button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          handleAuthNavigation("signup");
+                        }}
+                      >
+                        Sign Up
+                      </Button>
+                    )}
                   </>
-                )}
+                ) : null}
               </div>
             </div>
           </nav>

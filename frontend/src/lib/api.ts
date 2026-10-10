@@ -35,37 +35,26 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const api = axios.create({
   baseURL: apiUrl || "/api",
   timeout: 10000,
+  withCredentials: true,
+  xsrfCookieName: "camply_csrf",
+  xsrfHeaderName: "X-CSRF-Token",
+  withXSRFToken: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
 // ---------------------------------------------------------------------------
-// Auth token interceptor (Basic auth takes priority over Bearer/Auth0)
+// Bearer token interceptor for application sign-in
 // ---------------------------------------------------------------------------
 
 let _getAccessToken: (() => Promise<string | null>) | null = null;
-let _basicAuthHeader: string | null = null;
 
 export function setAccessTokenProvider(fn: () => Promise<string | null>): void {
   _getAccessToken = fn;
 }
 
-/** Store HTTP Basic Auth credentials in memory (cleared on page refresh). */
-export function setBasicAuth(username: string, password: string): void {
-  _basicAuthHeader = `Basic ${btoa(`${username}:${password}`)}`;
-}
-
-/** Clear stored Basic Auth credentials (sign out). */
-export function clearBasicAuth(): void {
-  _basicAuthHeader = null;
-}
-
 api.interceptors.request.use(async (config) => {
-  if (_basicAuthHeader) {
-    config.headers.Authorization = _basicAuthHeader;
-    return config;
-  }
   if (_getAccessToken) {
     try {
       const token = await _getAccessToken();
@@ -95,9 +84,13 @@ export function getApiErrorMessage(error: unknown): string {
 // ---------------------------------------------------------------------------
 
 export interface AuthConfig {
-  auth_mode: "basic" | "auth0";
+  auth_mode: "none" | "session" | "auth0";
   auth0_domain: string | null;
   auth0_client_id: string | null;
+  auth0_audience: string | null;
+  invite_only: boolean;
+  auto_login: boolean;
+  signup_enabled: boolean;
 }
 
 export async function fetchAuthConfig(): Promise<AuthConfig> {
@@ -180,6 +173,29 @@ export async function submitAccessRequest(
     payload,
   );
   return response.data;
+}
+
+/** Sign in and verify that the browser retained the HTTP-only session. */
+export async function loginSession(
+  username: string,
+  password: string,
+): Promise<MeResponse> {
+  await api.post<MeResponse>("/login", { username, password });
+  try {
+    return await getMe();
+  } catch (error) {
+    if (error instanceof AxiosError && error.response?.status === 401) {
+      throw new Error(
+        "Your session cookie could not be verified. Check browser cookie settings and that the frontend and API are served from the same site.",
+      );
+    }
+    throw error;
+  }
+}
+
+/** End the cookie session without storing credentials in the frontend. */
+export async function logoutSession(): Promise<void> {
+  await api.post("/logout");
 }
 
 export async function getMe(): Promise<MeResponse> {

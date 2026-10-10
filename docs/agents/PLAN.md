@@ -12,7 +12,7 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 - **Frontend**: React (TypeScript, Vite, Tailwind CSS + **Shadcn/UI**).
 - **Database**: PostgreSQL (SQLAlchemy + Alembic).
 - **Worker**: Smart **De-duplicated Poller** (Celery + Valkey) for high-frequency scanning without API pressure.
-- **Auth**: Multi-user **Auth0** integration with a **Local DB Whitelist**. Auth0 MUST be toggleable (via `.env`) to support simple local-only self-hosting without external identity providers.
+- **Auth**: Multi-user **Auth0** integration with optional **invite-only access** (`CAMPLY_INVITE_ONLY`). The owner selects `none` (automatic shared-account login), `session` (in-app password login), or `auth0`, independently of the environment. HTTP Basic authentication is unsupported.
 - **Licensing**: Transition to a **Non-Commercial License** (e.g., Polyform Non-Commercial or AGPL with restrictions) to prevent unauthorized paid hosting/monetization.
 - **Notifications**: Initial support for **Pushover** (extensible to Email/Discord).
 
@@ -54,7 +54,7 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 
 **Goal**: Build the "Smart" engine that de-duplicates requests and proves the end-to-end flow.
 
-- [x] **DB Schema**: Design `Users` (with early access flag), `UniqueTargets` (unique definitions), and `UserScans` (user subscriptions).
+- [x] **DB Schema**: Design `Users` (with invitation flag), `UniqueTargets` (unique definitions), and `UserScans` (user subscriptions).
 - [x] **Sentry**: Initialize Sentry SDK for Celery worker; backend Sentry remaining.
 - [x] **Provider Engine**: Define the new `BaseProvider` ABC and migrate `recreation_dot_gov` logic.
 - [x] **Celery Worker**: Implement de-duplicated polling logic in Celery.
@@ -67,7 +67,8 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 
 **Goal**: Enable secure, multi-user management of scans.
 
-- [ ] **Auth0**: Implement login/signup and whitelist verification flow.
+- [x] **Auth0**: Implement login/signup, API audience configuration, and optional invite-only enforcement.
+- [ ] **Invitations**: Implement approval/revocation, verified identity matching, and notification delivery.
 - [ ] **Scan Management**: Build a dashboard to create, pause, and delete user-specific scans.
 - [ ] **Frontend Refactor**: Update `package.json` scripts and dependency management.
 - [ ] **Dockerization**: Update `docker-compose.yaml` and `Dockerfile` for optimized frontend builds.
@@ -108,5 +109,6 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 3. [x] **API Scaffolding**: Setup OpenAPI client generation in the frontend.
 4. [x] **API Endpoints**: FastAPI scan/search/me CRUD endpoints.
 5. [x] **Dashboard UI**: Scan management dashboard with creation, toggling, and deletion.
-6. [ ] **Auth0 Integration**: Wire up production Auth0 JWT validation and profile pages.
-7. [ ] **Provider Parity**: Port remaining providers (usedirect, xanterra)."}]}
+6. [x] **Auth0 Integration**: Wire up JWT validation, API audience, and profile pages.
+7. [ ] **Invitation Workflow**: Implement approval/revocation and notification delivery.
+8. [ ] **Provider Parity**: Port remaining providers (usedirect, xanterra)."}]}

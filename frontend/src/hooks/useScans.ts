@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import {
   listScans,
   createScan,
@@ -15,6 +16,17 @@ import type {
   ScanListResponse,
 } from "@/lib/structs";
 
+/** Retry transient failures once; authentication and access denial need user action. */
+function retryScanQuery(failureCount: number, error: Error): boolean {
+  if (
+    error instanceof AxiosError &&
+    (error.response?.status === 401 || error.response?.status === 403)
+  ) {
+    return false;
+  }
+  return failureCount < 1;
+}
+
 // ---------------------------------------------------------------------------
 // List scans
 // ---------------------------------------------------------------------------
@@ -27,6 +39,7 @@ export function useScans(params?: {
   return useQuery<ScanListResponse>({
     queryKey: ["scans", "list", params],
     queryFn: () => listScans(params),
+    retry: retryScanQuery,
     staleTime: 30 * 1000, // 30 seconds – scans update frequently
   });
 }
@@ -39,6 +52,7 @@ export function useScanDetail(scanId: string | null) {
   return useQuery<ScanDetailResponse>({
     queryKey: ["scans", "detail", scanId],
     queryFn: () => getScan(scanId!),
+    retry: retryScanQuery,
     enabled: scanId !== null,
     staleTime: 15 * 1000,
   });

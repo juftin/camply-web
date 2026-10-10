@@ -55,7 +55,7 @@ export interface Campground {
 export interface MeResponse {
   id: string;
   email: string;
-  is_early_access_user: boolean;
+  is_invited: boolean;
   is_admin: boolean;
   scanning_enabled: boolean;
   pushover_token: string | null;
@@ -144,7 +144,7 @@ export interface AdminUserItem {
   email: string;
   auth0_id: string | null;
   is_admin: boolean;
-  is_early_access_user: boolean;
+  is_invited: boolean;
   scanning_enabled: boolean;
   has_pushover_token: boolean;
   total_scans: number;
@@ -163,7 +163,7 @@ export interface AdminUserDetailResponse {
   email: string;
   auth0_id: string | null;
   is_admin: boolean;
-  is_early_access_user: boolean;
+  is_invited: boolean;
   scanning_enabled: boolean;
   has_pushover_token: boolean;
   total_scans: number;

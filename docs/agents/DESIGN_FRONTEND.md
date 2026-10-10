@@ -38,7 +38,8 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 - **Authentication**: Two modes controlled by backend config:
   - _Local mode_ (default): auto-authenticated, no login required.
   - _Auth0 mode_: `Auth.tsx` handles OAuth redirect flow.
-- **Early Access Check**: Backend verifies `is_early_access_user` flag; unauthorized users are redirected to `EarlyAccess.tsx` (see `Dashboard.tsx` guard logic).
+- **Optional invite-only access**: When enabled, the backend enforces `is_invited` for scan operations. `ProtectedRoute.tsx` shows `InviteOnly.tsx` for uninvited dashboard/scan-detail visitors. Profile access is still allowed.
+- **Mode-aware navigation**: The owner selects authentication independently of the environment. `none` automatically logs in and hides sign-in, signup, and logout. `session` offers an in-app password form with HTTP-only cookie persistence and CSRF headers; no signup. `auth0` offers sign-in/signup and requests the API audience supplied by `/api/auth-config`. Marketing links follow these capabilities. Configuration failures show an error instead of selecting another login mode. HTTP Basic authentication is never used.
 
 ### 2. Main Dashboard (`/dashboard`)
 
@@ -96,11 +97,11 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 | `src/hooks/useScans.ts`                     | TanStack Query hooks for scan CRUD                            |
 | `src/hooks/useSearch.ts`                    | TanStack Query hook for campground search                     |
 | `src/pages/Dashboard.tsx`                   | Scan management dashboard                                     |
-| `src/pages/EarlyAccess.tsx`                 | Early-access gate page                                        |
+| `src/pages/InviteOnly.tsx`                  | Optional invitation gate page                                 |
 | `src/components/ScanCard.tsx`               | Individual scan status card                                   |
 | `src/components/ScanForm.tsx`               | Dialog-based scan creation form                               |
-| `src/components/admin/AdminRoute.tsx`       | Administrator route authorization guard                       |
-| `src/components/admin/AdminNav.tsx`         | Administration tabbed sub-navigation                          |
+| `src/components/AdminRoute.tsx`             | Administrator route authorization guard                       |
+| `src/components/AdminNav.tsx`               | Administration tabbed sub-navigation                          |
 | `src/components/admin/AdminTrendsPanel.tsx` | Reusable Recharts metrics visualization with accessible table |
 | `src/pages/admin/AdminOverview.tsx`         | System overview KPIs and usage trend charts                   |
 | `src/pages/admin/AdminUsers.tsx`            | User management and scanning suspension controls              |

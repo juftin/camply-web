@@ -26,7 +26,7 @@ describe("AdminRoute", () => {
       user: null,
       isLoading: true,
       error: null,
-      isEarlyAccess: false,
+      isInvited: false,
       isAdmin: false,
       isScanningEnabled: true,
       isReady: false,
@@ -34,7 +34,11 @@ describe("AdminRoute", () => {
       updatePushoverToken: vi.fn(),
       signOut: vi.fn(),
       login: vi.fn(),
-      authMode: "basic",
+      authMode: "session",
+      inviteOnly: false,
+      autoLogin: false,
+      signupEnabled: false,
+      accountPath: "/dashboard",
     };
 
     renderAdminRoute();
@@ -46,14 +50,14 @@ describe("AdminRoute", () => {
       user: {
         id: "user-123",
         email: "user@example.com",
-        is_early_access_user: true,
+        is_invited: true,
         is_admin: false,
         scanning_enabled: true,
         pushover_token: null,
       },
       isLoading: false,
       error: null,
-      isEarlyAccess: true,
+      isInvited: true,
       isAdmin: false,
       isScanningEnabled: true,
       isReady: true,
@@ -61,7 +65,11 @@ describe("AdminRoute", () => {
       updatePushoverToken: vi.fn(),
       signOut: vi.fn(),
       login: vi.fn(),
-      authMode: "basic",
+      authMode: "session",
+      inviteOnly: false,
+      autoLogin: false,
+      signupEnabled: false,
+      accountPath: "/dashboard",
     };
 
     renderAdminRoute();
@@ -77,14 +85,14 @@ describe("AdminRoute", () => {
       user: {
         id: "admin-123",
         email: "admin@example.com",
-        is_early_access_user: true,
+        is_invited: true,
         is_admin: true,
         scanning_enabled: true,
         pushover_token: null,
       },
       isLoading: false,
       error: null,
-      isEarlyAccess: true,
+      isInvited: true,
       isAdmin: true,
       isScanningEnabled: true,
       isReady: true,
@@ -92,7 +100,11 @@ describe("AdminRoute", () => {
       updatePushoverToken: vi.fn(),
       signOut: vi.fn(),
       login: vi.fn(),
-      authMode: "basic",
+      authMode: "session",
+      inviteOnly: false,
+      autoLogin: false,
+      signupEnabled: false,
+      accountPath: "/dashboard",
     };
 
     renderAdminRoute();

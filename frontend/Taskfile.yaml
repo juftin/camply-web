@@ -17,8 +17,13 @@ tasks:
   build:
     desc: Build Frontend for Production
     cmds:
-      - npm run build
+      - task: build:static
       - task: docker
+
+  build:static:
+    desc: Build Frontend Assets for Static Hosting
+    cmds:
+      - npm run build
     deps: [install]
 
   lint:
@@ -51,7 +56,7 @@ tasks:
 
   docker:
     desc: Build Docker Image
-    cmd: docker buildx bake --file ../docker-compose.yaml frontend
+    cmd: docker buildx bake --file docker-compose.yaml frontend
     env:
       FRONTEND_VERSION:
         sh: npm pkg get version | jq -r
@@ -65,7 +70,7 @@ tasks:
   test:
     desc: Run Frontend Tests
     cmds:
-      - npm run test:run
+      - npm run test:run {{.CLI_ARGS}}
     deps: [install]
 
   snapshot:

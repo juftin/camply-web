@@ -161,7 +161,7 @@ export function AdminUserDetail() {
                 <span className="text-xs text-muted-foreground block">
                   Early Access User
                 </span>
-                <span>{user.is_early_access_user ? "Yes" : "No"}</span>
+                <span>{user.is_invited ? "Yes" : "No"}</span>
               </div>
               <div>
                 <span className="text-xs text-muted-foreground block">

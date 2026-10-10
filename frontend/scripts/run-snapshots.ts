@@ -15,6 +15,7 @@ import { spawn, type ChildProcess } from "child_process";
 import { chromium, type Browser, type Page } from "@playwright/test";
 import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
+import { setupAdminSnapshotMocks } from "./admin-snapshot-mocks";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -62,6 +63,90 @@ interface SnapshotResult {
  * Standard scenarios covering pages, themes, viewports, and components.
  */
 const SCENARIOS: Scenario[] = [
+  {
+    name: "admin-overview-desktop-light",
+    route: "/admin",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description: "Admin overview with synthetic data (desktop, light)",
+  },
+  {
+    name: "admin-overview-desktop-dark",
+    route: "/admin",
+    viewport: { width: 1280, height: 800 },
+    theme: "dark",
+    description: "Admin overview with synthetic data (desktop, dark)",
+  },
+  {
+    name: "admin-overview-mobile-light",
+    route: "/admin",
+    viewport: { width: 390, height: 844 },
+    theme: "light",
+    description: "Admin overview with synthetic data (mobile, light)",
+  },
+  {
+    name: "admin-users-desktop-light",
+    route: "/admin/users",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description: "Admin users with synthetic data (desktop, light)",
+  },
+  {
+    name: "admin-scans-desktop-light",
+    route: "/admin/scans",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description: "Admin scans with synthetic data (desktop, light)",
+  },
+  {
+    name: "admin-operations-desktop-light",
+    route: "/admin/operations",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description: "Admin operations with synthetic data (desktop, light)",
+  },
+  {
+    name: "admin-operations-desktop-dark",
+    route: "/admin/operations",
+    viewport: { width: 1280, height: 800 },
+    theme: "dark",
+    description: "Admin operations with synthetic data (desktop, dark)",
+  },
+  {
+    name: "admin-operations-mobile-light",
+    route: "/admin/operations",
+    viewport: { width: 390, height: 844 },
+    theme: "light",
+    description: "Admin operations with synthetic data (mobile, light)",
+  },
+  {
+    name: "admin-audit-desktop-light",
+    route: "/admin/audit",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description: "Admin audit with synthetic data (desktop, light)",
+  },
+  {
+    name: "admin-user-detail-desktop-light",
+    route: "/admin/users/user-snap-2",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description: "Admin user detail with synthetic data (desktop, light)",
+  },
+  {
+    name: "admin-scan-detail-desktop-light",
+    route: "/admin/scans/scan-mock-1",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description: "Admin scan detail with synthetic data (desktop, light)",
+  },
+  {
+    name: "admin-target-detail-desktop-light",
+    route: "/admin/targets/target-mock-1",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description: "Admin target detail with synthetic data (desktop, light)",
+  },
   {
     name: "home-desktop-light",
     route: "/",
@@ -134,17 +219,17 @@ const SCENARIOS: Scenario[] = [
   },
   {
     name: "early-access-desktop-light",
-    route: "/early-access",
+    route: "/dashboard",
     viewport: { width: 1280, height: 800 },
     theme: "light",
-    description: "Early access whitelist request gate (Desktop, Light)",
+    description: "Invite-only request gate (Desktop, Light)",
   },
   {
     name: "early-access-mobile-light",
-    route: "/early-access",
+    route: "/dashboard",
     viewport: { width: 390, height: 844 },
     theme: "light",
-    description: "Early access whitelist request gate (Mobile, Light)",
+    description: "Invite-only request gate (Mobile, Light)",
   },
   {
     name: "auth-desktop-light",
@@ -199,7 +284,9 @@ const SCENARIOS: Scenario[] = [
 const MOCK_USER = {
   id: "user-snap-1",
   email: "camper@camply.app",
-  is_early_access_user: true,
+  is_invited: true,
+  is_admin: false,
+  scanning_enabled: true,
   pushover_token: "mock-token-xyz",
 };
 
@@ -366,16 +453,23 @@ async function ensureServerRunning(): Promise<ChildProcess | null> {
  * ----------
  * page : Page
  *     Playwright page.
- * emptyScans : boolean
- *     Whether to mock empty scan list.
+ * scenario : Scenario
+ *     Auth and scan state needed for the requested snapshot.
  */
-async function setupPageMocks(page: Page, emptyScans = false): Promise<void> {
+async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
+  await setupAdminSnapshotMocks(page);
+  const invitationRequired = scenario.name.startsWith("early-access-");
+  const signedOut = scenario.route === "/auth";
   await page.route("**/api/auth-config", (route) => {
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        auth_mode: "basic",
+        auth_mode: "session",
+        auth0_audience: null,
+        auto_login: false,
+        signup_enabled: false,
+        invite_only: invitationRequired,
         auth0_domain: null,
         auth0_client_id: null,
       }),
@@ -384,9 +478,13 @@ async function setupPageMocks(page: Page, emptyScans = false): Promise<void> {
 
   await page.route("**/api/me", (route) => {
     route.fulfill({
-      status: 200,
+      status: signedOut ? 401 : 200,
       contentType: "application/json",
-      body: JSON.stringify(MOCK_USER),
+      body: JSON.stringify({
+        ...MOCK_USER,
+        is_invited: !invitationRequired,
+        is_admin: scenario.route.startsWith("/admin"),
+      }),
     });
   });
 
@@ -395,8 +493,8 @@ async function setupPageMocks(page: Page, emptyScans = false): Promise<void> {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        scans: emptyScans ? [] : MOCK_SCANS,
-        total: emptyScans ? 0 : MOCK_SCANS.length,
+        scans: scenario.emptyScans ? [] : MOCK_SCANS,
+        total: scenario.emptyScans ? 0 : MOCK_SCANS.length,
       }),
     });
   });
@@ -463,7 +561,12 @@ async function setupPageMocks(page: Page, emptyScans = false): Promise<void> {
  */
 async function preparePage(page: Page, scenario: Scenario): Promise<void> {
   await page.setViewportSize(scenario.viewport);
-  await page.emulateMedia({ colorScheme: scenario.theme });
+  await page.emulateMedia({
+    colorScheme: scenario.theme,
+    reducedMotion: scenario.route.startsWith("/admin")
+      ? "reduce"
+      : "no-preference",
+  });
 
   // Set theme via localStorage and DOM initialization
   await page.addInitScript(
@@ -476,7 +579,7 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
     { theme: scenario.theme },
   );
 
-  await setupPageMocks(page, scenario.emptyScans);
+  await setupPageMocks(page, scenario);
 
   await page.goto(`${BASE_URL}${scenario.route}`, { waitUntil: "networkidle" });
 
@@ -506,6 +609,12 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
     } catch {
       // Continue if selector is not found within timeout
     }
+  }
+
+  if (scenario.route.startsWith("/admin")) {
+    await page.waitForFunction(
+      () => document.querySelectorAll(".animate-spin").length === 0,
+    );
   }
 
   // Settle time for layout rendering
@@ -823,7 +932,7 @@ async function main(): Promise<void> {
       ],
     });
 
-    const context = await browser.newContext();
+    const context = await browser.newContext({ timezoneId: "UTC" });
     const page = await context.newPage();
 
     const results: SnapshotResult[] = [];

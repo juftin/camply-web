@@ -29,7 +29,7 @@ def admin_user() -> Generator[CurrentUser, None, None]:
     curr = CurrentUser(
         id=uuid.uuid4(),
         email="ops_admin@camply.local",
-        is_early_access_user=True,
+        is_invited=True,
         is_admin=True,
         scanning_enabled=True,
     )
@@ -43,7 +43,7 @@ def non_admin_user() -> Generator[CurrentUser, None, None]:
     curr = CurrentUser(
         id=uuid.uuid4(),
         email="regular@camply.local",
-        is_early_access_user=True,
+        is_invited=True,
         is_admin=False,
         scanning_enabled=True,
     )

@@ -1,8 +1,11 @@
 import * as React from "react";
 import { TentTree } from "lucide-react";
-import { useAuth0 } from "@auth0/auth0-react";
 import { AxiosError } from "axios";
 import { useQueryClient } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { loginSession, getApiErrorMessage } from "@/lib/api";
+import { useAuth0 } from "@auth0/auth0-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,24 +14,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { Link, useSearchParams, useNavigate, Navigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  getMe,
-  setBasicAuth,
-  clearBasicAuth,
-  getApiErrorMessage,
-} from "@/lib/api";
-
 function Auth0Content() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { loginWithRedirect } = useAuth0();
-  const { isReady, user } = useAuth();
-  const isSignUp = searchParams.get("mode") === "signup";
+  const { isReady, user, signupEnabled } = useAuth();
+  const isSignUp = signupEnabled && searchParams.get("mode") === "signup";
 
   // Redirect authenticated users to dashboard.
   React.useEffect(() => {
@@ -88,19 +82,21 @@ function Auth0Content() {
                 {isSignUp ? "Create Account" : "Sign In"}
               </Button>
 
-              <div className="mt-6 text-center">
-                <span className="text-muted-foreground">
-                  {isSignUp
-                    ? "Already have an account?"
-                    : "Don't have an account?"}
-                </span>{" "}
-                <Link
-                  to={isSignUp ? "/auth" : "/auth?mode=signup"}
-                  className="text-primary hover:text-primary/80 font-medium"
-                >
-                  {isSignUp ? "Sign in" : "Sign up"}
-                </Link>
-              </div>
+              {signupEnabled && (
+                <div className="mt-6 text-center">
+                  <span className="text-muted-foreground">
+                    {isSignUp
+                      ? "Already have an account?"
+                      : "Don't have an account?"}
+                  </span>{" "}
+                  <Link
+                    to={isSignUp ? "/auth" : "/auth?mode=signup"}
+                    className="text-primary hover:text-primary/80 font-medium"
+                  >
+                    {isSignUp ? "Sign in" : "Sign up"}
+                  </Link>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -120,7 +116,7 @@ function Auth0Content() {
   );
 }
 
-function BasicContent() {
+function SessionContent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isReady, user, isLoading } = useAuth();
@@ -145,13 +141,11 @@ function BasicContent() {
     const password = (form.elements.namedItem("password") as HTMLInputElement)
       .value;
 
-    setBasicAuth(username, password);
-
     try {
-      await queryClient.fetchQuery({ queryKey: ["me"], queryFn: getMe });
+      const profile = await loginSession(username, password);
+      queryClient.setQueryData(["me"], profile);
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      clearBasicAuth();
       const axiosError = err as AxiosError;
       if (axiosError?.response?.status === 401) {
         setLoginError("Invalid username or password.");
@@ -236,10 +230,9 @@ function BasicContent() {
 }
 
 export function Auth() {
-  const { authMode } = useAuth();
+  const { authMode, autoLogin } = useAuth();
 
-  if (authMode === "auth0") {
-    return <Auth0Content />;
-  }
-  return <BasicContent />;
+  if (autoLogin) return <Navigate to="/dashboard" replace />;
+
+  return authMode === "session" ? <SessionContent /> : <Auth0Content />;
 }

@@ -21,7 +21,8 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 
 export function Profile() {
-  const { user, isLoading, updatePushoverToken, signOut } = useAuth();
+  const { user, isLoading, updatePushoverToken, signOut, autoLogin } =
+    useAuth();
   const navigate = useNavigate();
 
   const [pushoverKey, setPushoverKey] = useState(user?.pushover_token ?? "");
@@ -142,14 +143,16 @@ export function Profile() {
               </Link>
             </Button>
 
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={handleSignOut}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+            {!autoLogin && (
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

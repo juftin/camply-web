@@ -34,6 +34,7 @@ export function Dashboard() {
     isLoading: authLoading,
     updatePushoverToken,
     signOut,
+    autoLogin,
   } = useAuth();
 
   const {
@@ -135,10 +136,12 @@ export function Dashboard() {
             <Settings className="h-4 w-4 mr-1" />
             Settings
           </Button>
-          <Button variant="ghost" size="sm" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-1" />
-            Sign Out
-          </Button>
+          {!autoLogin && (
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-1" />
+              Sign Out
+            </Button>
+          )}
         </div>
       </div>
 

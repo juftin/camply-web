@@ -1,3 +1,4 @@
+import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { Mountain, Heart, Compass, ArrowRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/card";
 
 export function Ethos() {
+  const { accountPath } = useAuth();
   return (
     <div className="container mx-auto py-12 px-4 max-w-6xl">
       {/* Hero Section */}
@@ -130,12 +132,12 @@ export function Ethos() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground mb-4">
-                camply will never be sold, never have ads, and never charge for
-                basic functionality. We're committed to keeping outdoor access
+                camply will never be sold, never charge you, and never advantage
+                one user over another. We're committed to keeping outdoor access
                 free for everyone.
               </p>
               <p className="text-muted-foreground">
-                Our code is open source, our finances are transparent, and our
+                Our code is open source, our intentions are clear, and our
                 decisions are made with the community in mind.
               </p>
             </CardContent>
@@ -233,7 +235,7 @@ export function Ethos() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" asChild>
-                <Link to="/auth?mode=signup">
+                <Link to={accountPath}>
                   Start Camping
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Link>
