@@ -77,8 +77,12 @@ const user = {
   pushover_token: null,
 };
 
+function appPath(path: string): string {
+  return `${import.meta.env.BASE_URL.replace(/\/$/, "")}${path}`;
+}
+
 function renderApp(config: AuthConfig = localConfig, path = "/") {
-  window.history.replaceState({}, "", path);
+  window.history.replaceState({}, "", appPath(path));
   vi.mocked(fetchAuthConfig).mockResolvedValue(config);
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -123,7 +127,7 @@ describe("Application authentication", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Get Started" })).toHaveAttribute(
       "href",
-      "/dashboard",
+      appPath("/dashboard"),
     );
   });
 
@@ -153,7 +157,11 @@ describe("Application authentication", () => {
     const calls = vi.mocked(Auth0Provider).mock.calls;
     const props = calls[calls.length - 1][0];
     expect(props).toMatchObject({
-      authorizationParams: { audience: auth0Config.auth0_audience },
+      authorizationParams: {
+        audience: auth0Config.auth0_audience,
+        redirect_uri: new URL(import.meta.env.BASE_URL, window.location.origin)
+          .href,
+      },
     });
   });
 
@@ -161,7 +169,7 @@ describe("Application authentication", () => {
     vi.mocked(getMe).mockResolvedValue({ ...user, is_invited: true });
     renderApp({ ...localConfig, auto_login: true }, "/auth?mode=signup");
     await screen.findByText("Scan dashboard");
-    expect(window.location.pathname).toBe("/dashboard");
+    expect(window.location.pathname).toBe(appPath("/dashboard"));
     expect(
       screen.queryByRole("button", { name: "Sign In" }),
     ).not.toBeInTheDocument();
@@ -175,7 +183,7 @@ describe("Application authentication", () => {
     renderApp({ ...localConfig, auto_login: true });
     expect(
       await screen.findByRole("link", { name: "Get Started" }),
-    ).toHaveAttribute("href", "/dashboard");
+    ).toHaveAttribute("href", appPath("/dashboard"));
   });
 
   it.each(["/dashboard", "/dashboard/scans/test"])(
@@ -215,7 +223,7 @@ describe("Application authentication", () => {
   it("redirects signed-out protected-route visitors to sign-in", async () => {
     renderApp(auth0Config, "/dashboard");
     await screen.findByText("Sign in to your camply account");
-    expect(window.location.pathname).toBe("/auth");
+    expect(window.location.pathname).toBe(appPath("/auth"));
   });
 
   it("does not fall back to Basic login when config loading fails", async () => {

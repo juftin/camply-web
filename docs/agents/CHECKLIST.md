@@ -64,6 +64,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T2.1.3 Configure Auth0 frontend integration with the backend API audience and mode-aware signup.
 - [x] T2.1.4 Build the User Profile page for Pushover key management.
 - [x] T2.1.7 Add in-app shared-account login/logout with signed, expiring HTTP-only cookies and CSRF protection; remove Basic credentials, challenges, and configuration.
+- [x] T2.1.8 Verify auth navigation and Auth0 callback URLs with both root and repository-subpath base URLs, including the GitHub CI environment.
 
 ### 2.2 Access Control
 
