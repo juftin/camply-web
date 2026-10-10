@@ -48,7 +48,7 @@ export interface AuthState {
 // Auth mode context (set by App.tsx based on backend /api/auth-config)
 // ---------------------------------------------------------------------------
 
-/* eslint-disable-next-line react-refresh/only-export-components */
+/* oxlint-disable-next-line react/only-export-components */
 export const AuthConfigContext = createContext<AuthConfig>({
   auth_mode: "none",
   auth0_domain: null,
@@ -63,7 +63,7 @@ export const AuthConfigContext = createContext<AuthConfig>({
 // Internal context
 // ---------------------------------------------------------------------------
 
-/* eslint-disable-next-line react-refresh/only-export-components */
+/* oxlint-disable-next-line react/only-export-components */
 export const AuthContext = createContext<AuthState | null>(null);
 
 // ---------------------------------------------------------------------------
@@ -318,7 +318,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 // Hook
 // ---------------------------------------------------------------------------
 
-/* eslint-disable-next-line react-refresh/only-export-components */
+/* oxlint-disable-next-line react/only-export-components */
 export function useAuth(): AuthState {
   const ctx = useContext(AuthContext);
   if (!ctx) {

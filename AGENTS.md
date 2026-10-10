@@ -54,7 +54,7 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
 - **Worker**: Smart De-duplicated Poller (Celery + Valkey).
 - **Infrastructure**: Docker & Docker Compose.
 - **API**: OpenAPI with automated TypeScript client generation.
-- **Quality Gates**: `mypy`, `tsc`, `ruff`, `eslint`, `pytest`, `vitest`.
+- **Quality Gates**: `mypy`, native TypeScript 7, `ruff`, `oxlint`, `oxfmt`, `pytest`, `vitest`.
 
 ## 🌳 Working with Git Worktrees
 
@@ -84,7 +84,7 @@ All commands use `go-task` (`Taskfile.yaml`) for consistent execution.
   - `task backend:dev`: Run just the backend API in debug mode.
   - `task frontend:dev`: Run just the frontend Vite server.
 - **Code Quality**:
-  - `task fix`: Automatically fix issues with linters and formatters (`ruff`, `eslint`, `prettier`).
+  - `task fix`: Automatically fix issues with linters and formatters (`ruff`, `oxlint`, `oxfmt`).
   - `task lint`: Run linters across the codebase.
   - `task check`: Run static type checking (`mypy` for backend, `tsc` for frontend).
 
