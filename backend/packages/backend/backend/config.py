@@ -50,8 +50,6 @@ class BackendConfig(BaseSettings):
     """Absolute cookie-session lifetime in seconds (12 hours by default)."""
     session_cookie_secure: bool = True
     """Require HTTPS for session cookies; disable explicitly for local HTTP."""
-    allowed_origins: list[str] = ["http://localhost:5173", "https://camply.juftin.dev"]
-    """Frontend origins allowed for CORS and in-app login requests."""
 
     # Sentry
     sentry_dsn: Optional[str] = None
@@ -59,6 +57,17 @@ class BackendConfig(BaseSettings):
 
     # Prometheus multiprocess
     prometheus_multiproc_dir: Optional[str] = None
+
+    # CORS
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "https://camply.juftin.dev",
+    ]
+    """Allowed CORS origins list."""
+    cors_origin_regex: Optional[str] = (
+        r"^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|100\.\d{1,3}\.\d{1,3}\.\d{1,3}|.*\.ts\.net)(:\d+)?$"
+    )
+    """Regex pattern for allowed CORS origins (supports localhost and Tailscale IPs/domains)."""
 
     @property
     def auto_login(self) -> bool:

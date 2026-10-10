@@ -1,5 +1,6 @@
 """In-app shared-account login and cookie-session logout."""
 
+import re
 import secrets
 import time
 
@@ -31,7 +32,11 @@ def require_trusted_origin(request: Request) -> None:
     if (
         origin
         and origin != same_origin
-        and origin not in backend_config.allowed_origins
+        and origin not in backend_config.cors_origins
+        and not (
+            backend_config.cors_origin_regex
+            and re.fullmatch(backend_config.cors_origin_regex, origin)
+        )
     ):
         raise HTTPException(status_code=403, detail="Untrusted login origin")
 

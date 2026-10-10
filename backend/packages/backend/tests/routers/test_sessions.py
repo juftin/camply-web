@@ -128,6 +128,22 @@ def test_login_rejects_untrusted_origin(
     assert response.status_code == 403
 
 
+@pytest.mark.parametrize(
+    "origin",
+    ["http://localhost:5173", "http://100.85.12.34:5173", "https://camply.ts.net"],
+)
+def test_login_accepts_cors_origins(
+    session_mode: None, test_client: TestClient, origin: str
+) -> None:
+    """Password login accepts the same explicit and regex origins as CORS."""
+    response = test_client.post(
+        "/api/login",
+        headers={"Origin": origin},
+        json={"username": "test-admin", "password": "synthetic-test-password"},
+    )
+    assert response.status_code == 200
+
+
 @pytest.mark.parametrize("environment", ["local", "production"])
 def test_explicit_auto_login_ignores_environment(
     test_client: TestClient, monkeypatch: pytest.MonkeyPatch, environment: str

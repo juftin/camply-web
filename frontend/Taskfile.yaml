@@ -51,7 +51,7 @@ tasks:
 
   docker:
     desc: Build Docker Image
-    cmd: docker buildx bake --file ../docker-compose.yaml frontend
+    cmd: docker buildx bake --file docker-compose.yaml frontend
     env:
       FRONTEND_VERSION:
         sh: npm pkg get version | jq -r
@@ -65,5 +65,23 @@ tasks:
   test:
     desc: Run Frontend Tests
     cmds:
-      - npm run test
+      - npm run test:run {{.CLI_ARGS}}
+    deps: [install]
+
+  snapshot:
+    desc: Capture UI Snapshots and Generate Visual Comparison Report
+    cmds:
+      - npm run snapshot
+    deps: [install]
+
+  snapshot:update:
+    desc: Update UI Snapshot Baselines with Current State
+    cmds:
+      - npm run snapshot:update
+    deps: [install]
+
+  snapshot:check:
+    desc: Verify UI Snapshots Match Baseline (Fails on Regressions)
+    cmds:
+      - npm run snapshot:check
     deps: [install]

@@ -46,6 +46,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.4.8 Connect the existing `SearchBar` to the `ScanForm` flow.
 - [x] T1.4.9 Implement the optional invite-only gate UI.
 - [x] T1.4.10 **Testing**: Write backend API tests (`pytest`) and frontend component tests (`vitest`). _(✅ 16 backend + 13 frontend tests passing)_
+- [x] T1.4.11 **UI Snapshots & Feedback Loop**: Implement automated UI snapshot capture, visual diffing, and Markdown/HTML reporting (`task snapshot`, `task snapshot:update`, `task snapshot:check`).
 
 ### 1.5 Governance & Licensing
 

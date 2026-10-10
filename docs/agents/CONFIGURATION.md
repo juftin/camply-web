@@ -20,7 +20,7 @@ They are defined in `backend/packages/backend/backend/config.py` via `pydantic-s
 | `CAMPLY_SESSION_SECRET`            | Cookie signing secret (at least 32 characters)                | `None`                               |
 | `CAMPLY_SESSION_MAX_AGE`           | Absolute session lifetime in seconds                          | `43200`                              |
 | `CAMPLY_SESSION_COOKIE_SECURE`     | Require HTTPS for session cookies                             | `true`                               |
-| `CAMPLY_ALLOWED_ORIGINS`           | JSON list of trusted frontend origins for CORS and login      | localhost:5173 and camply.juftin.dev |
+| `CAMPLY_CORS_ORIGINS`              | JSON list of trusted frontend origins for CORS and login      | localhost:5173 and camply.juftin.dev |
 | `CAMPLY_ADMIN_EMAIL`               | Shared identity for automatic login and password sessions     | `admin@camply.local`                 |
 | `CAMPLY_AUTH0_DOMAIN`              | Auth0 tenant domain (e.g., `dev-xyz.us.auth0.com`)            | `None`                               |
 | `CAMPLY_AUTH0_AUDIENCE`            | Auth0 API Audience/Identifier                                 | `None`                               |
@@ -55,7 +55,7 @@ Every request automatically uses `CAMPLY_ADMIN_EMAIL`. There is no password or l
 
 Set `CAMPLY_AUTH_MODE=session`, `CAMPLY_LOGIN_USERNAME`, `CAMPLY_LOGIN_PASSWORD`, and `CAMPLY_SESSION_SECRET` (at least 32 characters). The app shows a username/password form, posts JSON to `/api/login`, and remembers login through a signed, expiring HTTP-only cookie. No Basic header or browser password prompt is involved. This mode uses the shared admin account and has no signup.
 
-Cookies default to `Secure` and `SameSite=Strict`. For an HTTP-only local setup, explicitly set `CAMPLY_SESSION_COOKIE_SECURE=false`. Serve the frontend and API on the same site (the Vite `/api` proxy supports local development); configure `CAMPLY_ALLOWED_ORIGINS` for your frontend origin. A separate CSRF cookie supplies the request header required for authenticated mutations. Passwords are not retained by the frontend.
+Cookies default to `Secure` and `SameSite=Strict`. For an HTTP-only local setup, explicitly set `CAMPLY_SESSION_COOKIE_SECURE=false`. Serve the frontend and API on the same site (the Vite `/api` proxy supports local development); configure `CAMPLY_CORS_ORIGINS` for your frontend origin. `CAMPLY_CORS_ORIGIN_REGEX` also permits local development and Tailscale origins by default; both CORS and password login use this policy. A separate CSRF cookie supplies the request header required for authenticated mutations. Passwords are not retained by the frontend.
 
 Sessions expire after `CAMPLY_SESSION_MAX_AGE` seconds. Logout removes both session and CSRF cookies. Changing the configured username, password, or signing secret invalidates existing sessions. Cookies are stateless: clearing a browser session does not individually revoke a copied cookie before expiry; individual server-side revocation remains a follow-up.
 

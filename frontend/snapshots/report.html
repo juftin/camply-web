@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Camply UI Snapshot Report</title>
+    <style>
+      :root {
+        --bg: #090d16;
+        --card-bg: #131a29;
+        --text: #f1f5f9;
+        --text-muted: #94a3b8;
+        --border: #1e293b;
+        --accent: #10b981;
+        --warn: #f59e0b;
+        --danger: #ef4444;
+      }
+      body {
+        margin: 0;
+        padding: 2rem;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      .header {
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 1.5rem;
+        margin-bottom: 2rem;
+      }
+      .stats {
+        display: flex;
+        gap: 1.5rem;
+        margin-top: 1rem;
+      }
+      .stat-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+        gap: 1.5rem;
+      }
+      .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .card-header {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .card-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        font-family: monospace;
+      }
+      .card-body {
+        padding: 1rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .img-container {
+        width: 100%;
+        background: #000;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      .img-container img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .status-tag {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+      .status-unchanged {
+        background: rgba(16, 185, 129, 0.2);
+        color: var(--accent);
+      }
+      .status-modified {
+        background: rgba(245, 158, 11, 0.2);
+        color: var(--warn);
+      }
+      .status-new {
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🏕️ Camply UI Snapshot Gallery</h1>
+      <div class="stats">
+        <div class="stat-badge">Total Views: 16</div>
+        <div class="stat-badge" style="color: var(--accent)">
+          ✅ Unchanged: 16
+        </div>
+        <div class="stat-badge" style="color: var(--warn)">⚠️ Modified: 0</div>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">home-desktop-light</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            Home landing page hero, search bar, and features (Desktop, Light)
+          </p>
+          <div class="img-container">
+            <img
+              src="current/home-desktop-light.png"
+              alt="home-desktop-light"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">home-desktop-dark</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            Home landing page hero, search bar, and features (Desktop, Dark)
+          </p>
+          <div class="img-container">
+            <img src="current/home-desktop-dark.png" alt="home-desktop-dark" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">home-mobile-light</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            Home landing page mobile responsive layout (Mobile, Light)
+          </p>
+          <div class="img-container">
+            <img src="current/home-mobile-light.png" alt="home-mobile-light" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">dashboard-desktop-light</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            User dashboard with active scan cards and stat metrics (Desktop,
+            Light)
+          </p>
+          <div class="img-container">
+            <img
+              src="current/dashboard-desktop-light.png"
+              alt="dashboard-desktop-light"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">dashboard-desktop-dark</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            User dashboard with active scan cards and stat metrics (Desktop,
+            Dark)
+          </p>
+          <div class="img-container">
+            <img
+              src="current/dashboard-desktop-dark.png"
+              alt="dashboard-desktop-dark"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">dashboard-mobile-light</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            User dashboard mobile stacked layout (Mobile, Light)
+          </p>
+          <div class="img-container">
+            <img
+              src="current/dashboard-mobile-light.png"
+              alt="dashboard-mobile-light"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">dashboard-empty-desktop-light</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            Dashboard empty state when user has zero active scans (Desktop,
+            Light)
+          </p>
+          <div class="img-container">
+            <img
+              src="current/dashboard-empty-desktop-light.png"
+              alt="dashboard-empty-desktop-light"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">scan-form-dialog-desktop-light</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            Create New Scan modal dialog open with form inputs (Desktop, Light)
+          </p>
+          <div class="img-container">
+            <img
+              src="current/scan-form-dialog-desktop-light.png"
+              alt="scan-form-dialog-desktop-light"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">early-access-desktop-light</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            Invite-only request gate (Desktop, Light)
+          </p>
+          <div class="img-container">
+            <img
+              src="current/early-access-desktop-light.png"
+              alt="early-access-desktop-light"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">early-access-mobile-light</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            Invite-only request gate (Mobile, Light)
+          </p>
+          <div class="img-container">
+            <img
+              src="current/early-access-mobile-light.png"
+              alt="early-access-mobile-light"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">auth-desktop-light</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            Authentication and login screen (Desktop, Light)
+          </p>
+          <div class="img-container">
+            <img
+              src="current/auth-desktop-light.png"
+              alt="auth-desktop-light"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">auth-desktop-dark</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            Authentication and login screen (Desktop, Dark)
+          </p>
+          <div class="img-container">
+            <img src="current/auth-desktop-dark.png" alt="auth-desktop-dark" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">dev-preview-desktop-light</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            Design system catalog showcasing scan cards, buttons, badges, and
+            stats (Desktop, Light)
+          </p>
+          <div class="img-container">
+            <img
+              src="current/dev-preview-desktop-light.png"
+              alt="dev-preview-desktop-light"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">dev-preview-desktop-dark</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            Design system catalog showcasing scan cards, buttons, badges, and
+            stats (Desktop, Dark)
+          </p>
+          <div class="img-container">
+            <img
+              src="current/dev-preview-desktop-dark.png"
+              alt="dev-preview-desktop-dark"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">dev-preview-mobile-light</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            Design system catalog mobile layout (Mobile, Light)
+          </p>
+          <div class="img-container">
+            <img
+              src="current/dev-preview-mobile-light.png"
+              alt="dev-preview-mobile-light"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">ethos-desktop-light</span>
+          <span class="status-tag status-unchanged">UNCHANGED </span>
+        </div>
+        <div class="card-body">
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted)">
+            Project Ethos and open-source principles page (Desktop, Light)
+          </p>
+          <div class="img-container">
+            <img
+              src="current/ethos-desktop-light.png"
+              alt="ethos-desktop-light"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -18,6 +18,7 @@ import { HowItWorks } from "@/pages/HowItWorks";
 import { Campground } from "@/pages/Campground";
 import { RecreationArea } from "@/pages/RecreationArea";
 import { ScanDetail } from "@/pages/ScanDetail";
+import { DevPreview } from "@/pages/DevPreview";
 import { AuthProvider, AuthConfigContext } from "@/hooks/useAuth";
 import { fetchAuthConfig, type AuthConfig } from "@/lib/api";
 
@@ -75,6 +76,7 @@ function AppRoutes() {
                   path="/rec-area/:providerId/:recreationAreaId"
                   element={<RecreationArea />}
                 />
+                <Route path="/dev/preview" element={<DevPreview />} />
               </Routes>
             </Layout>
           }
