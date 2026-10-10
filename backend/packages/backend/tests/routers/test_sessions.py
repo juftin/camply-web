@@ -153,13 +153,25 @@ def test_session_invalidates_after_password_change(
     assert test_client.get("/api/me").status_code == 401
 
 
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "https://untrusted.example.com",
+        "https://other-project.pages.dev",
+        "https://da37cb45.other-project.pages.dev",
+        "http://da37cb45.camply-81r.pages.dev",
+        "https://da37cb45.camply-81r.pages.dev.evil.example",
+        "https://da37cb45.evilcamply-81r.pages.dev",
+        "https://nested.da37cb45.camply-81r.pages.dev",
+    ],
+)
 def test_login_rejects_untrusted_origin(
-    session_mode: None, test_client: TestClient
+    session_mode: None, test_client: TestClient, origin: str
 ) -> None:
     """A foreign website cannot start a password session in the browser."""
     response = test_client.post(
         "/api/login",
-        headers={"Origin": "https://untrusted.example.com"},
+        headers={"Origin": origin},
         json={"username": "test-admin", "password": "synthetic-test-password"},
     )
     assert response.status_code == 403
@@ -167,7 +179,14 @@ def test_login_rejects_untrusted_origin(
 
 @pytest.mark.parametrize(
     "origin",
-    ["http://localhost:5173", "http://100.85.12.34:5173", "https://camply.ts.net"],
+    [
+        "http://localhost:5173",
+        "http://100.85.12.34:5173",
+        "https://camply.ts.net",
+        "https://camply-81r.pages.dev",
+        "https://da37cb45.camply-81r.pages.dev",
+        "https://feature-branch.camply-81r.pages.dev",
+    ],
 )
 def test_login_accepts_cors_origins(
     session_mode: None, test_client: TestClient, origin: str
