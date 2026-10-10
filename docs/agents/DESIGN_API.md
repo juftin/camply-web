@@ -124,7 +124,7 @@ class ScanResultItem(BaseModel):
 1. Backend developer updates the FastAPI router.
 2. Run `task backend:check` to ensure types are correct.
 3. Start the backend: `task backend:dev`.
-4. Run: `npx tsx src/lib/codegen.ts` from `frontend/`.
+4. Run: `task frontend:codegen` from the repository root.
    - Fetches `http://localhost:8000/api/openapi.json`.
    - Generates TypeScript types in `frontend/src/lib/api/generated/schema.ts`.
 5. Register new endpoints in `frontend/src/lib/api.ts` and `frontend/src/lib/structs.ts`.

@@ -33,9 +33,7 @@ describe("toTitleCase", () => {
   });
 
   it("lowercases inner exception words", () => {
-    expect(toTitleCase("THE LORD OF THE RINGS")).toBe(
-      "The Lord of the Rings",
-    );
+    expect(toTitleCase("THE LORD OF THE RINGS")).toBe("The Lord of the Rings");
   });
 
   it("handles multiple consecutive spaces in all-upper input", () => {

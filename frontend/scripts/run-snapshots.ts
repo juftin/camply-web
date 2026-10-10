@@ -327,15 +327,11 @@ async function ensureServerRunning(): Promise<ChildProcess | null> {
   }
 
   console.log(`🚀 Starting Vite development server on port ${PORT}...`);
-  const serverProcess = spawn(
-    "npm",
-    ["run", "dev", "--", "--port", `${PORT}`],
-    {
-      cwd: FRONTEND_ROOT,
-      stdio: "pipe",
-      shell: true,
-    },
-  );
+  const serverProcess = spawn("pnpm", ["run", "dev", "--port", `${PORT}`], {
+    cwd: FRONTEND_ROOT,
+    stdio: "pipe",
+    shell: true,
+  });
 
   const started = await new Promise<boolean>((resolve) => {
     const timeout = setTimeout(() => resolve(false), 15000);

@@ -1,24 +1,24 @@
 {
   "name": "camply-frontend",
-  "private": true,
   "version": "0.1.0",
+  "private": true,
   "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
-    "build": "tsc -b tsconfig.json && vite build --config vite.config.ts",
-    "lint": "eslint src functions --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "fix": "eslint src functions --ext ts,tsx --fix && prettier --write .",
+    "build": "pnpm run typecheck && vite build --config vite.config.ts",
+    "lint": "oxlint src functions --report-unused-disable-directives --max-warnings 0 && oxfmt --check .",
+    "fix": "oxlint src functions --fix && oxfmt .",
     "preview": "vite preview --config vite.config.ts",
-    "typecheck": "tsc --project tsconfig.json --noEmit",
-    "prettier": "cd ${INIT_CWD} && prettier",
+    "typecheck": "node node_modules/@typescript/native/bin/tsc --project tsconfig.json --noEmit",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
-    "codegen": "npx tsx src/lib/codegen.ts",
+    "codegen": "tsx src/lib/codegen.ts",
     "snapshot": "tsx scripts/run-snapshots.ts",
     "snapshot:update": "tsx scripts/run-snapshots.ts --update",
-    "snapshot:check": "tsx scripts/run-snapshots.ts --check"
+    "snapshot:check": "tsx scripts/run-snapshots.ts --check",
+    "format": "cd ${INIT_CWD} && oxfmt"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.17.0",
@@ -56,24 +56,26 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/google-map-react": "^2.1.10",
+    "@types/node": "^24.19.2",
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.5",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@typescript-eslint/eslint-plugin": "^8.15.0",
-    "@typescript-eslint/parser": "^8.15.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "eslint": "^9.15.0",
-    "eslint-plugin-react-hooks": "^5.0.0",
-    "eslint-plugin-react-refresh": "^0.4.14",
+    "@typescript/native": "npm:typescript@7.0.2",
+    "@vitejs/plugin-react": "^6.1.2",
     "jsdom": "^26.1.0",
     "openapi-typescript": "^7.13.0",
+    "oxfmt": "0.72.0",
+    "oxlint": "1.87.0",
     "pixelmatch": "^8.0.0",
     "pngjs": "^7.0.0",
-    "prettier": "^3.6.2",
     "tsx": "^4.23.15",
     "typescript": "~5.6.2",
-    "vite": "^6.0.1",
-    "vitest": "^3.2.4"
-  }
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@10.34.6"
 }
