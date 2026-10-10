@@ -44,5 +44,16 @@ class BackendConfig(BaseSettings):
     # Prometheus multiprocess
     prometheus_multiproc_dir: Optional[str] = None
 
+    # CORS
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "https://camply.juftin.dev",
+    ]
+    """Allowed CORS origins list."""
+    cors_origin_regex: Optional[str] = (
+        r"^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|100\.\d{1,3}\.\d{1,3}\.\d{1,3}|.*\.ts\.net)(:\d+)?$"
+    )
+    """Regex pattern for allowed CORS origins (supports localhost and Tailscale IPs/domains)."""
+
 
 backend_config = BackendConfig()

@@ -60,10 +60,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "https://camply.juftin.dev",
-    ],
+    allow_origins=backend_config.cors_origins,
+    allow_origin_regex=backend_config.cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

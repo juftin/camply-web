@@ -51,7 +51,7 @@ tasks:
 
   docker:
     desc: Build Docker Image
-    cmd: docker buildx bake --file ../docker-compose.yaml frontend
+    cmd: docker buildx bake --file docker-compose.yaml frontend
     env:
       FRONTEND_VERSION:
         sh: npm pkg get version | jq -r
@@ -65,7 +65,7 @@ tasks:
   test:
     desc: Run Frontend Tests
     cmds:
-      - npm run test:run
+      - npm run test:run {{.CLI_ARGS}}
     deps: [install]
 
   snapshot:

@@ -58,6 +58,7 @@ tasks:
       - uv run gunicorn --config packages/backend/config/gunicorn.conf.py backend.app:app
     env:
       GUNICORN_RELOAD: "1"
+    deps: [sync, migration-upgrade]
 
   build:
     desc: Build the Project Artifacts
@@ -66,7 +67,7 @@ tasks:
 
   docker:
     desc: Build Docker Image
-    cmd: docker buildx bake --file ../docker-compose.yaml backend
+    cmd: docker buildx bake --file docker-compose.yaml backend
     env:
       BACKEND_VERSION:
         sh: uv version --short

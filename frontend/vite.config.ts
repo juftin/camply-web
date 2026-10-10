@@ -15,12 +15,18 @@ export default defineConfig({
     },
   },
   server: {
+    host: "0.0.0.0",
+    allowedHosts: true,
     proxy: {
       "/api": {
         target: process.env.CAMPLY_API_URL || "http://localhost:8000",
         changeOrigin: true,
       },
     },
+  },
+  preview: {
+    host: "0.0.0.0",
+    allowedHosts: true,
   },
   test: {
     globals: true,

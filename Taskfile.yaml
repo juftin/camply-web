@@ -92,6 +92,36 @@ tasks:
     cmds:
       - docker compose up --build
 
+  compose:up:
+    desc: Start All Services in Background with Docker Compose
+    cmds:
+      - docker compose up -d {{.CLI_ARGS}}
+
+  compose:down:
+    desc: Stop All Docker Compose Services
+    cmds:
+      - docker compose down {{.CLI_ARGS}}
+
+  compose:logs:
+    desc: Follow Docker Compose Logs
+    cmds:
+      - docker compose logs -f {{.CLI_ARGS}}
+
+  compose:ps:
+    desc: List Docker Compose Service Statuses
+    cmds:
+      - docker compose ps {{.CLI_ARGS}}
+
+  compose:restart:
+    desc: Restart Docker Compose Services
+    cmds:
+      - docker compose restart {{.CLI_ARGS}}
+
+  compose:infra:
+    desc: Start Backing Infrastructure Only (PostgreSQL + Valkey)
+    cmds:
+      - docker compose up -d db valkey {{.CLI_ARGS}}
+
   default:
     desc: Install Project, List Tasks
     cmds:

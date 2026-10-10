@@ -22,21 +22,22 @@ This guide walks you through setting up the `camply` development environment.
     ```
 
 2.  **Configure Environment**:
-    - Create a `.env` file in the root based on [docs/CONFIGURATION.md](CONFIGURATION.md).
-    - For simple local testing, set `AUTH_MODE=local`.
+    - Copy `.env.example` to `.env`: `cp .env.example .env`.
+    - Adjust any settings as needed (see [docs/CONFIGURATION.md](CONFIGURATION.md)).
 
 3.  **Start the Stack**:
 
     ```bash
-    # This starts Postgres, Valkey, and the Celery Worker
-    docker compose up -d db redis worker
+    # Option A: Backing services in Docker, backend + frontend on host (recommended for active dev)
+    task compose:infra     # Starts Postgres (db) and Valkey in background
+    task dev               # Starts FastAPI backend (port 8000) and Vite frontend (port 5173) in watch mode
 
-    # This starts the FastAPI backend and Vite frontend in watch mode
-    task dev
+    # Option B: Entire stack in Docker Compose
+    task compose:up        # Starts all services (backend, frontend, db, valkey, worker)
     ```
 
 4.  **Access the App**:
-    - **Frontend**: `http://localhost:5173`
+    - **Frontend**: `http://localhost:5173` (or over Tailscale at `http://<tailscale-ip>:5173`)
     - **API Docs**: `http://localhost:8000/api/docs`
 
 ---
