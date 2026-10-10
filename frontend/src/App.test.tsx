@@ -25,30 +25,6 @@ const auth0 = vi.hoisted(() => ({
   logout: vi.fn(),
 }));
 
-const lazyPages = vi.hoisted(() => ({ providersImported: 0 }));
-
-const faqModule = vi.hoisted(() => {
-  let resolve!: () => void;
-  const ready = new Promise<void>((release) => {
-    resolve = release;
-  });
-  return { ready, resolve };
-});
-
-vi.mock("@/pages/FAQ", async () => {
-  await faqModule.ready;
-  return { FAQ: () => <h1>FAQ page</h1> };
-});
-
-vi.mock("@/pages/Providers", () => {
-  lazyPages.providersImported += 1;
-  return { Providers: () => <h1>Providers page</h1> };
-});
-
-vi.mock("@/pages/Contact", async () => {
-  throw new Error("Missing page chunk");
-});
-
 vi.mock("@auth0/auth0-react", () => ({
   Auth0Provider: vi.fn(({ children }: { children: ReactNode }) => children),
   useAuth0: () => auth0,
@@ -154,54 +130,6 @@ beforeEach(() => {
 });
 
 describe("Application authentication", () => {
-  it("shows an accessible loading state on a direct visit to a lazy page", async () => {
-    renderApp(localConfig, "/faq");
-    try {
-      expect(await screen.findByRole("status")).toHaveTextContent(
-        "Loading page…",
-      );
-      expect(screen.getByRole("banner")).toBeInTheDocument();
-      expect(screen.getByRole("contentinfo")).toBeInTheDocument();
-    } finally {
-      faqModule.resolve();
-    }
-    await screen.findByRole("heading", { name: "FAQ page" });
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
-  });
-
-  it("loads secondary pages on navigation while preserving the application shell", async () => {
-    vi.mocked(getMe).mockResolvedValue({ ...user, is_invited: true });
-    renderApp();
-    await screen.findByRole("link", { name: "Get Started" });
-    expect(lazyPages.providersImported).toBe(0);
-
-    fireEvent.click(screen.getByRole("link", { name: "Providers" }));
-    await screen.findByRole("heading", { name: "Providers page" });
-    expect(lazyPages.providersImported).toBe(1);
-    expect(screen.getByRole("banner")).toBeInTheDocument();
-    expect(screen.getByRole("contentinfo")).toBeInTheDocument();
-    expect(window.location.pathname).toBe(appPath("/providers"));
-  });
-
-  it("keeps navigation available when a page chunk fails to load", async () => {
-    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
-    try {
-      renderApp(localConfig, "/contact");
-      expect(await screen.findByRole("alert")).toHaveTextContent(
-        "Unable to load this page",
-      );
-      expect(screen.getByRole("button", { name: "Reload page" })).toBeVisible();
-      expect(screen.getByRole("banner")).toBeInTheDocument();
-      expect(screen.getByRole("contentinfo")).toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole("link", { name: "Providers" }));
-      await screen.findByRole("heading", { name: "Providers page" });
-      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    } finally {
-      errorLog.mockRestore();
-    }
-  });
-
   it("hides login and signup on desktop and mobile during local auto-login", async () => {
     vi.mocked(getMe).mockResolvedValue({ ...user, is_invited: true });
     renderApp();

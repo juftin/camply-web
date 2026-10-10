@@ -4,7 +4,7 @@
 - [x] Migrate lint rules, formatting, scripts, and pre-commit hooks.
 - [x] Upgrade Vite, React plugin, Vitest, and native TypeScript checking.
 - [x] Align Node versions for development, CI, Docker, and Pages.
-- [x] Add lazy routes and loading/navigation regressions.
-- [x] Audit dependency and visual compatibility; reproduce unavailable route chunks and add recovery coverage.
+- [x] Preserve eager page imports and existing routing/authentication coverage.
+- [x] Audit dependency and visual compatibility.
 - [x] Verify quality checks, tests, code generation, and static/Docker builds.
-- [x] Document tooling, deployment settings, and measured bundle reduction.
+- [x] Document tooling, deployment settings, and measured build performance.
