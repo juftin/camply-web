@@ -55,6 +55,14 @@ This document helps agents and contributors resolve common environment and runti
   - Add `http://localhost:5173/auth/callback` to "Allowed Callback URLs" in your Auth0 Application settings.
   - Or, use `CAMPLY_AUTH_MODE=none` for automatic admin login.
 
+### Password login succeeds but scan requests return 401
+
+- **Diagnosis**: `Sign in required` means the backend received no usable `camply_session` cookie. `Session expired or invalid` means the cookie reached the backend but failed verification. Never copy cookie values into logs or reports.
+- **Cross-site requests**: Check the failed request's `Sec-Fetch-Site` header and the cookie's blocking reason in browser DevTools. Password-session cookies use `SameSite=Strict`; CORS permissions do not override that cookie policy. HTTPS subdomains of the same parent domain can be same-site, while unrelated frontend and API domains are cross-site.
+- **Solution for cross-site requests**: Route `/api` through the frontend host. The Docker frontend's Nginx configuration already proxies `/api/` to the backend service, and Vite provides the same proxy for development. Leave `VITE_API_URL` unset or set it to `/api`, then rebuild the frontend. The backend can remain on a separate internal host. A separately hosted static frontend needs an equivalent `/api` proxy on its hosting platform.
+- **Cloudflare Pages**: This repository includes a Pages Function for `/api`. Use Pages project root `frontend`, set runtime `CAMPLY_API_ORIGIN` to the HTTPS backend origin without `/api`, leave build-time `VITE_API_URL` unset or `/api`, and redeploy with Functions included. Keep the frontend origin trusted by the backend. See [Cloudflare Pages configuration](CONFIGURATION.md#cloudflare-pages-frontend) for production and preview settings. Nginx configuration does not apply to Pages hosting.
+- **HTTPS**: Keep `CAMPLY_SESSION_COOKIE_SECURE=true`. After correcting routing, sign in again and confirm the session cookie is sent with `/api/me` and `/api/scans`.
+
 ---
 
 ## 🤖 Agent Workflow Issues

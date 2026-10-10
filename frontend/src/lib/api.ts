@@ -162,13 +162,22 @@ export async function submitAccessRequest(
   return response.data;
 }
 
-/** Sign in through the app form; the browser retains the HTTP-only session. */
+/** Sign in and verify that the browser retained the HTTP-only session. */
 export async function loginSession(
   username: string,
   password: string,
 ): Promise<MeResponse> {
-  const response = await api.post<MeResponse>("/login", { username, password });
-  return response.data;
+  await api.post<MeResponse>("/login", { username, password });
+  try {
+    return await getMe();
+  } catch (error) {
+    if (error instanceof AxiosError && error.response?.status === 401) {
+      throw new Error(
+        "Your session cookie could not be verified. Check browser cookie settings and that the frontend and API are served from the same site.",
+      );
+    }
+    throw error;
+  }
 }
 
 /** End the cookie session without storing credentials in the frontend. */

@@ -11,8 +11,11 @@ import {
   submitAccessRequest,
   loginSession,
   logoutSession,
+  listScans,
+  getScan,
 } from "@/lib/api";
 import type { AuthConfig } from "@/lib/api";
+import { useScans, useScanDetail } from "@/hooks/useScans";
 
 const auth0 = vi.hoisted(() => ({
   isAuthenticated: false,
@@ -33,17 +36,25 @@ vi.mock("@/lib/api", () => ({
   updateMe: vi.fn(),
   loginSession: vi.fn(),
   logoutSession: vi.fn(),
+  listScans: vi.fn(),
+  getScan: vi.fn(),
   submitAccessRequest: vi.fn(),
   setAccessTokenProvider: vi.fn(),
   getApiErrorMessage: vi.fn().mockReturnValue("Authentication failed"),
 }));
 
-// Keep the auth integration real while avoiding scan and search network requests.
+// Keep authentication and scan queries real while mocking network requests.
 vi.mock("@/pages/Dashboard", () => ({
-  Dashboard: () => <div>Scan dashboard</div>,
+  Dashboard: () => {
+    useScans();
+    return <div>Scan dashboard</div>;
+  },
 }));
 vi.mock("@/pages/ScanDetail", () => ({
-  ScanDetail: () => <div>Scan detail</div>,
+  ScanDetail: () => {
+    useScanDetail("test");
+    return <div>Scan detail</div>;
+  },
 }));
 vi.mock("@/components/SearchBar", () => ({ SearchBar: () => null }));
 
@@ -85,14 +96,17 @@ function renderApp(config: AuthConfig = localConfig, path = "/") {
   window.history.replaceState({}, "", appPath(path));
   vi.mocked(fetchAuthConfig).mockResolvedValue(config);
   const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+    defaultOptions: { queries: { retry: false, retryDelay: 0 } },
   });
 
-  return render(
-    <QueryClientProvider client={client}>
-      <App />
-    </QueryClientProvider>,
-  );
+  return {
+    ...render(
+      <QueryClientProvider client={client}>
+        <App />
+      </QueryClientProvider>,
+    ),
+    client,
+  };
 }
 
 beforeEach(() => {
@@ -110,6 +124,8 @@ beforeEach(() => {
   vi.mocked(submitAccessRequest).mockResolvedValue({ message: "Received" });
   vi.mocked(loginSession).mockResolvedValue({ ...user, is_invited: true });
   vi.mocked(logoutSession).mockResolvedValue();
+  vi.mocked(listScans).mockResolvedValue({ scans: [], total: 0 });
+  vi.mocked(getScan).mockResolvedValue({ id: "test" } as never);
   window.scrollTo = vi.fn();
 });
 
@@ -282,6 +298,83 @@ it("preserves a cookie session on refresh without retained credentials", async (
   await screen.findByText("Scan dashboard");
   expect(loginSession).not.toHaveBeenCalled();
 });
+
+it.each(["/dashboard", "/dashboard/scans/test"])(
+  "returns to sign-in and clears scan data when the session fails at %s",
+  async (path) => {
+    vi.mocked(getMe).mockResolvedValue({ ...user, is_invited: true });
+    const fetchScan = path === "/dashboard" ? listScans : getScan;
+    vi.mocked(fetchScan).mockRejectedValue(
+      new AxiosError("Session expired", "401", undefined, undefined, {
+        status: 401,
+        data: {},
+        statusText: "Unauthorized",
+        headers: {},
+        config: {} as never,
+      }),
+    );
+    const { client } = renderApp(sessionConfig, path);
+    client.setQueryData(["scans", "detail", "cached-scan"], {
+      id: "cached-scan",
+    });
+
+    await screen.findByLabelText("Username");
+    expect(window.location.pathname).toBe(appPath("/auth"));
+    expect(client.getQueryData(["me"])).toBeNull();
+    expect(client.getQueryCache().findAll({ queryKey: ["scans"] })).toEqual([]);
+    expect(fetchScan).toHaveBeenCalledTimes(1);
+    expect(logoutSession).not.toHaveBeenCalled();
+
+    vi.mocked(listScans).mockResolvedValue({ scans: [], total: 0 });
+    fireEvent.change(screen.getByLabelText("Username"), {
+      target: { value: "test-admin" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "synthetic-test-password" },
+    });
+    fireEvent.click(
+      screen
+        .getAllByRole("button", { name: "Sign In" })
+        .find((button) => button.getAttribute("type") === "submit")!,
+    );
+    await screen.findByText("Scan dashboard");
+    await waitFor(() =>
+      expect(client.getQueryData(["scans", "list", undefined])).toEqual({
+        scans: [],
+        total: 0,
+      }),
+    );
+    expect(
+      client.getQueryData(["scans", "detail", "cached-scan"]),
+    ).toBeUndefined();
+  },
+);
+
+it.each([403, 500])(
+  "keeps the session after a scan HTTP %s",
+  async (status) => {
+    vi.mocked(getMe).mockResolvedValue({ ...user, is_invited: true });
+    vi.mocked(listScans).mockRejectedValue(
+      new AxiosError("Scan failed", "ERR_BAD_REQUEST", undefined, undefined, {
+        status,
+        data: {},
+        statusText: "Scan failed",
+        headers: {},
+        config: {} as never,
+      }),
+    );
+    const { client } = renderApp(sessionConfig, "/dashboard");
+
+    await screen.findByText("Scan dashboard");
+    await waitFor(() =>
+      expect(client.getQueryState(["scans", "list", undefined])?.status).toBe(
+        "error",
+      ),
+    );
+    expect(client.getQueryData(["me"])).toMatchObject({ id: user.id });
+    expect(window.location.pathname).toBe(appPath("/dashboard"));
+  },
+);
 
 it("routes password-session visitors to sign-in and hides mobile signup", async () => {
   renderApp(sessionConfig, "/dashboard");

@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
+from httpx import URL
 
 from backend.config import AuthMode, BackendConfig, backend_config
 
@@ -40,6 +41,42 @@ def test_session_login_logout(session_mode: None, test_client: TestClient) -> No
     response = test_client.post("/api/logout")
     assert response.status_code == 204
     assert test_client.get("/api/me").status_code == 401
+
+
+@pytest.mark.parametrize("scheme", ["http", "https"])
+def test_session_scan_requests(
+    session_mode: None,
+    test_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    scheme: str,
+) -> None:
+    """Login cookies authenticate scan operations over HTTP and secure HTTPS."""
+    test_client.base_url = URL(f"{scheme}://testserver")
+    monkeypatch.setattr(backend_config, "session_cookie_secure", scheme == "https")
+    assert test_client.get("/api/scans").status_code == 401
+    _login(test_client)
+    response = test_client.post(
+        "/api/scans",
+        json={
+            "provider_id": 1,
+            "campground_id": "cg_1",
+            "start_date": "2027-07-01",
+            "end_date": "2027-07-05",
+        },
+    )
+    assert response.status_code == 201
+    scan_id = response.json()["id"]
+    assert test_client.get("/api/scans").status_code == 200
+    assert test_client.get(f"/api/scans/{scan_id}").status_code == 200
+    assert (
+        test_client.patch(
+            f"/api/scans/{scan_id}", json={"is_active": False}
+        ).status_code
+        == 200
+    )
+    assert test_client.delete(f"/api/scans/{scan_id}").status_code == 204
+    assert test_client.post("/api/logout").status_code == 204
+    assert test_client.get("/api/scans").status_code == 401
 
 
 def test_session_rejects_invalid_credentials(

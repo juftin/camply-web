@@ -57,11 +57,28 @@ Set `CAMPLY_AUTH_MODE=session`, `CAMPLY_LOGIN_USERNAME`, `CAMPLY_LOGIN_PASSWORD`
 
 Cookies default to `Secure` and `SameSite=Strict`. For an HTTP-only local setup, explicitly set `CAMPLY_SESSION_COOKIE_SECURE=false`. Serve the frontend and API on the same site (the Vite `/api` proxy supports local development); configure `CAMPLY_CORS_ORIGINS` for your frontend origin. `CAMPLY_CORS_ORIGIN_REGEX` also permits local development and Tailscale origins by default; both CORS and password login use this policy. A separate CSRF cookie supplies the request header required for authenticated mutations. Passwords are not retained by the frontend.
 
-Sessions expire after `CAMPLY_SESSION_MAX_AGE` seconds. Logout removes both session and CSRF cookies. Changing the configured username, password, or signing secret invalidates existing sessions. Cookies are stateless: clearing a browser session does not individually revoke a copied cookie before expiry; individual server-side revocation remains a follow-up.
+The frontend verifies the session through `/api/me` after login before opening the dashboard. A successful `/api/login` response alone does not prove the browser accepted the cookies. If verification fails or scan requests return 401 immediately after login, check HTTPS versus `CAMPLY_SESSION_COOKIE_SECURE`, browser cookie settings, and whether the frontend and API share the same site. For local development, use the `/api` proxy rather than a separate API hostname. Scan queries do not automatically retry 401/403 responses.
+
+Sessions expire after `CAMPLY_SESSION_MAX_AGE` seconds. A scan query returning 401 clears the cached profile and scan data and returns the user to sign-in; a new login fetches scans again. Logout removes both session and CSRF cookies. Changing the configured username, password, or signing secret invalidates existing sessions. Cookies are stateless: clearing a browser session does not individually revoke a copied cookie before expiry; individual server-side revocation remains a follow-up.
 
 ### Auth0 (`auth0`)
 
 Set `CAMPLY_AUTH_MODE=auth0`. All three of `CAMPLY_AUTH0_DOMAIN`, `CAMPLY_AUTH0_AUDIENCE`, and `CAMPLY_AUTH0_CLIENT_ID` are required, including when the environment is local. The frontend obtains these public settings from `/api/auth-config` and requests access tokens for the configured API audience. Configure Auth0 callback/logout URLs for the frontend origin and base path. Signup is available only in Auth0 mode.
+
+### Cloudflare Pages frontend
+
+Use Pages project root `frontend`, build command `npm run build`, and output directory `dist`. Pages discovers `frontend/functions/api/[[path]].ts` alongside the frontend sources; deploy through Pages Git integration or Wrangler so the Function is included. Uploading only `dist` as static files does not include the proxy. The build copies `public/_routes.json` to `dist` to invoke the Function only for `/api` paths. Locally, build assets with `task frontend:build:static`; the Vite development server continues using its own `/api` proxy.
+
+Set the Pages Functions compatibility date to `2024-11-11` or later (or enable `cache_option_enabled`) in the project's runtime settings. The proxy uses the standard Fetch `cache: "no-store"` option to bypass upstream caching; [older runtimes require that compatibility flag](https://developers.cloudflare.com/changelog/post/2024-11-11-cache-no-store/).
+
+| Variable            | Where to set it                                                                        | Value                                                                                               |
+| ------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `CAMPLY_API_ORIGIN` | Pages Settings → Variables and Secrets, for each Production/Preview environment in use | HTTPS backend origin, e.g. `https://api.example.com`, without `/api`, credentials, or query strings |
+| `VITE_API_URL`      | Pages build environment                                                                | Unset (defaults to `/api`) or `/api`; an absolute backend URL bypasses the proxy                    |
+
+Redeploy after changing these settings. The browser sends all API traffic to the Pages frontend host; the Function forwards it to the backend and relays both session cookies unchanged. The session cookie remains `HttpOnly`, `Secure`, and `SameSite=Strict`, and the readable CSRF cookie belongs to the frontend host. The backend must still trust the frontend origin through `CAMPLY_CORS_ORIGINS`, since the proxy preserves `Origin` for password-login validation. Set trusted preview origins explicitly if testing password login in Pages previews. API responses are not cached; missing/invalid proxy configuration returns 503, and an unreachable backend returns 502.
+
+See the [Pages Functions setup](https://developers.cloudflare.com/pages/functions/get-started/) and [environment variable documentation](https://developers.cloudflare.com/pages/functions/bindings/#environment-variables).
 
 ### Optional invite-only access
 

@@ -99,6 +99,24 @@ function CookieAuthProvider({ children }: { children: ReactNode }) {
     setHasError(error && !signedOut ? getApiErrorMessage(error) : null);
   }, [error, signedOut]);
 
+  useEffect(() => {
+    if (config.auth_mode !== "session") return;
+    return queryClient.getQueryCache().subscribe((event) => {
+      if (
+        event.type === "updated" &&
+        event.action.type === "error" &&
+        event.query.queryKey[0] === "scans" &&
+        event.query.state.error instanceof AxiosError &&
+        event.query.state.error.response?.status === 401
+      ) {
+        void queryClient.cancelQueries({ queryKey: ["me"] });
+        queryClient.setQueryData(["me"], null);
+        queryClient.removeQueries({ queryKey: ["scans"] });
+        setHasError(null);
+      }
+    });
+  }, [config.auth_mode, queryClient]);
+
   const pushoverMutation = useMutation({
     mutationFn: (token: string | null) => updateMe({ pushover_token: token }),
     onSuccess: () => {

@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "tsc -b tsconfig.json && vite build --config vite.config.ts",
-    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "fix": "eslint src --ext ts,tsx --fix && prettier --write .",
+    "lint": "eslint src functions --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "fix": "eslint src functions --ext ts,tsx --fix && prettier --write .",
     "preview": "vite preview --config vite.config.ts",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "prettier": "cd ${INIT_CWD} && prettier",
