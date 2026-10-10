@@ -17,8 +17,13 @@ tasks:
   build:
     desc: Build Frontend for Production
     cmds:
-      - npm run build
+      - task: build:static
       - task: docker
+
+  build:static:
+    desc: Build Frontend Assets for Static Hosting
+    cmds:
+      - npm run build
     deps: [install]
 
   lint:

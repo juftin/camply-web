@@ -1,11 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import type { AxiosInstance } from "axios";
+import { AxiosError, type AxiosInstance } from "axios";
 
 // We'll mock axios.create to return a controlled instance
 const mockGet = vi.fn();
+const mockPost = vi.fn();
 const mockUseFn = vi.fn();
 const mockAxiosInstance = {
   get: mockGet,
+  post: mockPost,
   interceptors: {
     request: { use: mockUseFn },
     response: { use: vi.fn() },
@@ -17,7 +19,8 @@ const mockAxiosInstance = {
   },
 } as unknown as AxiosInstance;
 
-vi.mock("axios", () => ({
+vi.mock("axios", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("axios")>()),
   default: {
     create: vi.fn(() => mockAxiosInstance),
   },
@@ -37,6 +40,63 @@ describe("API Client", () => {
     expect(createCall).toBeDefined();
     expect(createCall!.baseURL).toBeDefined();
     expect(createCall!.timeout).toBeGreaterThan(0);
+    expect(createCall!.withCredentials).toBe(true);
+  });
+
+  it("confirms the session cookie before returning a login profile", async () => {
+    const profile = { id: "synthetic-user", email: "admin@example.com" };
+    mockPost.mockResolvedValue({ data: profile });
+    mockGet.mockResolvedValue({ data: profile });
+
+    const api = await import("@/lib/api");
+    expect(await api.loginSession("admin", "synthetic-password")).toEqual(
+      profile,
+    );
+    expect(mockPost).toHaveBeenCalledWith("/login", {
+      username: "admin",
+      password: "synthetic-password",
+    });
+    expect(mockGet).toHaveBeenCalledWith("/me");
+  });
+
+  it("reports a rejected cookie instead of completing login", async () => {
+    mockPost.mockResolvedValue({ data: { id: "synthetic-user" } });
+    mockGet.mockRejectedValue(
+      new AxiosError("Unauthorized", "ERR_BAD_REQUEST", undefined, undefined, {
+        status: 401,
+        data: { detail: "Sign in required" },
+        statusText: "Unauthorized",
+        headers: {},
+        config: {} as never,
+      }),
+    );
+
+    const api = await import("@/lib/api");
+    await expect(
+      api.loginSession("admin", "synthetic-password"),
+    ).rejects.toThrow("session cookie");
+  });
+
+  it("preserves invalid credential errors without checking the session", async () => {
+    const error = new AxiosError("Invalid username or password");
+    mockPost.mockRejectedValue(error);
+
+    const api = await import("@/lib/api");
+    await expect(api.loginSession("admin", "wrong-password")).rejects.toBe(
+      error,
+    );
+    expect(mockGet).not.toHaveBeenCalled();
+  });
+
+  it("preserves temporary failures while checking the session", async () => {
+    const error = new Error("Network unavailable");
+    mockPost.mockResolvedValue({ data: { id: "synthetic-user" } });
+    mockGet.mockRejectedValue(error);
+
+    const api = await import("@/lib/api");
+    await expect(api.loginSession("admin", "synthetic-password")).rejects.toBe(
+      error,
+    );
   });
 
   it("searchCampgrounds calls GET /search with correct params", async () => {
