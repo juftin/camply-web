@@ -70,7 +70,7 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 - [x] **Auth0**: Implement login/signup, API audience configuration, and optional invite-only enforcement.
 - [ ] **Invitations**: Implement approval/revocation, verified identity matching, and notification delivery.
 - [ ] **Scan Management**: Build a dashboard to create, pause, and delete user-specific scans.
-- [ ] **Frontend Refactor**: Update `package.json` scripts and dependency management.
+- [x] **Frontend Refactor**: Update `package.json` scripts and dependency management with pnpm, Oxlint, Oxfmt, Vite 8, Vitest 5, and native TypeScript 7.
 - [ ] **Dockerization**: Update `docker-compose.yaml` and `Dockerfile` for optimized frontend builds.
 - [ ] **User Config**: Secure storage for user-specific Pushover keys and notification preferences.
 - [ ] **Validation**: Ensure strict schema validation for all user-provided scan parameters.

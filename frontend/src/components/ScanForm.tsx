@@ -150,9 +150,7 @@ export function ScanForm({
       url: "",
     });
     setProviderId(result.provider_id);
-    setSearchTerm(
-      result.campground_name ?? result.recreation_area_name ?? "",
-    );
+    setSearchTerm(result.campground_name ?? result.recreation_area_name ?? "");
     setSearchResults([]);
   };
 
@@ -264,7 +262,8 @@ export function ScanForm({
                   <div className="max-h-40 overflow-y-auto rounded-md border">
                     {searchResults
                       .filter(
-                        (r) => r.entity_type === "Campground" && r.campground_id,
+                        (r) =>
+                          r.entity_type === "Campground" && r.campground_id,
                       )
                       .slice(0, 10)
                       .map((r) => (
@@ -389,7 +388,10 @@ export function ScanForm({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={createScan.isPending || !hasCampground}>
+            <Button
+              type="submit"
+              disabled={createScan.isPending || !hasCampground}
+            >
               {createScan.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

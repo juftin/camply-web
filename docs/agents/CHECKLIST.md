@@ -47,6 +47,9 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.4.9 Implement the optional invite-only gate UI.
 - [x] T1.4.10 **Testing**: Write backend API tests (`pytest`) and frontend component tests (`vitest`). _(✅ 16 backend + 13 frontend tests passing)_
 - [x] T1.4.11 **UI Snapshots & Feedback Loop**: Implement automated UI snapshot capture, visual diffing, and Markdown/HTML reporting (`task snapshot`, `task snapshot:update`, `task snapshot:check`).
+- [x] T1.4.12 Migrate frontend dependency management to pinned pnpm with an imported lockfile; update Task workflows, CI caching, Docker builds, scripts, formatting hooks, and setup documentation.
+- [x] T1.4.13 Migrate frontend tooling to Oxlint, Oxfmt, Vite 8, Vitest 5, and native TypeScript 7; align Node 24 across environments and preserve eager page imports.
+- [x] T1.4.14 Make plain `task` list available workflows without installing dependencies.
 
 ### 1.5 Governance & Licensing
 
@@ -67,7 +70,8 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T2.1.8 Verify auth navigation and Auth0 callback URLs with both root and repository-subpath base URLs, including the GitHub CI environment.
 - [x] T2.1.9 Confirm the browser session after password login before opening the dashboard; avoid retrying scan requests denied with 401/403 and clear cached session/scan data on a scan query's 401 to return to sign-in.
 - [x] T2.1.10 Verify scan session authentication over secure HTTPS; add a Cloudflare Pages `/api` proxy preserving session/CSRF cookies, with transport regressions and deployment instructions for cross-site backends.
-- [x] T2.1.11 Rebuild images on Compose startup and provide local Docker defaults for password sessions, including HTTP cookie settings.
+- [x] T2.1.11 Trust HTTPS deployment-hash and branch-alias origins for the camply Cloudflare Pages project in CORS and password login; test rejection of unrelated projects and lookalike domains.
+- [x] T2.1.12 Rebuild images on Compose startup and provide local Docker defaults for password sessions, including HTTP cookie settings.
 
 ### 2.2 Access Control
 

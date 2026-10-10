@@ -7,24 +7,25 @@ This document defines all environment variables used by the `camply` monorepo. A
 All backend environment variables are prefixed with `CAMPLY_` to avoid conflicts.
 They are defined in `backend/packages/backend/backend/config.py` via `pydantic-settings`.
 
-| Variable                           | Description                                                   | Default                              |
-| ---------------------------------- | ------------------------------------------------------------- | ------------------------------------ |
-| `CAMPLY_ENVIRONMENT`               | Deployment stage (`local`, `development`, `production`)       | `local`                              |
-| `CAMPLY_DEBUG`                     | Enable debug logs and FastAPI docs                            | `true`                               |
-| `CAMPLY_SENTRY_DSN`                | Sentry DSN for error tracking                                 | `None` (disabled)                    |
-| `CAMPLY_SENTRY_TRACES_SAMPLE_RATE` | Sentry traces sample rate                                     | `0.0`                                |
-| `CAMPLY_AUTH_MODE`                 | Owner-selected authentication (`none`, `session`, or `auth0`) | `none`                               |
-| `CAMPLY_INVITE_ONLY`               | Require invited status for scan operations                    | `false`                              |
-| `CAMPLY_LOGIN_USERNAME`            | Shared username for in-app password login                     | `None`                               |
-| `CAMPLY_LOGIN_PASSWORD`            | Shared password for in-app password login                     | `None`                               |
-| `CAMPLY_SESSION_SECRET`            | Cookie signing secret (at least 32 characters)                | `None`                               |
-| `CAMPLY_SESSION_MAX_AGE`           | Absolute session lifetime in seconds                          | `43200`                              |
-| `CAMPLY_SESSION_COOKIE_SECURE`     | Require HTTPS for session cookies                             | `true`                               |
-| `CAMPLY_CORS_ORIGINS`              | JSON list of trusted frontend origins for CORS and login      | localhost:5173 and camply.juftin.dev |
-| `CAMPLY_ADMIN_EMAIL`               | Shared identity for automatic login and password sessions     | `admin@camply.local`                 |
-| `CAMPLY_AUTH0_DOMAIN`              | Auth0 tenant domain (e.g., `dev-xyz.us.auth0.com`)            | `None`                               |
-| `CAMPLY_AUTH0_AUDIENCE`            | Auth0 API Audience/Identifier                                 | `None`                               |
-| `CAMPLY_AUTH0_CLIENT_ID`           | Auth0 frontend Client ID                                      | `None`                               |
+| Variable                           | Description                                                   | Default                                                            |
+| ---------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `CAMPLY_ENVIRONMENT`               | Deployment stage (`local`, `development`, `production`)       | `local`                                                            |
+| `CAMPLY_DEBUG`                     | Enable debug logs and FastAPI docs                            | `true`                                                             |
+| `CAMPLY_SENTRY_DSN`                | Sentry DSN for error tracking                                 | `None` (disabled)                                                  |
+| `CAMPLY_SENTRY_TRACES_SAMPLE_RATE` | Sentry traces sample rate                                     | `0.0`                                                              |
+| `CAMPLY_AUTH_MODE`                 | Owner-selected authentication (`none`, `session`, or `auth0`) | `none`                                                             |
+| `CAMPLY_INVITE_ONLY`               | Require invited status for scan operations                    | `false`                                                            |
+| `CAMPLY_LOGIN_USERNAME`            | Shared username for in-app password login                     | `None`                                                             |
+| `CAMPLY_LOGIN_PASSWORD`            | Shared password for in-app password login                     | `None`                                                             |
+| `CAMPLY_SESSION_SECRET`            | Cookie signing secret (at least 32 characters)                | `None`                                                             |
+| `CAMPLY_SESSION_MAX_AGE`           | Absolute session lifetime in seconds                          | `43200`                                                            |
+| `CAMPLY_SESSION_COOKIE_SECURE`     | Require HTTPS for session cookies                             | `true`                                                             |
+| `CAMPLY_CORS_ORIGINS`              | JSON list of trusted frontend origins for CORS and login      | localhost:5173 and camply.juftin.dev                               |
+| `CAMPLY_CORS_ORIGIN_REGEX`         | Regex of additional trusted origins for CORS and login        | Local/Tailscale origins and HTTPS camply-81r.pages.dev deployments |
+| `CAMPLY_ADMIN_EMAIL`               | Shared identity for automatic login and password sessions     | `admin@camply.local`                                               |
+| `CAMPLY_AUTH0_DOMAIN`              | Auth0 tenant domain (e.g., `dev-xyz.us.auth0.com`)            | `None`                                                             |
+| `CAMPLY_AUTH0_AUDIENCE`            | Auth0 API Audience/Identifier                                 | `None`                                                             |
+| `CAMPLY_AUTH0_CLIENT_ID`           | Auth0 frontend Client ID                                      | `None`                                                             |
 
 Database config uses `CAMPLY_DB_` prefix (defined in `backend/packages/db/db/config.py`):
 
@@ -69,7 +70,9 @@ Set `CAMPLY_AUTH_MODE=auth0`. All three of `CAMPLY_AUTH0_DOMAIN`, `CAMPLY_AUTH0_
 
 ### Cloudflare Pages frontend
 
-Use Pages project root `frontend`, build command `npm run build`, and output directory `dist`. Pages discovers `frontend/functions/api/[[path]].ts` alongside the frontend sources; deploy through Pages Git integration or Wrangler so the Function is included. Uploading only `dist` as static files does not include the proxy. The build copies `public/_routes.json` to `dist` to invoke the Function only for `/api` paths. Locally, build assets with `task frontend:build:static`; the Vite development server continues using its own `/api` proxy.
+Use Pages project root `frontend`, build command `pnpm run build`, and output directory `dist`. Pages discovers `frontend/functions/api/[[path]].ts` alongside the frontend sources; deploy through Pages Git integration or Wrangler so the Function is included. Uploading only `dist` as static files does not include the proxy. The build copies `public/_routes.json` to `dist` to invoke the Function only for `/api` paths. Locally, build assets with `task frontend:build:static`; the Vite development server continues using its own `/api` proxy.
+
+Use Node 24, selected by `frontend/.node-version`, and set `PNPM_VERSION=10.34.6` in both production and preview build environments. If the Pages project already overrides `NODE_VERSION`, set it to `24`. An existing `npm run build` command remains compatible with pnpm-installed dependencies.
 
 Set the Pages Functions compatibility date to `2024-11-11` or later (or enable `cache_option_enabled`) in the project's runtime settings. The proxy uses the standard Fetch `cache: "no-store"` option to bypass upstream caching; [older runtimes require that compatibility flag](https://developers.cloudflare.com/changelog/post/2024-11-11-cache-no-store/).
 
@@ -78,7 +81,9 @@ Set the Pages Functions compatibility date to `2024-11-11` or later (or enable `
 | `CAMPLY_API_ORIGIN` | Pages Settings → Variables and Secrets, for each Production/Preview environment in use | HTTPS backend origin, e.g. `https://api.example.com`, without `/api`, credentials, or query strings |
 | `VITE_API_URL`      | Pages build environment                                                                | Unset (defaults to `/api`) or `/api`; an absolute backend URL bypasses the proxy                    |
 
-Redeploy after changing these settings. The browser sends all API traffic to the Pages frontend host; the Function forwards it to the backend and relays both session cookies unchanged. The session cookie remains `HttpOnly`, `Secure`, and `SameSite=Strict`, and the readable CSRF cookie belongs to the frontend host. The backend must still trust the frontend origin through `CAMPLY_CORS_ORIGINS`, since the proxy preserves `Origin` for password-login validation. Set trusted preview origins explicitly if testing password login in Pages previews. API responses are not cached; missing/invalid proxy configuration returns 503, and an unreachable backend returns 502.
+Redeploy after changing these settings. The browser sends all API traffic to the Pages frontend host; the Function forwards it to the backend and relays both session cookies unchanged. The session cookie remains `HttpOnly`, `Secure`, and `SameSite=Strict`, and the readable CSRF cookie belongs to the frontend host. The backend must still trust the frontend origin through `CAMPLY_CORS_ORIGINS` or `CAMPLY_CORS_ORIGIN_REGEX`, since the proxy preserves `Origin` for password-login validation. API responses are not cached; missing/invalid proxy configuration returns 503, and an unreachable backend returns 502.
+
+The default backend regex trusts `https://camply-81r.pages.dev` and its HTTPS deployment-hash and branch-alias origins, such as `https://da37cb45.camply-81r.pages.dev`. It does not trust other Pages projects, HTTP Pages origins, or nested subdomains. If the backend overrides `CAMPLY_CORS_ORIGIN_REGEX`, include the project-scoped pattern `https://(?:[a-z0-9-]+\.)?camply-81r\.pages\.dev` in the override or remove the override to use the default. Self-hosted deployments using another Pages project must explicitly configure their own trusted origins. Restart/redeploy the backend after changing this policy; a login response of `403 Untrusted login origin` indicates the frontend origin is not trusted.
 
 See the [Pages Functions setup](https://developers.cloudflare.com/pages/functions/get-started/) and [environment variable documentation](https://developers.cloudflare.com/pages/functions/bindings/#environment-variables).
 
@@ -122,10 +127,11 @@ The Python model and API use `is_invited`; its existing database column remains 
 ## 🏗️ Docker & Infrastructure
 
 These variables are primarily used in `docker-compose.yaml`.
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `POSTGRES_USER` | DB Username | `camply` |
-| `POSTGRES_PASSWORD` | DB Password | `camply` |
-| `POSTGRES_DB` | DB Name | `camply` |
-| `BACKEND_VERSION` | Docker image tag for backend | `local` |
-| `FRONTEND_VERSION` | Docker image tag for frontend | `local` |
+
+| Variable            | Description                   | Default  |
+| ------------------- | ----------------------------- | -------- |
+| `POSTGRES_USER`     | DB Username                   | `camply` |
+| `POSTGRES_PASSWORD` | DB Password                   | `camply` |
+| `POSTGRES_DB`       | DB Name                       | `camply` |
+| `BACKEND_VERSION`   | Docker image tag for backend  | `local`  |
+| `FRONTEND_VERSION`  | Docker image tag for frontend | `local`  |

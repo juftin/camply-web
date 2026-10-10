@@ -5,11 +5,17 @@ This guide walks you through setting up the `camply` development environment.
 ## 📋 Prerequisites
 
 - **Python 3.12+** (Managed via [uv](https://github.com/astral-sh/uv))
-- **Node.js 18+** (Managed via `npm`)
+- **Node.js 24+** and **pnpm 10.34.6** (Node 24 is selected by `frontend/.node-version`, CI, and Docker; pnpm is pinned in `frontend/package.json`)
 - **Docker & Docker Compose**
 - **go-task** (The [Taskfile](https://taskfile.dev) runner)
 
 ---
+
+Enable pnpm with `corepack enable` before running frontend tasks. If your Node.js installation does not include Corepack, install it with `npm install --global corepack` first. Corepack reads the pinned pnpm version from `frontend/package.json`.
+
+Frontend installs use `pnpm install --frozen-lockfile`. To change frontend dependencies, run `pnpm add <package>` (or `pnpm add --save-dev <package>`) from `frontend/` and commit both `package.json` and `pnpm-lock.yaml`.
+
+Running `task` without arguments lists available workflows. Use `task install` to install project dependencies.
 
 ## 🚀 Quick Start (Local Setup)
 
@@ -80,6 +86,13 @@ If you change a FastAPI router:
 
 - Run vitest: `task frontend:test`
 - Type check: `task frontend:check`
+- Lint and check formatting: `task frontend:lint`
+- Fix lint and formatting issues: `task frontend:fix`
+- Build static assets: `task frontend:build:static`
+
+The frontend uses Vite 8 (Rolldown), Vitest 5, Oxlint, Oxfmt, and native TypeScript 7. Oxlint preserves the existing ESLint rules, including React Hooks and Fast Refresh; the experimental `no-undef` rule remains enabled. Oxfmt uses an 80-column print width and excludes generated artifacts through the root `.oxfmtrc.json`.
+
+`task frontend:check` and production builds invoke the native compiler installed as `@typescript/native`. The separate `typescript` 5 dependency supplies the JavaScript compiler API required by `openapi-typescript`; it is not used for project checks. Run the native compiler through Task rather than invoking the ambiguous `tsc` executable directly.
 
 ### UI Snapshots & Visual Regression
 
