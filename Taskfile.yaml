@@ -123,10 +123,9 @@ tasks:
       - docker compose up -d db valkey {{.CLI_ARGS}}
 
   default:
-    desc: Install Project, List Tasks
+    desc: List Available Tasks
     cmds:
       - task --list-all
-    deps: [install]
 
   ########################
   # INTERNAL TASKS

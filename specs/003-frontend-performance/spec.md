@@ -11,5 +11,6 @@
 - Replace ESLint and Prettier with Oxlint and Oxfmt while preserving existing lint rules and formatting conventions.
 - Upgrade to Vite 8 and native TypeScript 7; retain compiler API compatibility for OpenAPI generation.
 - Keep all page imports eager and avoid route-level loading states or chunk recovery code.
+- Running `task` without arguments lists workflows without installing dependencies.
 - Verify existing tests, static/Docker builds, and tooling performance against the original baseline.
 - Keep backend behavior, public APIs, and authentication rules unchanged.

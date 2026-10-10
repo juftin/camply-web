@@ -22,6 +22,7 @@ Initial JavaScript includes the entry module and every JavaScript preload in the
 - Static assets and the Node 24 Docker image build successfully.
 - Production browser smoke testing covers home, providers, FAQ, and dashboard with mocked APIs, no page errors, and no additional JavaScript downloads on route navigation.
 - Pre-commit hooks pass for all changed files.
+- Both `task --dry` and plain `task` confirm the default command only lists available workflows.
 
 ## Compatibility audit
 

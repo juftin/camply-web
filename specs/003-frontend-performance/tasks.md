@@ -8,3 +8,4 @@
 - [x] Audit dependency and visual compatibility.
 - [x] Verify quality checks, tests, code generation, and static/Docker builds.
 - [x] Document tooling, deployment settings, and measured build performance.
+- [x] Make the default Task command list workflows without installing dependencies.

@@ -15,6 +15,8 @@ Enable pnpm with `corepack enable` before running frontend tasks. If your Node.j
 
 Frontend installs use `pnpm install --frozen-lockfile`. To change frontend dependencies, run `pnpm add <package>` (or `pnpm add --save-dev <package>`) from `frontend/` and commit both `package.json` and `pnpm-lock.yaml`.
 
+Running `task` without arguments lists available workflows. Use `task install` to install project dependencies.
+
 ## 🚀 Quick Start (Local Setup)
 
 1.  **Clone & Install**:
