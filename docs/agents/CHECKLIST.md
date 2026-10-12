@@ -125,6 +125,8 @@ Implementation specification and tasks: [Admin UI plan](../../specs/002-admin-ui
 - [x] Build admin frontend routes and verify authorization, suspension, shared targets, and operations outages.
 - [x] Integrate current session/invitation authentication and capture deterministic admin screenshots across desktop/mobile and light/dark views.
 - [x] Integrate pnpm tooling and local Docker session fixes while preserving scan suspension controls.
+- [x] Repair admin contracts, active-target labels, distinct trend series, outage/stale states, mutation feedback/cache refresh, pagination, and shareable investigation filters.
+- [x] Generate admin types from OpenAPI and enforce contract drift checks in CI.
 - [x] Update architecture documentation and pass implementation quality gates.
 
 ### 3.1 Migration

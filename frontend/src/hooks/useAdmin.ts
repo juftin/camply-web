@@ -68,9 +68,11 @@ export function useUpdateAdminUser() {
       userId: string;
       payload: AdminUserUpdateRequest;
     }) => updateAdminUser(userId, payload),
-    onSuccess: (_, { userId }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "users", userId] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "targets"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+      queryClient.invalidateQueries({ queryKey: ["scans"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "scans"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
@@ -83,6 +85,7 @@ export function useAdminScans(params?: {
   is_active?: boolean;
   is_eligible?: boolean;
   provider_id?: number;
+  target_status?: "active" | "overdue" | "dormant";
   limit?: number;
   offset?: number;
 }) {
@@ -110,9 +113,10 @@ export function useUpdateAdminScan() {
       scanId: string;
       payload: AdminScanUpdateRequest;
     }) => updateAdminScan(scanId, payload),
-    onSuccess: (_, { scanId }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "scans"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "scans", scanId] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["scans"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "targets"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
@@ -140,6 +144,7 @@ export function useAdminAudit(params?: { limit?: number; offset?: number }) {
 
 export function useAdminOperations() {
   return useQuery<AdminOperationsResponse>({
+    retry: false,
     queryKey: ["admin", "operations"],
     queryFn: getAdminOperations,
     refetchInterval: 15000,

@@ -222,3 +222,40 @@ def test_trends_invalid_parameters(
 
     resp_bad_range = test_client.get("/api/admin/trends?range=100y")
     assert resp_bad_range.status_code == 422
+
+
+def test_chart_series_preserve_metric_identity() -> None:
+    """Scrape labels must not merge active and eligible chart series."""
+    from backend.services.trends import _matrix_to_series
+
+    result = [
+        {
+            "metric": {"job": "backend", "instance": "backend:8000"},
+            "values": [[1760000000, "2"]],
+        }
+    ]
+    active = _matrix_to_series(result, "Saved Active Scans")
+    eligible = _matrix_to_series(result, "Eligible Scans")
+    assert active[0].name != eligible[0].name
+
+
+@pytest.mark.asyncio
+async def test_outage_retains_last_successful_trends() -> None:
+    """An expired cache remains visible as stale history when Prometheus is unavailable."""
+    import time
+
+    with patch(
+        "backend.services.trends._query_prometheus_range", new_callable=AsyncMock
+    ) as query:
+        query.return_value = [{"metric": {}, "values": [[1760000000, "5"]]}]
+        healthy = await get_admin_trends()
+    key = "usage:24h:None:None:None"
+    _TRENDS_CACHE[key] = (time.monotonic() - 60, healthy)
+    with patch(
+        "backend.services.trends._query_prometheus_range",
+        side_effect=httpx.ConnectError("synthetic outage"),
+    ):
+        stale = await get_admin_trends()
+    assert not stale.available
+    assert stale.metrics == healthy.metrics
+    assert stale.last_successful_at == healthy.last_successful_at

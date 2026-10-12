@@ -13,11 +13,19 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminNav } from "@/components/AdminNav";
+import { useAdminLocation } from "@/hooks/useAdminLocation";
+import { AdminPagination } from "@/components/admin/AdminPagination";
+import { AdminFeedback } from "@/components/admin/AdminFeedback";
+import { getApiErrorMessage } from "@/lib/api";
 import { useAdminUsers, useUpdateAdminUser } from "@/hooks/useAdmin";
 
 export function AdminUsers() {
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "enabled" | "suspended">("all");
+  const { params, page, update, setPage } = useAdminLocation();
+  const search = params.get("search") ?? "";
+  const filter = params.get("status") ?? "all";
+  const [message, setMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState(false);
+  const pageSize = 50;
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
   const scanningEnabledParam =
@@ -26,20 +34,29 @@ export function AdminUsers() {
   const { data, isLoading, error, refetch } = useAdminUsers({
     search: search.trim() || undefined,
     scanning_enabled: scanningEnabledParam,
-    limit: 100,
+    limit: pageSize,
+    offset: page * pageSize,
   });
 
   const updateMutation = useUpdateAdminUser();
 
   const handleToggleScanning = async (userId: string, current: boolean) => {
+    setMessage(null);
+    setActionError(false);
     try {
       setUpdatingUserId(userId);
       await updateMutation.mutateAsync({
         userId,
         payload: { scanning_enabled: !current },
       });
-    } catch {
-      // Error handled by mutation
+      setMessage(
+        current
+          ? "Scanning suspended. Login and saved scans are preserved."
+          : "Scanning enabled.",
+      );
+    } catch (error) {
+      setActionError(true);
+      setMessage(getApiErrorMessage(error));
     } finally {
       setUpdatingUserId(null);
     }
@@ -58,6 +75,7 @@ export function AdminUsers() {
       </div>
 
       <AdminNav />
+      <AdminFeedback message={message} error={actionError} />
 
       {/* Filters and Search */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -66,7 +84,7 @@ export function AdminUsers() {
           <Input
             placeholder="Search by email or user ID..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => update({ search: e.target.value })}
             className="pl-9"
           />
         </div>
@@ -74,21 +92,21 @@ export function AdminUsers() {
           <Button
             variant={filter === "all" ? "default" : "outline"}
             size="sm"
-            onClick={() => setFilter("all")}
+            onClick={() => update({ status: "all" })}
           >
             All
           </Button>
           <Button
             variant={filter === "enabled" ? "default" : "outline"}
             size="sm"
-            onClick={() => setFilter("enabled")}
+            onClick={() => update({ status: "enabled" })}
           >
             Scanning Enabled
           </Button>
           <Button
             variant={filter === "suspended" ? "default" : "outline"}
             size="sm"
-            onClick={() => setFilter("suspended")}
+            onClick={() => update({ status: "suspended" })}
           >
             Suspended
           </Button>
@@ -118,6 +136,12 @@ export function AdminUsers() {
           <CardContent className="py-12 text-center text-muted-foreground">
             No users found matching your search criteria.
           </CardContent>
+          <AdminPagination
+            page={page}
+            pageSize={pageSize}
+            total={data.total}
+            onPage={setPage}
+          />
         </Card>
       ) : (
         <div className="rounded-md border bg-card overflow-hidden">
@@ -167,8 +191,9 @@ export function AdminUsers() {
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Switch
+                            aria-label={`Scanning access for ${u.email}`}
                             checked={u.scanning_enabled}
-                            disabled={isUpdating}
+                            disabled={isUpdating || updateMutation.isPending}
                             onCheckedChange={() =>
                               handleToggleScanning(u.id, u.scanning_enabled)
                             }
@@ -211,11 +236,12 @@ export function AdminUsers() {
               </tbody>
             </table>
           </div>
-          <div className="p-3 border-t bg-muted/20 text-xs text-muted-foreground flex justify-between items-center">
-            <span>
-              Showing {data.users.length} of {data.total} users
-            </span>
-          </div>
+          <AdminPagination
+            page={page}
+            pageSize={pageSize}
+            total={data.total}
+            onPage={setPage}
+          />
         </div>
       )}
     </div>

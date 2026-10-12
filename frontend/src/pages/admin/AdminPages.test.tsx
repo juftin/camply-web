@@ -58,12 +58,13 @@ describe("AdminOverview", () => {
       total_scans: 40,
       saved_active_scans: 35,
       eligible_scans: 28,
-      unique_targets: 10,
+      total_targets: 10,
       eligible_targets: 8,
       dormant_targets: 2,
       overdue_targets: 1,
       heartbeat_interval_seconds: 30,
       target_cooldown_seconds: 120,
+      overdue_threshold_seconds: 180,
     });
 
     render(
@@ -83,6 +84,9 @@ describe("AdminOverview", () => {
         screen.getByText(/1 Target Overdue for Checking/i),
       ).toBeInTheDocument();
     });
+    expect(
+      screen.getByRole("link", { name: "Inspect Overdue Targets" }),
+    ).toHaveAttribute("href", "/admin/scans?target_status=overdue");
   });
 });
 
@@ -93,7 +97,6 @@ describe("AdminUsers", () => {
         {
           id: "u-1",
           email: "alice@example.com",
-          auth0_id: null,
           is_admin: true,
           is_invited: true,
           scanning_enabled: true,
@@ -101,12 +104,10 @@ describe("AdminUsers", () => {
           total_scans: 5,
           active_scans: 3,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
         },
         {
           id: "u-2",
           email: "bob@example.com",
-          auth0_id: null,
           is_admin: false,
           is_invited: true,
           scanning_enabled: false,
@@ -114,7 +115,6 @@ describe("AdminUsers", () => {
           total_scans: 2,
           active_scans: 0,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
         },
       ],
       total: 2,
@@ -156,9 +156,6 @@ describe("AdminScans", () => {
           is_active: true,
           is_eligible: true,
           user_scanning_enabled: true,
-          min_stay_length: 1,
-          preferred_types: [],
-          require_electric: false,
           last_checked_at: null,
           found_count: 2,
           created_at: new Date().toISOString(),

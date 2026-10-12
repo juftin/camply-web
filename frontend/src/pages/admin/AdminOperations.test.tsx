@@ -51,10 +51,13 @@ beforeEach(() => {
 describe("AdminOperations", () => {
   it("renders operations metrics, worker nodes, and telemetry", async () => {
     vi.mocked(api.getAdminOperations).mockResolvedValue({
+      inspection_available: true,
+      telemetry_available: true,
+      stale: false,
       workers: [
         {
           name: "celery@worker-node-1",
-          status: "active",
+          status: "online",
           active_tasks: 2,
           reserved_tasks: 5,
           scheduled_tasks: 0,
@@ -75,6 +78,7 @@ describe("AdminOperations", () => {
     });
 
     vi.mocked(api.listAdminOperationsTasks).mockResolvedValue({
+      available: true,
       tasks: [
         {
           task_id: "task-abc-123",
@@ -115,6 +119,8 @@ describe("AdminOperations", () => {
     expect(screen.getByText("12")).toBeInTheDocument(); // targets discovered
     expect(screen.getByText("4")).toBeInTheDocument(); // targets enqueued
 
+    expect(screen.getByText("online")).toHaveClass("bg-emerald-600");
+
     // Worker node table
     expect(screen.getAllByText("celery@worker-node-1").length).toBeGreaterThan(
       0,
@@ -132,6 +138,9 @@ describe("AdminOperations", () => {
     const user = userEvent.setup();
 
     vi.mocked(api.getAdminOperations).mockResolvedValue({
+      inspection_available: true,
+      telemetry_available: true,
+      stale: false,
       workers: [],
       queue_depth: 0,
       active_tasks_total: 0,
@@ -143,6 +152,7 @@ describe("AdminOperations", () => {
     });
 
     vi.mocked(api.listAdminOperationsTasks).mockResolvedValue({
+      available: true,
       tasks: [
         {
           task_id: "task-xyz-789",
@@ -187,6 +197,7 @@ describe("AdminOperations", () => {
       new Error("Broker connection timeout"),
     );
     vi.mocked(api.listAdminOperationsTasks).mockResolvedValue({
+      available: true,
       tasks: [],
       total: 0,
     });
@@ -206,4 +217,44 @@ describe("AdminOperations", () => {
       expect(screen.getByText("Broker connection timeout")).toBeInTheDocument();
     });
   });
+});
+
+it("shows telemetry outages as unavailable instead of idle", async () => {
+  vi.mocked(api.getAdminOperations).mockResolvedValue({
+    workers: [],
+    queue_depth: 0,
+    active_tasks_total: 0,
+    reserved_tasks_total: 0,
+    scheduled_tasks_total: 0,
+    broker_connected: false,
+    inspection_available: false,
+    telemetry_available: false,
+    stale: true,
+    snapshot_at: "2026-10-10T12:00:00Z",
+    error_message: "Queue telemetry unavailable",
+    last_successful_at: null,
+  });
+  vi.mocked(api.listAdminOperationsTasks).mockResolvedValue({
+    tasks: [],
+    total: 0,
+    available: false,
+    error_message: "Task stream unavailable",
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <AdminOperations />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  expect(
+    await screen.findByText(/Queue telemetry unavailable/),
+  ).toBeInTheDocument();
+  expect(screen.getAllByText("Unavailable").length).toBeGreaterThan(0);
+  expect(
+    await screen.findByText("Task stream unavailable"),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText("No task telemetry matching filters."),
+  ).not.toBeInTheDocument();
 });

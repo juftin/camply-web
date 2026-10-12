@@ -109,3 +109,7 @@ The project uses `pre-commit` to ensure code quality.
 
 - Run manually: `task pre-commit`
 - Auto-fix issues: `task fix`
+
+### API contract verification
+
+Use `task api:generate` to export the local FastAPI OpenAPI schema and regenerate committed TypeScript types without a running backend. Run `task api:check` to verify that the generated file matches the backend. Admin pages consume these generated types directly, so fixtures must use the actual response shapes. The API Contract CI job checks drift on every PR.

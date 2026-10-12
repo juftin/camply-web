@@ -82,7 +82,8 @@ export function AdminOverview() {
               </p>
               <p className="text-xs text-amber-800 dark:text-amber-300">
                 Targets have active subscribers but have not been evaluated
-                within the cooldown window ({data.target_cooldown_seconds}s).
+                within the overdue threshold ({data.overdue_threshold_seconds}
+                s).
               </p>
             </div>
           </div>
@@ -92,7 +93,9 @@ export function AdminOverview() {
             size="sm"
             className="border-amber-500/50"
           >
-            <Link to="/admin/scans">Inspect Scans</Link>
+            <Link to="/admin/scans?target_status=overdue">
+              Inspect Overdue Targets
+            </Link>
           </Button>
         </div>
       )}
@@ -187,7 +190,7 @@ export function AdminOverview() {
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground">
-              Active + user enabled (polled)
+              Active scan + owner scanning enabled
             </p>
           </CardContent>
         </Card>
@@ -201,12 +204,12 @@ export function AdminOverview() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Unique Targets</CardDescription>
-            <CardTitle className="text-2xl">{data.unique_targets}</CardTitle>
+            <CardTitle className="text-2xl">{data.total_targets}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Eligible (Polled)</CardDescription>
+            <CardDescription>Eligible for Polling</CardDescription>
             <CardTitle className="text-2xl text-emerald-600 dark:text-emerald-400">
               {data.eligible_targets}
             </CardTitle>

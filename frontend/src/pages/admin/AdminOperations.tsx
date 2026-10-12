@@ -12,6 +12,7 @@ import {
   Server,
   Zap,
 } from "lucide-react";
+import { useAdminLocation } from "@/hooks/useAdminLocation";
 import { AdminNav } from "@/components/AdminNav";
 import { AdminTrendsPanel } from "@/components/admin/AdminTrendsPanel";
 import { Badge } from "@/components/ui/badge";
@@ -29,14 +30,13 @@ import { useAdminOperations, useAdminOperationsTasks } from "@/hooks/useAdmin";
 import type { AdminTaskTelemetryItem } from "@/lib/structs";
 
 export function AdminOperations() {
-  const [outcomeFilter, setOutcomeFilter] = useState<string>("all");
-  const [taskNameFilter, setTaskNameFilter] = useState<string>("");
+  const { params, page, update, setPage } = useAdminLocation();
+  const outcomeFilter = params.get("outcome") ?? "all";
+  const taskNameFilter = params.get("task_name") ?? "";
+  const tab = params.get("tab");
+  const activeTrendsTab = tab === "api" || tab === "provider" ? tab : "worker";
   const [selectedTask, setSelectedTask] =
     useState<AdminTaskTelemetryItem | null>(null);
-  const [activeTrendsTab, setActiveTrendsTab] = useState<
-    "worker" | "api" | "provider"
-  >("worker");
-  const [page, setPage] = useState<number>(0);
   const pageSize = 20;
 
   const {
@@ -98,8 +98,8 @@ export function AdminOperations() {
   };
 
   const renderEntityLink = (
-    entityType: string | null,
-    entityId: string | null,
+    entityType: string | null | undefined,
+    entityId: string | null | undefined,
   ) => {
     if (!entityType || !entityId)
       return <span className="text-muted-foreground">-</span>;
@@ -199,6 +199,22 @@ export function AdminOperations() {
         </div>
       )}
 
+      {opsData?.stale && (
+        <div
+          role="alert"
+          className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm"
+        >
+          {opsData.error_message}. Displaying last known values where available.
+          Last complete snapshot:{" "}
+          {opsData.last_successful_at
+            ? formatTimestamp(opsData.last_successful_at)
+            : "None"}
+          .{" "}
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            Retry
+          </Button>
+        </div>
+      )}
       {/* Top workload summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card>
@@ -213,7 +229,11 @@ export function AdminOperations() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             ) : (
               <div className="text-2xl font-bold">
-                {opsData?.queue_depth ?? 0}
+                {(opsData?.telemetry_available === false &&
+                  !opsData.last_successful_at) ||
+                !opsData
+                  ? "Unavailable"
+                  : opsData.queue_depth}
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
@@ -234,7 +254,11 @@ export function AdminOperations() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             ) : (
               <div className="text-2xl font-bold">
-                {opsData?.active_tasks_total ?? 0}
+                {(opsData?.inspection_available === false &&
+                  !opsData.last_successful_at) ||
+                !opsData
+                  ? "Unavailable"
+                  : opsData.active_tasks_total}
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
@@ -255,7 +279,11 @@ export function AdminOperations() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             ) : (
               <div className="text-2xl font-bold">
-                {opsData?.reserved_tasks_total ?? 0}
+                {(opsData?.inspection_available === false &&
+                  !opsData.last_successful_at) ||
+                !opsData
+                  ? "Unavailable"
+                  : opsData.reserved_tasks_total}
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
@@ -379,7 +407,7 @@ export function AdminOperations() {
                         <td className="py-2.5">
                           <Badge
                             className={
-                              worker.status === "active"
+                              worker.status === "online"
                                 ? "bg-emerald-600 text-white"
                                 : "bg-amber-500 text-white"
                             }
@@ -432,7 +460,7 @@ export function AdminOperations() {
                 size="sm"
                 variant={activeTrendsTab === t.id ? "default" : "ghost"}
                 className="h-7 text-xs px-3"
-                onClick={() => setActiveTrendsTab(t.id)}
+                onClick={() => update({ tab: t.id }, false)}
               >
                 {t.label}
               </Button>
@@ -484,8 +512,7 @@ export function AdminOperations() {
                 placeholder="Filter task name..."
                 value={taskNameFilter}
                 onChange={(e) => {
-                  setTaskNameFilter(e.target.value);
-                  setPage(0);
+                  update({ task_name: e.target.value });
                 }}
                 className="w-44 h-8 text-xs"
               />
@@ -499,8 +526,7 @@ export function AdminOperations() {
                     variant={outcomeFilter === out ? "default" : "outline"}
                     className="h-8 text-xs px-2.5 capitalize"
                     onClick={() => {
-                      setOutcomeFilter(out);
-                      setPage(0);
+                      update({ outcome: out });
                     }}
                   >
                     {out}
@@ -515,9 +541,17 @@ export function AdminOperations() {
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : tasksError ? (
+          ) : tasksError || tasksData?.available === false ? (
             <div className="p-4 text-center text-sm text-destructive">
-              Failed to load recent task telemetry.
+              {tasksData?.error_message ||
+                "Failed to load recent task telemetry."}{" "}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchTasks()}
+              >
+                Retry
+              </Button>
             </div>
           ) : !tasksData?.tasks || tasksData.tasks.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
@@ -591,7 +625,7 @@ export function AdminOperations() {
                     size="sm"
                     className="h-8 text-xs"
                     disabled={page === 0}
-                    onClick={() => setPage((p) => p - 1)}
+                    onClick={() => setPage(Math.max(0, page - 1))}
                   >
                     Previous
                   </Button>
@@ -600,7 +634,7 @@ export function AdminOperations() {
                     size="sm"
                     className="h-8 text-xs"
                     disabled={(page + 1) * pageSize >= tasksData.total}
-                    onClick={() => setPage((p) => p + 1)}
+                    onClick={() => setPage(page + 1)}
                   >
                     Next
                   </Button>

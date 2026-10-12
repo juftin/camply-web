@@ -18,9 +18,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AdminNav } from "@/components/AdminNav";
+import { AdminPagination } from "@/components/admin/AdminPagination";
+import { useAdminLocation } from "@/hooks/useAdminLocation";
+import type { AdminTargetDetailResponse } from "@/lib/structs";
 import { useAdminTarget } from "@/hooks/useAdmin";
 
 export function AdminTargetDetail() {
+  const { page, setPage } = useAdminLocation();
+  const pageSize = 50;
   const { targetId } = useParams<{ targetId: string }>();
 
   const {
@@ -28,7 +33,10 @@ export function AdminTargetDetail() {
     isLoading,
     error,
     refetch,
-  } = useAdminTarget(targetId || "");
+  } = useAdminTarget(targetId || "", {
+    limit: pageSize,
+    offset: page * pageSize,
+  });
 
   if (isLoading) {
     return (
@@ -62,10 +70,10 @@ export function AdminTargetDetail() {
     );
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: AdminTargetDetailResponse["status"]) => {
     switch (status) {
-      case "eligible":
-        return <Badge variant="success">Eligible (Active Polling)</Badge>;
+      case "active":
+        return <Badge variant="success">Eligible for Polling</Badge>;
       case "overdue":
         return <Badge variant="destructive">Overdue for Poll</Badge>;
       case "dormant":
@@ -161,6 +169,27 @@ export function AdminTargetDetail() {
                     ? new Date(target.last_checked_at).toLocaleString()
                     : "Never"}
                 </span>
+                {target.last_checked_at && (
+                  <p className="text-xs text-muted-foreground">
+                    {Math.max(
+                      0,
+                      Math.floor(
+                        (Date.now() - Date.parse(target.last_checked_at)) /
+                          1000,
+                      ),
+                    )}
+                    s ago
+                  </p>
+                )}
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground block">
+                  Overdue Threshold
+                </span>
+                <span>
+                  {target.overdue_threshold_seconds}s (cooldown plus two
+                  discovery intervals)
+                </span>
               </div>
               <div>
                 <span className="text-xs text-muted-foreground block">
@@ -207,10 +236,10 @@ export function AdminTargetDetail() {
       <div>
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
           <Radio className="h-5 w-5 text-primary" /> Attached Subscribers (
-          {target.subscribers.length})
+          {target.subscribers_total})
         </h2>
 
-        {target.subscribers.length === 0 ? (
+        {(target.subscribers ?? []).length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
               No subscribers attached to this target.
@@ -243,7 +272,7 @@ export function AdminTargetDetail() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {target.subscribers.map((s) => (
+                  {(target.subscribers ?? []).map((s) => (
                     <tr key={s.scan_id} className="hover:bg-muted/30">
                       <td className="py-3 px-4">
                         <Link
@@ -303,6 +332,12 @@ export function AdminTargetDetail() {
             </div>
           </div>
         )}
+        <AdminPagination
+          page={page}
+          pageSize={pageSize}
+          total={target.subscribers_total}
+          onPage={setPage}
+        />
       </div>
     </div>
   );

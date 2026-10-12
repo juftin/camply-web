@@ -2,12 +2,12 @@
 import type { Page } from "@playwright/test";
 import type {
   AdminScanItem,
-  AdminUserItem,
+  AdminUserDetailResponse,
   TrendMetric,
 } from "../src/lib/structs";
 
 const NOW = "2026-10-10T12:00:00Z";
-const USERS: AdminUserItem[] = [
+const USERS: AdminUserDetailResponse[] = [
   {
     id: "user-snap-1",
     email: "admin@example.test",
@@ -48,9 +48,6 @@ const SCANS: AdminScanItem[] = USERS.map((user, index) => ({
   is_active: true,
   is_eligible: user.scanning_enabled,
   user_scanning_enabled: user.scanning_enabled,
-  min_stay_length: 2,
-  preferred_types: ["TENT ONLY"],
-  require_electric: false,
   last_checked_at: NOW,
   found_count: 2,
   created_at: user.created_at,
@@ -203,12 +200,13 @@ export async function setupAdminSnapshotMocks(page: Page): Promise<void> {
         total_scans: 24,
         saved_active_scans: 20,
         eligible_scans: 17,
-        unique_targets: 8,
+        total_targets: 8,
         eligible_targets: 6,
         dormant_targets: 2,
         overdue_targets: 1,
         heartbeat_interval_seconds: 60,
         target_cooldown_seconds: 55,
+        overdue_threshold_seconds: 175,
       };
     } else if (endpoint === "users") {
       body = { users: USERS, total: USERS.length };
@@ -223,6 +221,10 @@ export async function setupAdminSnapshotMocks(page: Page): Promise<void> {
     } else if (endpoint.startsWith("scans/")) {
       body = {
         ...SCANS.find((scan) => endpoint.endsWith(scan.id)),
+        min_stay_length: 2,
+        preferred_types: ["TENT ONLY"],
+        require_electric: false,
+        recreation_area_name: "Yosemite",
         results: RESULTS,
       };
     } else if (endpoint.startsWith("targets/")) {
@@ -239,6 +241,7 @@ export async function setupAdminSnapshotMocks(page: Page): Promise<void> {
         total_subscribers: 2,
         eligible_subscribers: 1,
         status: "active",
+        overdue_threshold_seconds: 175,
         subscribers: SCANS.map((scan) => ({
           scan_id: scan.id,
           user_id: scan.user_id,
@@ -272,7 +275,7 @@ export async function setupAdminSnapshotMocks(page: Page): Promise<void> {
         workers: [
           {
             name: "celery@worker-1",
-            status: "active",
+            status: "online",
             active_tasks: 2,
             reserved_tasks: 3,
             scheduled_tasks: 1,
@@ -289,10 +292,14 @@ export async function setupAdminSnapshotMocks(page: Page): Promise<void> {
           status: "success",
         },
         broker_connected: true,
+        inspection_available: true,
+        telemetry_available: true,
+        stale: false,
+        last_successful_at: NOW,
         snapshot_at: NOW,
       };
     } else if (endpoint === "operations/tasks") {
-      body = { tasks: TASKS, total: TASKS.length };
+      body = { tasks: TASKS, total: TASKS.length, available: true };
     } else if (endpoint.startsWith("operations/tasks/")) {
       body = TASKS.find((task) => endpoint.endsWith(task.task_id));
     } else if (endpoint === "trends") {
@@ -305,6 +312,7 @@ export async function setupAdminSnapshotMocks(page: Page): Promise<void> {
         end_time: NOW,
         timezone: "UTC",
         available: true,
+        last_successful_at: NOW,
         error_message: null,
         metrics: trendMetrics(group),
       };

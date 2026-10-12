@@ -11,12 +11,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { AdminFeedback } from "@/components/admin/AdminFeedback";
+import { getApiErrorMessage } from "@/lib/api";
 import { AdminNav } from "@/components/AdminNav";
 import { useAdminScan, useUpdateAdminScan } from "@/hooks/useAdmin";
 
 export function AdminScanDetail() {
   const { scanId } = useParams<{ scanId: string }>();
   const [updating, setUpdating] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { data: scan, isLoading, error, refetch } = useAdminScan(scanId || "");
@@ -51,6 +54,7 @@ export function AdminScanDetail() {
 
   const handleToggleActive = async () => {
     setErrorMessage(null);
+    setSuccessMessage(null);
     if (!scan.is_active && !scan.user_scanning_enabled) {
       setErrorMessage(
         "Cannot resume scan: User scanning privileges are currently suspended.",
@@ -64,10 +68,13 @@ export function AdminScanDetail() {
         payload: { is_active: !scan.is_active },
       });
       await refetch();
+      setSuccessMessage(
+        scan.is_active
+          ? "Scan paused."
+          : "Scan resumed and eligible for polling.",
+      );
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : "Failed to toggle scan status";
-      setErrorMessage(msg);
+      setErrorMessage(getApiErrorMessage(err));
     } finally {
       setUpdating(false);
     }
@@ -96,7 +103,10 @@ export function AdminScanDetail() {
       <AdminNav />
 
       {errorMessage && (
-        <div className="mb-4 rounded-md bg-destructive/10 border border-destructive/30 p-3 text-destructive text-sm flex items-center justify-between">
+        <div
+          role="alert"
+          className="mb-4 rounded-md bg-destructive/10 border border-destructive/30 p-3 text-destructive text-sm flex items-center justify-between"
+        >
           <span>{errorMessage}</span>
           <Button
             variant="ghost"
@@ -108,6 +118,7 @@ export function AdminScanDetail() {
         </div>
       )}
 
+      <AdminFeedback message={successMessage} />
       {/* Scan Overview & Controls */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card className="md:col-span-2">
@@ -170,8 +181,8 @@ export function AdminScanDetail() {
                   Preferred Types
                 </span>
                 <span>
-                  {scan.preferred_types.length > 0
-                    ? scan.preferred_types.join(", ")
+                  {(scan.preferred_types ?? []).length > 0
+                    ? (scan.preferred_types ?? []).join(", ")
                     : "All"}
                 </span>
               </div>
@@ -216,6 +227,7 @@ export function AdminScanDetail() {
                 </p>
               </div>
               <Switch
+                aria-label="Saved active scan"
                 checked={scan.is_active}
                 disabled={updating}
                 onCheckedChange={handleToggleActive}
@@ -243,11 +255,13 @@ export function AdminScanDetail() {
                 </span>
                 {scan.is_eligible ? (
                   <Badge variant="success" className="text-[10px]">
-                    Polled by Worker
+                    Eligible for polling
                   </Badge>
                 ) : (
                   <Badge variant="secondary" className="text-[10px]">
-                    Skipped
+                    {scan.user_scanning_enabled
+                      ? "Paused by user"
+                      : "Owner suspended"}
                   </Badge>
                 )}
               </div>
@@ -259,12 +273,12 @@ export function AdminScanDetail() {
       {/* Available Campsites Found */}
       <div>
         <h2 className="text-xl font-semibold mb-4">
-          Latest Found Campsites ({scan.results.length})
+          Latest Target Results ({(scan.results ?? []).length})
         </h2>
-        {scan.results.length === 0 ? (
+        {(scan.results ?? []).length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              No matching available campsites currently found for this target.
+              No available campsites currently recorded for this target.
             </CardContent>
           </Card>
         ) : (
@@ -285,7 +299,7 @@ export function AdminScanDetail() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {scan.results.map((r, i) => (
+                  {(scan.results ?? []).map((r, i) => (
                     <tr
                       key={`${r.campsite_id}-${i}`}
                       className="hover:bg-muted/30"
@@ -298,7 +312,7 @@ export function AdminScanDetail() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex flex-wrap gap-1">
-                          {r.available_dates.map((date) => (
+                          {(r.available_dates ?? []).map((date) => (
                             <Badge
                               key={date}
                               variant="outline"

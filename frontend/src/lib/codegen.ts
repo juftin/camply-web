@@ -2,8 +2,8 @@
  * OpenAPI TypeScript Client Generator
  *
  * Usage:
- *   1. Start the backend: `task backend:dev`
- *   2. Run: `task frontend:codegen`
+ *   Run `task api:generate` for offline generation or `task api:check` for drift checks.
+ *   To fetch from a running backend, use `task frontend:codegen`.
  *
  * This script fetches the OpenAPI schema from the running backend
  * and generates TypeScript types into `src/lib/api/generated/`.
@@ -11,8 +11,8 @@
 
 /* oxlint-disable no-undef */
 
-import { execSync } from "node:child_process";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,14 +24,18 @@ const OPENAPI_URL = `${API_URL}/api/openapi.json`;
 const TEMP_SCHEMA = resolve(__dirname, "..", "..", "tmp", "openapi.json");
 
 async function generate(): Promise<void> {
-  console.log(`Fetching OpenAPI schema from ${OPENAPI_URL}...`);
+  const schemaPath = process.env.CAMPLY_OPENAPI_SCHEMA;
+  console.log(`Loading OpenAPI schema from ${schemaPath || OPENAPI_URL}...`);
 
   try {
-    const response = await fetch(OPENAPI_URL);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    const schema = await response.json();
+    const schema = schemaPath
+      ? JSON.parse(readFileSync(schemaPath, "utf8"))
+      : await (async () => {
+          const response = await fetch(OPENAPI_URL);
+          if (!response.ok)
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          return response.json();
+        })();
     mkdirSync(dirname(TEMP_SCHEMA), { recursive: true });
     writeFileSync(TEMP_SCHEMA, JSON.stringify(schema, null, 2));
     console.log(`Schema saved to ${TEMP_SCHEMA}`);
@@ -43,18 +47,34 @@ async function generate(): Promise<void> {
 
   console.log("Generating TypeScript client...");
   mkdirSync(OUTPUT_DIR, { recursive: true });
+  const check = process.argv.includes("--check");
+  const outputPath = check ? `${TEMP_SCHEMA}.ts` : `${OUTPUT_DIR}/schema.ts`;
 
   try {
-    execSync(
-      `pnpm exec openapi-typescript ${TEMP_SCHEMA} -o ${OUTPUT_DIR}/schema.ts`,
+    execFileSync(
+      "pnpm",
+      ["exec", "openapi-typescript", TEMP_SCHEMA, "-o", outputPath],
       {
         stdio: "inherit",
         cwd: resolve(__dirname, "..", ".."),
       },
     );
-    console.log(`TypeScript client generated at ${OUTPUT_DIR}/schema.ts`);
-  } catch {
-    console.error("Failed to generate TypeScript client.");
+    if (
+      check &&
+      readFileSync(outputPath, "utf8") !==
+        readFileSync(`${OUTPUT_DIR}/schema.ts`, "utf8")
+    ) {
+      throw new Error(
+        "Generated API types are stale. Run task api:generate and commit the result.",
+      );
+    }
+    console.log(
+      check
+        ? "API types match the backend contract."
+        : `TypeScript client generated at ${OUTPUT_DIR}/schema.ts`,
+    );
+  } catch (error) {
+    console.error("Failed to generate TypeScript client.", error);
     process.exit(1);
   }
 }

@@ -336,3 +336,67 @@ class TestAdminEndpoints:
         assert audit_resp.json()["total"] >= 1
         latest = audit_resp.json()["events"][0]
         assert latest["actor_email"] == override_admin.email
+
+
+def test_overview_frontend_contract(
+    test_client: TestClient, override_admin: CurrentUser
+) -> None:
+    """Overview includes every displayed count and the actual overdue threshold."""
+    from backend.config import backend_config
+
+    data = test_client.get("/api/admin/overview").json()
+    assert (
+        data["suspended_users"] == data["total_users"] - data["scanning_enabled_users"]
+    )
+    assert data["dormant_targets"] == data["total_targets"] - data["eligible_targets"]
+    assert data["heartbeat_interval_seconds"] == backend_config.heartbeat_interval
+    assert data["target_cooldown_seconds"] == backend_config.target_cooldown
+    assert (
+        data["overdue_threshold_seconds"]
+        == backend_config.target_cooldown + 2 * backend_config.heartbeat_interval
+    )
+
+
+@pytest.mark.asyncio
+async def test_target_status_filter_and_subscriber_pagination(
+    test_client: TestClient, override_admin: CurrentUser
+) -> None:
+    """Overdue links select overdue targets, retaining paginated subscribers."""
+    now = dt.datetime.now(tz=dt.timezone.utc)
+    async with maker() as session:
+        user = User(email=f"filter-{uuid.uuid4()}@example.test", scanning_enabled=True)
+        session.add(user)
+        targets = [
+            UniqueTarget(
+                provider_id=1,
+                campground_id="cg_1",
+                start_date=dt.date(2027, 1, day),
+                end_date=dt.date(2027, 1, day + 1),
+                created_at=now - dt.timedelta(seconds=1000),
+                last_checked_at=checked,
+            )
+            for day, checked in [(1, None), (3, now)]
+        ]
+        session.add_all(targets)
+        await session.flush()
+        session.add_all(
+            [
+                UserScan(user_id=user.id, target_id=target.id, is_active=True)
+                for target in targets
+            ]
+        )
+        await session.commit()
+        overdue_id, active_id = [str(target.id) for target in targets]
+        user_id = str(user.id)
+    overdue = test_client.get(
+        f"/api/admin/scans?owner_id={user_id}&target_status=overdue"
+    ).json()
+    assert {scan["target_id"] for scan in overdue["scans"]} == {overdue_id}
+    active = test_client.get(
+        f"/api/admin/scans?owner_id={user_id}&target_status=active"
+    ).json()
+    assert {scan["target_id"] for scan in active["scans"]} == {active_id}
+    target = test_client.get(f"/api/admin/targets/{active_id}?limit=1&offset=1").json()
+    assert target["status"] == "active"
+    assert target["subscribers_total"] == 1
+    assert target["subscribers"] == []

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useAdminLocation } from "@/hooks/useAdminLocation";
 import {
   AlertTriangle,
   BarChart2,
@@ -52,10 +52,13 @@ export function AdminTrendsPanel({
   task_name,
   provider,
 }: AdminTrendsPanelProps) {
-  const [range, setRange] = useState<"24h" | "7d" | "30d">("24h");
-  const [viewMode, setViewMode] = useState<"charts" | "table">("charts");
+  const { params, update } = useAdminLocation();
+  const rangeParam = params.get(`${group}_range`);
+  const range =
+    rangeParam === "7d" || rangeParam === "30d" ? rangeParam : "24h";
+  const viewMode = params.get(`${group}_view`) === "table" ? "table" : "charts";
 
-  const { data, isLoading, error } = useAdminTrends({
+  const { data, isLoading, error, refetch, isFetching } = useAdminTrends({
     group,
     range,
     endpoint,
@@ -81,8 +84,8 @@ export function AdminTrendsPanel({
     // Map timestamps to objects containing values for each series
     const dataMap: Record<string, Record<string, number | string>> = {};
 
-    metric.series.forEach((s) => {
-      s.points.forEach((p) => {
+    (metric.series ?? []).forEach((s) => {
+      (s.points ?? []).forEach((p) => {
         const timeKey = p.timestamp;
         if (!dataMap[timeKey]) {
           dataMap[timeKey] = {
@@ -126,7 +129,7 @@ export function AdminTrendsPanel({
                 size="sm"
                 variant={range === r ? "default" : "ghost"}
                 className="h-7 text-xs px-2.5"
-                onClick={() => setRange(r)}
+                onClick={() => update({ [`${group}_range`]: r }, false)}
               >
                 {r}
               </Button>
@@ -139,7 +142,7 @@ export function AdminTrendsPanel({
               size="sm"
               variant={viewMode === "charts" ? "default" : "ghost"}
               className="h-7 text-xs px-2"
-              onClick={() => setViewMode("charts")}
+              onClick={() => update({ [`${group}_view`]: "charts" }, false)}
               title="Chart visualization"
             >
               <BarChart2 className="h-3.5 w-3.5" />
@@ -148,7 +151,7 @@ export function AdminTrendsPanel({
               size="sm"
               variant={viewMode === "table" ? "default" : "ghost"}
               className="h-7 text-xs px-2"
-              onClick={() => setViewMode("table")}
+              onClick={() => update({ [`${group}_view`]: "table" }, false)}
               title="Accessible table view"
             >
               <TableIcon className="h-3.5 w-3.5" />
@@ -157,6 +160,24 @@ export function AdminTrendsPanel({
         </div>
       </div>
 
+      <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
+        <span>
+          Last successful snapshot:{" "}
+          {data?.last_successful_at
+            ? new Date(data.last_successful_at).toLocaleString()
+            : "None"}
+          {isFetching ? " • Updating" : ""}
+          {error || data?.available === false ? " • Stale / unavailable" : ""}
+        </span>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={isFetching}
+          onClick={() => refetch()}
+        >
+          Refresh trends
+        </Button>
+      </div>
       {/* Outage or Unavailable Notice */}
       {data && !data.available && (
         <div className="p-4 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2">
@@ -166,6 +187,9 @@ export function AdminTrendsPanel({
               Prometheus monitoring unavailable:{" "}
             </span>
             <span>
+              {data.metrics?.length
+                ? "Showing the last successful snapshot. "
+                : ""}
               {data.error_message ||
                 "Unable to reach Prometheus server. Historical trends are currently offline."}
             </span>
@@ -175,7 +199,11 @@ export function AdminTrendsPanel({
 
       {error && (
         <div className="p-4 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-xs">
-          Failed to load historical trends.
+          Failed to load historical trends. Any displayed values are from the
+          last successful response.{" "}
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            Retry
+          </Button>
         </div>
       )}
 
@@ -236,7 +264,7 @@ export function AdminTrendsPanel({
                                 color: "#000",
                               }}
                             />
-                            {metric.series.map((s, idx) => (
+                            {(metric.series ?? []).map((s, idx) => (
                               <Bar
                                 key={s.name}
                                 dataKey={s.name}
@@ -274,7 +302,7 @@ export function AdminTrendsPanel({
                                 paddingTop: "6px",
                               }}
                             />
-                            {metric.series.map((s, idx) => (
+                            {(metric.series ?? []).map((s, idx) => (
                               <Line
                                 key={s.name}
                                 type="monotone"
@@ -297,7 +325,7 @@ export function AdminTrendsPanel({
                         <thead className="bg-muted/50 sticky top-0">
                           <tr>
                             <th className="p-1.5 font-medium">Time</th>
-                            {metric.series.map((s) => (
+                            {(metric.series ?? []).map((s) => (
                               <th
                                 key={s.name}
                                 className="p-1.5 font-medium text-right"
@@ -313,7 +341,7 @@ export function AdminTrendsPanel({
                               <td className="p-1.5 text-muted-foreground whitespace-nowrap">
                                 {row.formattedTime}
                               </td>
-                              {metric.series.map((s) => (
+                              {(metric.series ?? []).map((s) => (
                                 <td
                                   key={s.name}
                                   className="p-1.5 text-right font-mono"

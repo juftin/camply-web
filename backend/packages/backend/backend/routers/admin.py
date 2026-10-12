@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Optional
+from typing import Literal, Optional
 
 import structlog
 from fastapi import APIRouter, HTTPException, Query, status
@@ -25,6 +25,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
+from sqlalchemy.sql.elements import ColumnElement
 
 from backend.auth import AdminUserDep
 from backend.config import backend_config
@@ -59,6 +60,7 @@ from db.eligibility import eligible_scan_condition, is_scan_eligible
 from db.models import (
     AdminAuditEvent,
     Campground,
+    ScanResult,
     UniqueTarget,
     User,
     UserScan,
@@ -75,6 +77,32 @@ admin_router = APIRouter(
 def _get_target_grace_period_seconds() -> int:
     """Return cooldown plus 2 discovery intervals (staleness threshold)."""
     return backend_config.target_cooldown + (2 * backend_config.heartbeat_interval)
+
+
+def _target_status_condition(
+    target_status: Literal["active", "overdue", "dormant"],
+) -> ColumnElement[bool]:
+    """Filter targets by subscriber eligibility and the same overdue grace period as overview."""
+    cutoff = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(
+        seconds=_get_target_grace_period_seconds()
+    )
+    eligible_target_ids = (
+        select(UserScan.target_id)
+        .join(User)
+        .where(eligible_scan_condition())
+        .correlate(None)
+    )
+    has_subscriber = UniqueTarget.id.in_(eligible_target_ids)
+    overdue = or_(
+        and_(UniqueTarget.last_checked_at.is_(None), UniqueTarget.created_at < cutoff),
+        and_(
+            UniqueTarget.last_checked_at.is_not(None),
+            UniqueTarget.last_checked_at < cutoff,
+        ),
+    )
+    if target_status == "dormant":
+        return ~has_subscriber
+    return and_(has_subscriber, overdue if target_status == "overdue" else ~overdue)
 
 
 async def _lookup_campgrounds_map(
@@ -181,6 +209,11 @@ async def get_overview(
         total_targets=total_targets,
         eligible_targets=eligible_targets,
         overdue_targets=overdue_targets,
+        suspended_users=(total_users or 0) - (scanning_enabled_users or 0),
+        dormant_targets=total_targets - eligible_targets,
+        heartbeat_interval_seconds=backend_config.heartbeat_interval,
+        target_cooldown_seconds=backend_config.target_cooldown,
+        overdue_threshold_seconds=_get_target_grace_period_seconds(),
     )
 
 
@@ -380,6 +413,9 @@ async def list_admin_scans(
     provider_id: Optional[int] = Query(default=None),
     is_active: Optional[bool] = Query(default=None),
     is_eligible: Optional[bool] = Query(default=None),
+    target_status: Optional[Literal["active", "overdue", "dormant"]] = Query(
+        default=None
+    ),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ) -> AdminScanListResponse:
@@ -402,6 +438,9 @@ async def list_admin_scans(
                 UserScan.is_active.is_(False),
             )
         )
+
+    if target_status is not None:
+        conditions.append(_target_status_condition(target_status))
 
     base_query = (
         select(UserScan)
@@ -435,6 +474,21 @@ async def list_admin_scans(
     cg_keys = {(s.target.provider_id, s.target.campground_id) for s in scans}
     cg_map = await _lookup_campgrounds_map(session, cg_keys)
 
+    result_counts: dict[uuid.UUID, int] = dict(
+        (
+            await session.execute(
+                select(
+                    ScanResult.target_id,
+                    func.count(func.distinct(ScanResult.campsite_id)),
+                )
+                .where(ScanResult.target_id.in_({s.target_id for s in scans}))
+                .group_by(ScanResult.target_id)
+            )
+        )
+        .tuples()
+        .all()
+    )
+
     items: list[AdminScanItem] = []
     for s in scans:
         cg_obj = cg_map.get((s.target.provider_id, s.target.campground_id))
@@ -452,6 +506,8 @@ async def list_admin_scans(
                 is_active=s.is_active,
                 is_eligible=is_scan_eligible(s.user.scanning_enabled, s.is_active),
                 user_scanning_enabled=s.user.scanning_enabled,
+                last_checked_at=s.target.last_checked_at,
+                found_count=result_counts.get(s.target_id, 0),
                 created_at=s.created_at,
             )
         )
@@ -686,11 +742,13 @@ async def get_admin_target(
     # Determine status: dormant, overdue, or active
     now = datetime.datetime.now(tz=datetime.timezone.utc)
     cutoff = now - datetime.timedelta(seconds=_get_target_grace_period_seconds())
+    target_status: Literal["active", "overdue", "dormant"]
+    last_check = target.last_checked_at or target.created_at
+    if last_check.tzinfo is None:
+        last_check = last_check.replace(tzinfo=datetime.timezone.utc)
     if eligible_subscribers == 0:
         target_status = "dormant"
-    elif (target.last_checked_at is None and target.created_at < cutoff) or (
-        target.last_checked_at is not None and target.last_checked_at < cutoff
-    ):
+    elif last_check < cutoff:
         target_status = "overdue"
     else:
         target_status = "active"
@@ -732,6 +790,7 @@ async def get_admin_target(
         total_subscribers=total_subscribers,
         eligible_subscribers=eligible_subscribers,
         status=target_status,
+        overdue_threshold_seconds=_get_target_grace_period_seconds(),
         subscribers=subscriber_items,
         subscribers_total=total_subscribers,
     )

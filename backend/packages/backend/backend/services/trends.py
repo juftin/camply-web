@@ -9,6 +9,7 @@ Gracefully degrades with available=False when Prometheus is unreachable.
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import math
 import time
@@ -90,10 +91,15 @@ def _matrix_to_series(
             name = metric_labels[label_key]
         elif metric_labels:
             name = (
-                ", ".join(
-                    f"{k}={v}" for k, v in metric_labels.items() if k != "__name__"
+                default_name
+                + " ("
+                + (
+                    ", ".join(
+                        f"{k}={v}" for k, v in metric_labels.items() if k != "__name__"
+                    )
+                    or default_name
                 )
-                or default_name
+                + ")"
             )
         else:
             name = default_name
@@ -153,14 +159,14 @@ async def get_admin_trends(
     metrics: list[TrendMetric] = []
 
     try:
-        async with httpx.AsyncClient() as client:
+        async with asyncio.timeout(8), httpx.AsyncClient() as client:
             if norm_group == "usage":
                 # Metric 1: Total Registered Users
                 try:
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "camply_registered_users_total or camply_active_users",
+                        "camply_registered_users_total",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -808,6 +814,7 @@ async def get_admin_trends(
             start_time=start_dt,
             end_time=end_dt,
             timezone="UTC",
+            last_successful_at=end_dt,
             available=True,
             error_message=None,
             metrics=metrics,
@@ -815,12 +822,14 @@ async def get_admin_trends(
         _TRENDS_CACHE[cache_key] = (now, response)
         return response
 
-    except (httpx.RequestError, httpx.HTTPStatusError, ValueError) as exc:
+    except (httpx.RequestError, httpx.HTTPStatusError, ValueError, TimeoutError) as exc:
         logger.warning(
             "Prometheus trends service unavailable",
             url=backend_config.prometheus_url,
             error=str(exc),
         )
+        previous = _TRENDS_CACHE.get(cache_key)
+        last_success = previous[1] if previous else None
         return AdminTrendsResponse(
             group=norm_group,
             range=range_param,
@@ -828,7 +837,10 @@ async def get_admin_trends(
             start_time=start_dt,
             end_time=end_dt,
             timezone="UTC",
+            last_successful_at=last_success.last_successful_at
+            if last_success
+            else None,
             available=False,
             error_message=f"Prometheus service unreachable at {backend_config.prometheus_url}: {exc}",
-            metrics=[],
+            metrics=last_success.metrics if last_success else [],
         )

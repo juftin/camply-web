@@ -291,6 +291,7 @@ export async function listAdminScans(params?: {
   is_active?: boolean;
   is_eligible?: boolean;
   provider_id?: number;
+  target_status?: "active" | "overdue" | "dormant";
   limit?: number;
   offset?: number;
 }): Promise<AdminScanListResponse> {

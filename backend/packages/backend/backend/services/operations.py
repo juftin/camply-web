@@ -11,6 +11,7 @@ import asyncio
 import datetime as dt
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
 
 import redis
@@ -59,10 +60,21 @@ def _inspect_celery_sync() -> tuple[bool, list[AdminWorkerItem], int, int, int]:
         app.conf.broker_connection_timeout = 2.0
         inspect = app.control.inspect(timeout=2.0)
 
-        ping = inspect.ping() or {}
-        active = inspect.active() or {}
-        reserved = inspect.reserved() or {}
-        scheduled = inspect.scheduled() or {}
+        # Independent inspections share the deadline, retaining successful replies.
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = [
+                executor.submit(getattr(inspect, method))
+                for method in ("ping", "active", "reserved", "scheduled")
+            ]
+            replies = []
+            complete = True
+            for future in futures:
+                try:
+                    replies.append(future.result() or {})
+                except Exception:
+                    complete = False
+                    replies.append({})
+        ping, active, reserved, scheduled = replies
 
         all_workers = (
             set(ping.keys())
@@ -96,7 +108,7 @@ def _inspect_celery_sync() -> tuple[bool, list[AdminWorkerItem], int, int, int]:
                 )
             )
 
-        return True, worker_items, active_total, reserved_total, scheduled_total
+        return complete, worker_items, active_total, reserved_total, scheduled_total
     except Exception:
         logger.warning("Failed to inspect Celery workers", exc_info=True)
         return False, [], 0, 0, 0
@@ -128,7 +140,7 @@ def _query_valkey_overview_sync() -> tuple[int, Optional[AdminDiscoveryMetadata]
         return depth, disc_meta
     except Exception:
         logger.warning("Failed to query Valkey for operations overview", exc_info=True)
-        return 0, None
+        raise
 
 
 async def get_operations_overview() -> AdminOperationsResponse:
@@ -148,23 +160,44 @@ async def get_operations_overview() -> AdminOperationsResponse:
         ):
             return _cached_overview
 
-        # Run blocking inspect in thread executor with a 4-second deadline
-        try:
-            connected, workers, act_tot, res_tot, sch_tot = await asyncio.wait_for(
-                asyncio.to_thread(_inspect_celery_sync),
-                timeout=4.0,
+        results = await asyncio.gather(
+            asyncio.wait_for(asyncio.to_thread(_inspect_celery_sync), timeout=4.0),
+            asyncio.wait_for(
+                asyncio.to_thread(_query_valkey_overview_sync), timeout=4.0
+            ),
+            return_exceptions=True,
+        )
+        previous = _cached_overview
+        inspection = results[0]
+        telemetry = results[1]
+        inspection_available = (
+            not isinstance(inspection, BaseException) and inspection[0]
+        )
+        telemetry_available = not isinstance(telemetry, BaseException)
+        workers: list[AdminWorkerItem]
+        if isinstance(inspection, BaseException):
+            workers, act_tot, res_tot, sch_tot = [], 0, 0, 0
+        else:
+            _, workers, act_tot, res_tot, sch_tot = inspection
+        if not inspection_available and not workers and previous:
+            workers = previous.workers
+            act_tot, res_tot, sch_tot = (
+                previous.active_tasks_total,
+                previous.reserved_tasks_total,
+                previous.scheduled_tasks_total,
             )
-        except asyncio.TimeoutError:
-            connected, workers, act_tot, res_tot, sch_tot = False, [], 0, 0, 0
-
-        try:
-            depth, disc_meta = await asyncio.wait_for(
-                asyncio.to_thread(_query_valkey_overview_sync),
-                timeout=2.0,
-            )
-        except asyncio.TimeoutError:
-            depth, disc_meta = 0, None
-
+        if isinstance(telemetry, BaseException):
+            depth = previous.queue_depth if previous else 0
+            disc_meta = previous.last_discovery if previous else None
+        else:
+            depth, disc_meta = telemetry
+        timestamp = dt.datetime.now(tz=dt.timezone.utc)
+        stale = not (inspection_available and telemetry_available)
+        errors = []
+        if not inspection_available:
+            errors.append("Worker inspection unavailable or incomplete")
+        if not telemetry_available:
+            errors.append("Queue and discovery telemetry unavailable")
         snapshot = AdminOperationsResponse(
             workers=workers,
             queue_depth=depth,
@@ -172,8 +205,15 @@ async def get_operations_overview() -> AdminOperationsResponse:
             reserved_tasks_total=res_tot,
             scheduled_tasks_total=sch_tot,
             last_discovery=disc_meta,
-            broker_connected=connected,
-            snapshot_at=dt.datetime.now(tz=dt.timezone.utc),
+            broker_connected=telemetry_available,
+            inspection_available=inspection_available,
+            telemetry_available=telemetry_available,
+            stale=stale,
+            last_successful_at=(previous.last_successful_at if previous else None)
+            if stale
+            else timestamp,
+            error_message="; ".join(errors) or None,
+            snapshot_at=timestamp,
         )
 
         _cached_overview = snapshot
@@ -214,8 +254,8 @@ def _get_recent_tasks_sync(
     """
     try:
         r = _get_redis_client()
-        # Fetch up to 500 recent items from stream
-        raw_items_res = r.xrevrange(STREAM_KEY, max="+", min="-", count=500)
+        # Fetch up to 1000 recent items from stream
+        raw_items_res = r.xrevrange(STREAM_KEY, max="+", min="-", count=1000)
         raw_items: list[Any] = raw_items_res if isinstance(raw_items_res, list) else []
 
         parsed: list[AdminTaskTelemetryItem] = []
@@ -234,7 +274,12 @@ def _get_recent_tasks_sync(
         return AdminOperationsTasksResponse(tasks=sliced, total=total)
     except Exception:
         logger.warning("Failed to read task telemetry from Valkey", exc_info=True)
-        return AdminOperationsTasksResponse(tasks=[], total=0)
+        return AdminOperationsTasksResponse(
+            tasks=[],
+            total=0,
+            available=False,
+            error_message="Task telemetry unavailable; retry when Valkey is reachable.",
+        )
 
 
 async def get_recent_tasks(

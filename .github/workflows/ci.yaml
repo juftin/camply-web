@@ -84,6 +84,16 @@ jobs:
       - name: ${{ matrix.name }}
         run: ${{ matrix.cmd }}
 
+  api-contract:
+    name: API Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0
+      - uses: ./.github/actions/setup-backend
+      - uses: ./.github/actions/setup-frontend
+      - run: task api:check
+
   frontend-docker:
     name: Frontend Docker Build
     needs: [frontend-checks]

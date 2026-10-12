@@ -178,3 +178,9 @@ class ScanResultItem(BaseModel):
 | GET    | `/api/admin/operations/tasks`               | ✓ (Admin) | —                         | Valkey telemetry stream       |
 | GET    | `/api/admin/operations/tasks/{id}`          | ✓ (Admin) | —                         | Task execution telemetry      |
 | GET    | `/api/admin/trends`                         | ✓ (Admin) | —                         | Prometheus metrics proxy      |
+
+### Admin contract and monitoring availability
+
+Admin frontend types reference the generated OpenAPI schema. Run `task api:generate` after changing response models; `task api:check` verifies drift without starting a server and runs in CI. Overview returns suspended/dormant counts and the actual overdue threshold (cooldown plus two discovery intervals). Scan lists support `target_status=active|overdue|dormant`; target detail uses the same status values.
+
+Operations reports broker connectivity separately from worker inspection and marks incomplete snapshots as stale. Queue/discovery outages preserve prior successful values with explicit availability flags. Task-stream outages return `available=false`, not an empty success. Prometheus outages retain the last successful trend series and timestamp with `available=false`. Celery inspection remains read-only and browser requests only reach FastAPI.

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -179,6 +179,11 @@ class AdminOverviewResponse(BaseModel):
     total_targets: int
     eligible_targets: int
     overdue_targets: int
+    suspended_users: int
+    dormant_targets: int
+    heartbeat_interval_seconds: int
+    target_cooldown_seconds: int
+    overdue_threshold_seconds: int
 
 
 class AdminUserItem(BaseModel):
@@ -239,6 +244,8 @@ class AdminScanItem(BaseModel):
     is_active: bool
     is_eligible: bool
     user_scanning_enabled: bool
+    last_checked_at: Optional[datetime.datetime] = None
+    found_count: int
     created_at: datetime.datetime
 
 
@@ -305,7 +312,8 @@ class AdminTargetDetailResponse(BaseModel):
     created_at: datetime.datetime
     total_subscribers: int
     eligible_subscribers: int
-    status: str
+    overdue_threshold_seconds: int
+    status: Literal["active", "overdue", "dormant"]
     subscribers: list[AdminTargetSubscriberItem] = Field(default_factory=list)
     subscribers_total: int
 
@@ -366,6 +374,11 @@ class AdminOperationsResponse(BaseModel):
     last_discovery: Optional[AdminDiscoveryMetadata] = None
     broker_connected: bool
     snapshot_at: datetime.datetime
+    inspection_available: bool = True
+    telemetry_available: bool = True
+    stale: bool = False
+    last_successful_at: Optional[datetime.datetime] = None
+    error_message: Optional[str] = None
 
 
 class AdminTaskTelemetryItem(BaseModel):
@@ -387,6 +400,8 @@ class AdminOperationsTasksResponse(BaseModel):
 
     tasks: list[AdminTaskTelemetryItem]
     total: int
+    available: bool = True
+    error_message: Optional[str] = None
 
 
 class AdminOperationsTaskDetail(BaseModel):
@@ -443,6 +458,7 @@ class AdminTrendsResponse(BaseModel):
     start_time: datetime.datetime
     end_time: datetime.datetime
     timezone: str = "UTC"
+    last_successful_at: Optional[datetime.datetime] = None
     available: bool
     error_message: Optional[str] = None
     metrics: list[TrendMetric] = Field(default_factory=list)

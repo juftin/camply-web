@@ -6,15 +6,19 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminNav } from "@/components/AdminNav";
+import { useAdminLocation } from "@/hooks/useAdminLocation";
+import { AdminPagination } from "@/components/admin/AdminPagination";
+import { AdminFeedback } from "@/components/admin/AdminFeedback";
+import { getApiErrorMessage } from "@/lib/api";
 import { useAdminScans, useUpdateAdminScan } from "@/hooks/useAdmin";
 
 export function AdminScans() {
-  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "paused">(
-    "all",
-  );
-  const [eligibleFilter, setEligibleFilter] = useState<
-    "all" | "eligible" | "ineligible"
-  >("all");
+  const { params, page, update, setPage } = useAdminLocation();
+  const activeFilter = params.get("status") ?? "all";
+  const eligibleFilter = params.get("eligibility") ?? "all";
+  const targetStatus = params.get("target_status");
+  const pageSize = 50;
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [updatingScanId, setUpdatingScanId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -26,7 +30,14 @@ export function AdminScans() {
   const { data, isLoading, error, refetch } = useAdminScans({
     is_active: isActiveParam,
     is_eligible: isEligibleParam,
-    limit: 100,
+    limit: pageSize,
+    offset: page * pageSize,
+    target_status:
+      targetStatus === "overdue" ||
+      targetStatus === "active" ||
+      targetStatus === "dormant"
+        ? targetStatus
+        : undefined,
   });
 
   const updateScanMutation = useUpdateAdminScan();
@@ -43,16 +54,18 @@ export function AdminScans() {
       return;
     }
     setErrorMessage(null);
+    setSuccessMessage(null);
     try {
       setUpdatingScanId(scanId);
       await updateScanMutation.mutateAsync({
         scanId,
         payload: { is_active: !current },
       });
+      setSuccessMessage(
+        current ? "Scan paused." : "Scan resumed and eligible for polling.",
+      );
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : "Failed to toggle scan status";
-      setErrorMessage(msg);
+      setErrorMessage(getApiErrorMessage(err));
     } finally {
       setUpdatingScanId(null);
     }
@@ -71,9 +84,27 @@ export function AdminScans() {
       </div>
 
       <AdminNav />
+      <AdminFeedback message={successMessage} />
+      <div className="mb-4 flex flex-wrap gap-2">
+        {(["all", "overdue", "active", "dormant"] as const).map((value) => (
+          <Button
+            key={value}
+            size="sm"
+            variant={(targetStatus ?? "all") === value ? "default" : "outline"}
+            onClick={() => update({ target_status: value })}
+          >
+            {value === "all"
+              ? "All targets"
+              : `${value[0].toUpperCase()}${value.slice(1)} targets`}
+          </Button>
+        ))}
+      </div>
 
       {errorMessage && (
-        <div className="mb-4 rounded-md bg-destructive/10 border border-destructive/30 p-3 text-destructive text-sm flex items-center justify-between">
+        <div
+          role="alert"
+          className="mb-4 rounded-md bg-destructive/10 border border-destructive/30 p-3 text-destructive text-sm flex items-center justify-between"
+        >
           <span>{errorMessage}</span>
           <Button
             variant="ghost"
@@ -93,21 +124,21 @@ export function AdminScans() {
             <Button
               variant={activeFilter === "all" ? "default" : "outline"}
               size="sm"
-              onClick={() => setActiveFilter("all")}
+              onClick={() => update({ status: "all" })}
             >
               All
             </Button>
             <Button
               variant={activeFilter === "active" ? "default" : "outline"}
               size="sm"
-              onClick={() => setActiveFilter("active")}
+              onClick={() => update({ status: "active" })}
             >
               Active
             </Button>
             <Button
               variant={activeFilter === "paused" ? "default" : "outline"}
               size="sm"
-              onClick={() => setActiveFilter("paused")}
+              onClick={() => update({ status: "paused" })}
             >
               Paused
             </Button>
@@ -118,21 +149,21 @@ export function AdminScans() {
             <Button
               variant={eligibleFilter === "all" ? "default" : "outline"}
               size="sm"
-              onClick={() => setEligibleFilter("all")}
+              onClick={() => update({ eligibility: "all" })}
             >
               All
             </Button>
             <Button
               variant={eligibleFilter === "eligible" ? "default" : "outline"}
               size="sm"
-              onClick={() => setEligibleFilter("eligible")}
+              onClick={() => update({ eligibility: "eligible" })}
             >
               Eligible
             </Button>
             <Button
               variant={eligibleFilter === "ineligible" ? "default" : "outline"}
               size="sm"
-              onClick={() => setEligibleFilter("ineligible")}
+              onClick={() => update({ eligibility: "ineligible" })}
             >
               Ineligible
             </Button>
@@ -163,6 +194,12 @@ export function AdminScans() {
           <CardContent className="py-12 text-center text-muted-foreground">
             No scans found matching current filters.
           </CardContent>
+          <AdminPagination
+            page={page}
+            pageSize={pageSize}
+            total={data.total}
+            onPage={setPage}
+          />
         </Card>
       ) : (
         <div className="rounded-md border bg-card overflow-hidden">
@@ -180,6 +217,9 @@ export function AdminScans() {
                   </th>
                   <th className="py-3 px-4 text-left font-medium">
                     Eligibility
+                  </th>
+                  <th className="py-3 px-4 text-left font-medium">
+                    Last Checked
                   </th>
                   <th className="py-3 px-4 text-left font-medium">Target</th>
                   <th className="py-3 px-4 text-right font-medium">Actions</th>
@@ -223,8 +263,11 @@ export function AdminScans() {
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Switch
+                            aria-label={`Saved active scan for ${s.user_email} at ${s.campground_name}`}
                             checked={s.is_active}
-                            disabled={isUpdating}
+                            disabled={
+                              isUpdating || updateScanMutation.isPending
+                            }
                             onCheckedChange={() =>
                               handleToggleScan(
                                 s.id,
@@ -245,8 +288,31 @@ export function AdminScans() {
                           </Badge>
                         ) : (
                           <Badge variant="secondary" className="text-xs">
-                            Ineligible
+                            {s.user_scanning_enabled
+                              ? "Paused by user"
+                              : "Owner suspended"}
                           </Badge>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-xs">
+                        {s.last_checked_at ? (
+                          <>
+                            <time dateTime={s.last_checked_at}>
+                              {new Date(s.last_checked_at).toLocaleString()}
+                            </time>
+                            <p className="text-muted-foreground">
+                              {Math.max(
+                                0,
+                                Math.floor(
+                                  (Date.now() - Date.parse(s.last_checked_at)) /
+                                    1000,
+                                ),
+                              )}
+                              s ago
+                            </p>
+                          </>
+                        ) : (
+                          "Never"
                         )}
                       </td>
                       <td className="py-3 px-4">
@@ -280,11 +346,12 @@ export function AdminScans() {
               </tbody>
             </table>
           </div>
-          <div className="p-3 border-t bg-muted/20 text-xs text-muted-foreground flex justify-between items-center">
-            <span>
-              Showing {data.scans.length} of {data.total} scans
-            </span>
-          </div>
+          <AdminPagination
+            page={page}
+            pageSize={pageSize}
+            total={data.total}
+            onPage={setPage}
+          />
         </div>
       )}
     </div>

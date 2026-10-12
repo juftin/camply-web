@@ -23,6 +23,27 @@ tasks:
       - task: backend:test
       - task: frontend:test
 
+  api:generate:
+    desc: Generate API types from the local backend schema without a running server
+    cmds:
+      - task: backend:run
+        vars:
+          CLI_ARGS: python -m backend.openapi --output ../frontend/tmp/openapi.json
+      - task: frontend:codegen
+        vars:
+          OPENAPI_SCHEMA: "{{.ROOT_DIR}}/frontend/tmp/openapi.json"
+
+  api:check:
+    desc: Verify committed API types match the current backend contract
+    cmds:
+      - task: backend:run
+        vars:
+          CLI_ARGS: python -m backend.openapi --output ../frontend/tmp/openapi.json
+      - task: frontend:codegen
+        vars:
+          CLI_ARGS: --check
+          OPENAPI_SCHEMA: "{{.ROOT_DIR}}/frontend/tmp/openapi.json"
+
   snapshot:
     desc: Run UI Visual Snapshots and Generate Comparison Report
     cmds:

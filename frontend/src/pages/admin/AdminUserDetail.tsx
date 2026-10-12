@@ -20,6 +20,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { AdminPagination } from "@/components/admin/AdminPagination";
+import { AdminFeedback } from "@/components/admin/AdminFeedback";
+import { useAdminLocation } from "@/hooks/useAdminLocation";
+import { getApiErrorMessage } from "@/lib/api";
 import { AdminNav } from "@/components/AdminNav";
 import {
   useAdminUser,
@@ -29,6 +33,10 @@ import {
 } from "@/hooks/useAdmin";
 
 export function AdminUserDetail() {
+  const { page, setPage } = useAdminLocation();
+  const pageSize = 50;
+  const [message, setMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState(false);
   const { userId } = useParams<{ userId: string }>();
   const [updatingUser, setUpdatingUser] = useState(false);
   const [updatingScanId, setUpdatingScanId] = useState<string | null>(null);
@@ -39,9 +47,15 @@ export function AdminUserDetail() {
     error: userError,
     refetch: refetchUser,
   } = useAdminUser(userId || "");
-  const { data: scansData, isLoading: scansLoading } = useAdminScans({
+  const {
+    data: scansData,
+    isLoading: scansLoading,
+    error: scansError,
+    refetch: refetchScans,
+  } = useAdminScans({
     owner_id: userId,
-    limit: 100,
+    limit: pageSize,
+    offset: page * pageSize,
   });
 
   const updateUserMutation = useUpdateAdminUser();
@@ -66,6 +80,14 @@ export function AdminUserDetail() {
           <p className="text-destructive font-medium">
             User not found or error loading user
           </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 mr-2"
+            onClick={() => refetchUser()}
+          >
+            Retry
+          </Button>
           <Button asChild variant="outline" size="sm" className="mt-3">
             <Link to="/admin/users">Back to Users</Link>
           </Button>
@@ -75,6 +97,8 @@ export function AdminUserDetail() {
   }
 
   const handleToggleScanning = async () => {
+    setMessage(null);
+    setActionError(false);
     try {
       setUpdatingUser(true);
       await updateUserMutation.mutateAsync({
@@ -82,18 +106,34 @@ export function AdminUserDetail() {
         payload: { scanning_enabled: !user.scanning_enabled },
       });
       await refetchUser();
+      setMessage(
+        user.scanning_enabled
+          ? "Scanning suspended. Login and saved scans are preserved."
+          : "Scanning enabled.",
+      );
+    } catch (error) {
+      setActionError(true);
+      setMessage(getApiErrorMessage(error));
     } finally {
       setUpdatingUser(false);
     }
   };
 
   const handleToggleScanActive = async (scanId: string, current: boolean) => {
+    setMessage(null);
+    setActionError(false);
     try {
       setUpdatingScanId(scanId);
       await updateScanMutation.mutateAsync({
         scanId,
         payload: { is_active: !current },
       });
+      setMessage(
+        current ? "Scan paused." : "Scan resumed and eligible for polling.",
+      );
+    } catch (error) {
+      setActionError(true);
+      setMessage(getApiErrorMessage(error));
     } finally {
       setUpdatingScanId(null);
     }
@@ -132,6 +172,7 @@ export function AdminUserDetail() {
 
       <AdminNav />
 
+      <AdminFeedback message={message} error={actionError} />
       {/* User Information & Suspension Controls */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card className="md:col-span-2">
@@ -159,7 +200,7 @@ export function AdminUserDetail() {
               </div>
               <div>
                 <span className="text-xs text-muted-foreground block">
-                  Early Access User
+                  Invited User
                 </span>
                 <span>{user.is_invited ? "Yes" : "No"}</span>
               </div>
@@ -216,11 +257,12 @@ export function AdminUserDetail() {
                 <p className="font-medium text-sm">Allow Automated Scanning</p>
                 <p className="text-xs text-muted-foreground">
                   {user.scanning_enabled
-                    ? "User scans are polled by workers"
+                    ? "Active scans are eligible for worker polling"
                     : "Suspended: worker skips scans"}
                 </p>
               </div>
               <Switch
+                aria-label={`Scanning access for ${user.email}`}
                 checked={user.scanning_enabled}
                 disabled={updatingUser}
                 onCheckedChange={handleToggleScanning}
@@ -240,6 +282,11 @@ export function AdminUserDetail() {
         {scansLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : scansError ? (
+          <div role="alert">
+            Failed to load user scans.{" "}
+            <Button onClick={() => refetchScans()}>Retry</Button>
           </div>
         ) : scans.length === 0 ? (
           <Card>
@@ -266,7 +313,7 @@ export function AdminUserDetail() {
                       Effective Eligible
                     </th>
                     <th className="py-3 px-4 text-left font-medium">
-                      Found Sites
+                      Target Sites
                     </th>
                     <th className="py-3 px-4 text-right font-medium">
                       Actions
@@ -295,9 +342,11 @@ export function AdminUserDetail() {
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             <Switch
+                              aria-label={`Saved active scan at ${s.campground_name}`}
                               checked={s.is_active}
                               disabled={
                                 isUpdating ||
+                                updateScanMutation.isPending ||
                                 (!s.is_active && !user.scanning_enabled)
                               }
                               onCheckedChange={() =>
@@ -316,7 +365,9 @@ export function AdminUserDetail() {
                             </Badge>
                           ) : (
                             <Badge variant="secondary" className="text-xs">
-                              Ineligible
+                              {s.user_scanning_enabled
+                                ? "Paused by user"
+                                : "Owner suspended"}
                             </Badge>
                           )}
                         </td>
@@ -340,6 +391,14 @@ export function AdminUserDetail() {
               </table>
             </div>
           </div>
+        )}
+        {scansData && (
+          <AdminPagination
+            page={page}
+            pageSize={pageSize}
+            total={scansData.total}
+            onPage={setPage}
+          />
         )}
       </div>
     </div>

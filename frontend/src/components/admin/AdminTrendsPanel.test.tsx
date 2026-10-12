@@ -1,3 +1,4 @@
+import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -67,9 +68,11 @@ describe("AdminTrendsPanel", () => {
     });
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <AdminTrendsPanel group="usage" title="Usage Trends" />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <AdminTrendsPanel group="usage" title="Usage Trends" />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -115,9 +118,11 @@ describe("AdminTrendsPanel", () => {
     });
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <AdminTrendsPanel group="usage" />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <AdminTrendsPanel group="usage" />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -148,9 +153,11 @@ describe("AdminTrendsPanel", () => {
     });
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <AdminTrendsPanel group="worker" />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <AdminTrendsPanel group="worker" />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -162,4 +169,36 @@ describe("AdminTrendsPanel", () => {
       ).toBeInTheDocument();
     });
   });
+});
+
+it("restores a chart range from the URL and queries the selected range", async () => {
+  vi.mocked(api.getAdminTrends).mockResolvedValue({
+    group: "usage",
+    range: "7d",
+    step_seconds: 3600,
+    start_time: "2026-10-03T12:00:00Z",
+    end_time: "2026-10-10T12:00:00Z",
+    timezone: "UTC",
+    available: true,
+    metrics: [],
+  });
+  const browser = userEvent.setup();
+  render(
+    <MemoryRouter initialEntries={["/admin?usage_range=7d&usage_view=table"]}>
+      <QueryClientProvider client={queryClient}>
+        <AdminTrendsPanel group="usage" />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+  await waitFor(() =>
+    expect(api.getAdminTrends).toHaveBeenCalledWith(
+      expect.objectContaining({ range: "7d" }),
+    ),
+  );
+  await browser.click(screen.getByRole("button", { name: "30d" }));
+  await waitFor(() =>
+    expect(api.getAdminTrends).toHaveBeenCalledWith(
+      expect.objectContaining({ range: "30d" }),
+    ),
+  );
 });

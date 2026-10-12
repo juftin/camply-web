@@ -1,17 +1,20 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, History, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminNav } from "@/components/AdminNav";
+import { useAdminLocation } from "@/hooks/useAdminLocation";
 import { useAdminAudit } from "@/hooks/useAdmin";
 
 export function AdminAudit() {
-  const [offset, setOffset] = useState(0);
+  const { page, setPage } = useAdminLocation();
   const limit = 50;
 
-  const { data, isLoading, error, refetch } = useAdminAudit({ limit, offset });
+  const { data, isLoading, error, refetch } = useAdminAudit({
+    limit,
+    offset: page * limit,
+  });
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -135,16 +138,16 @@ export function AdminAudit() {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={offset === 0}
-                onClick={() => setOffset(Math.max(0, offset - limit))}
+                disabled={page === 0}
+                onClick={() => setPage(Math.max(0, page - 1))}
               >
                 Previous
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={offset + limit >= data.total}
-                onClick={() => setOffset(offset + limit)}
+                disabled={(page + 1) * limit >= data.total}
+                onClick={() => setPage(page + 1)}
               >
                 Next
               </Button>

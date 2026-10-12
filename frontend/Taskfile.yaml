@@ -62,9 +62,11 @@ tasks:
         sh: node -p "require('./package.json').version"
 
   codegen:
+    env:
+      CAMPLY_OPENAPI_SCHEMA: '{{.OPENAPI_SCHEMA | default .CAMPLY_OPENAPI_SCHEMA | default ""}}'
     desc: Generate TypeScript API Client from OpenAPI Schema
     cmds:
-      - pnpm run codegen
+      - pnpm run codegen {{.CLI_ARGS}}
     deps: [install]
 
   test:

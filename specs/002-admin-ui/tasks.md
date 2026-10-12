@@ -52,3 +52,12 @@
 - [x] T020 Complete two-user shared-target smoke test, compatible consumer/producer rollout check, metric reset/retention verification, and responsive admin UI review.
 
 Dependencies: T001–T006 precede user/scan delivery; T012–T015 precede operations UI verification; T021–T024 precede trend graph verification; monitoring parity T027–T029 precedes Grafana removal T030–T031; all slices precede completion. Implementation is verified and complete.
+
+## Reliability and usability follow-up
+
+- [x] T032 Align overview and target contracts; generate admin types and add an API drift gate.
+- [x] T033 Preserve chart series identity, bound trend requests, and retain stale history during outages.
+- [x] T034 Collect worker inspection concurrently, retain partial replies, and distinguish unavailable telemetry from idle systems.
+- [x] T035 Refresh affected user/scan/target caches and display accessible mutation feedback.
+- [x] T036 Add pagination and URL-backed filters/ranges, overdue investigation links, and accurate scan-state labels.
+- [x] T037 Add regressions for contracts, filtering, active targets, stale snapshots, suspension, and navigation; refresh screenshots.
