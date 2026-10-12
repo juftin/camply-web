@@ -6,6 +6,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { AdminOverview } from "./AdminOverview";
 import { AdminUsers } from "./AdminUsers";
 import { AdminScans } from "./AdminScans";
+import { AdminAudit } from "./AdminAudit";
 import * as api from "@/lib/api";
 
 vi.mock("recharts", async (importOriginal) => {
@@ -25,8 +26,53 @@ vi.mock("@/lib/api", async (importOriginal) => {
     getAdminOverview: vi.fn(),
     listAdminUsers: vi.fn(),
     listAdminScans: vi.fn(),
+    listAdminAudit: vi.fn(),
     getAdminTrends: vi.fn(),
   };
+});
+
+it("describes audit changes as scanning access and scan settings rather than raw booleans", async () => {
+  vi.mocked(api.listAdminAudit).mockResolvedValue({
+    events: [
+      {
+        id: "audit-1",
+        actor_id: "admin-1",
+        actor_email: "admin@example.test",
+        action: "user.scanning_enabled",
+        subject_type: "user",
+        subject_id: "user-1",
+        prev_value: true,
+        new_value: false,
+        created_at: "2026-10-09T00:00:00Z",
+      },
+      {
+        id: "audit-2",
+        actor_id: "admin-1",
+        actor_email: "admin@example.test",
+        action: "scan.is_active",
+        subject_type: "scan",
+        subject_id: "scan-1",
+        prev_value: null,
+        new_value: false,
+        created_at: "2026-10-09T00:00:00Z",
+      },
+    ],
+    total: 2,
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <AdminAudit />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  expect(await screen.findByText("Scanning access")).toBeInTheDocument();
+  expect(screen.getByText("Enabled")).toBeInTheDocument();
+  expect(screen.getByText("Suspended")).toBeInTheDocument();
+  expect(screen.getByText("Scan setting")).toBeInTheDocument();
+  expect(screen.getByText("Paused")).toBeInTheDocument();
+  expect(screen.getByText("Not recorded")).toBeInTheDocument();
+  expect(screen.queryByText("false")).not.toBeInTheDocument();
 });
 
 let queryClient: QueryClient;
@@ -85,7 +131,7 @@ describe("AdminOverview", () => {
       ).toBeInTheDocument();
     });
     expect(
-      screen.getByRole("link", { name: "Inspect Overdue Targets" }),
+      screen.getByRole("link", { name: "View scans with overdue targets" }),
     ).toHaveAttribute("href", "/admin/scans?target_status=overdue");
   });
 });

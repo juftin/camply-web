@@ -82,7 +82,7 @@ describe("AdminOperations", () => {
       tasks: [
         {
           task_id: "task-abc-123",
-          task_name: "worker.tasks.scanner.scan_target",
+          task_name: "worker.tasks.scanner.check_target_availability",
           worker: "celery@worker-node-1",
           finished_at: "2026-10-09T01:04:30Z",
           duration_ms: 1250,
@@ -115,7 +115,7 @@ describe("AdminOperations", () => {
     expect(screen.getAllByText("5").length).toBeGreaterThan(0); // reserved tasks & worker table
 
     // Discovery section
-    expect(screen.getByText("Heartbeat Discovery")).toBeInTheDocument();
+    expect(screen.getByText("Latest Scheduling Run")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument(); // targets discovered
     expect(screen.getByText("4")).toBeInTheDocument(); // targets enqueued
 
@@ -127,9 +127,7 @@ describe("AdminOperations", () => {
     );
 
     // Telemetry stream
-    expect(
-      screen.getByText("worker.tasks.scanner.scan_target"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Check campsite availability")).toBeInTheDocument();
     expect(screen.getByText("target: target-u…")).toBeInTheDocument();
     expect(screen.getByText("1.25 s")).toBeInTheDocument();
   });
@@ -156,7 +154,7 @@ describe("AdminOperations", () => {
       tasks: [
         {
           task_id: "task-xyz-789",
-          task_name: "worker.tasks.scanner.scan_target",
+          task_name: "worker.tasks.scanner.check_target_availability",
           worker: "celery@worker-node-2",
           finished_at: "2026-10-09T01:04:30Z",
           duration_ms: 450,
@@ -255,6 +253,6 @@ it("shows telemetry outages as unavailable instead of idle", async () => {
     await screen.findByText("Task stream unavailable"),
   ).toBeInTheDocument();
   expect(
-    screen.queryByText("No task telemetry matching filters."),
+    screen.queryByText("No recent task results match these filters."),
   ).not.toBeInTheDocument();
 });

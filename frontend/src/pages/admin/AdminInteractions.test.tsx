@@ -166,12 +166,12 @@ describe("Admin interactions", () => {
       return { ...user, updated_at: user.created_at };
     });
     const browser = setup("/admin/targets/target-1");
-    expect(await screen.findByText("Eligible for Polling")).toBeInTheDocument();
+    expect(await screen.findByText("Eligible for checks")).toBeInTheDocument();
     await browser.click(
       await screen.findByRole("switch", { name: /Scanning access/ }),
     );
     expect(
-      await screen.findByText("Dormant (No Eligible Subscribers)"),
+      await screen.findByText("Dormant (no eligible scans)"),
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByTestId("profile")).toHaveTextContent("false"),

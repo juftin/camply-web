@@ -7,6 +7,70 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { AdminTrendsPanel } from "./AdminTrendsPanel";
 import * as api from "@/lib/api";
 
+it("keeps sources distinguishable and shows units, full times, zeroes, and missing measurements", async () => {
+  vi.mocked(api.getAdminTrends).mockResolvedValue({
+    group: "api",
+    range: "24h",
+    step_seconds: 900,
+    start_time: "2026-10-09T00:00:00Z",
+    end_time: "2026-10-09T01:00:00Z",
+    timezone: "UTC",
+    available: true,
+    metrics: [
+      {
+        metric_id: "requests",
+        title: "API Requests",
+        description: "Requests per second.",
+        unit: "req/s",
+        chart_type: "bar",
+        series: [
+          {
+            name: "Requests (job=backend, instance=api-1:8000)",
+            labels: { job: "backend", instance: "api-1:8000" },
+            points: [{ timestamp: "2026-10-09T00:00:00Z", value: 0 }],
+          },
+          {
+            name: "Requests (job=backend, instance=api-2:8000)",
+            labels: { job: "backend", instance: "api-2:8000" },
+            points: [{ timestamp: "2026-10-09T00:15:00Z", value: 1.2345 }],
+          },
+        ],
+      },
+    ],
+  });
+  render(
+    <MemoryRouter initialEntries={["/admin/operations?api_view=table"]}>
+      <QueryClientProvider client={queryClient}>
+        <AdminTrendsPanel group="api" />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+  expect(
+    await screen.findByRole("columnheader", {
+      name: "Requests · api-1:8000 (requests / second)",
+    }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("columnheader", {
+      name: "Requests · api-2:8000 (requests / second)",
+    }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("0")).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      (1.2345).toLocaleString(undefined, { maximumFractionDigits: 4 }),
+    ),
+  ).toBeInTheDocument();
+  expect(screen.getAllByText("No measurement")).toHaveLength(2);
+  expect(
+    screen.getByText(new Date("2026-10-09T00:00:00Z").toLocaleString()),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Table" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+});
+
 // Recharts ResponsiveContainer requires width/height mocking in jsdom
 vi.mock("recharts", async (importOriginal) => {
   const actual = await importOriginal<typeof import("recharts")>();
@@ -82,9 +146,9 @@ describe("AdminTrendsPanel", () => {
     });
 
     // Check range buttons
-    expect(screen.getByText("24h")).toBeInTheDocument();
-    expect(screen.getByText("7d")).toBeInTheDocument();
-    expect(screen.getByText("30d")).toBeInTheDocument();
+    expect(screen.getByText("Last 24 hours")).toBeInTheDocument();
+    expect(screen.getByText("Last 7 days")).toBeInTheDocument();
+    expect(screen.getByText("Last 30 days")).toBeInTheDocument();
   });
 
   it("switches to accessible table view on toggle", async () => {
@@ -134,7 +198,9 @@ describe("AdminTrendsPanel", () => {
     await user.click(tableButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Time")).toBeInTheDocument();
+      expect(
+        screen.getByRole("columnheader", { name: /^Time \(/ }),
+      ).toBeInTheDocument();
       expect(screen.getByText("4")).toBeInTheDocument();
     });
   });
@@ -195,7 +261,7 @@ it("restores a chart range from the URL and queries the selected range", async (
       expect.objectContaining({ range: "7d" }),
     ),
   );
-  await browser.click(screen.getByRole("button", { name: "30d" }));
+  await browser.click(screen.getByRole("button", { name: "Last 30 days" }));
   await waitFor(() =>
     expect(api.getAdminTrends).toHaveBeenCalledWith(
       expect.objectContaining({ range: "30d" }),

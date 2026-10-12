@@ -73,14 +73,12 @@ export function AdminTargetDetail() {
   const getStatusBadge = (status: AdminTargetDetailResponse["status"]) => {
     switch (status) {
       case "active":
-        return <Badge variant="success">Eligible for Polling</Badge>;
+        return <Badge variant="success">Eligible for checks</Badge>;
       case "overdue":
-        return <Badge variant="destructive">Overdue for Poll</Badge>;
+        return <Badge variant="destructive">Overdue for check</Badge>;
       case "dormant":
       default:
-        return (
-          <Badge variant="secondary">Dormant (No Eligible Subscribers)</Badge>
-        );
+        return <Badge variant="secondary">Dormant (no eligible scans)</Badge>;
     }
   };
 
@@ -113,10 +111,11 @@ export function AdminTargetDetail() {
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg">
-              De-duplicated Poller Target
+              Shared Availability Target
             </CardTitle>
             <CardDescription>
-              Single underlying check shared across multiple subscribers.
+              A target is one provider, campground, and date range. Scans with
+              the same target share a single availability check.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
@@ -161,7 +160,7 @@ export function AdminTargetDetail() {
               </div>
               <div>
                 <span className="text-xs text-muted-foreground block">
-                  Last Polled
+                  Last Checked
                 </span>
                 <span className="flex items-center gap-1 text-xs">
                   <Clock className="h-3 w-3 text-muted-foreground" />
@@ -207,21 +206,23 @@ export function AdminTargetDetail() {
         {/* Subscriber Count Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Subscribers</CardTitle>
-            <CardDescription>De-duplication fan-out summary.</CardDescription>
+            <CardTitle className="text-lg">Linked Scans</CardTitle>
+            <CardDescription>
+              Scans that share this availability check.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="p-3 rounded-lg border bg-background flex justify-between items-center">
-              <span className="text-sm font-medium">Total Subscribers</span>
+              <span className="text-sm font-medium">Total Linked Scans</span>
               <span className="text-2xl font-bold">
                 {target.total_subscribers}
               </span>
             </div>
             <div className="p-3 rounded-lg border bg-muted/20 flex justify-between items-center">
               <div>
-                <p className="text-sm font-medium">Eligible Subscribers</p>
+                <p className="text-sm font-medium">Eligible Linked Scans</p>
                 <p className="text-xs text-muted-foreground">
-                  Active + user not suspended
+                  Active scans whose owners have scanning access
                 </p>
               </div>
               <span className="text-2xl font-bold text-primary">
@@ -235,14 +236,14 @@ export function AdminTargetDetail() {
       {/* Subscriber List */}
       <div>
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <Radio className="h-5 w-5 text-primary" /> Attached Subscribers (
+          <Radio className="h-5 w-5 text-primary" /> Linked Scans (
           {target.subscribers_total})
         </h2>
 
         {(target.subscribers ?? []).length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              No subscribers attached to this target.
+              No scans attached to this target.
             </CardContent>
           </Card>
         ) : (
@@ -255,16 +256,16 @@ export function AdminTargetDetail() {
                       User Email
                     </th>
                     <th className="py-3 px-4 text-left font-medium">
-                      Saved Active
+                      Scan setting
                     </th>
                     <th className="py-3 px-4 text-left font-medium">
-                      User Status
+                      Owner Scanning Access
                     </th>
                     <th className="py-3 px-4 text-left font-medium">
                       Eligible
                     </th>
                     <th className="py-3 px-4 text-left font-medium">
-                      Subscribed Date
+                      Scan Created
                     </th>
                     <th className="py-3 px-4 text-right font-medium">
                       Scan Actions

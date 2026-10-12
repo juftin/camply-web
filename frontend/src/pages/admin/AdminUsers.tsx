@@ -68,7 +68,8 @@ export function AdminUsers() {
         <div>
           <h1 className="text-3xl font-bold">User Management</h1>
           <p className="text-muted-foreground mt-1">
-            Search users, toggle scanning suspension privileges, and inspect
+            Find users, enable or suspend scanning access, and inspect their
+            scans. Suspension preserves login and saved scans, and prevents new
             scans.
           </p>
         </div>
@@ -152,10 +153,10 @@ export function AdminUsers() {
                   <th className="py-3 px-4 text-left font-medium">User</th>
                   <th className="py-3 px-4 text-left font-medium">Role</th>
                   <th className="py-3 px-4 text-left font-medium">
-                    Scanning Privileges
+                    Scanning access
                   </th>
                   <th className="py-3 px-4 text-left font-medium">
-                    Scans (Total / Active)
+                    Scans (Total / Set to Active)
                   </th>
                   <th className="py-3 px-4 text-left font-medium">Joined</th>
                   <th className="py-3 px-4 text-right font-medium">Actions</th>

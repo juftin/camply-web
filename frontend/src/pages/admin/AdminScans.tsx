@@ -49,7 +49,7 @@ export function AdminScans() {
   ) => {
     if (!current && !userScanningEnabled) {
       setErrorMessage(
-        "Cannot resume scan: User scanning privileges are currently suspended.",
+        "Cannot resume this scan while the owner’s scanning access is suspended.",
       );
       return;
     }
@@ -62,7 +62,7 @@ export function AdminScans() {
         payload: { is_active: !current },
       });
       setSuccessMessage(
-        current ? "Scan paused." : "Scan resumed and eligible for polling.",
+        current ? "Scan paused." : "Scan resumed and eligible for checks.",
       );
     } catch (err: unknown) {
       setErrorMessage(getApiErrorMessage(err));
@@ -75,16 +75,21 @@ export function AdminScans() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
         <div>
-          <h1 className="text-3xl font-bold">Scans Management</h1>
+          <h1 className="text-3xl font-bold">Scan Management</h1>
           <p className="text-muted-foreground mt-1">
-            Global scan fleet, active status overrides, eligibility filters, and
-            target links.
+            Review all users’ scans, pause or resume them, and inspect shared
+            targets.
           </p>
         </div>
       </div>
 
       <AdminNav />
       <AdminFeedback message={successMessage} />
+      <p className="text-sm text-muted-foreground mb-4">
+        Active is the saved scan setting. A scan is eligible for checks only
+        when it is active and its owner has scanning access. Matching scans
+        share a target.
+      </p>
       <div className="mb-4 flex flex-wrap gap-2">
         {(["all", "overdue", "active", "dormant"] as const).map((value) => (
           <Button
@@ -95,7 +100,11 @@ export function AdminScans() {
           >
             {value === "all"
               ? "All targets"
-              : `${value[0].toUpperCase()}${value.slice(1)} targets`}
+              : {
+                  overdue: "Overdue for check",
+                  active: "Eligible, not overdue",
+                  dormant: "Dormant (no eligible scans)",
+                }[value]}
           </Button>
         ))}
       </div>
@@ -120,7 +129,7 @@ export function AdminScans() {
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span>Status:</span>
+            <span>Scan setting:</span>
             <Button
               variant={activeFilter === "all" ? "default" : "outline"}
               size="sm"
@@ -145,7 +154,7 @@ export function AdminScans() {
           </div>
 
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span>Eligibility:</span>
+            <span>Eligible for checks:</span>
             <Button
               variant={eligibleFilter === "all" ? "default" : "outline"}
               size="sm"
@@ -177,9 +186,7 @@ export function AdminScans() {
         </div>
       ) : error || !data ? (
         <div className="rounded-md bg-destructive/10 p-6 text-center">
-          <p className="text-destructive font-medium">
-            Failed to load scan fleet
-          </p>
+          <p className="text-destructive font-medium">Failed to load scans</p>
           <Button
             variant="outline"
             size="sm"
@@ -213,7 +220,7 @@ export function AdminScans() {
                   </th>
                   <th className="py-3 px-4 text-left font-medium">Dates</th>
                   <th className="py-3 px-4 text-left font-medium">
-                    Saved Active
+                    Scan setting
                   </th>
                   <th className="py-3 px-4 text-left font-medium">
                     Eligibility
@@ -245,7 +252,7 @@ export function AdminScans() {
                             variant="warning"
                             className="text-[10px] mt-0.5"
                           >
-                            User Suspended
+                            Scanning suspended
                           </Badge>
                         )}
                       </td>
@@ -289,8 +296,8 @@ export function AdminScans() {
                         ) : (
                           <Badge variant="secondary" className="text-xs">
                             {s.user_scanning_enabled
-                              ? "Paused by user"
-                              : "Owner suspended"}
+                              ? "Scan paused"
+                              : "Owner scanning suspended"}
                           </Badge>
                         )}
                       </td>

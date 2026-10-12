@@ -57,7 +57,7 @@ export function AdminScanDetail() {
     setSuccessMessage(null);
     if (!scan.is_active && !scan.user_scanning_enabled) {
       setErrorMessage(
-        "Cannot resume scan: User scanning privileges are currently suspended.",
+        "Cannot resume this scan while the owner’s scanning access is suspended.",
       );
       return;
     }
@@ -71,7 +71,7 @@ export function AdminScanDetail() {
       setSuccessMessage(
         scan.is_active
           ? "Scan paused."
-          : "Scan resumed and eligible for polling.",
+          : "Scan resumed and eligible for checks.",
       );
     } catch (err: unknown) {
       setErrorMessage(getApiErrorMessage(err));
@@ -125,14 +125,14 @@ export function AdminScanDetail() {
           <CardHeader>
             <CardTitle className="text-lg">Scan Configuration</CardTitle>
             <CardDescription>
-              Subscriber parameters and target linkage.
+              Dates and preferences saved for this scan.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <span className="text-xs text-muted-foreground block">
-                  Subscriber Account
+                  Scan Owner
                 </span>
                 <Link
                   to={`/admin/users/${scan.user_id}`}
@@ -178,7 +178,7 @@ export function AdminScanDetail() {
               </div>
               <div>
                 <span className="text-xs text-muted-foreground block">
-                  Preferred Types
+                  Preferred Campsite Types
                 </span>
                 <span>
                   {(scan.preferred_types ?? []).length > 0
@@ -213,17 +213,18 @@ export function AdminScanDetail() {
         {/* State and Status Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Execution State</CardTitle>
+            <CardTitle className="text-lg">Scan Status</CardTitle>
             <CardDescription>
-              Saved user preference vs worker polling eligibility.
+              A scan can run only when it is set to active and its owner has
+              scanning access.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded-lg border bg-background">
               <div>
-                <p className="font-medium text-sm">Saved Active</p>
+                <p className="font-medium text-sm">Scan setting</p>
                 <p className="text-xs text-muted-foreground">
-                  User toggle preference
+                  On means active; off means paused
                 </p>
               </div>
               <Switch
@@ -237,7 +238,7 @@ export function AdminScanDetail() {
             <div className="p-3 rounded-lg border bg-muted/20 space-y-2 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">
-                  User Scanning Privileges
+                  Owner scanning access
                 </span>
                 {scan.user_scanning_enabled ? (
                   <Badge variant="success" className="text-[10px]">
@@ -250,18 +251,16 @@ export function AdminScanDetail() {
                 )}
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">
-                  Effective Eligibility
-                </span>
+                <span className="text-muted-foreground">Check eligibility</span>
                 {scan.is_eligible ? (
                   <Badge variant="success" className="text-[10px]">
-                    Eligible for polling
+                    Eligible for checks
                   </Badge>
                 ) : (
                   <Badge variant="secondary" className="text-[10px]">
                     {scan.user_scanning_enabled
-                      ? "Paused by user"
-                      : "Owner suspended"}
+                      ? "Scan paused"
+                      : "Owner scanning suspended"}
                   </Badge>
                 )}
               </div>
@@ -273,8 +272,13 @@ export function AdminScanDetail() {
       {/* Available Campsites Found */}
       <div>
         <h2 className="text-xl font-semibold mb-4">
-          Latest Target Results ({(scan.results ?? []).length})
+          Latest Shared Target Results ({(scan.results ?? []).length})
         </h2>
+        <p className="text-sm text-muted-foreground mb-3">
+          Availability recorded for the shared target. These results may not
+          match this scan’s minimum stay, electric hookup, or campsite type
+          preferences.
+        </p>
         {(scan.results ?? []).length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">

@@ -1,4 +1,5 @@
 import { useAdminLocation } from "@/hooks/useAdminLocation";
+import { taskLabel } from "./labels";
 import {
   AlertTriangle,
   BarChart2,
@@ -22,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminTrends } from "@/hooks/useAdmin";
-import type { TrendMetric } from "@/lib/structs";
+import type { TrendMetric, TrendSeries } from "@/lib/structs";
 
 interface AdminTrendsPanelProps {
   group: "usage" | "api" | "worker" | "provider";
@@ -44,6 +45,42 @@ const SERIES_COLORS = [
   "#4f46e5", // indigo-600
 ];
 
+const UNIT_LABELS: Record<string, string> = {
+  "req/s": "requests / second",
+  "errors/s": "errors / second",
+  "tasks/min": "tasks / minute",
+  "outcomes/min": "outcomes / minute",
+  "targets/min": "targets / minute",
+  "events/min": "events / minute",
+  "checks/min": "checks / minute",
+  ms: "milliseconds",
+  "%": "percent",
+};
+
+function seriesLabel(series: TrendSeries): string {
+  const labels = series.labels ?? {};
+  if (labels.task_name) return taskLabel(labels.task_name);
+  if (labels.provider) {
+    const provider =
+      labels.provider === "recreation_dot_gov"
+        ? "Recreation.gov"
+        : labels.provider;
+    return labels.status ? `${provider} · ${labels.status}` : provider;
+  }
+  // Scrape labels identify sources; they are not the metric's meaning.
+  const suffix = Object.entries(labels)
+    .filter(([key]) => key !== "__name__")
+    .map(([key, value]) => `${key}=${value}`)
+    .join(", ");
+  return suffix && series.name.endsWith(` (${suffix})`)
+    ? series.name.slice(0, -suffix.length - 3)
+    : series.name;
+}
+
+function formatValue(value: number): string {
+  return value.toLocaleString(undefined, { maximumFractionDigits: 4 });
+}
+
 export function AdminTrendsPanel({
   group,
   title,
@@ -57,6 +94,7 @@ export function AdminTrendsPanel({
   const range =
     rangeParam === "7d" || rangeParam === "30d" ? rangeParam : "24h";
   const viewMode = params.get(`${group}_view`) === "table" ? "table" : "charts";
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   const { data, isLoading, error, refetch, isFetching } = useAdminTrends({
     group,
@@ -84,16 +122,15 @@ export function AdminTrendsPanel({
     // Map timestamps to objects containing values for each series
     const dataMap: Record<string, Record<string, number | string>> = {};
 
-    (metric.series ?? []).forEach((s) => {
+    (metric.series ?? []).forEach((s, index) => {
       (s.points ?? []).forEach((p) => {
         const timeKey = p.timestamp;
         if (!dataMap[timeKey]) {
           dataMap[timeKey] = {
             timestamp: timeKey,
-            formattedTime: formatTimestamp(timeKey),
           };
         }
-        dataMap[timeKey][s.name] = p.value;
+        dataMap[timeKey][`series_${index}`] = p.value;
       });
     });
 
@@ -111,7 +148,8 @@ export function AdminTrendsPanel({
         <div>
           <div className="font-semibold text-sm flex items-center gap-2">
             <LineChartIcon className="h-4 w-4 text-primary" />
-            {title || `${group.toUpperCase()} Historical Trends`}
+            {title ||
+              `${{ usage: "Usage", api: "API", worker: "Worker", provider: "Booking provider" }[group]} trends`}
           </div>
           {description && (
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -130,8 +168,15 @@ export function AdminTrendsPanel({
                 variant={range === r ? "default" : "ghost"}
                 className="h-7 text-xs px-2.5"
                 onClick={() => update({ [`${group}_range`]: r }, false)}
+                aria-pressed={range === r}
               >
-                {r}
+                {
+                  {
+                    "24h": "Last 24 hours",
+                    "7d": "Last 7 days",
+                    "30d": "Last 30 days",
+                  }[r]
+                }
               </Button>
             ))}
           </div>
@@ -144,8 +189,9 @@ export function AdminTrendsPanel({
               className="h-7 text-xs px-2"
               onClick={() => update({ [`${group}_view`]: "charts" }, false)}
               title="Chart visualization"
+              aria-pressed={viewMode === "charts"}
             >
-              <BarChart2 className="h-3.5 w-3.5" />
+              <BarChart2 className="h-3.5 w-3.5 mr-1" /> Charts
             </Button>
             <Button
               size="sm"
@@ -153,8 +199,9 @@ export function AdminTrendsPanel({
               className="h-7 text-xs px-2"
               onClick={() => update({ [`${group}_view`]: "table" }, false)}
               title="Accessible table view"
+              aria-pressed={viewMode === "table"}
             >
-              <TableIcon className="h-3.5 w-3.5" />
+              <TableIcon className="h-3.5 w-3.5 mr-1" /> Table
             </Button>
           </div>
         </div>
@@ -162,12 +209,12 @@ export function AdminTrendsPanel({
 
       <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
         <span>
-          Last successful snapshot:{" "}
+          Last updated:{" "}
           {data?.last_successful_at
             ? new Date(data.last_successful_at).toLocaleString()
-            : "None"}
+            : "Not yet available"}
           {isFetching ? " • Updating" : ""}
-          {error || data?.available === false ? " • Stale / unavailable" : ""}
+          {error || data?.available === false ? " • Update unavailable" : ""}
         </span>
         <Button
           size="sm"
@@ -178,6 +225,12 @@ export function AdminTrendsPanel({
           Refresh trends
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Times shown in {timeZone}.
+        {data &&
+          ` One data point every ${data.step_seconds >= 3600 ? `${data.step_seconds / 3600} ${data.step_seconds === 3600 ? "hour" : "hours"}` : `${data.step_seconds / 60} minutes`}.`}{" "}
+        Rates are averages; gaps mean no measurements are available.
+      </p>
       {/* Outage or Unavailable Notice */}
       {data && !data.available && (
         <div className="p-4 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2">
@@ -210,12 +263,19 @@ export function AdminTrendsPanel({
       {isLoading ? (
         <div className="flex flex-col items-center justify-center p-12 text-muted-foreground border rounded-lg bg-card">
           <Loader2 className="h-8 w-8 animate-spin mb-2" />
-          <span className="text-xs">Querying Prometheus time series...</span>
+          <span className="text-xs">Loading trend data...</span>
         </div>
       ) : data?.metrics && data.metrics.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {data.metrics.map((metric) => {
             const chartData = transformChartData(metric);
+            const unit = UNIT_LABELS[metric.unit] ?? metric.unit;
+            const labels = (metric.series ?? []).map(seriesLabel);
+            const displayLabels = labels.map((label, index) =>
+              labels.filter((candidate) => candidate === label).length > 1
+                ? `${label} · ${(metric.series ?? [])[index].labels?.instance ?? `source ${index + 1}`}`
+                : label,
+            );
 
             return (
               <Card key={metric.metric_id} className="overflow-hidden">
@@ -225,7 +285,7 @@ export function AdminTrendsPanel({
                       {metric.title}
                     </CardTitle>
                     <Badge variant="outline" className="text-[11px] font-mono">
-                      {metric.unit}
+                      {unit}
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -247,16 +307,28 @@ export function AdminTrendsPanel({
                               opacity={0.3}
                             />
                             <XAxis
-                              dataKey="formattedTime"
+                              dataKey="timestamp"
+                              tickFormatter={formatTimestamp}
                               tick={{ fontSize: 10 }}
                               stroke="#888888"
                             />
-                            <YAxis tick={{ fontSize: 10 }} stroke="#888888" />
+                            <YAxis
+                              tick={{ fontSize: 10 }}
+                              stroke="#888888"
+                              tickFormatter={(value: number) =>
+                                value.toLocaleString(undefined, {
+                                  notation: "compact",
+                                })
+                              }
+                            />
                             <Tooltip
-                              formatter={(value: unknown) => [
-                                `${value} ${metric.unit}`,
+                              formatter={(value, name) => [
+                                `${formatValue(Number(value))} ${unit}`,
+                                name,
                               ]}
-                              labelFormatter={(label) => `Time: ${label}`}
+                              labelFormatter={(label) =>
+                                `${new Date(String(label)).toLocaleString()} (${timeZone})`
+                              }
                               contentStyle={{
                                 fontSize: "12px",
                                 borderRadius: "6px",
@@ -264,10 +336,17 @@ export function AdminTrendsPanel({
                                 color: "#000",
                               }}
                             />
+                            <Legend
+                              wrapperStyle={{
+                                fontSize: "11px",
+                                paddingTop: "6px",
+                              }}
+                            />
                             {(metric.series ?? []).map((s, idx) => (
                               <Bar
                                 key={s.name}
-                                dataKey={s.name}
+                                dataKey={`series_${idx}`}
+                                name={displayLabels[idx]}
                                 fill={SERIES_COLORS[idx % SERIES_COLORS.length]}
                               />
                             ))}
@@ -279,16 +358,28 @@ export function AdminTrendsPanel({
                               opacity={0.3}
                             />
                             <XAxis
-                              dataKey="formattedTime"
+                              dataKey="timestamp"
+                              tickFormatter={formatTimestamp}
                               tick={{ fontSize: 10 }}
                               stroke="#888888"
                             />
-                            <YAxis tick={{ fontSize: 10 }} stroke="#888888" />
+                            <YAxis
+                              tick={{ fontSize: 10 }}
+                              stroke="#888888"
+                              tickFormatter={(value: number) =>
+                                value.toLocaleString(undefined, {
+                                  notation: "compact",
+                                })
+                              }
+                            />
                             <Tooltip
-                              formatter={(value: unknown) => [
-                                `${value} ${metric.unit}`,
+                              formatter={(value, name) => [
+                                `${formatValue(Number(value))} ${unit}`,
+                                name,
                               ]}
-                              labelFormatter={(label) => `Time: ${label}`}
+                              labelFormatter={(label) =>
+                                `${new Date(String(label)).toLocaleString()} (${timeZone})`
+                              }
                               contentStyle={{
                                 fontSize: "12px",
                                 borderRadius: "6px",
@@ -305,8 +396,9 @@ export function AdminTrendsPanel({
                             {(metric.series ?? []).map((s, idx) => (
                               <Line
                                 key={s.name}
-                                type="monotone"
-                                dataKey={s.name}
+                                type="linear"
+                                dataKey={`series_${idx}`}
+                                name={displayLabels[idx]}
                                 stroke={
                                   SERIES_COLORS[idx % SERIES_COLORS.length]
                                 }
@@ -324,13 +416,15 @@ export function AdminTrendsPanel({
                       <table className="w-full text-xs text-left">
                         <thead className="bg-muted/50 sticky top-0">
                           <tr>
-                            <th className="p-1.5 font-medium">Time</th>
-                            {(metric.series ?? []).map((s) => (
+                            <th className="p-1.5 font-medium">
+                              Time ({timeZone})
+                            </th>
+                            {(metric.series ?? []).map((s, seriesIndex) => (
                               <th
                                 key={s.name}
                                 className="p-1.5 font-medium text-right"
                               >
-                                {s.name}
+                                {displayLabels[seriesIndex]} ({unit})
                               </th>
                             ))}
                           </tr>
@@ -339,14 +433,20 @@ export function AdminTrendsPanel({
                           {chartData.map((row, idx) => (
                             <tr key={idx} className="hover:bg-muted/20">
                               <td className="p-1.5 text-muted-foreground whitespace-nowrap">
-                                {row.formattedTime}
+                                {new Date(
+                                  String(row.timestamp),
+                                ).toLocaleString()}
                               </td>
-                              {(metric.series ?? []).map((s) => (
+                              {(metric.series ?? []).map((s, seriesIndex) => (
                                 <td
                                   key={s.name}
                                   className="p-1.5 text-right font-mono"
                                 >
-                                  {row[s.name] ?? "-"}
+                                  {row[`series_${seriesIndex}`] === undefined
+                                    ? "No measurement"
+                                    : formatValue(
+                                        Number(row[`series_${seriesIndex}`]),
+                                      )}
                                 </td>
                               ))}
                             </tr>
@@ -362,7 +462,7 @@ export function AdminTrendsPanel({
         </div>
       ) : (
         <div className="p-6 text-center text-xs text-muted-foreground border rounded-lg bg-card">
-          No metrics returned for this group.
+          No trend data is available for this category yet.
         </div>
       )}
     </div>

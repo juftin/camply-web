@@ -111,6 +111,14 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 
 ---
 
+## Admin terminology and chart labels
+
+- **Scan setting** is the saved active/paused preference. **Eligible for checks** means active with the owner's scanning access enabled; it does not mean a check is currently running.
+- **Scanning suspended** stops scans and new scan creation while preserving login and saved settings.
+- A **shared target** is one provider, campground, and date range. Its linked-scan count counts scans, not distinct users. Dormant targets have no eligible scans; overdue targets are a subset of eligible targets.
+- Charts and tables show readable series names, explicit units, and the browser's local time zone. Tooltips and table rows include full dates. Legends distinguish multiple monitoring sources; missing table measurements remain distinct from zero.
+- Creation bars estimate counts over the preceding interval; rate charts show averages. Percentile descriptions explain the median, 95th percentile, and 99th percentile. Shared-target results may differ from a scan's personal preferences.
+
 ## 📱 Responsiveness Requirements
 
 - **Mobile (< 640px)**: Single-column scan cards, simplified search, bottom navigation.

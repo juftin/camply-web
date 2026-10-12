@@ -64,7 +64,7 @@ export function AdminOverview() {
         <div>
           <h1 className="text-3xl font-bold">Administration</h1>
           <p className="text-muted-foreground mt-1">
-            System health, active scans, user suspension controls, and targets.
+            Manage scanning access and review scan activity and system health.
           </p>
         </div>
       </div>
@@ -72,7 +72,7 @@ export function AdminOverview() {
       <AdminNav />
 
       {data.overdue_targets > 0 && (
-        <div className="mb-6 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-4 text-amber-900 dark:text-amber-200 flex items-center justify-between">
+        <div className="mb-6 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-4 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
             <div>
@@ -81,8 +81,9 @@ export function AdminOverview() {
                 {data.overdue_targets > 1 ? "s" : ""} Overdue for Checking
               </p>
               <p className="text-xs text-amber-800 dark:text-amber-300">
-                Targets have active subscribers but have not been evaluated
-                within the overdue threshold ({data.overdue_threshold_seconds}
+                These shared targets are eligible for checks but have not been
+                checked within the overdue threshold (
+                {data.overdue_threshold_seconds}
                 s).
               </p>
             </div>
@@ -94,7 +95,7 @@ export function AdminOverview() {
             className="border-amber-500/50"
           >
             <Link to="/admin/scans?target_status=overdue">
-              Inspect Overdue Targets
+              View scans with overdue targets
             </Link>
           </Button>
         </div>
@@ -128,13 +129,13 @@ export function AdminOverview() {
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground">
-              Active scanning privileges
+              Users allowed to create and run scans
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Suspended Users</CardDescription>
+            <CardDescription>Scanning Suspended</CardDescription>
             <CardTitle
               className={`text-3xl ${data.suspended_users > 0 ? "text-amber-600 dark:text-amber-400" : ""}`}
             >
@@ -143,7 +144,7 @@ export function AdminOverview() {
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground">
-              Excluded from poll runs
+              Login is allowed; scans and new scan creation are suspended
             </p>
           </CardContent>
         </Card>
@@ -156,7 +157,7 @@ export function AdminOverview() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total Scans Configured</CardDescription>
+            <CardDescription>Total Saved Scans</CardDescription>
             <CardTitle className="text-3xl">{data.total_scans}</CardTitle>
           </CardHeader>
           <CardContent>
@@ -170,7 +171,7 @@ export function AdminOverview() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Saved Active (User Setting)</CardDescription>
+            <CardDescription>Scans Set to Active</CardDescription>
             <CardTitle className="text-3xl">
               {data.saved_active_scans}
             </CardTitle>
@@ -183,14 +184,14 @@ export function AdminOverview() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Effective Eligible Scans</CardDescription>
+            <CardDescription>Scans Eligible for Checks</CardDescription>
             <CardTitle className="text-3xl text-primary">
               {data.eligible_scans}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground">
-              Active scan + owner scanning enabled
+              Active scans whose owners have scanning access
             </p>
           </CardContent>
         </Card>
@@ -198,8 +199,14 @@ export function AdminOverview() {
 
       {/* Target Discovery Metrics */}
       <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-        <Target className="h-5 w-5 text-primary" /> Unique Poller Targets
+        <Target className="h-5 w-5 text-primary" /> Shared Targets
       </h2>
+      <p className="text-sm text-muted-foreground mb-3">
+        A target is one provider, campground, and date range shared by matching
+        scans. Eligible targets have at least one active scan whose owner has
+        scanning access. Dormant targets have none. Overdue targets are a subset
+        of eligible targets.
+      </p>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardHeader className="pb-2">
@@ -209,7 +216,7 @@ export function AdminOverview() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Eligible for Polling</CardDescription>
+            <CardDescription>Eligible for checks</CardDescription>
             <CardTitle className="text-2xl text-emerald-600 dark:text-emerald-400">
               {data.eligible_targets}
             </CardTitle>
@@ -238,30 +245,30 @@ export function AdminOverview() {
       {/* Historical Trend Graphs */}
       <AdminTrendsPanel
         group="usage"
-        title="Fleet Growth & Usage Trends"
-        description="Historical user registrations, scan creation, activity, polling demand, and search throughput."
+        title="User and Scan Trends"
+        description="User registrations, saved scans, shared availability checks, and campground searches over time."
       />
 
       {/* Configuration & Worker Timing */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Clock className="h-5 w-5 text-muted-foreground" /> Worker Polling
-            Cadence
+            <Clock className="h-5 w-5 text-muted-foreground" /> Availability
+            Check Timing
           </CardTitle>
           <CardDescription>
-            Configured poller intervals controlling de-duplicated target
-            discovery and cooldowns.
+            The scheduler finds targets ready for a check. Each target waits at
+            least the cooldown period between checks.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div className="flex justify-between items-center p-3 rounded-lg border bg-muted/30">
-            <span className="text-muted-foreground">Heartbeat Interval</span>
+            <span className="text-muted-foreground">Scheduler Interval</span>
             <Badge variant="outline">{data.heartbeat_interval_seconds}s</Badge>
           </div>
           <div className="flex justify-between items-center p-3 rounded-lg border bg-muted/30">
             <span className="text-muted-foreground">
-              Target Cooldown Threshold
+              Minimum Time Between Checks
             </span>
             <Badge variant="outline">{data.target_cooldown_seconds}s</Badge>
           </div>

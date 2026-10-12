@@ -7,6 +7,24 @@ import { AdminNav } from "@/components/AdminNav";
 import { useAdminLocation } from "@/hooks/useAdminLocation";
 import { useAdminAudit } from "@/hooks/useAdmin";
 
+const ACTION_LABELS: Record<string, string> = {
+  "user.scanning_enabled": "Scanning access",
+  "scan.is_active": "Scan setting",
+  "user.is_admin": "Administrator access",
+};
+
+function changeLabel(
+  action: string,
+  value: boolean | null | undefined,
+): string {
+  if (value == null) return "Not recorded";
+  if (action === "user.scanning_enabled")
+    return value ? "Enabled" : "Suspended";
+  if (action === "scan.is_active") return value ? "Active" : "Paused";
+  if (action === "user.is_admin") return value ? "Admin" : "User";
+  return String(value);
+}
+
 export function AdminAudit() {
   const { page, setPage } = useAdminLocation();
   const limit = 50;
@@ -24,8 +42,8 @@ export function AdminAudit() {
             <History className="h-7 w-7 text-primary" /> Admin Audit Log
           </h1>
           <p className="text-muted-foreground mt-1">
-            Immutable log of administrator privilege alterations, user
-            suspensions, and scan state overrides.
+            History of administrator access changes, scanning suspensions, and
+            scans paused or resumed by an administrator.
           </p>
         </div>
       </div>
@@ -85,7 +103,7 @@ export function AdminAudit() {
                     </td>
                     <td className="py-3 px-4">
                       <Badge variant="outline" className="font-mono text-xs">
-                        {e.action}
+                        {ACTION_LABELS[e.action] ?? e.action}
                       </Badge>
                     </td>
                     <td className="py-3 px-4">
@@ -114,14 +132,14 @@ export function AdminAudit() {
                           variant={e.prev_value ? "success" : "secondary"}
                           className="text-[10px]"
                         >
-                          {String(e.prev_value)}
+                          {changeLabel(e.action, e.prev_value)}
                         </Badge>
                         <ArrowRight className="h-3 w-3 text-muted-foreground" />
                         <Badge
                           variant={e.new_value ? "success" : "secondary"}
                           className="text-[10px]"
                         >
-                          {String(e.new_value)}
+                          {changeLabel(e.action, e.new_value)}
                         </Badge>
                       </div>
                     </td>

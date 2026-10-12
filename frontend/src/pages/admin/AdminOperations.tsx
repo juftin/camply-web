@@ -15,6 +15,7 @@ import {
 import { useAdminLocation } from "@/hooks/useAdminLocation";
 import { AdminNav } from "@/components/AdminNav";
 import { AdminTrendsPanel } from "@/components/admin/AdminTrendsPanel";
+import { taskLabel } from "@/components/admin/labels";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -135,8 +136,8 @@ export function AdminOperations() {
         <div>
           <h1 className="text-3xl font-bold">System Operations</h1>
           <p className="text-muted-foreground mt-1">
-            Real-time Celery worker status, queue depths, heartbeat discovery,
-            and task execution telemetry.
+            Read-only worker status, queued tasks, scheduling activity, and
+            recent task results. Data refreshes every 15 seconds.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -161,7 +162,9 @@ export function AdminOperations() {
       <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/40 rounded-lg border text-sm mb-6">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <span className="font-medium text-muted-foreground">Broker:</span>
+            <span className="font-medium text-muted-foreground">
+              Task Queue:
+            </span>
             {opsData?.broker_connected ? (
               <Badge className="bg-emerald-600 text-white flex items-center gap-1">
                 <CheckCircle2 className="h-3 w-3" /> Connected
@@ -174,7 +177,7 @@ export function AdminOperations() {
           </div>
           {opsData?.snapshot_at && (
             <div className="text-xs text-muted-foreground">
-              Snapshot: {formatTimestamp(opsData.snapshot_at)}
+              Checked at: {formatTimestamp(opsData.snapshot_at)}
             </div>
           )}
         </div>
@@ -220,7 +223,7 @@ export function AdminOperations() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Queue Depth
+              Queued Tasks
             </CardTitle>
             <Layers className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -237,7 +240,7 @@ export function AdminOperations() {
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              Pending in broker queues
+              Waiting for a worker to pick them up
             </p>
           </CardContent>
         </Card>
@@ -245,7 +248,7 @@ export function AdminOperations() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Tasks
+              Running Tasks
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -287,7 +290,7 @@ export function AdminOperations() {
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              Prefetched by workers
+              Picked up by workers; waiting to run
             </p>
           </CardContent>
         </Card>
@@ -316,12 +319,12 @@ export function AdminOperations() {
 
       {/* Discovery Metadata & Worker Nodes */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Heartbeat Discovery Card */}
+        {/* Latest Scheduling Run Card */}
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" />
-              Heartbeat Discovery
+              Latest Scheduling Run
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -335,7 +338,7 @@ export function AdminOperations() {
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">
-                    Targets Discovered:
+                    Targets Ready for Checks:
                   </span>
                   <span className="font-bold">
                     {opsData.last_discovery.targets_discovered}
@@ -343,7 +346,7 @@ export function AdminOperations() {
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">
-                    Targets Enqueued:
+                    Checks Added to Queue:
                   </span>
                   <span className="font-bold">
                     {opsData.last_discovery.targets_enqueued}
@@ -356,13 +359,13 @@ export function AdminOperations() {
                   </span>
                 </div>
                 <div className="mt-4 pt-3 border-t text-xs text-muted-foreground">
-                  Discovery progress indicates scheduler-to-worker progress;
-                  Beat process liveness is reflected in heartbeat execution.
+                  The scheduler finds targets ready for checks and queues them.
+                  The timestamp shows when the last run completed.
                 </div>
               </div>
             ) : (
               <div className="text-sm text-muted-foreground py-4 text-center">
-                No recent discovery execution metadata recorded.
+                No scheduling run has been recorded yet.
               </div>
             )}
           </CardContent>
@@ -373,7 +376,7 @@ export function AdminOperations() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Server className="h-4 w-4 text-primary" />
-              Connected Worker Nodes
+              Workers
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -388,12 +391,16 @@ export function AdminOperations() {
               </div>
             ) : (
               <div className="overflow-x-auto">
+                <p className="text-xs text-muted-foreground mb-3">
+                  Running tasks are executing. Reserved tasks wait to run.
+                  Scheduled tasks wait for a future start time.
+                </p>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground text-xs font-medium">
                       <th className="pb-2">Worker Node</th>
                       <th className="pb-2">Status</th>
-                      <th className="pb-2 text-right">Active</th>
+                      <th className="pb-2 text-right">Running</th>
                       <th className="pb-2 text-right">Reserved</th>
                       <th className="pb-2 text-right">Scheduled</th>
                     </tr>
@@ -440,19 +447,19 @@ export function AdminOperations() {
           <div>
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Activity className="h-5 w-5 text-primary" />
-              Operational Time Series Trends
+              System Performance Trends
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Historical metrics proxied from Prometheus. Replaces legacy
-              Grafana monitoring panels.
+              Review task results, API traffic, and booking provider
+              availability checks over time.
             </p>
           </div>
           <div className="flex items-center space-x-1 border rounded-md p-1 bg-muted/40">
             {(
               [
-                { id: "worker", label: "Worker Fleet" },
-                { id: "api", label: "API Services" },
-                { id: "provider", label: "Providers" },
+                { id: "worker", label: "Workers" },
+                { id: "api", label: "API" },
+                { id: "provider", label: "Booking Providers" },
               ] as const
             ).map((t) => (
               <Button
@@ -471,24 +478,24 @@ export function AdminOperations() {
         {activeTrendsTab === "worker" && (
           <AdminTrendsPanel
             group="worker"
-            title="Celery Worker & Task Trends"
-            description="Tasks executed / min, execution success and failure rates, application outcomes, durations, and locks."
+            title="Worker and Task Trends"
+            description="Task volume, completion results, execution time, and shared-target scheduling."
           />
         )}
 
         {activeTrendsTab === "api" && (
           <AdminTrendsPanel
             group="api"
-            title="FastAPI Traffic, Rates & Latency"
-            description="HTTP requests / sec by endpoint, 2xx/4xx/5xx status code rates, and response latency quantiles (p50/p95/p99)."
+            title="API Traffic and Response Times"
+            description="Requests per second by API route, response status, and how long requests take."
           />
         )}
 
         {activeTrendsTab === "provider" && (
           <AdminTrendsPanel
             group="provider"
-            title="Upstream Campground Booking Provider Trends"
-            description="Campground API errors by provider, accurate error rates against provider check attempts, and total checks."
+            title="Booking Provider Trends"
+            description="Availability checks and errors reported when contacting booking providers."
           />
         )}
       </div>
@@ -500,11 +507,11 @@ export function AdminOperations() {
             <div>
               <CardTitle className="text-base flex items-center gap-2">
                 <Activity className="h-4 w-4 text-primary" />
-                Recent Task Telemetry
+                Recent Task Results
               </CardTitle>
               <p className="text-xs text-muted-foreground mt-1">
-                Bounded recent task executions (last 1,000 / 24h retention from
-                Valkey stream). Payloads and sensitive arguments are redacted.
+                Up to 1,000 recent task records, retained for up to 24 hours.
+                Sensitive task arguments are hidden.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -544,7 +551,7 @@ export function AdminOperations() {
           ) : tasksError || tasksData?.available === false ? (
             <div className="p-4 text-center text-sm text-destructive">
               {tasksData?.error_message ||
-                "Failed to load recent task telemetry."}{" "}
+                "Failed to load recent task results."}{" "}
               <Button
                 variant="outline"
                 size="sm"
@@ -555,7 +562,7 @@ export function AdminOperations() {
             </div>
           ) : !tasksData?.tasks || tasksData.tasks.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
-              No task telemetry matching filters.
+              No recent task results match these filters.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -564,7 +571,7 @@ export function AdminOperations() {
                   <tr className="border-b text-left text-muted-foreground text-xs font-medium">
                     <th className="pb-2">Task</th>
                     <th className="pb-2">Worker</th>
-                    <th className="pb-2">Entity</th>
+                    <th className="pb-2">Related Record</th>
                     <th className="pb-2">Finished At</th>
                     <th className="pb-2 text-right">Duration</th>
                     <th className="pb-2">Outcome</th>
@@ -576,7 +583,7 @@ export function AdminOperations() {
                     <tr key={task.task_id} className="hover:bg-muted/30">
                       <td className="py-2.5">
                         <div className="font-mono text-xs font-medium">
-                          {task.task_name}
+                          {taskLabel(task.task_name)}
                         </div>
                         <div className="text-[11px] text-muted-foreground font-mono">
                           {task.task_id.slice(0, 8)}…

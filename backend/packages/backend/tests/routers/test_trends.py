@@ -234,8 +234,8 @@ def test_chart_series_preserve_metric_identity() -> None:
             "values": [[1760000000, "2"]],
         }
     ]
-    active = _matrix_to_series(result, "Saved Active Scans")
-    eligible = _matrix_to_series(result, "Eligible Scans")
+    active = _matrix_to_series(result, "Scans Set to Active")
+    eligible = _matrix_to_series(result, "Scans Eligible for Checks")
     assert active[0].name != eligible[0].name
 
 

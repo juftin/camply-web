@@ -129,7 +129,7 @@ export function AdminUserDetail() {
         payload: { is_active: !current },
       });
       setMessage(
-        current ? "Scan paused." : "Scan resumed and eligible for polling.",
+        current ? "Scan paused." : "Scan resumed and eligible for checks.",
       );
     } catch (error) {
       setActionError(true);
@@ -179,7 +179,7 @@ export function AdminUserDetail() {
           <CardHeader>
             <CardTitle className="text-lg">Account Profile & Status</CardTitle>
             <CardDescription>
-              User metadata and authentication status.
+              Account details and notification setup.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
@@ -195,7 +195,7 @@ export function AdminUserDetail() {
                   Auth0 ID
                 </span>
                 <span className="font-mono text-xs">
-                  {user.auth0_id ?? "Local / Password"}
+                  {user.auth0_id ?? "No Auth0 identity"}
                 </span>
               </div>
               <div>
@@ -241,14 +241,14 @@ export function AdminUserDetail() {
         >
           <CardHeader>
             <CardTitle className="text-lg flex items-center justify-between">
-              <span>Scanning Privilege</span>
+              <span>Scanning access</span>
               <Badge variant={user.scanning_enabled ? "success" : "warning"}>
                 {user.scanning_enabled ? "Enabled" : "Suspended"}
               </Badge>
             </CardTitle>
             <CardDescription>
-              Suspended users retain their login and scans, but background
-              pollers will skip their requests.
+              Suspension stops this user’s scans and new scan creation. Login
+              and saved scan settings are preserved.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -257,8 +257,8 @@ export function AdminUserDetail() {
                 <p className="font-medium text-sm">Allow Automated Scanning</p>
                 <p className="text-xs text-muted-foreground">
                   {user.scanning_enabled
-                    ? "Active scans are eligible for worker polling"
-                    : "Suspended: worker skips scans"}
+                    ? "Active scans are eligible for checks"
+                    : "Suspended: scans will not run"}
                 </p>
               </div>
               <Switch
@@ -307,13 +307,13 @@ export function AdminUserDetail() {
                       Date Range
                     </th>
                     <th className="py-3 px-4 text-left font-medium">
-                      Saved Active
+                      Scan setting
                     </th>
                     <th className="py-3 px-4 text-left font-medium">
-                      Effective Eligible
+                      Eligible for checks
                     </th>
                     <th className="py-3 px-4 text-left font-medium">
-                      Target Sites
+                      Shared Target Campsites
                     </th>
                     <th className="py-3 px-4 text-right font-medium">
                       Actions
@@ -366,8 +366,8 @@ export function AdminUserDetail() {
                           ) : (
                             <Badge variant="secondary" className="text-xs">
                               {s.user_scanning_enabled
-                                ? "Paused by user"
-                                : "Owner suspended"}
+                                ? "Scan paused"
+                                : "Owner scanning suspended"}
                             </Badge>
                           )}
                         </td>

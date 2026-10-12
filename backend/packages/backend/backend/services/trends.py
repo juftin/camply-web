@@ -147,6 +147,7 @@ async def get_admin_trends(
             return cached_resp
 
     duration_sec, step_sec, step_str = _parse_step_and_range(range_param)
+    interval_label = {"15m": "15 minutes", "1h": "hour", "1d": "day"}[step_str]
     end_dt = dt.datetime.now(tz=dt.timezone.utc)
     start_dt = end_dt - dt.timedelta(seconds=duration_sec)
     start_ts = start_dt.timestamp()
@@ -175,7 +176,7 @@ async def get_admin_trends(
                         TrendMetric(
                             metric_id="registered_users",
                             title="Total Registered Users",
-                            description="Cumulative registered users in the database.",
+                            description="Number of registered users at each point in time.",
                             unit="users",
                             chart_type="line",
                             series=_matrix_to_series(res, "Registered Users"),
@@ -184,7 +185,7 @@ async def get_admin_trends(
                 except (ValueError, KeyError) as e:
                     logger.debug("Failed query for registered_users", error=str(e))
 
-                # Metric 2: New Users Created
+                # Metric 2: New User Registrations
                 try:
                     res = await _query_prometheus_range(
                         client,
@@ -197,8 +198,8 @@ async def get_admin_trends(
                     metrics.append(
                         TrendMetric(
                             metric_id="new_users",
-                            title="New Users Created",
-                            description=f"New user registrations per {step_str} bucket.",
+                            title="New User Registrations",
+                            description=f"Estimated registrations in the preceding {interval_label}.",
                             unit="users",
                             chart_type="bar",
                             series=_matrix_to_series(res, "New Users"),
@@ -221,7 +222,7 @@ async def get_admin_trends(
                         TrendMetric(
                             metric_id="scans_created",
                             title="Scans Created",
-                            description=f"Successfully committed user scans per {step_str} bucket.",
+                            description=f"Estimated saved scans created in the preceding {interval_label}.",
                             unit="scans",
                             chart_type="bar",
                             series=_matrix_to_series(res, "New Scans"),
@@ -249,13 +250,13 @@ async def get_admin_trends(
                         step_sec,
                     )
                     series = _matrix_to_series(
-                        res_active, "Saved Active Scans"
-                    ) + _matrix_to_series(res_eligible, "Eligible Scans")
+                        res_active, "Scans Set to Active"
+                    ) + _matrix_to_series(res_eligible, "Scans Eligible for Checks")
                     metrics.append(
                         TrendMetric(
                             metric_id="scan_activity",
-                            title="Scan Fleet Activity",
-                            description="Saved active scans compared with effective eligible scans.",
+                            title="Active Settings and Check Eligibility",
+                            description="Active includes suspended owners. Eligible means active with owner scanning access enabled.",
                             unit="scans",
                             chart_type="line",
                             series=series,
@@ -284,12 +285,14 @@ async def get_admin_trends(
                     )
                     series = _matrix_to_series(
                         res_targets, "Total Targets"
-                    ) + _matrix_to_series(res_elig_targets, "Eligible Targets")
+                    ) + _matrix_to_series(
+                        res_elig_targets, "Targets Eligible for Checks"
+                    )
                     metrics.append(
                         TrendMetric(
                             metric_id="polling_demand",
-                            title="Polling Demand & Sharing",
-                            description="Unique targets vs targets with eligible subscribers.",
+                            title="Shared Availability Targets",
+                            description="All shared targets compared with targets that have at least one scan eligible for checks.",
                             unit="targets",
                             chart_type="line",
                             series=series,
@@ -311,11 +314,11 @@ async def get_admin_trends(
                     metrics.append(
                         TrendMetric(
                             metric_id="search_throughput",
-                            title="Campground Search Throughput",
+                            title="Campground Search Requests",
                             description="Campground and recreation area search requests per second.",
                             unit="req/s",
                             chart_type="line",
-                            series=_matrix_to_series(res, "Search Throughput"),
+                            series=_matrix_to_series(res, "Search Requests"),
                         )
                     )
                 except (ValueError, KeyError) as e:
@@ -338,8 +341,8 @@ async def get_admin_trends(
                     metrics.append(
                         TrendMetric(
                             metric_id="api_requests_by_endpoint",
-                            title="API Requests / sec by Endpoint",
-                            description="Traffic volume broken down by normalized API route.",
+                            title="API Requests by Route",
+                            description="Requests per second, grouped by API route.",
                             unit="req/s",
                             chart_type="line",
                             series=_matrix_to_series(
@@ -379,15 +382,15 @@ async def get_admin_trends(
                         step_sec,
                     )
                     series = (
-                        _matrix_to_series(res_2xx, "2xx Success Rate (%)")
-                        + _matrix_to_series(res_4xx, "4xx Client Error Rate (%)")
-                        + _matrix_to_series(res_5xx, "5xx Server Error Rate (%)")
+                        _matrix_to_series(res_2xx, "Successful Responses (2xx)")
+                        + _matrix_to_series(res_4xx, "Client Errors (4xx)")
+                        + _matrix_to_series(res_5xx, "Server Errors (5xx)")
                     )
                     metrics.append(
                         TrendMetric(
                             metric_id="http_status_rates",
-                            title="HTTP Response Status Rates",
-                            description="Proportion of successful, client error, and server error responses.",
+                            title="API Response Status",
+                            description="Share of responses: 2xx success, 4xx client errors, and 5xx server errors. Redirects (3xx) are not shown.",
                             unit="%",
                             chart_type="line",
                             series=series,
@@ -423,15 +426,15 @@ async def get_admin_trends(
                         step_sec,
                     )
                     series = (
-                        _matrix_to_series(res_p50, "p50 Latency (ms)")
-                        + _matrix_to_series(res_p95, "p95 Latency (ms)")
-                        + _matrix_to_series(res_p99, "p99 Latency (ms)")
+                        _matrix_to_series(res_p50, "Median (p50)")
+                        + _matrix_to_series(res_p95, "95th Percentile (p95)")
+                        + _matrix_to_series(res_p99, "99th Percentile (p99)")
                     )
                     metrics.append(
                         TrendMetric(
                             metric_id="request_latency",
-                            title="Request Latency (p50 / p95 / p99)",
-                            description="Estimated HTTP response duration quantiles in milliseconds.",
+                            title="API Response Time",
+                            description="Estimated response times: 50%, 95%, and 99% of requests finish within the corresponding value.",
                             unit="ms",
                             chart_type="line",
                             series=series,
@@ -468,7 +471,7 @@ async def get_admin_trends(
                     )
 
             elif norm_group == "worker":
-                # Metric 1: Tasks Executed / min
+                # Metric 1: Task Executions
                 task_filter = (
                     f'{{task_name="{task_name_filter}"}}' if task_name_filter else ""
                 )
@@ -484,8 +487,8 @@ async def get_admin_trends(
                     metrics.append(
                         TrendMetric(
                             metric_id="tasks_executed_per_min",
-                            title="Tasks Executed / min",
-                            description="Celery task execution throughput by task name.",
+                            title="Task Executions",
+                            description="Tasks executed per minute, grouped by task.",
                             unit="tasks/min",
                             chart_type="line",
                             series=_matrix_to_series(
@@ -523,7 +526,7 @@ async def get_admin_trends(
                         TrendMetric(
                             metric_id="task_success_failure_rate",
                             title="Task Success & Failure Rates",
-                            description="Percentage of celery executions succeeding or failing.",
+                            description="Share of Celery task executions reported as successful or failed. A successful execution may still skip unnecessary work.",
                             unit="%",
                             chart_type="line",
                             series=series,
@@ -547,8 +550,8 @@ async def get_admin_trends(
                     metrics.append(
                         TrendMetric(
                             metric_id="application_outcomes",
-                            title="Application Outcomes / min",
-                            description="Normalized business outcomes (success, error, skipped, retrying).",
+                            title="Task Results",
+                            description="Results per minute: success, error, skipped (no work needed), or retrying (another attempt planned).",
                             unit="outcomes/min",
                             chart_type="line",
                             series=_matrix_to_series(
@@ -586,15 +589,15 @@ async def get_admin_trends(
                         step_sec,
                     )
                     series = (
-                        _matrix_to_series(res_p50, "p50 Duration (ms)")
-                        + _matrix_to_series(res_p95, "p95 Duration (ms)")
-                        + _matrix_to_series(res_p99, "p99 Duration (ms)")
+                        _matrix_to_series(res_p50, "Median (p50)")
+                        + _matrix_to_series(res_p95, "95th Percentile (p95)")
+                        + _matrix_to_series(res_p99, "99th Percentile (p99)")
                     )
                     metrics.append(
                         TrendMetric(
                             metric_id="task_duration",
-                            title="Task Duration (p50 / p95 / p99)",
-                            description="Celery task execution duration quantiles in milliseconds.",
+                            title="Task Execution Time",
+                            description="Estimated execution times: 50%, 95%, and 99% of tasks finish within the corresponding value.",
                             unit="ms",
                             chart_type="line",
                             series=series,
@@ -622,13 +625,13 @@ async def get_admin_trends(
                         step_sec,
                     )
                     series = _matrix_to_series(
-                        res_disc, "Targets Discovered / min"
-                    ) + _matrix_to_series(res_enq, "Targets Enqueued / min")
+                        res_disc, "Targets Ready for Checks"
+                    ) + _matrix_to_series(res_enq, "Checks Added to Queue")
                     metrics.append(
                         TrendMetric(
                             metric_id="discovery_vs_enqueued",
-                            title="Targets Discovered vs Enqueued / min",
-                            description="Discovery heartbeat throughput and scheduling rate.",
+                            title="Targets Ready and Checks Queued",
+                            description="Targets found ready by the scheduler and checks added to the queue per minute.",
                             unit="targets/min",
                             chart_type="line",
                             series=series,
@@ -637,7 +640,7 @@ async def get_admin_trends(
                 except (ValueError, KeyError) as e:
                     logger.debug("Failed query for discovery_vs_enqueued", error=str(e))
 
-                # Metric 6: Scan Results Stored & Notifications Sent
+                # Metric 6: Campsite Results and Notifications
                 try:
                     res_stored = await _query_prometheus_range(
                         client,
@@ -656,13 +659,13 @@ async def get_admin_trends(
                         step_sec,
                     )
                     series = _matrix_to_series(
-                        res_stored, "Results Stored / min"
-                    ) + _matrix_to_series(res_notif, "Notifications Sent / min")
+                        res_stored, "Campsite Results Saved"
+                    ) + _matrix_to_series(res_notif, "Notifications Sent")
                     metrics.append(
                         TrendMetric(
                             metric_id="results_and_notifications",
-                            title="Scan Results Stored & Notifications Sent / min",
-                            description="Campsite openings stored and notification dispatch rate.",
+                            title="Campsite Results and Notifications",
+                            description="Campsite availability records saved and notifications sent per minute. One result may notify multiple users.",
                             unit="events/min",
                             chart_type="line",
                             series=series,
@@ -673,7 +676,7 @@ async def get_admin_trends(
                         "Failed query for results_and_notifications", error=str(e)
                     )
 
-                # Metric 7: Lock Contention Rate
+                # Metric 7: Duplicate Check Prevention
                 try:
                     res_acq = await _query_prometheus_range(
                         client,
@@ -692,13 +695,13 @@ async def get_admin_trends(
                         step_sec,
                     )
                     series = _matrix_to_series(
-                        res_acq, "Locks Acquired (%)"
-                    ) + _matrix_to_series(res_skip, "Locks Skipped (%)")
+                        res_acq, "Lock Acquired"
+                    ) + _matrix_to_series(res_skip, "Lock Unavailable")
                     metrics.append(
                         TrendMetric(
                             metric_id="lock_contention",
-                            title="Lock Contention Rate",
-                            description="Proportion of distributed target locks acquired vs skipped.",
+                            title="Duplicate Check Prevention",
+                            description="Share of lock attempts acquired or skipped. A lock prevents workers from checking the same target at once.",
                             unit="%",
                             chart_type="line",
                             series=series,
@@ -720,18 +723,18 @@ async def get_admin_trends(
                     metrics.append(
                         TrendMetric(
                             metric_id="targets_checked",
-                            title="Targets Checked (Executions / min)",
-                            description="Actual target availability scan executions performed.",
+                            title="Availability Checks Performed",
+                            description="Actual shared-target availability checks performed per minute.",
                             unit="checks/min",
                             chart_type="line",
-                            series=_matrix_to_series(res, "Checks / min"),
+                            series=_matrix_to_series(res, "Availability Checks"),
                         )
                     )
                 except (ValueError, KeyError) as e:
                     logger.debug("Failed query for targets_checked", error=str(e))
 
             elif norm_group == "provider":
-                # Metric 1: Campground API Errors by Provider
+                # Metric 1: Booking Provider Errors
                 p_filter = (
                     f'{{provider="{provider_filter}"}}' if provider_filter else ""
                 )
@@ -747,8 +750,8 @@ async def get_admin_trends(
                     metrics.append(
                         TrendMetric(
                             metric_id="provider_errors",
-                            title="Campground API Errors by Provider",
-                            description="Upstream booking provider API error rate per second.",
+                            title="Booking Provider Errors",
+                            description="Errors per second when contacting each booking provider.",
                             unit="errors/s",
                             chart_type="line",
                             series=_matrix_to_series(
@@ -759,7 +762,7 @@ async def get_admin_trends(
                 except (ValueError, KeyError) as e:
                     logger.debug("Failed query for provider_errors", error=str(e))
 
-                # Metric 2: Provider Error Rate (%) using actual provider checks as denominator
+                # Metric 2: Booking Provider Error Percentage using actual provider checks as denominator
                 try:
                     res = await _query_prometheus_range(
                         client,
@@ -772,8 +775,8 @@ async def get_admin_trends(
                     metrics.append(
                         TrendMetric(
                             metric_id="provider_error_rate",
-                            title="Provider Error Rate (%)",
-                            description="Error percentage using actual provider-call attempts as denominator.",
+                            title="Booking Provider Error Percentage",
+                            description="Provider errors divided by provider check attempts, expressed as a percentage.",
                             unit="%",
                             chart_type="line",
                             series=_matrix_to_series(res, "Error Rate (%)"),
@@ -795,8 +798,8 @@ async def get_admin_trends(
                     metrics.append(
                         TrendMetric(
                             metric_id="provider_checks_volume",
-                            title="Provider Checks Volume / min",
-                            description="Availability checks performed per provider and status.",
+                            title="Booking Provider Checks",
+                            description="Availability checks per minute, grouped by booking provider and result.",
                             unit="checks/min",
                             chart_type="line",
                             series=_matrix_to_series(res, "Provider Checks"),

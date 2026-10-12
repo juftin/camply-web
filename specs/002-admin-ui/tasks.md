@@ -61,3 +61,5 @@ Dependencies: T001–T006 precede user/scan delivery; T012–T015 precede operat
 - [x] T035 Refresh affected user/scan/target caches and display accessible mutation feedback.
 - [x] T036 Add pagination and URL-backed filters/ranges, overdue investigation links, and accurate scan-state labels.
 - [x] T037 Add regressions for contracts, filtering, active targets, stale snapshots, suspension, and navigation; refresh screenshots.
+
+- [x] T038 Review admin terminology and chart interpretation; define shared targets and scan eligibility, explain rates/percentiles, label chart/table units and local times, and distinguish monitoring sources.
