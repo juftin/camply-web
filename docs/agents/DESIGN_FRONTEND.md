@@ -35,9 +35,9 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 ### 1. Landing & Authentication
 
 - **Hero**: `Home.tsx` landing page with campground search via `SearchBar.tsx`.
-- **Authentication**: Two modes controlled by backend config:
-  - _Local mode_ (default): auto-authenticated, no login required.
-  - _Auth0 mode_: `Auth.tsx` handles OAuth redirect flow.
+- **Authentication**: Three owner-selected modes from `/api/auth-config`: `none`
+  (automatic shared-account login), `session` (in-app password login), and `auth0`
+  (OAuth redirect). Reuse current capability-aware account actions.
 - **Optional invite-only access**: When enabled, the backend enforces `is_invited` for scan operations. `ProtectedRoute.tsx` shows `InviteOnly.tsx` for uninvited dashboard/scan-detail visitors. Profile access is still allowed.
 - **Mode-aware navigation**: The owner selects authentication independently of the environment. `none` automatically logs in and hides sign-in, signup, and logout. `session` offers an in-app password form with HTTP-only cookie persistence and CSRF headers; no signup. `auth0` offers sign-in/signup and requests the API audience supplied by `/api/auth-config`. Marketing links follow these capabilities. Configuration failures show an error instead of selecting another login mode. HTTP Basic authentication is never used.
 
@@ -124,3 +124,32 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 - **Mobile (< 640px)**: Single-column scan cards, simplified search, bottom navigation.
 - **Desktop (> 1024px)**: Multi-column grid (up to 3 columns), detailed scan cards.
 - Both views share the same component tree — grid layout adjusts via Tailwind `sm:`/`lg:` breakpoints.
+
+## Proposed Discovery & Alert Experience (Planning Only)
+
+The [campsite experience plan](../../specs/002-campsite-discovery/plan.md)
+proposes incremental improvements to the current discovery and alert journey.
+Preserve the blue theme, centered home hero, existing navigation/cards, Dashboard,
+and single ScanForm dialog. Add search accessibility, supported suggestions, clear
+stay summaries, notification readiness, recovery, and official booking handoff.
+It includes screen proposals, accessibility/mobile requirements, a prioritized backlog, backend prerequisites, and staged validation.
+
+See the accompanying [research](../../specs/002-campsite-discovery/research.md),
+[specification](../../specs/002-campsite-discovery/spec.md), and
+[tasks](../../specs/002-campsite-discovery/tasks.md). These are proposed changes,
+not implemented features. The source audit records discrepancies between current
+documentation and code, including draft recovery, advertised capabilities,
+date boundaries and shared result counts. Auth/invitation guards, scanning suspension,
+native admin monitoring, and snapshot tooling are now existing foundations;
+implementation must preserve them and resolve remaining gaps before
+presenting the proposed experience as available.
+
+The [first-release implementation brief](../../specs/002-campsite-discovery/implementation.md)
+defines seven work packages and release gates. A standalone
+[clickable wireframe](../../specs/002-campsite-discovery/wireframes.html) illustrates
+the core flow with fictional sample data; it makes no requests and creates no alerts.
+
+Repository alignment: findings were refreshed against `main` at `f17106f`.
+Use `task snapshot`/`task snapshot:check` and `/dev/preview` for actual component
+review, and `task api:check` for generated-contract drift. See the
+[current baseline and remaining source findings](../../specs/002-campsite-discovery/research.md#current-repository-baseline).
