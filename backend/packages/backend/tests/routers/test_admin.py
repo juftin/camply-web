@@ -82,6 +82,11 @@ class TestAdminAuthorization:
     endpoints = [
         ("GET", "/api/admin/overview", None),
         ("GET", "/api/admin/users", None),
+        (
+            "POST",
+            "/api/admin/users",
+            {"email": "new@example.test", "password": "password123"},
+        ),
         ("GET", f"/api/admin/users/{uuid.uuid4()}", None),
         ("PATCH", f"/api/admin/users/{uuid.uuid4()}", {"scanning_enabled": False}),
         ("GET", "/api/admin/scans", None),
@@ -97,6 +102,8 @@ class TestAdminAuthorization:
         for method, path, json_data in self.endpoints:
             if method == "GET":
                 resp = test_client.get(path)
+            elif method == "POST":
+                resp = test_client.post(path, json=json_data)
             elif method == "PATCH":
                 resp = test_client.patch(path, json=json_data)
             assert resp.status_code == 403, f"{method} {path} did not return 403"

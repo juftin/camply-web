@@ -9,6 +9,7 @@ import {
   Clock,
   Radio,
   ExternalLink,
+  KeyRound,
 } from "lucide-react";
 import {
   Card,
@@ -20,8 +21,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminFeedback } from "@/components/admin/AdminFeedback";
+import { AdminPasswordInput } from "@/components/admin/AdminPasswordInput";
 import { useAdminLocation } from "@/hooks/useAdminLocation";
 import { getApiErrorMessage } from "@/lib/api";
 import { AdminNav } from "@/components/AdminNav";
@@ -31,6 +41,7 @@ import {
   useAdminScans,
   useUpdateAdminScan,
 } from "@/hooks/useAdmin";
+import { useAuth } from "@/hooks/useAuth";
 
 export function AdminUserDetail() {
   const { page, setPage } = useAdminLocation();
@@ -40,6 +51,11 @@ export function AdminUserDetail() {
   const { userId } = useParams<{ userId: string }>();
   const [updatingUser, setUpdatingUser] = useState(false);
   const [updatingScanId, setUpdatingScanId] = useState<string | null>(null);
+
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const {
     data: user,
@@ -58,6 +74,7 @@ export function AdminUserDetail() {
     offset: page * pageSize,
   });
 
+  const { user: currentUser, authMode } = useAuth();
   const updateUserMutation = useUpdateAdminUser();
   const updateScanMutation = useUpdateAdminScan();
 
@@ -95,6 +112,54 @@ export function AdminUserDetail() {
       </div>
     );
   }
+
+  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setResetError(null);
+    try {
+      setResettingPassword(true);
+      await updateUserMutation.mutateAsync({
+        userId: user.id,
+        payload: {
+          password: resetPassword,
+          must_change_password: true,
+        },
+      });
+      await refetchUser();
+      setIsResetPasswordOpen(false);
+      setResetPassword("");
+      setMessage(
+        `Temporary password set for ${user.email}. User must change it on their next sign-in.`,
+      );
+    } catch (error) {
+      setResetError(getApiErrorMessage(error));
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
+  const handleToggleAdmin = async () => {
+    setMessage(null);
+    setActionError(false);
+    try {
+      setUpdatingUser(true);
+      await updateUserMutation.mutateAsync({
+        userId: user.id,
+        payload: { is_admin: !user.is_admin },
+      });
+      await refetchUser();
+      setMessage(
+        user.is_admin
+          ? `Administrator privileges revoked for ${user.email}.`
+          : `Administrator privileges granted to ${user.email}.`,
+      );
+    } catch (error) {
+      setActionError(true);
+      setMessage(getApiErrorMessage(error));
+    } finally {
+      setUpdatingUser(false);
+    }
+  };
 
   const handleToggleScanning = async () => {
     setMessage(null);
@@ -162,13 +227,106 @@ export function AdminUserDetail() {
                   <UserIcon className="h-3 w-3 mr-1" /> User
                 </Badge>
               )}
+              {user.must_change_password && (
+                <Badge
+                  variant="outline"
+                  className="text-amber-600 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-xs"
+                >
+                  Password change required
+                </Badge>
+              )}
             </h1>
             <p className="text-xs font-mono text-muted-foreground mt-1">
               UUID: {user.id}
             </p>
           </div>
+          {authMode === "session" && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setResetPassword("");
+                  setResetError(null);
+                  setIsResetPasswordOpen(true);
+                }}
+                className="gap-1.5"
+              >
+                <KeyRound className="h-4 w-4" /> Reset Password
+              </Button>
+            </div>
+          )}
         </div>
       </div>
+
+      <Dialog
+        open={isResetPasswordOpen}
+        onOpenChange={(open) => {
+          setIsResetPasswordOpen(open);
+          if (!open) {
+            setResetPassword("");
+            setResetError(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Set a temporary password for {user.email}.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            {isResetPasswordOpen && (
+              <AdminPasswordInput
+                id="detail-reset-password"
+                label="New Temporary Password"
+                value={resetPassword}
+                onChange={setResetPassword}
+                disabled={resettingPassword}
+              />
+            )}
+            <div className="rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
+              The user will be required to create a new password immediately
+              upon their next sign-in.
+            </div>
+
+            {resetError && (
+              <div
+                role="alert"
+                className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+              >
+                {resetError}
+              </div>
+            )}
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsResetPasswordOpen(false);
+                  setResetPassword("");
+                  setResetError(null);
+                }}
+                disabled={resettingPassword}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={resettingPassword}>
+                {resettingPassword ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Resetting…
+                  </>
+                ) : (
+                  "Reset Password"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <AdminNav />
 
@@ -206,6 +364,20 @@ export function AdminUserDetail() {
               </div>
               <div>
                 <span className="text-xs text-muted-foreground block">
+                  Password Change
+                </span>
+                <span>
+                  {user.must_change_password ? (
+                    <span className="text-amber-600 font-medium">
+                      Required on sign in
+                    </span>
+                  ) : (
+                    "Not required"
+                  )}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground block">
                   Pushover Configured
                 </span>
                 <span className="flex items-center gap-1">
@@ -235,41 +407,84 @@ export function AdminUserDetail() {
           </CardContent>
         </Card>
 
-        {/* Scanning Control Card */}
-        <Card
-          className={`border-2 ${user.scanning_enabled ? "border-emerald-500/20" : "border-amber-500/30 bg-amber-500/5"}`}
-        >
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center justify-between">
-              <span>Scanning access</span>
-              <Badge variant={user.scanning_enabled ? "success" : "warning"}>
-                {user.scanning_enabled ? "Enabled" : "Suspended"}
-              </Badge>
-            </CardTitle>
-            <CardDescription>
-              Suspension stops this user’s scans and new scan creation. Login
-              and saved scan settings are preserved.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-lg border bg-background">
-              <div>
-                <p className="font-medium text-sm">Allow Automated Scanning</p>
-                <p className="text-xs text-muted-foreground">
-                  {user.scanning_enabled
-                    ? "Active scans are eligible for checks"
-                    : "Suspended: scans will not run"}
-                </p>
+        {/* Permissions & Scanning Controls */}
+        <div className="space-y-6">
+          {/* Admin Role Card */}
+          <Card
+            className={`border-2 ${user.is_admin ? "border-primary/20" : "border-border"}`}
+          >
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center justify-between">
+                <span>Administrator access</span>
+                <Badge variant={user.is_admin ? "default" : "secondary"}>
+                  {user.is_admin ? "Admin" : "Standard User"}
+                </Badge>
+              </CardTitle>
+              <CardDescription>
+                Administrator access grants permissions to manage users, modify
+                scan configurations, and inspect operational telemetry.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-lg border bg-background">
+                <div>
+                  <p className="font-medium text-sm">Administrator Role</p>
+                  <p className="text-xs text-muted-foreground">
+                    {currentUser?.id === user.id
+                      ? "You cannot remove your own administrator privileges"
+                      : user.is_admin
+                        ? "Full administrative access enabled"
+                        : "Standard user access only"}
+                  </p>
+                </div>
+                <Switch
+                  aria-label={`Administrator privileges for ${user.email}`}
+                  checked={user.is_admin}
+                  disabled={updatingUser || currentUser?.id === user.id}
+                  onCheckedChange={handleToggleAdmin}
+                />
               </div>
-              <Switch
-                aria-label={`Scanning access for ${user.email}`}
-                checked={user.scanning_enabled}
-                disabled={updatingUser}
-                onCheckedChange={handleToggleScanning}
-              />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Scanning Control Card */}
+          <Card
+            className={`border-2 ${user.scanning_enabled ? "border-emerald-500/20" : "border-amber-500/30 bg-amber-500/5"}`}
+          >
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center justify-between">
+                <span>Scanning access</span>
+                <Badge variant={user.scanning_enabled ? "success" : "warning"}>
+                  {user.scanning_enabled ? "Enabled" : "Suspended"}
+                </Badge>
+              </CardTitle>
+              <CardDescription>
+                Suspension stops this user’s scans and new scan creation. Login
+                and saved scan settings are preserved.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-lg border bg-background">
+                <div>
+                  <p className="font-medium text-sm">
+                    Allow Automated Scanning
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {user.scanning_enabled
+                      ? "Active scans are eligible for checks"
+                      : "Suspended: scans will not run"}
+                  </p>
+                </div>
+                <Switch
+                  aria-label={`Scanning access for ${user.email}`}
+                  checked={user.scanning_enabled}
+                  disabled={updatingUser}
+                  onCheckedChange={handleToggleScanning}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* User Scans */}

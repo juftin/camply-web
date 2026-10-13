@@ -72,6 +72,12 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T2.1.10 Verify scan session authentication over secure HTTPS; add a Cloudflare Pages `/api` proxy preserving session/CSRF cookies, with transport regressions and deployment instructions for cross-site backends.
 - [x] T2.1.11 Trust HTTPS deployment-hash and branch-alias origins for the camply Cloudflare Pages project in CORS and password login; test rejection of unrelated projects and lookalike domains.
 - [x] T2.1.12 Rebuild images on Compose startup and provide local Docker defaults for password sessions, including HTTP cookie settings.
+- [x] T2.1.13 Support administrator creation of users and initial passwords in session auth mode, with optional forced password change on first sign-in (`must_change_password`).
+- [x] T2.1.14 Enforce forced password change on sign-in across backend APIs and frontend protected/admin routes, allowing users to update their password via `POST /api/change-password`.
+- [x] T2.1.15 Allow administrators to promote/demote administrator privileges and reset user passwords with forced rotation on subsequent sign-in via the UI.
+- [x] T2.1.16 Revoke previous sessions on password reset/change, refresh the changing browser's cookies, honor stored bootstrap credentials and roles, and restrict password-change flags to session mode; cover these transitions with regression tests.
+- [x] T2.1.17 Review and refresh user-management visual baselines for the create/reset actions, password-change status, and administrator role controls; verify all 40 snapshot scenarios.
+- [x] T2.1.18 Generate secure random passwords in all admin create/reset dialogs, reveal them while the dialog is open with a copy action, and discard them on close or success; verify lifecycle, clipboard failures, and desktop/mobile/dark visual coverage.
 
 ### 2.2 Access Control
 

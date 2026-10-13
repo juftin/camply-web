@@ -39,12 +39,20 @@ class MeResponse(BaseModel):
     is_admin: bool = False
     scanning_enabled: bool = True
     pushover_token: Optional[str] = None
+    must_change_password: bool = False
 
 
 class MeUpdateRequest(BaseModel):
     """Payload for ``PATCH /me``."""
 
     pushover_token: Optional[str] = None
+
+
+class ChangePasswordRequest(BaseModel):
+    """Payload for changing the authenticated user's password."""
+
+    current_password: str = Field(min_length=1, max_length=1024, repr=False)
+    new_password: str = Field(min_length=1, max_length=1024, repr=False)
 
 
 class SessionLoginRequest(BaseModel):
@@ -195,6 +203,7 @@ class AdminUserItem(BaseModel):
     is_invited: bool
     scanning_enabled: bool
     has_pushover_token: bool
+    must_change_password: bool = False
     total_scans: int
     active_scans: int
     created_at: datetime.datetime
@@ -217,16 +226,37 @@ class AdminUserDetailResponse(BaseModel):
     is_invited: bool
     scanning_enabled: bool
     has_pushover_token: bool
+    must_change_password: bool = False
     total_scans: int
     active_scans: int
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
 
-class AdminUserUpdateRequest(BaseModel):
-    """Payload to toggle scanning_enabled for a user."""
+class AdminUserCreateRequest(BaseModel):
+    """Payload for creating a user in session authentication mode."""
 
-    scanning_enabled: bool
+    email: str = Field(min_length=3, max_length=255, description="User email address")
+    password: str = Field(
+        min_length=1, max_length=1024, repr=False, description="Initial password"
+    )
+    is_admin: bool = Field(default=False, description="Grant administrator privileges")
+    must_change_password: bool = Field(
+        default=False, description="Force password change on first sign in"
+    )
+    is_invited: bool = Field(default=True, description="Invitation status")
+    scanning_enabled: bool = Field(default=True, description="Enable campsite scanning")
+
+
+class AdminUserUpdateRequest(BaseModel):
+    """Payload to update an existing user."""
+
+    is_admin: Optional[bool] = None
+    scanning_enabled: Optional[bool] = None
+    must_change_password: Optional[bool] = None
+    password: Optional[str] = Field(
+        default=None, min_length=1, max_length=1024, repr=False
+    )
 
 
 class AdminScanItem(BaseModel):

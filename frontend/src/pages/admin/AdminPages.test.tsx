@@ -19,6 +19,13 @@ vi.mock("recharts", async (importOriginal) => {
   };
 });
 
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    user: { id: "admin-1", email: "admin@example.test", is_admin: true },
+    authMode: "session",
+  }),
+}));
+
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
@@ -150,6 +157,7 @@ describe("AdminUsers", () => {
           total_scans: 5,
           active_scans: 3,
           created_at: new Date().toISOString(),
+          must_change_password: false,
         },
         {
           id: "u-2",
@@ -161,6 +169,7 @@ describe("AdminUsers", () => {
           total_scans: 2,
           active_scans: 0,
           created_at: new Date().toISOString(),
+          must_change_password: true,
         },
       ],
       total: 2,

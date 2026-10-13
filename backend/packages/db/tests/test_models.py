@@ -85,6 +85,8 @@ def test_user_creation(session: Session):
     assert user.is_invited is False
     assert user.is_admin is False
     assert user.scanning_enabled is True
+    assert user.password_hash is None
+    assert user.must_change_password is False
 
 
 def test_user_admin_and_scanning_flags(session: Session):
@@ -101,6 +103,22 @@ def test_user_admin_and_scanning_flags(session: Session):
 
     assert user.is_admin is True
     assert user.scanning_enabled is False
+
+
+def test_user_password_and_force_change(session: Session):
+    """
+    Test setting password_hash and must_change_password on User
+    """
+    user = User(
+        email="session_user@example.com",
+        password_hash="pbkdf2_sha256$test$hash",
+        must_change_password=True,
+    )
+    session.add(user)
+    session.commit()
+
+    assert user.password_hash == "pbkdf2_sha256$test$hash"
+    assert user.must_change_password is True
 
 
 def test_admin_audit_event_creation(session: Session, user: User):

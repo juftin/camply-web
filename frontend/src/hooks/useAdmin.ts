@@ -3,6 +3,7 @@ import {
   getAdminOverview,
   listAdminUsers,
   getAdminUser,
+  createAdminUser,
   updateAdminUser,
   listAdminScans,
   getAdminScan,
@@ -16,6 +17,7 @@ import {
 } from "@/lib/api";
 import type {
   AdminOverviewResponse,
+  AdminUserCreateRequest,
   AdminUserListResponse,
   AdminUserDetailResponse,
   AdminUserUpdateRequest,
@@ -55,6 +57,18 @@ export function useAdminUser(userId: string) {
     queryKey: ["admin", "users", userId],
     queryFn: () => getAdminUser(userId),
     enabled: Boolean(userId),
+  });
+}
+
+export function useCreateAdminUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: AdminUserCreateRequest) => createAdminUser(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
+    },
   });
 }
 

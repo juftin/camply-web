@@ -30,6 +30,7 @@ class User(Base):
         kwargs.setdefault("is_admin", False)
         kwargs.setdefault("scanning_enabled", True)
         kwargs.setdefault("is_invited", False)
+        kwargs.setdefault("must_change_password", False)
         super().__init__(**kwargs)
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -47,6 +48,10 @@ class User(Base):
     )
     scanning_enabled: Mapped[bool] = mapped_column(
         Boolean, default=True, server_default=func.true()
+    )
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=func.false()
     )
     created_at: Mapped[datetime.datetime] = mapped_column(
         default=partial(datetime.datetime.now, tz=datetime.timezone.utc),

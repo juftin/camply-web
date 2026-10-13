@@ -33,6 +33,7 @@ async def get_me(current_user: CurrentUserDep) -> MeResponse:
         is_admin=current_user.is_admin,
         scanning_enabled=current_user.scanning_enabled,
         pushover_token=current_user.pushover_token,
+        must_change_password=current_user.must_change_password,
     )
 
 
@@ -48,6 +49,15 @@ async def update_me(
     session: SessionDep,
 ) -> MeResponse:
     """Update the authenticated user's profile (pushover_token, …)."""
+    if current_user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "ERR_PASSWORD_CHANGE_REQUIRED",
+                "message": "Password change required before proceeding.",
+            },
+        )
+
     result = await session.execute(select(UserDB).where(UserDB.id == current_user.id))
     user = result.scalar_one_or_none()
     if user is None:
@@ -68,4 +78,5 @@ async def update_me(
         is_admin=user.is_admin,
         scanning_enabled=user.scanning_enabled,
         pushover_token=user.pushover_token,
+        must_change_password=user.must_change_password,
     )

@@ -12,9 +12,11 @@ import type {
   ScanUpdateRequest,
   ScanResponse,
   AdminOverviewResponse,
+  AdminUserCreateRequest,
   AdminUserListResponse,
   AdminUserDetailResponse,
   AdminUserUpdateRequest,
+  ChangePasswordRequest,
   AdminScanListResponse,
   AdminScanDetailResponse,
   AdminScanUpdateRequest,
@@ -198,6 +200,13 @@ export async function logoutSession(): Promise<void> {
   await api.post("/logout");
 }
 
+export async function changePassword(
+  payload: ChangePasswordRequest,
+): Promise<MeResponse> {
+  const response = await api.post<MeResponse>("/change-password", payload);
+  return response.data;
+}
+
 export async function getMe(): Promise<MeResponse> {
   const response = await api.get<MeResponse>("/me");
   return response.data;
@@ -271,6 +280,16 @@ export async function getAdminUser(
 ): Promise<AdminUserDetailResponse> {
   const response = await api.get<AdminUserDetailResponse>(
     `/admin/users/${userId}`,
+  );
+  return response.data;
+}
+
+export async function createAdminUser(
+  payload: AdminUserCreateRequest,
+): Promise<AdminUserDetailResponse> {
+  const response = await api.post<AdminUserDetailResponse>(
+    "/admin/users",
+    payload,
   );
   return response.data;
 }
