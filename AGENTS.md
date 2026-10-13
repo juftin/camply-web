@@ -36,12 +36,14 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
 
 ## 🏗️ Directory Structure
 
-- `backend/`: FastAPI Python application (`uv` workspace).
+- `backend/`: Python `uv` workspace powering web services and the standalone CLI.
+  - `packages/cli/`: Standalone `camply` command-line application (Click + Rich).
+  - `packages/core/`: Reusable domain models, provider clients, and matching engine (`camply-core`).
   - `packages/backend/`: FastAPI application & API endpoints.
   - `packages/db/`: Database models and migrations (Alembic).
-  - `packages/providers/`: Third-party API providers (e.g., recreation.gov).
+  - `packages/providers/`: Third-party API providers & database populators.
+  - `packages/worker/`: Celery-powered background tasks and notification dispatch.
 - `frontend/`: React TypeScript application (Vite, Tailwind CSS, Shadcn/UI).
-- `cli/`: Legacy command-line interface (Deprecated - Core logic being migrated).
 - `docs/agents/`: Unified documentation and design blueprints.
 - `tests/`: System-level or shared tests.
 - `.worktrees/`: Git worktrees directory for parallel isolated development.

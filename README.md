@@ -24,9 +24,6 @@ to book your spot!
 📂 camply
 ├── README.md
 ├── docker-compose.yaml
-├── cli/
-|   ├── pyproject.toml
-|   └── camply/
 ├── frontend/
 |   ├── Dockerfile
 |   ├── docker-compose.yaml
@@ -40,6 +37,12 @@ to book your spot!
     ├── pyproject.toml
     ├── uv.lock
     └── packages/
+        ├── cli/
+        |   ├── pyproject.toml
+        |   └── camply/
+        ├── core/
+        |   ├── pyproject.toml
+        |   └── camply_core/
         ├── backend/
         |   ├── pyproject.toml
         |   └── backend/
@@ -56,11 +59,11 @@ to book your spot!
             └── worker/
 ```
 
-### cli
+### cli (standalone)
 
-- This directory contains the legacy command-line interface (CLI) for the project.
-  There will be no further development on this CLI and it can be ignored for new
-  features.
+- Standalone `camply` command-line application located in `backend/packages/cli/`.
+- Built on modern Click and Rich, published independently to PyPI.
+- Consumes `camply-core` for provider communication, filtering, and notifications with zero database dependencies.
 
 ### frontend
 
@@ -81,10 +84,11 @@ to book your spot!
 - **Auth**: Two modes — local (auto-admin, no token needed) and Auth0 (JWT
   validation via PyJWT + JWKS).
 - The backend is a `uv` workspace containing multiple packages:
+  - `cli/`: Standalone `camply` command-line tool.
+  - `core/`: Reusable domain models, provider clients, and matching engine (`camply-core`).
   - `backend/`: FastAPI application serving API endpoints and auth.
   - `db/`: Database models (User, UniqueTarget, UserScan, ScanResult, etc.)
     and Alembic migrations.
-  - `providers/`: Third-party API providers (Recreation.gov) with pluggable
-    `BaseProvider` ABC.
+  - `providers/`: Third-party API providers & database populators.
   - `worker/`: Celery-powered background task worker for campsite polling,
     availability diffing, de-duplicated scanning, and Pushover notifications.
