@@ -737,6 +737,14 @@ export interface components {
             outcome: string;
             /** Reason */
             reason?: string | null;
+            /** Provider Id */
+            provider_id?: number | null;
+            /** Provider Name */
+            provider_name?: string | null;
+            /** Search Name */
+            search_name?: string | null;
+            /** Search Dates */
+            search_dates?: string | null;
         };
         /**
          * AdminOperationsTasksResponse
@@ -1031,6 +1039,14 @@ export interface components {
             outcome: string;
             /** Reason */
             reason?: string | null;
+            /** Provider Id */
+            provider_id?: number | null;
+            /** Provider Name */
+            provider_name?: string | null;
+            /** Search Name */
+            search_name?: string | null;
+            /** Search Dates */
+            search_dates?: string | null;
         };
         /**
          * AdminTrendsResponse
@@ -2520,6 +2536,8 @@ export interface operations {
                 offset?: number;
                 task_name?: string | null;
                 outcome?: string | null;
+                provider?: string | null;
+                search?: string | null;
             };
             header?: never;
             path?: never;

@@ -255,6 +255,12 @@ def _parse_telemetry_dict(d: dict[str, Any]) -> Optional[AdminTaskTelemetryItem]
         if not finished_str:
             return None
         fin_dt = dt.datetime.fromisoformat(finished_str)
+        provider_id_raw = d.get("provider_id")
+        provider_id = (
+            int(provider_id_raw)
+            if provider_id_raw is not None and str(provider_id_raw).isdigit()
+            else None
+        )
         return AdminTaskTelemetryItem(
             task_id=str(d.get("task_id", "")),
             event_id=d.get("event_id") or None,
@@ -267,9 +273,91 @@ def _parse_telemetry_dict(d: dict[str, Any]) -> Optional[AdminTaskTelemetryItem]
             entity_id=d.get("entity_id") or None,
             outcome=str(d.get("outcome", "unknown")),
             reason=d.get("reason") or None,
+            provider_id=provider_id,
+            provider_name=d.get("provider_name") or None,
+            search_name=d.get("search_name") or None,
+            search_dates=d.get("search_dates") or None,
         )
     except Exception:
         return None
+
+
+def _matches_provider(item: AdminTaskTelemetryItem, provider: str) -> bool:
+    """
+    Check if a task item matches the specified provider filter.
+
+    Parameters
+    ----------
+    item : AdminTaskTelemetryItem
+        The parsed task telemetry record.
+    provider : str
+        The requested provider query string.
+
+    Returns
+    -------
+    bool
+        True if the item matches the provider query, False otherwise.
+    """
+    prov_query = provider.strip().lower().replace("_", "")
+    if item.provider_id is not None and str(item.provider_id) == provider.strip():
+        return True
+    if item.provider_name:
+        normalized_name = (
+            item.provider_name.lower()
+            .replace(" ", "")
+            .replace(".", "")
+            .replace("_", "")
+        )
+        if prov_query in normalized_name or prov_query in item.provider_name.lower():
+            return True
+    return False
+
+
+def _matches_task_filters(
+    item: AdminTaskTelemetryItem,
+    oldest_timestamp: dt.datetime,
+    task_name: Optional[str] = None,
+    outcome: Optional[str] = None,
+    provider: Optional[str] = None,
+    search: Optional[str] = None,
+) -> bool:
+    """
+    Check if a task telemetry record matches all applied query filters.
+
+    Parameters
+    ----------
+    item : AdminTaskTelemetryItem
+        The parsed task telemetry record.
+    oldest_timestamp : dt.datetime
+        Oldest allowable timestamp.
+    task_name : Optional[str]
+        Substring filter for task name.
+    outcome : Optional[str]
+        Filter for execution outcome.
+    provider : Optional[str]
+        Filter for provider name or id.
+    search : Optional[str]
+        Fuzzy search query.
+
+    Returns
+    -------
+    bool
+        True if item passes all active filters.
+    """
+    if item.finished_at < oldest_timestamp:
+        return False
+    if task_name and task_name not in item.task_name:
+        return False
+    if outcome and item.outcome != outcome:
+        return False
+    if provider and not _matches_provider(item, provider):
+        return False
+    if search:
+        s_query = search.strip().lower()
+        searchable_text = f"{item.search_name or ''} {item.search_dates or ''} {item.entity_id or ''} {item.task_name}".lower()
+        if s_query not in searchable_text:
+            return False
+    return True
 
 
 def _get_recent_tasks_sync(
@@ -277,9 +365,31 @@ def _get_recent_tasks_sync(
     offset: int = 0,
     task_name: Optional[str] = None,
     outcome: Optional[str] = None,
+    provider: Optional[str] = None,
+    search: Optional[str] = None,
 ) -> AdminOperationsTasksResponse:
     """
     Synchronously read recent task records from Valkey stream.
+
+    Parameters
+    ----------
+    limit : int
+        Maximum number of tasks to return.
+    offset : int
+        Offset for pagination.
+    task_name : Optional[str]
+        Optional filter for task name.
+    outcome : Optional[str]
+        Optional filter for task outcome.
+    provider : Optional[str]
+        Optional filter for provider.
+    search : Optional[str]
+        Optional search keyword.
+
+    Returns
+    -------
+    AdminOperationsTasksResponse
+        Paginated recent task executions.
     """
     try:
         r = _get_redis_client()
@@ -297,11 +407,14 @@ def _get_recent_tasks_sync(
                 item.event_id = str(_msg_id)
             if item.finished_at.tzinfo is None:
                 item.finished_at = item.finished_at.replace(tzinfo=dt.timezone.utc)
-            if item.finished_at < oldest_timestamp:
-                continue
-            if task_name and task_name not in item.task_name:
-                continue
-            if outcome and item.outcome != outcome:
+            if not _matches_task_filters(
+                item=item,
+                oldest_timestamp=oldest_timestamp,
+                task_name=task_name,
+                outcome=outcome,
+                provider=provider,
+                search=search,
+            ):
                 continue
             parsed.append(item)
 
@@ -323,6 +436,8 @@ async def get_recent_tasks(
     offset: int = 0,
     task_name: Optional[str] = None,
     outcome: Optional[str] = None,
+    provider: Optional[str] = None,
+    search: Optional[str] = None,
 ) -> AdminOperationsTasksResponse:
     """
     Fetch bounded recent task executions with optional filters.
@@ -333,6 +448,8 @@ async def get_recent_tasks(
         offset=offset,
         task_name=task_name,
         outcome=outcome,
+        provider=provider,
+        search=search,
     )
 
 
@@ -359,6 +476,10 @@ def _get_task_detail_sync(task_id: str) -> Optional[AdminOperationsTaskDetail]:
                     entity_id=item.entity_id,
                     outcome=item.outcome,
                     reason=item.reason,
+                    provider_id=item.provider_id,
+                    provider_name=item.provider_name,
+                    search_name=item.search_name,
+                    search_dates=item.search_dates,
                 )
     except Exception:
         logger.warning(
