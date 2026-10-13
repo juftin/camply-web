@@ -76,6 +76,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T2.1.14 Enforce forced password change on sign-in across backend APIs and frontend protected/admin routes, allowing users to update their password via `POST /api/change-password`.
 - [x] T2.1.15 Allow administrators to promote/demote administrator privileges and reset user passwords with forced rotation on subsequent sign-in via the UI.
 - [x] T2.1.16 Revoke previous sessions on password reset/change, refresh the changing browser's cookies, honor stored bootstrap credentials and roles, and restrict password-change flags to session mode; cover these transitions with regression tests.
+- [x] T2.1.17 Review and refresh user-management visual baselines for the create/reset actions, password-change status, and administrator role controls; verify all 40 snapshot scenarios.
 
 ### 2.2 Access Control
 
