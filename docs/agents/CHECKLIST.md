@@ -29,8 +29,8 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.3.2 Add worker management tasks (`worker:dev`, `worker:beat`) to `backend/Taskfile.yaml`.
 - [x] T1.3.3 Setup Celery/Valkey connection in `backend` app.
 - [x] T1.3.4 Implement the `heartbeat` (beat) scheduler logic for `unique_targets`.
-- [x] T1.3.5 Implement the `check_target_availability` task in Celery.
-- [x] T1.3.6 Implement the `send_pushover_notification` task.
+- [x] T1.3.5 Implement the `camply.search.check_campsite_availability` task in Celery.
+- [x] T1.3.6 Implement the `camply.notifications.send_pushover_notification` task.
 - [x] T1.3.7 Integrate `Sentry` for background task error tracking.
 - [x] T1.3.8 **Testing**: Write integration tests for the Celery task lifecycle and de-duplication logic.
 

@@ -89,7 +89,7 @@ def test_record_task_execution_writes_to_redis() -> None:
     with patch("worker.telemetry.get_redis_client", return_value=mock_redis):
         record_task_execution(
             task_id="t-123",
-            task_name="worker.tasks.scanner.check_target_availability",
+            task_name="camply.search.check_campsite_availability",
             worker="worker-1",
             start_time=100.0,
             finish_time=100.25,
@@ -113,6 +113,46 @@ def test_record_task_execution_writes_to_redis() -> None:
         assert key_call[0][0] == "camply:telemetry:task:t-123"
 
 
+def test_record_task_execution_records_provider_and_search_metadata() -> None:
+    """
+    Task telemetry records provider and search metadata.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    None
+    """
+    mock_redis = MagicMock()
+    with patch("worker.telemetry.get_redis_client", return_value=mock_redis):
+        record_task_execution(
+            task_id="t-999",
+            task_name="camply.search.check_campsite_availability",
+            worker="worker-1",
+            start_time=100.0,
+            finish_time=100.5,
+            state="SUCCESS",
+            retval={
+                "status": "success",
+                "provider_id": 1,
+                "provider_name": "Recreation.gov",
+                "search_name": "Tuolumne Meadows",
+                "search_dates": "2026-08-01 → 2026-08-05",
+            },
+            kwargs={"target_id": "tgt-tuolumne"},
+        )
+
+        assert mock_redis.xadd.called
+        _, record = mock_redis.xadd.call_args[0]
+        assert record["task_name"] == "camply.search.check_campsite_availability"
+        assert record["provider_id"] == 1
+        assert record["provider_name"] == "Recreation.gov"
+        assert record["search_name"] == "Tuolumne Meadows"
+        assert record["search_dates"] == "2026-08-01 → 2026-08-05"
+
+
 def test_record_task_execution_failure_isolation() -> None:
     # Telemetry should never raise an exception even if Redis fails
     with patch(
@@ -121,7 +161,7 @@ def test_record_task_execution_failure_isolation() -> None:
         # Should not raise
         record_task_execution(
             task_id="t-456",
-            task_name="worker.tasks.heartbeat.discover_targets",
+            task_name="camply.search.schedule_checks",
             worker="worker-1",
             start_time=50.0,
             finish_time=50.1,

@@ -82,7 +82,7 @@ describe("AdminOperations", () => {
       tasks: [
         {
           task_id: "task-abc-123",
-          task_name: "worker.tasks.scanner.check_target_availability",
+          task_name: "camply.search.check_campsite_availability",
           worker: "celery@worker-node-1",
           finished_at: "2026-10-09T01:04:30Z",
           duration_ms: 1250,
@@ -90,6 +90,10 @@ describe("AdminOperations", () => {
           entity_id: "target-uuid-9999",
           outcome: "success",
           reason: null,
+          provider_id: 1,
+          provider_name: "Recreation.gov",
+          search_name: "Upper Pines",
+          search_dates: "2026-11-01 → 2026-11-03",
         },
       ],
       total: 1,
@@ -128,6 +132,11 @@ describe("AdminOperations", () => {
 
     // Telemetry stream
     expect(screen.getByText("Check campsite availability")).toBeInTheDocument();
+    expect(screen.getAllByText("Recreation.gov").length).toBeGreaterThanOrEqual(
+      1,
+    );
+    expect(screen.getByText("Upper Pines")).toBeInTheDocument();
+    expect(screen.getByText("2026-11-01 → 2026-11-03")).toBeInTheDocument();
     expect(screen.getByText("target: target-u…")).toBeInTheDocument();
     expect(screen.getByText("1.25 s")).toBeInTheDocument();
   });
@@ -154,7 +163,7 @@ describe("AdminOperations", () => {
       tasks: [
         {
           task_id: "task-xyz-789",
-          task_name: "worker.tasks.scanner.check_target_availability",
+          task_name: "camply.search.check_campsite_availability",
           worker: "celery@worker-node-2",
           finished_at: "2026-10-09T01:04:30Z",
           duration_ms: 450,
@@ -162,6 +171,9 @@ describe("AdminOperations", () => {
           entity_id: "scan-uuid-1111",
           outcome: "error",
           reason: "Rate limited by upstream provider",
+          provider_id: 1,
+          provider_name: "Recreation.gov",
+          search_name: "Lower Pines",
         },
       ],
       total: 1,
@@ -184,6 +196,9 @@ describe("AdminOperations", () => {
     await waitFor(() => {
       expect(screen.getByText("Task Execution Details")).toBeInTheDocument();
       expect(screen.getByText("task-xyz-789")).toBeInTheDocument();
+      expect(screen.getAllByText("Lower Pines").length).toBeGreaterThanOrEqual(
+        2,
+      );
       expect(
         screen.getByText("Rate limited by upstream provider"),
       ).toBeInTheDocument();
