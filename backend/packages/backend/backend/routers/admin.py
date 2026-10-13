@@ -863,6 +863,8 @@ async def list_admin_operations_tasks(
     offset: int = Query(default=0, ge=0),
     task_name: Optional[str] = Query(default=None),
     outcome: Optional[str] = Query(default=None),
+    provider: Optional[str] = Query(default=None),
+    search: Optional[str] = Query(default=None),
 ) -> AdminOperationsTasksResponse:
     """
     Paginated recent task executions from the Valkey telemetry stream.
@@ -872,6 +874,8 @@ async def list_admin_operations_tasks(
         offset=offset,
         task_name=task_name,
         outcome=outcome,
+        provider=provider,
+        search=search,
     )
 
 

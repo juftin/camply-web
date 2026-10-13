@@ -42,15 +42,15 @@ def create_celery_app() -> Celery:
     app.conf.result_expires = 3600
 
     # Beat schedule:
-    # - discover_targets every 60 seconds
-    # - populate_database daily at midnight UTC
+    # - schedule_checks every 60 seconds
+    # - sync_all_providers daily at midnight UTC
     app.conf.beat_schedule = {
-        "discover-targets-every-60s": {
-            "task": "worker.tasks.heartbeat.discover_targets",
+        "schedule-availability-checks": {
+            "task": "camply.search.schedule_checks",
             "schedule": worker_config.heartbeat_interval,
         },
-        "populate-database-daily": {
-            "task": "worker.tasks.ingestion.populate_database",
+        "sync-provider-catalogs-daily": {
+            "task": "camply.catalog.sync_all_providers",
             "schedule": crontab(minute=0, hour=0),
         },
     }
