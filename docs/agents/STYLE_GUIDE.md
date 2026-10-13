@@ -33,8 +33,8 @@ This document defines the engineering standards for `camply`. All agents and con
     - 🧪 `:test_tube:` for tests.
     - 🎨 `:art:` for UI/style changes.
 2.  **Commit Messages**: Follow the "Why, not what" rule.
-    - *Bad*: `✨ add unique_target model`
-    - *Good*: `✨ Implement UniqueTarget model to support scan de-duplication`
+    - _Bad_: `✨ add unique_target model`
+    - _Good_: `✨ Implement UniqueTarget model to support scan de-duplication`
 3.  **Branching**: Work in isolated branches (or worktrees). Never commit directly to `main`.
 4.  **PR Descriptions**: Every PR must include:
     - A summary of changes.

@@ -30,6 +30,8 @@ export interface AuthState {
   isLoading: boolean;
   error: string | null;
   isInvited: boolean;
+  isAdmin: boolean;
+  isScanningEnabled: boolean;
   isReady: boolean;
   refresh: () => Promise<void>;
   updatePushoverToken: (token: string | null) => Promise<void>;
@@ -162,6 +164,8 @@ function CookieAuthProvider({ children }: { children: ReactNode }) {
     isLoading: isLoading || initialLoading,
     error: hasError,
     isInvited: currentUser?.is_invited ?? false,
+    isAdmin: currentUser?.is_admin ?? false,
+    isScanningEnabled: currentUser?.scanning_enabled ?? true,
     isReady: !initialLoading,
     refresh,
     updatePushoverToken,
@@ -275,6 +279,8 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
     isLoading: initialLoading,
     error: hasError,
     isInvited: user?.is_invited ?? false,
+    isAdmin: user?.is_admin ?? false,
+    isScanningEnabled: user?.scanning_enabled ?? true,
     isReady: !initialLoading,
     refresh,
     updatePushoverToken,

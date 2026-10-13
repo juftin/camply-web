@@ -88,7 +88,7 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 **Goal**: Finalize for deployment and community use.
 
 - [ ] **Rate Limiting**: Implement proxy rotation and intelligent backoff strategies.
-- [ ] **Observability**: Prometheus/Grafana monitoring for scan success rates and queue latency.
+- [x] **Observability**: Native Admin UI monitoring backed by Prometheus for usage trends, API/worker performance, scan outcomes, and queue visibility; replaced legacy Grafana deployment as part of the [Admin UI plan](../../specs/002-admin-ui/plan.md).
 - [ ] **Polish**: Full mobile-responsive UI/UX with Shadcn/UI refinements.
 
 ---

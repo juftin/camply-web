@@ -19,6 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useCreateScan } from "@/hooks/useScans";
+import { useAuth } from "@/hooks/useAuth";
 import { getApiErrorMessage, searchCampgrounds } from "@/lib/api";
 import type { Campground, SearchResult } from "@/lib/structs";
 
@@ -92,6 +93,7 @@ export function ScanForm({
   const [searchError, setSearchError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const { user } = useAuth();
   const createScan = useCreateScan();
   const {
     register,
@@ -379,6 +381,14 @@ export function ScanForm({
             </div>
           )}
 
+          {/* ---- Suspension Alert ---- */}
+          {user?.scanning_enabled === false && (
+            <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-3 text-sm text-amber-800 dark:text-amber-200">
+              Scanning is currently disabled for your account. Please contact an
+              administrator to re-enable scanning.
+            </div>
+          )}
+
           {/* ---- Footer ---- */}
           <DialogFooter>
             <Button
@@ -390,7 +400,11 @@ export function ScanForm({
             </Button>
             <Button
               type="submit"
-              disabled={createScan.isPending || !hasCampground}
+              disabled={
+                createScan.isPending ||
+                !hasCampground ||
+                user?.scanning_enabled === false
+              }
             >
               {createScan.isPending ? (
                 <>
