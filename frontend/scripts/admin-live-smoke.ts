@@ -2,7 +2,10 @@
 import { chromium, expect } from "@playwright/test";
 import { createServer } from "vite";
 
-const server = await createServer({ server: { host: "127.0.0.1", port: 0 } });
+const server = await createServer({
+  base: "/",
+  server: { host: "127.0.0.1", port: 0 },
+});
 await server.listen();
 const browser = await chromium.launch({ headless: true });
 try {
