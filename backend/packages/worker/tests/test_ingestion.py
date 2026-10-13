@@ -25,7 +25,7 @@ def test_ingestion_fans_out_all_registered_providers(
     assert result["providers_fanned_out"] == 11
     assert send.call_args_list == [
         call(
-            name="worker.tasks.ingestion.populate_provider_database",
+            name="camply.catalog.sync_provider_catalog",
             kwargs={"provider_id": provider_id},
         )
         for provider_id in PROVIDERS
@@ -49,7 +49,12 @@ async def test_ingestion_uses_metadata_and_closes_clients(failure: bool) -> None
             await ingestion._populate_provider_async(11, factory)
     else:
         result = await ingestion._populate_provider_async(11, factory)
-        assert result == {"status": "success", "provider_id": 11}
+        assert result == {
+            "status": "success",
+            "provider_id": 11,
+            "provider_name": "SyntheticProvider",
+            "search_name": "Sync SyntheticProvider Catalog",
+        }
     provider.populate_database.assert_awaited_once()
     provider.find_availabilities.assert_not_called()
     provider.async_client.aclose.assert_awaited_once()
