@@ -241,7 +241,8 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
             new_results_to_store: list[ScanResult] = []
 
             booking_url = provider_cls.get_campground_url(
-                campground_id=target.campground_id
+                campground_id=target.campground_id,
+                rec_area_id=campground.recreation_area_id,
             )
 
             for campsite in availabilities:

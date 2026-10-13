@@ -134,6 +134,10 @@ Implementation specification and tasks: [Admin UI plan](../../specs/002-admin-ui
 ### 3.1 Migration
 
 - [ ] T3.1.1 Migrate `usedirect` (California State Parks, etc.).
+- [x] T3.1.1a Implement ReserveCalifornia on the current Tyler RDR API: async scans, metadata/search ingestion, seed migration, modern booking links, and synthetic HTTP/database regressions. Source models now share the UseDirect package.
+- [x] T3.1.1b Extract the async UseDirect ABC and implement verified Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory variations with independent metadata sync, stable seeds, booking routes, and provider-isolation regressions.
+- [ ] T3.1.1c Discover Alabama State Parks' current catalog/grid endpoints; the legacy catalog returned HTTP 404. See [provider TODOs](../../specs/005-usedirect-providers/TODO.md).
+- [ ] T3.1.1d Discover Maricopa County's current reservation backend and catalog/grid endpoints; the legacy catalog returned HTTP 404. See [provider TODOs](../../specs/005-usedirect-providers/TODO.md).
 - [ ] T3.1.2 Migrate `going_to_camp`.
 - [ ] T3.1.3 Migrate `xanterra` (Yellowstone, etc.).
 
