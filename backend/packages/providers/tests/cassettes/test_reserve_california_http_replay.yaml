@@ -1,0 +1,47 @@
+# Synthetic fixture derived from the public RDR schema; no live inventory.
+version: 1
+interactions:
+  - request:
+      method: GET
+      uri: https://california-rdr.prod.cali.rd12.recreation-management.tylerapp.com/rdr/search/filters
+      body: ""
+      headers: {}
+    response:
+      status:
+        code: 200
+        message: OK
+      headers:
+        Content-Type:
+          - application/json
+      body:
+        string:
+          '{"UnitTypesGroups": [{"UnitTypesGroupId": 1, "UnitTypesGroupName":
+          "Campsite"}, {"UnitTypesGroupId": 2, "UnitTypesGroupName": "Tent Site"}, {"UnitTypesGroupId":
+          3, "UnitTypesGroupName": "Hook Up (E/W/S)"}, {"UnitTypesGroupId": 4, "UnitTypesGroupName":
+          "Hook Up (W/S)"}, {"UnitTypesGroupId": 5, "UnitTypesGroupName": "Cabin"}],
+          "NightlySleepingUnits": [{"SleepingUnitId": 1, "SleepingUnitName": "Tent"},
+          {"SleepingUnitId": 2, "SleepingUnitName": "RV/Motorhome"}]}'
+  - request:
+      method: POST
+      uri: https://california-rdr.prod.cali.rd12.recreation-management.tylerapp.com/rdr/search/grid
+      body:
+        '{"FacilityId": 10, "StartDate": "01-01-2030", "EndDate": "01-02-2030",
+        "WebOnly": true, "InSeasonOnly": true, "UnitSort": "orderby"}'
+      headers:
+        Content-Type:
+          - application/json
+    response:
+      status:
+        code: 200
+        message: OK
+      headers:
+        Content-Type:
+          - application/json
+      body:
+        string:
+          '{"Message": "", "Facility": {"FacilityId": 10, "Units": {"99.1": {"UnitId":
+          100, "Name": "Test Campsite 100", "AllowWebBooking": true, "IsWebViewable":
+          true, "IsAda": true, "UseType": 4, "UnitTypeGroupId": 3, "SleepingUnitIds":
+          [2], "VehicleLength": 30, "Slices": {"2030-01-03T00:00:00": {"Date": "2030-01-03",
+          "IsFree": true}, "2030-01-01T00:00:00": {"Date": "2030-01-01", "IsFree": true,
+          "MinStay": 2}, "2030-01-02T00:00:00": {"Date": "2030-01-02", "IsFree": true}}}}}}'

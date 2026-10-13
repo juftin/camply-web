@@ -142,21 +142,27 @@ class ProviderCircuitBreaker:
         st["last_failure_time"] = 0.0
 
 
-class RetryTransport(httpx.AsyncHTTPTransport):
+class RetryTransport(httpx.AsyncBaseTransport):
     """
-    Custom AsyncHTTPTransport adding retry with exponential backoff and circuit breaking.
+    Custom AsyncBaseTransport adding retry with exponential backoff and circuit breaking.
     """
 
     def __init__(
         self,
+        transport: httpx.AsyncBaseTransport | None = None,
         retry_strategy: RetryStrategy | None = None,
         circuit_breaker: ProviderCircuitBreaker | None = None,
     ) -> None:
+        self._inner = transport or httpx.AsyncHTTPTransport()
         self._retry_strategy = retry_strategy or RetryStrategy()
         self._circuit_breaker = circuit_breaker
-        self._inner = httpx.AsyncHTTPTransport()
-        self._cb_tasks: set[asyncio.Task[None]] = set()
-        super().__init__()
+        self._cb_tasks: set[asyncio.Task[Any]] = set()
+
+    async def aclose(self) -> None:
+        """Close the underlying transport and wait for pending tasks."""
+        if self._cb_tasks:
+            await asyncio.gather(*self._cb_tasks, return_exceptions=True)
+        await self._inner.aclose()
 
     async def handle_async_request(
         self,

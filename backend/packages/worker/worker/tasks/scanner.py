@@ -63,7 +63,7 @@ def _matches_scan_filters(campsite: CampsiteDTO, scan: UserScan) -> bool:
 
 
 @celery_app.task(
-    name="worker.tasks.scanner.check_target_availability",
+    name="camply.search.check_campsite_availability",
     bind=True,
     max_retries=3,
     default_retry_delay=60,
@@ -151,7 +151,16 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                     "No eligible subscribers for target, skipping",
                     target_id=target_id,
                 )
-                return {"status": "skipped", "reason": "no_eligible_subscribers"}
+                return {
+                    "status": "skipped",
+                    "reason": "no_eligible_subscribers",
+                    "provider_id": target.provider_id,
+                    "provider_name": "Recreation.gov"
+                    if target.provider_id == 1
+                    else f"Provider {target.provider_id}",
+                    "search_name": normalize_name(campground.name),
+                    "search_dates": f"{target.start_date.isoformat()} → {target.end_date.isoformat()}",
+                }
 
             # Resolve provider class
             provider_cls = PROVIDERS.get(target.provider_id)
@@ -218,7 +227,8 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
             new_results_to_store: list[ScanResult] = []
 
             booking_url = provider_cls.get_campground_url(
-                campground_id=target.campground_id
+                campground_id=target.campground_id,
+                rec_area_id=campground.recreation_area_id,
             )
 
             for campsite in availabilities:
@@ -300,7 +310,7 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                             continue
                         if _matches_scan_filters(matching_campsite, scan):
                             celery_app.send_task(
-                                name="worker.tasks.notifications.send_pushover_notification",
+                                name="camply.notifications.send_pushover_notification",
                                 kwargs={
                                     "user_id": str(scan.user_id),
                                     "notification": opening.model_dump(mode="json"),
@@ -321,6 +331,12 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
 
             return {
                 "status": "success",
+                "provider_id": target.provider_id,
+                "provider_name": "Recreation.gov"
+                if target.provider_id == 1
+                else f"Provider {target.provider_id}",
+                "search_name": normalize_name(campground.name),
+                "search_dates": f"{target.start_date.isoformat()} → {target.end_date.isoformat()}",
                 "availabilities_found": len(availabilities),
                 "new_openings": len(new_openings),
                 "notifications_sent": notifications_sent,

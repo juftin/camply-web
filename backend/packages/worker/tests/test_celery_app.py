@@ -50,29 +50,34 @@ class TestCeleryTaskRegistration:
     """Tests for task module registration."""
 
     def test_heartbeat_task_registered(self) -> None:
-        """The heartbeat discover_targets task should be registered."""
-        task_name = "worker.tasks.heartbeat.discover_targets"
+        """The heartbeat schedule_checks task should be registered."""
+        task_name = "camply.search.schedule_checks"
         registered_tasks = list(celery_app.tasks.keys())
         assert task_name in registered_tasks
 
     def test_scanner_task_registered(self) -> None:
-        """The scanner check_target_availability task should be registered."""
-        task_name = "worker.tasks.scanner.check_target_availability"
+        """The scanner check_campsite_availability task should be registered."""
+        task_name = "camply.search.check_campsite_availability"
         registered_tasks = list(celery_app.tasks.keys())
         assert task_name in registered_tasks
 
     def test_notifications_task_registered(self) -> None:
         """The send_pushover_notification task should be registered."""
-        task_name = "worker.tasks.notifications.send_pushover_notification"
+        task_name = "camply.notifications.send_pushover_notification"
         registered_tasks = list(celery_app.tasks.keys())
         assert task_name in registered_tasks
 
     def test_beat_schedule_configured(self) -> None:
-        """The beat schedule should include discover_targets."""
+        """The beat schedule should include schedule_checks and sync_all_providers."""
         beat_schedule = celery_app.conf.beat_schedule
         assert beat_schedule is not None
-        assert "discover-targets-every-60s" in beat_schedule
+        assert "schedule-availability-checks" in beat_schedule
         assert (
-            beat_schedule["discover-targets-every-60s"]["task"]
-            == "worker.tasks.heartbeat.discover_targets"
+            beat_schedule["schedule-availability-checks"]["task"]
+            == "camply.search.schedule_checks"
+        )
+        assert "sync-provider-catalogs-daily" in beat_schedule
+        assert (
+            beat_schedule["sync-provider-catalogs-daily"]["task"]
+            == "camply.catalog.sync_all_providers"
         )

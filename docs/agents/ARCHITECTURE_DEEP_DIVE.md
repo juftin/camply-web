@@ -21,14 +21,14 @@ graph TD
     C -->|Yes| E[Link UserScan to Existing]
 
     F[Celery Beat Scheduler] -->|Every 60s| G[Identify Targets to Check]
-    G -->|Enqueue| H[check_target_availability Task]
+    G -->|Enqueue| H[camply.search.check_campsite_availability Task]
 
     H -->|Hit Provider API| I[Raw Results]
     I -->|Update Cache| J[scan_results Table]
 
     J -->|New Opening Found| K[Fan-out: Match UserScans]
-    K -->|User A matches| L[Enqueue send_notification]
-    K -->|User B matches| M[Enqueue send_notification]
+    K -->|User A matches| L[Enqueue camply.notifications.send_pushover_notification]
+    K -->|User B matches| M[Enqueue camply.notifications.send_pushover_notification]
 
     L -->|Pushover API| N[User Mobile Alert]
 ```
@@ -66,5 +66,5 @@ We separate **Checking** from **Notifying** to ensure high throughput.
 To prevent race conditions (two workers checking the same park simultaneously):
 
 - We use **Valkey Distributed Locks**.
-- Before a `check_target_availability` task starts, it attempts to acquire a lock: `lock:target_id`.
+- Before a `camply.search.check_campsite_availability` (`check_target_availability`) task starts, it attempts to acquire a lock: `lock:target_id`.
 - If the lock is held, the task exits immediately.

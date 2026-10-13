@@ -42,8 +42,8 @@ Design and implementation tracking: [CLI design](DESIGN_CLI.md), [feature plan](
 - [x] T1.3.2 Add worker management tasks (`worker:dev`, `worker:beat`) to `backend/Taskfile.yaml`.
 - [x] T1.3.3 Setup Celery/Valkey connection in `backend` app.
 - [x] T1.3.4 Implement the `heartbeat` (beat) scheduler logic for `unique_targets`.
-- [x] T1.3.5 Implement the `check_target_availability` task in Celery.
-- [x] T1.3.6 Implement the `send_pushover_notification` task.
+- [x] T1.3.5 Implement the `camply.search.check_campsite_availability` task in Celery.
+- [x] T1.3.6 Implement the `camply.notifications.send_pushover_notification` task.
 - [x] T1.3.7 Integrate `Sentry` for background task error tracking.
 - [x] T1.3.8 **Testing**: Write integration tests for the Celery task lifecycle and de-duplication logic.
 
@@ -59,7 +59,7 @@ Design and implementation tracking: [CLI design](DESIGN_CLI.md), [feature plan](
 - [x] T1.4.8 Connect the existing `SearchBar` to the `ScanForm` flow.
 - [x] T1.4.9 Implement the optional invite-only gate UI.
 - [x] T1.4.10 **Testing**: Write backend API tests (`pytest`) and frontend component tests (`vitest`). _(✅ 16 backend + 13 frontend tests passing)_
-- [x] T1.4.11 **UI Snapshots & Feedback Loop**: Implement automated UI snapshot capture, visual diffing, and Markdown/HTML reporting (`task snapshot`, `task snapshot:update`, `task snapshot:check`).
+- [x] T1.4.11 **UI Snapshots & Feedback Loop**: Implement automated UI snapshot capture across 40 viewports/routes/themes, visual diffing, and Markdown/HTML reporting (`task snapshot`, `task snapshot:update`, `task snapshot:check`). Automate visual snapshot CI gate with Playwright artifact reporting, enforce deterministic test clocks, and provide comprehensive Vitest component DOM snapshot coverage (31 component test variants).
 - [x] T1.4.12 Migrate frontend dependency management to pinned pnpm with an imported lockfile; update Task workflows, CI caching, Docker builds, scripts, formatting hooks, and setup documentation.
 - [x] T1.4.13 Migrate frontend tooling to Oxlint, Oxfmt, Vite 8, Vitest 5, and native TypeScript 7; align Node 24 across environments and preserve eager page imports.
 - [x] T1.4.14 Make plain `task` list available workflows without installing dependencies.
@@ -147,6 +147,10 @@ Implementation specification and tasks: [Admin UI plan](../../specs/002-admin-ui
 ### 3.1 Migration
 
 - [ ] T3.1.1 Migrate `usedirect` (California State Parks, etc.).
+- [x] T3.1.1a Implement ReserveCalifornia on the current Tyler RDR API: async scans, metadata/search ingestion, seed migration, modern booking links, and synthetic HTTP/database regressions. Source models now share the UseDirect package.
+- [x] T3.1.1b Extract the async UseDirect ABC and implement verified Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory variations with independent metadata sync, stable seeds, booking routes, and provider-isolation regressions.
+- [ ] T3.1.1c Discover Alabama State Parks' current catalog/grid endpoints; the legacy catalog returned HTTP 404. See [provider TODOs](../../specs/005-usedirect-providers/TODO.md).
+- [ ] T3.1.1d Discover Maricopa County's current reservation backend and catalog/grid endpoints; the legacy catalog returned HTTP 404. See [provider TODOs](../../specs/005-usedirect-providers/TODO.md).
 - [ ] T3.1.2 Migrate `going_to_camp`.
 - [ ] T3.1.3 Migrate `xanterra` (Yellowstone, etc.).
 

@@ -100,6 +100,9 @@ The frontend uses Vite 8 (Rolldown), Vitest 5, Oxlint, Oxfmt, and native TypeScr
 - Update visual snapshot baselines: `task snapshot:update`
 - Verify snapshots match baselines (CI regression check): `task snapshot:check`
 - View visual report: `frontend/snapshots/REPORT.md` (markdown) or `frontend/snapshots/report.html` (interactive)
+- Run component DOM snapshots: `task frontend:test` (or `task test`)
+
+Visual regression checking is automated in GitHub Actions CI via the `ui-snapshots` workflow job, which installs headless Chromium, executes `task snapshot:check` with deterministic test clocks, and uploads report and visual diff artifacts on completion.
 
 ---
 

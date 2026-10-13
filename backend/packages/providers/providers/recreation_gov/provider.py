@@ -488,7 +488,9 @@ class RecreationGovProvider(BaseProvider):
         return f"{cls.config.gateway_url_prefix}/{rec_area_id}"
 
     @classmethod
-    def get_campground_url(cls, campground_id: str) -> str:
+    def get_campground_url(
+        cls, campground_id: str, *, rec_area_id: str | None = None
+    ) -> str:
         """
         Get the URL for a campground
         """
