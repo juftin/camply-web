@@ -156,6 +156,8 @@ export function useAdminOperationsTasks(params?: {
   offset?: number;
   task_name?: string;
   outcome?: string;
+  provider?: string;
+  search?: string;
 }) {
   return useQuery<AdminOperationsTasksResponse>({
     queryKey: ["admin", "operations", "tasks", params],

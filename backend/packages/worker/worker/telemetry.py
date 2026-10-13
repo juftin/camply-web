@@ -62,6 +62,8 @@ def _extract_entity_info(
         return "scan", str(kwargs["scan_id"])
     if "user_id" in kwargs:
         return "user", str(kwargs["user_id"])
+    if "provider_id" in kwargs:
+        return "provider", str(kwargs["provider_id"])
     return None, None
 
 
@@ -95,6 +97,101 @@ def _normalize_outcome(
     return "unknown", state
 
 
+def _extract_provider_info(
+    retval: Any,
+    kwargs_dict: dict[str, Any],
+    task_name: str,
+) -> tuple[Optional[int], Optional[str]]:
+    """
+    Extract provider ID and provider name from task return value and kwargs.
+
+    Parameters
+    ----------
+    retval : Any
+        Return value from the task execution.
+    kwargs_dict : dict[str, Any]
+        Keyword arguments passed to the task.
+    task_name : str
+        The registered name of the executed Celery task.
+
+    Returns
+    -------
+    tuple[Optional[int], Optional[str]]
+        Tuple containing (provider_id, provider_name).
+    """
+    provider_id: Optional[int] = None
+    provider_name: Optional[str] = None
+
+    if isinstance(retval, dict):
+        if "provider_id" in retval and retval["provider_id"] is not None:
+            try:
+                provider_id = int(retval["provider_id"])
+            except (ValueError, TypeError):
+                pass
+        provider_name = retval.get("provider_name")
+
+    if provider_id is None and "provider_id" in kwargs_dict:
+        try:
+            provider_id = int(kwargs_dict["provider_id"])
+        except (ValueError, TypeError):
+            pass
+
+    if provider_name is None:
+        if provider_id == 1:
+            provider_name = "Recreation.gov"
+        elif any(
+            k in task_name
+            for k in (
+                "schedule_checks",
+                "discover_targets",
+                "sync_all_providers",
+                "populate_database",
+            )
+        ):
+            provider_name = "All Providers"
+
+    return provider_id, provider_name
+
+
+def _extract_search_target_info(
+    retval: Any,
+    kwargs_dict: dict[str, Any],
+) -> tuple[Optional[str], Optional[str]]:
+    """
+    Extract search name and search dates from task return value and kwargs.
+
+    Parameters
+    ----------
+    retval : Any
+        Return value from the task execution.
+    kwargs_dict : dict[str, Any]
+        Keyword arguments passed to the task.
+
+    Returns
+    -------
+    tuple[Optional[str], Optional[str]]
+        Tuple containing (search_name, search_dates).
+    """
+    search_name: Optional[str] = None
+    search_dates: Optional[str] = None
+
+    if isinstance(retval, dict):
+        search_name = retval.get("search_name")
+        search_dates = retval.get("search_dates")
+
+    if (
+        search_name is None
+        and "notification" in kwargs_dict
+        and isinstance(kwargs_dict["notification"], dict)
+    ):
+        n = kwargs_dict["notification"]
+        search_name = n.get("park_name") or n.get("campsite_name")
+        if n.get("start_date") and n.get("end_date"):
+            search_dates = f"{n['start_date']} → {n['end_date']}"
+
+    return search_name, search_dates
+
+
 def record_task_execution(
     task_id: str,
     task_name: str,
@@ -119,6 +216,16 @@ def record_task_execution(
     now = dt.datetime.now(tz=dt.timezone.utc)
     duration_ms = max(0.0, round((finish_time - start_time) * 1000, 2))
 
+    provider_id, provider_name = _extract_provider_info(
+        retval=retval,
+        kwargs_dict=kwargs_dict,
+        task_name=task_name,
+    )
+    search_name, search_dates = _extract_search_target_info(
+        retval=retval,
+        kwargs_dict=kwargs_dict,
+    )
+
     record = {
         "event_id": str(uuid.uuid4()),
         "attempt": attempt,
@@ -131,6 +238,10 @@ def record_task_execution(
         "entity_id": entity_id or "",
         "outcome": outcome,
         "reason": reason or "",
+        "provider_id": provider_id if provider_id is not None else "",
+        "provider_name": provider_name or "",
+        "search_name": search_name or "",
+        "search_dates": search_dates or "",
     }
 
     try:

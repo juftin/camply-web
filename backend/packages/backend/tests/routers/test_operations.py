@@ -128,7 +128,7 @@ class TestOperationsEndpoints:
             tasks=[
                 AdminTaskTelemetryItem(
                     task_id="task-1",
-                    task_name="worker.tasks.scanner.check_target_availability",
+                    task_name="camply.search.check_campsite_availability",
                     worker="celery@worker-1",
                     finished_at=dt.datetime.now(tz=dt.timezone.utc),
                     duration_ms=150.0,
@@ -136,6 +136,10 @@ class TestOperationsEndpoints:
                     entity_id=str(uuid.uuid4()),
                     outcome="success",
                     reason=None,
+                    provider_id=1,
+                    provider_name="Recreation.gov",
+                    search_name="Lower Pines",
+                    search_dates="2026-07-01 → 2026-07-03",
                 )
             ],
             total=1,
@@ -144,13 +148,27 @@ class TestOperationsEndpoints:
         with patch(
             "backend.routers.admin.get_recent_tasks",
             return_value=mock_tasks,
-        ):
-            resp = test_client.get("/api/admin/operations/tasks?limit=10")
+        ) as mock_get_recent:
+            resp = test_client.get(
+                "/api/admin/operations/tasks?limit=10&provider=recreation_gov&search=pines"
+            )
             assert resp.status_code == 200
             data = resp.json()
             assert data["total"] == 1
             assert data["tasks"][0]["task_id"] == "task-1"
             assert data["tasks"][0]["outcome"] == "success"
+            assert data["tasks"][0]["provider_id"] == 1
+            assert data["tasks"][0]["provider_name"] == "Recreation.gov"
+            assert data["tasks"][0]["search_name"] == "Lower Pines"
+            assert data["tasks"][0]["search_dates"] == "2026-07-01 → 2026-07-03"
+            mock_get_recent.assert_called_once_with(
+                limit=10,
+                offset=0,
+                outcome=None,
+                task_name=None,
+                provider="recreation_gov",
+                search="pines",
+            )
 
     def test_get_task_detail_found_and_not_found(
         self, test_client: TestClient, admin_user: CurrentUser

@@ -147,7 +147,9 @@ class TestSuspensionWorker:
             with patch("worker.tasks.scanner.db", mock_db):
                 result = await _check_target_availability_async(mock_self, target_id)
 
-        assert result == {"status": "skipped", "reason": "no_eligible_subscribers"}
+        assert result is not None
+        assert result["status"] == "skipped"
+        assert result["reason"] == "no_eligible_subscribers"
 
     @pytest.mark.anyio
     async def test_notification_delivery_suspension_checks(self) -> None:

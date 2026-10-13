@@ -34,6 +34,8 @@ export function AdminOperations() {
   const { params, page, update, setPage } = useAdminLocation();
   const outcomeFilter = params.get("outcome") ?? "all";
   const taskNameFilter = params.get("task_name") ?? "";
+  const providerFilter = params.get("provider") ?? "all";
+  const searchQuery = params.get("search") ?? "";
   const tab = params.get("tab");
   const activeTrendsTab = tab === "api" || tab === "provider" ? tab : "worker";
   const [selectedTask, setSelectedTask] =
@@ -59,6 +61,8 @@ export function AdminOperations() {
     offset: page * pageSize,
     outcome: outcomeFilter === "all" ? undefined : outcomeFilter,
     task_name: taskNameFilter.trim() || undefined,
+    provider: providerFilter === "all" ? undefined : providerFilter,
+    search: searchQuery.trim() || undefined,
   });
 
   const handleRefresh = () => {
@@ -516,13 +520,33 @@ export function AdminOperations() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Input
-                placeholder="Filter task name..."
-                value={taskNameFilter}
+                placeholder="Search tasks, campgrounds, IDs..."
+                value={searchQuery}
                 onChange={(e) => {
-                  update({ task_name: e.target.value });
+                  update({ search: e.target.value || null });
                 }}
-                className="w-44 h-8 text-xs"
+                className="w-48 h-8 text-xs"
               />
+              <div className="flex items-center space-x-1 border rounded-md p-0.5 bg-background">
+                {(
+                  [
+                    { id: "all", label: "All Providers" },
+                    { id: "recreation_gov", label: "Recreation.gov" },
+                  ] as const
+                ).map((prov) => (
+                  <Button
+                    key={prov.id}
+                    size="sm"
+                    variant={providerFilter === prov.id ? "default" : "ghost"}
+                    className="h-7 text-xs px-2.5"
+                    onClick={() => {
+                      update({ provider: prov.id });
+                    }}
+                  >
+                    {prov.label}
+                  </Button>
+                ))}
+              </div>
               <div className="flex items-center space-x-1">
                 {(
                   ["all", "success", "error", "skipped", "retrying"] as const
@@ -566,12 +590,13 @@ export function AdminOperations() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[850px] text-sm">
+              <table className="w-full min-w-[950px] text-sm">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground text-xs font-medium">
                     <th className="pb-2">Task</th>
+                    <th className="pb-2">Provider</th>
+                    <th className="pb-2">Search / Target</th>
                     <th className="pb-2">Worker</th>
-                    <th className="pb-2">Related Record</th>
                     <th className="pb-2">Finished At</th>
                     <th className="pb-2 pr-3 text-right">Duration</th>
                     <th className="pb-2">Outcome</th>
@@ -595,11 +620,59 @@ export function AdminOperations() {
                           {task.attempt ? ` · Attempt ${task.attempt}` : ""}
                         </div>
                       </td>
-                      <td className="py-2.5 font-mono text-xs text-muted-foreground">
-                        {task.worker}
+                      <td className="py-2.5">
+                        {task.provider_name ? (
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-medium bg-blue-50/60 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                          >
+                            {task.provider_name}
+                          </Badge>
+                        ) : task.provider_id ? (
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-medium"
+                          >
+                            {task.provider_id === 1
+                              ? "Recreation.gov"
+                              : `Provider ${task.provider_id}`}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            —
+                          </span>
+                        )}
                       </td>
                       <td className="py-2.5">
-                        {renderEntityLink(task.entity_type, task.entity_id)}
+                        {task.search_name ? (
+                          <div className="space-y-0.5">
+                            <div className="font-medium text-xs text-foreground">
+                              {task.search_name}
+                            </div>
+                            {task.search_dates && (
+                              <div className="text-[11px] text-muted-foreground font-mono">
+                                {task.search_dates}
+                              </div>
+                            )}
+                            {task.entity_type && task.entity_id && (
+                              <div>
+                                {renderEntityLink(
+                                  task.entity_type,
+                                  task.entity_id,
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ) : task.entity_type && task.entity_id ? (
+                          renderEntityLink(task.entity_type, task.entity_id)
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            —
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 font-mono text-xs text-muted-foreground">
+                        {task.worker}
                       </td>
                       <td className="py-2.5 text-xs text-muted-foreground">
                         {formatTimestamp(task.finished_at)}
@@ -687,14 +760,54 @@ export function AdminOperations() {
                   {selectedTask.task_id}
                 </span>
               </div>
-              <div className="flex justify-between items-center border-b pb-2">
+              <div className="flex justify-between items-start border-b pb-2">
                 <span className="text-muted-foreground text-xs">
                   Task Name:
                 </span>
-                <span className="font-mono text-xs text-right">
-                  {selectedTask.task_name}
+                <div className="text-right">
+                  <div className="font-medium text-xs">
+                    {taskLabel(selectedTask.task_name)}
+                  </div>
+                  <div className="font-mono text-[11px] text-muted-foreground">
+                    {selectedTask.task_name}
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-between items-center border-b pb-2">
+                <span className="text-muted-foreground text-xs">Provider:</span>
+                <span>
+                  {selectedTask.provider_name ? (
+                    <Badge variant="outline">
+                      {selectedTask.provider_name}
+                    </Badge>
+                  ) : selectedTask.provider_id ? (
+                    <Badge variant="outline">
+                      {selectedTask.provider_id === 1
+                        ? "Recreation.gov"
+                        : `Provider ${selectedTask.provider_id}`}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">—</span>
+                  )}
                 </span>
               </div>
+              {(selectedTask.search_name || selectedTask.search_dates) && (
+                <div className="flex justify-between items-start border-b pb-2">
+                  <span className="text-muted-foreground text-xs">
+                    Search / Target:
+                  </span>
+                  <div className="text-right">
+                    <div className="font-medium text-xs">
+                      {selectedTask.search_name}
+                    </div>
+                    {selectedTask.search_dates && (
+                      <div className="text-xs text-muted-foreground font-mono">
+                        {selectedTask.search_dates}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-muted-foreground text-xs">
                   Worker Node:

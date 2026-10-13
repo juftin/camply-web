@@ -20,7 +20,7 @@ logger = structlog.getLogger(__name__)
 
 
 @celery_app.task(
-    name="worker.tasks.notifications.send_pushover_notification",
+    name="camply.notifications.send_pushover_notification",
     bind=True,
     max_retries=3,
     default_retry_delay=120,
@@ -112,7 +112,16 @@ async def _send_pushover_notification_async(
             payload=payload,
         )
         NOTIFICATIONS_SENT_TOTAL.inc()
-        return {"status": "success"}
+        return {
+            "status": "success",
+            "provider_name": "Recreation.gov",
+            "search_name": payload.park_name or "Campsite Alert",
+            "search_dates": (
+                f"{payload.start_date.isoformat()} → {payload.end_date.isoformat()}"
+                if payload.start_date and payload.end_date
+                else None
+            ),
+        }
     except Exception as exc:
         logger.error(
             "Pushover notification failed",
@@ -123,3 +132,12 @@ async def _send_pushover_notification_async(
             raise self.retry(exc=exc)
         except Exception:
             return {"status": "error", "reason": str(exc)}
+
+
+# Legacy name alias for backwards compatibility
+celery_app.task(
+    name="worker.tasks.notifications.send_pushover_notification",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=120,
+)(send_pushover_notification)

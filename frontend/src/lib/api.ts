@@ -352,6 +352,8 @@ export async function listAdminOperationsTasks(params?: {
   offset?: number;
   task_name?: string;
   outcome?: string;
+  provider?: string;
+  search?: string;
 }): Promise<AdminOperationsTasksResponse> {
   const response = await api.get<AdminOperationsTasksResponse>(
     "/admin/operations/tasks",

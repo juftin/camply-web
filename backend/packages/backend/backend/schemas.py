@@ -395,6 +395,10 @@ class AdminTaskTelemetryItem(BaseModel):
     entity_id: Optional[str] = None
     outcome: str
     reason: Optional[str] = None
+    provider_id: Optional[int] = None
+    provider_name: Optional[str] = None
+    search_name: Optional[str] = None
+    search_dates: Optional[str] = None
 
 
 class AdminOperationsTasksResponse(BaseModel):

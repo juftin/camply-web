@@ -19,7 +19,7 @@ from worker.telemetry import record_discovery_completion
 logger = structlog.getLogger(__name__)
 
 
-@celery_app.task(name="worker.tasks.heartbeat.discover_targets")
+@celery_app.task(name="camply.search.schedule_checks")
 def discover_targets() -> dict:
     """
     Periodic task (every 60s). Discovers UniqueTargets that are due for
@@ -81,7 +81,7 @@ async def _discover_targets_async() -> dict:
         enqueued = 0
         for target in targets:
             celery_app.send_task(
-                name="worker.tasks.scanner.check_target_availability",
+                name="camply.search.check_campsite_availability",
                 kwargs={"target_id": str(target.id)},
                 queue="celery",
             )
@@ -96,4 +96,14 @@ async def _discover_targets_async() -> dict:
         TARGETS_DISCOVERED_TOTAL.inc(len(targets))
         TARGETS_ENQUEUED_TOTAL.inc(enqueued)
 
-        return {"discovered": len(targets), "enqueued": enqueued}
+        return {
+            "status": "success",
+            "provider_name": "All Providers",
+            "search_name": "Active Target Discovery",
+            "discovered": len(targets),
+            "enqueued": enqueued,
+        }
+
+
+# Legacy name alias for backwards compatibility
+celery_app.task(name="worker.tasks.heartbeat.discover_targets")(discover_targets)

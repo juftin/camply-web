@@ -20,7 +20,7 @@ logger = structlog.getLogger(__name__)
 
 
 @celery_app.task(
-    name="worker.tasks.ingestion.populate_database",
+    name="camply.catalog.sync_all_providers",
 )
 def populate_database() -> dict:
     """
@@ -39,20 +39,22 @@ def populate_database() -> dict:
 
     for provider_id in provider_ids:
         celery_app.send_task(
-            name="worker.tasks.ingestion.populate_provider_database",
+            name="camply.catalog.sync_provider_catalog",
             kwargs={"provider_id": provider_id},
         )
 
     logger.info("Ingestion fan-out complete", count=len(provider_ids))
     return {
         "status": "ok",
+        "provider_name": "All Providers",
+        "search_name": "Sync All Provider Catalogs",
         "providers_fanned_out": len(provider_ids),
         "provider_ids": provider_ids,
     }
 
 
 @celery_app.task(
-    name="worker.tasks.ingestion.populate_provider_database",
+    name="camply.catalog.sync_provider_catalog",
     bind=True,
     max_retries=3,
     default_retry_delay=300,
@@ -129,4 +131,22 @@ async def _populate_provider_async(provider_id: int, provider_cls: type) -> dict
         provider_id=provider_id,
         provider_name=provider_cls.__name__,
     )
-    return {"status": "success", "provider_id": provider_id}
+    return {
+        "status": "success",
+        "provider_id": provider_id,
+        "provider_name": "Recreation.gov"
+        if provider_id == 1
+        else provider_cls.__name__,
+        "search_name": f"Sync {provider_cls.__name__} Catalog",
+    }
+
+
+# Legacy name aliases for backwards compatibility
+celery_app.task(name="worker.tasks.ingestion.populate_database")(populate_database)
+celery_app.task(
+    name="worker.tasks.ingestion.populate_provider_database",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=300,
+    acks_late=True,
+)(populate_provider_database)
