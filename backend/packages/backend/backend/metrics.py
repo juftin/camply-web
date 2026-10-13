@@ -83,6 +83,31 @@ ACCESS_REQUESTS_TOTAL = Counter(
     "Total number of early access requests",
 )
 
+USERS_CREATED_TOTAL = Counter(
+    f"{METRICS_PREFIX}_users_created_total",
+    "Total registered users created",
+)
+
+SCANS_CREATED_TOTAL = Counter(
+    f"{METRICS_PREFIX}_scans_created_total",
+    "Total user scans created",
+)
+
+REGISTERED_USERS_TOTAL = Gauge(
+    f"{METRICS_PREFIX}_registered_users_total",
+    "Total registered users in the database",
+)
+
+ELIGIBLE_SCANS = Gauge(
+    f"{METRICS_PREFIX}_eligible_scans",
+    "Number of eligible scans (active scan and user scanning enabled)",
+)
+
+ELIGIBLE_TARGETS = Gauge(
+    f"{METRICS_PREFIX}_eligible_targets",
+    "Number of distinct targets with at least one eligible scan subscriber",
+)
+
 
 # ---------------------------------------------------------------------------
 # DB-backed gauge refresh
@@ -98,18 +123,19 @@ async def refresh_db_gauges() -> None:
     but do not block the metrics endpoint.
     """
     try:
-        from sqlalchemy import func, select
+        from sqlalchemy import and_, func, select
 
         from db.config import db
         from db.models import UniqueTarget, User, UserScan
 
         async with db.get_session() as session:
-            # Active users
+            # Active users (registered users)
             user_count_result = await session.execute(
                 select(func.count()).select_from(User)
             )
             user_count = user_count_result.scalar() or 0
             ACTIVE_USERS.set(user_count)
+            REGISTERED_USERS_TOTAL.set(user_count)
 
             # Total scans
             scan_count_result = await session.execute(
@@ -118,7 +144,7 @@ async def refresh_db_gauges() -> None:
             scan_count = scan_count_result.scalar() or 0
             TOTAL_SCANS.set(scan_count)
 
-            # Active scans
+            # Active scans (saved-active)
             active_scan_result = await session.execute(
                 select(func.count())
                 .select_from(UserScan)
@@ -129,12 +155,42 @@ async def refresh_db_gauges() -> None:
             active_scan_count = active_scan_result.scalar() or 0
             ACTIVE_SCANS.set(active_scan_count)
 
+            # Eligible scans (saved-active AND user scanning enabled)
+            eligible_scan_result = await session.execute(
+                select(func.count())
+                .select_from(UserScan)
+                .join(User, UserScan.user_id == User.id)
+                .where(
+                    and_(
+                        UserScan.is_active.is_(True),
+                        User.scanning_enabled.is_(True),
+                    )
+                )
+            )
+            eligible_scan_count = eligible_scan_result.scalar() or 0
+            ELIGIBLE_SCANS.set(eligible_scan_count)
+
             # Total unique targets
             target_count_result = await session.execute(
                 select(func.count()).select_from(UniqueTarget)
             )
             target_count = target_count_result.scalar() or 0
             TOTAL_UNIQUE_TARGETS.set(target_count)
+
+            # Eligible unique targets (with at least 1 eligible subscriber)
+            eligible_targets_result = await session.execute(
+                select(func.count(func.distinct(UserScan.target_id)))
+                .select_from(UserScan)
+                .join(User, UserScan.user_id == User.id)
+                .where(
+                    and_(
+                        UserScan.is_active.is_(True),
+                        User.scanning_enabled.is_(True),
+                    )
+                )
+            )
+            eligible_targets_count = eligible_targets_result.scalar() or 0
+            ELIGIBLE_TARGETS.set(eligible_targets_count)
 
     except Exception:
         logger.exception("Failed to refresh DB-backed Prometheus gauges")
@@ -228,12 +284,17 @@ def get_metrics_response() -> Response:
 
     Uses MultiProcessCollector to aggregate metrics from all gunicorn
     workers when PROMETHEUS_MULTIPROC_DIR is configured; falls back to
-    the default collector otherwise.
+    the default global registry otherwise.
     """
-    registry = prometheus_client.CollectorRegistry()
-
-    if os.environ.get("PROMETHEUS_MULTIPROC_DIR"):
+    multiproc_dir = os.environ.get(
+        "CAMPLY_PROMETHEUS_MULTIPROC_DIR",
+        os.environ.get("PROMETHEUS_MULTIPROC_DIR"),
+    )
+    if multiproc_dir:
+        registry = prometheus_client.CollectorRegistry()
         MultiProcessCollector(registry)
+    else:
+        registry = prometheus_client.REGISTRY
 
     data = prometheus_client.generate_latest(registry)
     return Response(
