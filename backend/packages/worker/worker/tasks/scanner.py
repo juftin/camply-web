@@ -376,13 +376,3 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
             await lock.close()
         except Exception:
             pass
-
-
-# Legacy name alias for backwards compatibility
-celery_app.task(
-    name="worker.tasks.scanner.check_target_availability",
-    bind=True,
-    max_retries=3,
-    default_retry_delay=60,
-    acks_late=True,
-)(check_target_availability)

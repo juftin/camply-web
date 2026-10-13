@@ -89,7 +89,7 @@ def test_record_task_execution_writes_to_redis() -> None:
     with patch("worker.telemetry.get_redis_client", return_value=mock_redis):
         record_task_execution(
             task_id="t-123",
-            task_name="worker.tasks.scanner.check_target_availability",
+            task_name="camply.search.check_campsite_availability",
             worker="worker-1",
             start_time=100.0,
             finish_time=100.25,
@@ -161,7 +161,7 @@ def test_record_task_execution_failure_isolation() -> None:
         # Should not raise
         record_task_execution(
             task_id="t-456",
-            task_name="worker.tasks.heartbeat.discover_targets",
+            task_name="camply.search.schedule_checks",
             worker="worker-1",
             start_time=50.0,
             finish_time=50.1,

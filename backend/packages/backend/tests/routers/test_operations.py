@@ -175,7 +175,7 @@ class TestOperationsEndpoints:
     ) -> None:
         mock_detail = AdminOperationsTaskDetail(
             task_id="task-found",
-            task_name="worker.tasks.notifications.send_alert",
+            task_name="camply.notifications.send_pushover_notification",
             worker="celery@worker-1",
             finished_at=dt.datetime.now(tz=dt.timezone.utc),
             duration_ms=85.0,

@@ -50,28 +50,22 @@ class TestCeleryTaskRegistration:
     """Tests for task module registration."""
 
     def test_heartbeat_task_registered(self) -> None:
-        """The heartbeat discover_targets task should be registered."""
+        """The heartbeat schedule_checks task should be registered."""
         task_name = "camply.search.schedule_checks"
-        legacy_name = "worker.tasks.heartbeat.discover_targets"
         registered_tasks = list(celery_app.tasks.keys())
         assert task_name in registered_tasks
-        assert legacy_name in registered_tasks
 
     def test_scanner_task_registered(self) -> None:
-        """The scanner check_target_availability task should be registered."""
+        """The scanner check_campsite_availability task should be registered."""
         task_name = "camply.search.check_campsite_availability"
-        legacy_name = "worker.tasks.scanner.check_target_availability"
         registered_tasks = list(celery_app.tasks.keys())
         assert task_name in registered_tasks
-        assert legacy_name in registered_tasks
 
     def test_notifications_task_registered(self) -> None:
         """The send_pushover_notification task should be registered."""
         task_name = "camply.notifications.send_pushover_notification"
-        legacy_name = "worker.tasks.notifications.send_pushover_notification"
         registered_tasks = list(celery_app.tasks.keys())
         assert task_name in registered_tasks
-        assert legacy_name in registered_tasks
 
     def test_beat_schedule_configured(self) -> None:
         """The beat schedule should include schedule_checks and sync_all_providers."""

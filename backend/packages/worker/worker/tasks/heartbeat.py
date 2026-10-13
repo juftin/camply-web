@@ -103,7 +103,3 @@ async def _discover_targets_async() -> dict:
             "discovered": len(targets),
             "enqueued": enqueued,
         }
-
-
-# Legacy name alias for backwards compatibility
-celery_app.task(name="worker.tasks.heartbeat.discover_targets")(discover_targets)

@@ -132,12 +132,3 @@ async def _send_pushover_notification_async(
             raise self.retry(exc=exc)
         except Exception:
             return {"status": "error", "reason": str(exc)}
-
-
-# Legacy name alias for backwards compatibility
-celery_app.task(
-    name="worker.tasks.notifications.send_pushover_notification",
-    bind=True,
-    max_retries=3,
-    default_retry_delay=120,
-)(send_pushover_notification)

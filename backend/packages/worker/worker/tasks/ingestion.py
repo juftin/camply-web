@@ -139,14 +139,3 @@ async def _populate_provider_async(provider_id: int, provider_cls: type) -> dict
         else provider_cls.__name__,
         "search_name": f"Sync {provider_cls.__name__} Catalog",
     }
-
-
-# Legacy name aliases for backwards compatibility
-celery_app.task(name="worker.tasks.ingestion.populate_database")(populate_database)
-celery_app.task(
-    name="worker.tasks.ingestion.populate_provider_database",
-    bind=True,
-    max_retries=3,
-    default_retry_delay=300,
-    acks_late=True,
-)(populate_provider_database)

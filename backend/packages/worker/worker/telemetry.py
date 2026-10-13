@@ -139,15 +139,7 @@ def _extract_provider_info(
     if provider_name is None:
         if provider_id == 1:
             provider_name = "Recreation.gov"
-        elif any(
-            k in task_name
-            for k in (
-                "schedule_checks",
-                "discover_targets",
-                "sync_all_providers",
-                "populate_database",
-            )
-        ):
+        elif any(k in task_name for k in ("schedule_checks", "sync_all_providers")):
             provider_name = "All Providers"
 
     return provider_id, provider_name
