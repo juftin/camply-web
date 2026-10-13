@@ -105,6 +105,27 @@ jobs:
       - run: task frontend:browser:install
       - run: task admin:smoke
 
+  ui-snapshots:
+    name: UI Visual Snapshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+      - uses: ./.github/actions/setup-frontend
+      - run: task frontend:browser:install
+      - run: task snapshot:check
+      - name: Upload Snapshot Reports and Visual Diffs
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: ui-snapshots-report
+          path: |
+            frontend/snapshots/REPORT.md
+            frontend/snapshots/report.html
+            frontend/snapshots/diffs/
+            frontend/snapshots/current/
+          if-no-files-found: ignore
+
   frontend-docker:
     name: Frontend Docker Build
     needs: [frontend-checks]

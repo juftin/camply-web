@@ -1,0 +1,2478 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`UI Component DOM Snapshots > AdminFeedback > matches snapshot for error message 1`] = `
+<DocumentFragment>
+  <div
+    class="mb-4 rounded-md border p-3 text-sm bg-destructive/10 text-destructive border-destructive/30"
+    role="alert"
+  >
+    Failed to communicate with provider API.
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > AdminFeedback > matches snapshot for success message 1`] = `
+<DocumentFragment>
+  <div
+    class="mb-4 rounded-md border p-3 text-sm bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+    role="status"
+  >
+    User privileges updated successfully.
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin operations 1`] = `
+<DocumentFragment>
+  <div
+    class="border-b mb-6"
+  >
+    <div
+      class="flex items-center space-x-1 sm:space-x-2 overflow-x-auto pb-2"
+    >
+      <a
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        data-discover="true"
+        href="/admin"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-layout-dashboard h-4 w-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <rect
+            height="9"
+            rx="1"
+            width="7"
+            x="3"
+            y="3"
+          />
+          <rect
+            height="5"
+            rx="1"
+            width="7"
+            x="14"
+            y="3"
+          />
+          <rect
+            height="9"
+            rx="1"
+            width="7"
+            x="14"
+            y="12"
+          />
+          <rect
+            height="5"
+            rx="1"
+            width="7"
+            x="3"
+            y="16"
+          />
+        </svg>
+        Overview
+      </a>
+      <a
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        data-discover="true"
+        href="/admin/users"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-users h-4 w-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+          />
+          <path
+            d="M16 3.128a4 4 0 0 1 0 7.744"
+          />
+          <path
+            d="M22 21v-2a4 4 0 0 0-3-3.87"
+          />
+          <circle
+            cx="9"
+            cy="7"
+            r="4"
+          />
+        </svg>
+        Users
+      </a>
+      <a
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        data-discover="true"
+        href="/admin/scans"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-radio h-4 w-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M16.247 7.761a6 6 0 0 1 0 8.478"
+          />
+          <path
+            d="M19.075 4.933a10 10 0 0 1 0 14.134"
+          />
+          <path
+            d="M4.925 19.067a10 10 0 0 1 0-14.134"
+          />
+          <path
+            d="M7.753 16.239a6 6 0 0 1 0-8.478"
+          />
+          <circle
+            cx="12"
+            cy="12"
+            r="2"
+          />
+        </svg>
+        Scans
+      </a>
+      <a
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap bg-primary text-primary-foreground shadow-sm"
+        data-discover="true"
+        href="/admin/operations"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-activity h-4 w-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
+          />
+        </svg>
+        Operations
+      </a>
+      <a
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        data-discover="true"
+        href="/admin/audit"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-history h-4 w-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+          />
+          <path
+            d="M3 3v5h5"
+          />
+          <path
+            d="M12 7v5l4 2"
+          />
+        </svg>
+        Audit Log
+      </a>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin overview 1`] = `
+<DocumentFragment>
+  <div
+    class="border-b mb-6"
+  >
+    <div
+      class="flex items-center space-x-1 sm:space-x-2 overflow-x-auto pb-2"
+    >
+      <a
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap bg-primary text-primary-foreground shadow-sm"
+        data-discover="true"
+        href="/admin"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-layout-dashboard h-4 w-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <rect
+            height="9"
+            rx="1"
+            width="7"
+            x="3"
+            y="3"
+          />
+          <rect
+            height="5"
+            rx="1"
+            width="7"
+            x="14"
+            y="3"
+          />
+          <rect
+            height="9"
+            rx="1"
+            width="7"
+            x="14"
+            y="12"
+          />
+          <rect
+            height="5"
+            rx="1"
+            width="7"
+            x="3"
+            y="16"
+          />
+        </svg>
+        Overview
+      </a>
+      <a
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        data-discover="true"
+        href="/admin/users"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-users h-4 w-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+          />
+          <path
+            d="M16 3.128a4 4 0 0 1 0 7.744"
+          />
+          <path
+            d="M22 21v-2a4 4 0 0 0-3-3.87"
+          />
+          <circle
+            cx="9"
+            cy="7"
+            r="4"
+          />
+        </svg>
+        Users
+      </a>
+      <a
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        data-discover="true"
+        href="/admin/scans"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-radio h-4 w-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M16.247 7.761a6 6 0 0 1 0 8.478"
+          />
+          <path
+            d="M19.075 4.933a10 10 0 0 1 0 14.134"
+          />
+          <path
+            d="M4.925 19.067a10 10 0 0 1 0-14.134"
+          />
+          <path
+            d="M7.753 16.239a6 6 0 0 1 0-8.478"
+          />
+          <circle
+            cx="12"
+            cy="12"
+            r="2"
+          />
+        </svg>
+        Scans
+      </a>
+      <a
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        data-discover="true"
+        href="/admin/operations"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-activity h-4 w-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
+          />
+        </svg>
+        Operations
+      </a>
+      <a
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        data-discover="true"
+        href="/admin/audit"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-history h-4 w-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+          />
+          <path
+            d="M3 3v5h5"
+          />
+          <path
+            d="M12 7v5l4 2"
+          />
+        </svg>
+        Audit Log
+      </a>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > AdminPagination > matches snapshot for empty records 1`] = `
+<DocumentFragment>
+  <div
+    class="flex flex-wrap items-center justify-between gap-3 p-3 text-xs text-muted-foreground border-t"
+  >
+    <span>
+      No records
+    </span>
+    <div
+      class="flex gap-2"
+    >
+      <button
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+        disabled=""
+      >
+        Previous
+      </button>
+      <button
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+        disabled=""
+      >
+        Next
+      </button>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > AdminPagination > matches snapshot for first page 1`] = `
+<DocumentFragment>
+  <div
+    class="flex flex-wrap items-center justify-between gap-3 p-3 text-xs text-muted-foreground border-t"
+  >
+    <span>
+      Showing 1–25 of 100
+    </span>
+    <div
+      class="flex gap-2"
+    >
+      <button
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+        disabled=""
+      >
+        Previous
+      </button>
+      <button
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > AdminPagination > matches snapshot for last page 1`] = `
+<DocumentFragment>
+  <div
+    class="flex flex-wrap items-center justify-between gap-3 p-3 text-xs text-muted-foreground border-t"
+  >
+    <span>
+      Showing 76–100 of 100
+    </span>
+    <div
+      class="flex gap-2"
+    >
+      <button
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+      >
+        Previous
+      </button>
+      <button
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+        disabled=""
+      >
+        Next
+      </button>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > CamplyLogo > matches snapshot for PNG variant 1`] = `
+<DocumentFragment>
+  <img
+    alt="camply logo"
+    class="custom-class"
+    height="48"
+    src="/camply-logo.png"
+    width="48"
+  />
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > CamplyLogo > matches snapshot for SVG variant 1`] = `
+<DocumentFragment>
+  <img
+    alt="camply logo"
+    class=""
+    height="40"
+    src="/camply-logo.svg"
+    width="40"
+  />
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for design system catalog 1`] = `
+<DocumentFragment>
+  <div
+    class="container mx-auto px-4 py-8 max-w-6xl space-y-10"
+  >
+    <div
+      class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-6"
+    >
+      <div>
+        <div
+          class="flex items-center gap-2"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-sparkles h-6 w-6 text-primary"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"
+            />
+            <path
+              d="M20 2v4"
+            />
+            <path
+              d="M22 4h-4"
+            />
+            <circle
+              cx="4"
+              cy="20"
+              r="2"
+            />
+          </svg>
+          <h1
+            class="text-3xl font-bold tracking-tight"
+          >
+            Design System & Snapshot Catalog
+          </h1>
+        </div>
+        <p
+          class="text-muted-foreground mt-1 text-sm"
+        >
+          Visual fixture harness for human reviewers and automated visual regression agents.
+        </p>
+      </div>
+      <div
+        class="flex items-center gap-3"
+      >
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-sun h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="4"
+            />
+            <path
+              d="M12 2v2"
+            />
+            <path
+              d="M12 20v2"
+            />
+            <path
+              d="m4.93 4.93 1.41 1.41"
+            />
+            <path
+              d="m17.66 17.66 1.41 1.41"
+            />
+            <path
+              d="M2 12h2"
+            />
+            <path
+              d="M20 12h2"
+            />
+            <path
+              d="m6.34 17.66-1.41 1.41"
+            />
+            <path
+              d="m19.07 4.93-1.41 1.41"
+            />
+          </svg>
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-moon absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"
+            />
+          </svg>
+          <span
+            class="sr-only"
+          >
+            Toggle theme
+          </span>
+        </button>
+      </div>
+    </div>
+    <section
+      class="space-y-4"
+    >
+      <h2
+        class="text-xl font-semibold tracking-tight"
+      >
+        Summary Stats
+      </h2>
+      <div
+        class="grid grid-cols-1 sm:grid-cols-3 gap-4"
+      >
+        <div
+          class="rounded-lg border bg-card text-card-foreground shadow-sm"
+        >
+          <div
+            class="flex flex-col space-y-1.5 p-6 pb-2"
+          >
+            <p
+              class="text-sm text-muted-foreground"
+            >
+              Total Monitored Scans
+            </p>
+            <h3
+              class="tracking-tight text-2xl font-bold"
+            >
+              12
+            </h3>
+          </div>
+          <div
+            class="p-6 pt-0"
+          >
+            <p
+              class="text-xs text-muted-foreground flex items-center gap-1"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-activity h-3.5 w-3.5 text-primary"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
+                />
+              </svg>
+              Across 4 recreation areas
+            </p>
+          </div>
+        </div>
+        <div
+          class="rounded-lg border bg-card text-card-foreground shadow-sm"
+        >
+          <div
+            class="flex flex-col space-y-1.5 p-6 pb-2"
+          >
+            <p
+              class="text-sm text-muted-foreground"
+            >
+              Active Checkers
+            </p>
+            <h3
+              class="tracking-tight text-2xl font-bold text-green-600 dark:text-green-400"
+            >
+              8
+            </h3>
+          </div>
+          <div
+            class="p-6 pt-0"
+          >
+            <p
+              class="text-xs text-muted-foreground flex items-center gap-1"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-zap h-3.5 w-3.5 text-yellow-500"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"
+                />
+              </svg>
+              Polling every 30 seconds
+            </p>
+          </div>
+        </div>
+        <div
+          class="rounded-lg border bg-card text-card-foreground shadow-sm"
+        >
+          <div
+            class="flex flex-col space-y-1.5 p-6 pb-2"
+          >
+            <p
+              class="text-sm text-muted-foreground"
+            >
+              Campsites Available
+            </p>
+            <h3
+              class="tracking-tight text-2xl font-bold text-primary"
+            >
+              5
+            </h3>
+          </div>
+          <div
+            class="p-6 pt-0"
+          >
+            <p
+              class="text-xs text-muted-foreground flex items-center gap-1"
+            >
+              <svg
+                aria-hidden="true"
+                class="lucide lucide-bell h-3.5 w-3.5 text-primary"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M10.268 21a2 2 0 0 0 3.464 0"
+                />
+                <path
+                  d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"
+                />
+              </svg>
+              Alerts dispatched to Pushover
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section
+      class="space-y-4"
+    >
+      <h2
+        class="text-xl font-semibold tracking-tight"
+      >
+        Scan Cards (Active, Paused, Found)
+      </h2>
+      <div
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
+        <a
+          class="block"
+          data-discover="true"
+          href="/dashboard/scans/scan-mock-1"
+        >
+          <div
+            class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md ring-1 ring-yellow-400/30"
+          >
+            <div
+              class="flex flex-col space-y-1.5 p-6 pb-3"
+            >
+              <div
+                class="flex items-start justify-between"
+              >
+                <div
+                  class="min-w-0 flex-1 pr-2"
+                >
+                  <h3
+                    class="font-semibold tracking-tight text-base truncate"
+                  >
+                    Upper Pines Campground
+                  </h3>
+                  <p
+                    class="text-xs text-muted-foreground truncate mt-0.5"
+                  >
+                    Yosemite National Park
+                  </p>
+                </div>
+                <div
+                  class="flex items-center gap-1.5 shrink-0"
+                >
+                  <div
+                    class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100 text-[10px] px-1.5 py-0"
+                  >
+                    Ended
+                  </div>
+                  <div
+                    class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-[10px] px-1.5 py-0"
+                  >
+                    Active
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="p-6 pt-0 pb-3 space-y-2"
+            >
+              <div
+                class="flex items-center gap-1.5 text-sm text-muted-foreground"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-calendar h-3.5 w-3.5 shrink-0"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M8 2v4"
+                  />
+                  <path
+                    d="M16 2v4"
+                  />
+                  <rect
+                    height="18"
+                    rx="2"
+                    width="18"
+                    x="3"
+                    y="4"
+                  />
+                  <path
+                    d="M3 10h18"
+                  />
+                </svg>
+                <span>
+                  Jul 15 – Jul 19
+                  <span
+                    class="ml-1"
+                  >
+                    (4 nights)
+                  </span>
+                </span>
+              </div>
+              <div
+                class="flex items-center gap-1.5 text-sm"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-activity h-3.5 w-3.5 shrink-0 text-primary"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
+                  />
+                </svg>
+                <span>
+                  <strong
+                    class="text-foreground"
+                  >
+                    4
+                  </strong>
+                   
+                  <span
+                    class="text-muted-foreground"
+                  >
+                    campsites found
+                  </span>
+                </span>
+              </div>
+              <div
+                class="flex flex-wrap gap-1.5"
+              >
+                <div
+                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px]"
+                >
+                  Min 2 nights
+                </div>
+                <div
+                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px]"
+                >
+                  STANDARD NONELECTRIC, TENT ONLY
+                </div>
+              </div>
+              <div
+                class="flex items-center gap-1.5 text-xs text-muted-foreground"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-clock h-3 w-3 shrink-0"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 6v6l4 2"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                  />
+                </svg>
+                <span>
+                  Last checked: 101d ago
+                </span>
+              </div>
+            </div>
+            <div
+              class="items-center p-6 border-t pt-3 flex justify-between"
+            >
+              <div
+                class="flex items-center gap-2"
+              >
+                <div>
+                  <button
+                    aria-checked="true"
+                    class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+                    data-state="checked"
+                    id="active-scan-mock-1"
+                    role="switch"
+                    type="button"
+                    value="on"
+                  >
+                    <span
+                      class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+                      data-state="checked"
+                    />
+                  </button>
+                </div>
+                <label
+                  class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
+                  for="active-scan-mock-1"
+                >
+                  Active
+                </label>
+              </div>
+              <button
+                class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-trash2 lucide-trash-2 h-3.5 w-3.5"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M10 11v6"
+                  />
+                  <path
+                    d="M14 11v6"
+                  />
+                  <path
+                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"
+                  />
+                  <path
+                    d="M3 6h18"
+                  />
+                  <path
+                    d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </a>
+        <a
+          class="block"
+          data-discover="true"
+          href="/dashboard/scans/scan-mock-2"
+        >
+          <div
+            class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md opacity-60 ring-1 ring-yellow-400/30"
+          >
+            <div
+              class="flex flex-col space-y-1.5 p-6 pb-3"
+            >
+              <div
+                class="flex items-start justify-between"
+              >
+                <div
+                  class="min-w-0 flex-1 pr-2"
+                >
+                  <h3
+                    class="font-semibold tracking-tight text-base truncate"
+                  >
+                    Camp 4
+                  </h3>
+                  <p
+                    class="text-xs text-muted-foreground truncate mt-0.5"
+                  >
+                    Yosemite National Park
+                  </p>
+                </div>
+                <div
+                  class="flex items-center gap-1.5 shrink-0"
+                >
+                  <div
+                    class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100 text-[10px] px-1.5 py-0"
+                  >
+                    Ended
+                  </div>
+                  <div
+                    class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px] px-1.5 py-0"
+                  >
+                    Paused
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="p-6 pt-0 pb-3 space-y-2"
+            >
+              <div
+                class="flex items-center gap-1.5 text-sm text-muted-foreground"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-calendar h-3.5 w-3.5 shrink-0"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M8 2v4"
+                  />
+                  <path
+                    d="M16 2v4"
+                  />
+                  <rect
+                    height="18"
+                    rx="2"
+                    width="18"
+                    x="3"
+                    y="4"
+                  />
+                  <path
+                    d="M3 10h18"
+                  />
+                </svg>
+                <span>
+                  Aug 1 – Aug 3
+                  <span
+                    class="ml-1"
+                  >
+                    (2 nights)
+                  </span>
+                </span>
+              </div>
+              <div
+                class="flex items-center gap-1.5 text-sm"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-activity h-3.5 w-3.5 shrink-0 text-primary"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
+                  />
+                </svg>
+                <span>
+                  <strong
+                    class="text-foreground"
+                  >
+                    0
+                  </strong>
+                   
+                  <span
+                    class="text-muted-foreground"
+                  >
+                    campsites found
+                  </span>
+                </span>
+              </div>
+              <div
+                class="flex flex-wrap gap-1.5"
+              >
+                <div
+                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px]"
+                >
+                  TENT ONLY
+                </div>
+              </div>
+              <div
+                class="flex items-center gap-1.5 text-xs text-muted-foreground"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-clock h-3 w-3 shrink-0"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 6v6l4 2"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                  />
+                </svg>
+                <span>
+                  Last checked: 101d ago
+                </span>
+              </div>
+            </div>
+            <div
+              class="items-center p-6 border-t pt-3 flex justify-between"
+            >
+              <div
+                class="flex items-center gap-2"
+              >
+                <div>
+                  <button
+                    aria-checked="false"
+                    class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+                    data-state="unchecked"
+                    id="active-scan-mock-2"
+                    role="switch"
+                    type="button"
+                    value="on"
+                  >
+                    <span
+                      class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+                      data-state="unchecked"
+                    />
+                  </button>
+                </div>
+                <label
+                  class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
+                  for="active-scan-mock-2"
+                >
+                  Paused
+                </label>
+              </div>
+              <button
+                class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-trash2 lucide-trash-2 h-3.5 w-3.5"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M10 11v6"
+                  />
+                  <path
+                    d="M14 11v6"
+                  />
+                  <path
+                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"
+                  />
+                  <path
+                    d="M3 6h18"
+                  />
+                  <path
+                    d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </a>
+        <a
+          class="block"
+          data-discover="true"
+          href="/dashboard/scans/scan-mock-3"
+        >
+          <div
+            class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md ring-1 ring-yellow-400/30"
+          >
+            <div
+              class="flex flex-col space-y-1.5 p-6 pb-3"
+            >
+              <div
+                class="flex items-start justify-between"
+              >
+                <div
+                  class="min-w-0 flex-1 pr-2"
+                >
+                  <h3
+                    class="font-semibold tracking-tight text-base truncate"
+                  >
+                    Lower Pines
+                  </h3>
+                  <p
+                    class="text-xs text-muted-foreground truncate mt-0.5"
+                  >
+                    Yosemite National Park
+                  </p>
+                </div>
+                <div
+                  class="flex items-center gap-1.5 shrink-0"
+                >
+                  <div
+                    class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100 text-[10px] px-1.5 py-0"
+                  >
+                    Ended
+                  </div>
+                  <div
+                    class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-[10px] px-1.5 py-0"
+                  >
+                    Active
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="p-6 pt-0 pb-3 space-y-2"
+            >
+              <div
+                class="flex items-center gap-1.5 text-sm text-muted-foreground"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-calendar h-3.5 w-3.5 shrink-0"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M8 2v4"
+                  />
+                  <path
+                    d="M16 2v4"
+                  />
+                  <rect
+                    height="18"
+                    rx="2"
+                    width="18"
+                    x="3"
+                    y="4"
+                  />
+                  <path
+                    d="M3 10h18"
+                  />
+                </svg>
+                <span>
+                  Sep 10 – Sep 14
+                  <span
+                    class="ml-1"
+                  >
+                    (4 nights)
+                  </span>
+                </span>
+              </div>
+              <div
+                class="flex items-center gap-1.5 text-sm"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-activity h-3.5 w-3.5 shrink-0 text-primary"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
+                  />
+                </svg>
+                <span>
+                  <strong
+                    class="text-foreground"
+                  >
+                    1
+                  </strong>
+                   
+                  <span
+                    class="text-muted-foreground"
+                  >
+                    campsite found
+                  </span>
+                </span>
+              </div>
+              <div
+                class="flex flex-wrap gap-1.5"
+              >
+                <div
+                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px] gap-0.5"
+                >
+                  <svg
+                    aria-hidden="true"
+                    class="lucide lucide-zap h-3 w-3"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"
+                    />
+                  </svg>
+                   Electric
+                </div>
+                <div
+                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px]"
+                >
+                  Min 3 nights
+                </div>
+                <div
+                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px]"
+                >
+                  RV NONELECTRIC
+                </div>
+              </div>
+              <div
+                class="flex items-center gap-1.5 text-xs text-muted-foreground"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-clock h-3 w-3 shrink-0"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 6v6l4 2"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                  />
+                </svg>
+                <span>
+                  Last checked: 100d ago
+                </span>
+              </div>
+            </div>
+            <div
+              class="items-center p-6 border-t pt-3 flex justify-between"
+            >
+              <div
+                class="flex items-center gap-2"
+              >
+                <div>
+                  <button
+                    aria-checked="true"
+                    class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+                    data-state="checked"
+                    id="active-scan-mock-3"
+                    role="switch"
+                    type="button"
+                    value="on"
+                  >
+                    <span
+                      class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+                      data-state="checked"
+                    />
+                  </button>
+                </div>
+                <label
+                  class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
+                  for="active-scan-mock-3"
+                >
+                  Active
+                </label>
+              </div>
+              <button
+                class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-trash2 lucide-trash-2 h-3.5 w-3.5"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M10 11v6"
+                  />
+                  <path
+                    d="M14 11v6"
+                  />
+                  <path
+                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"
+                  />
+                  <path
+                    d="M3 6h18"
+                  />
+                  <path
+                    d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
+    <section
+      class="space-y-4"
+    >
+      <h2
+        class="text-xl font-semibold tracking-tight"
+      >
+        Badges & Status Elements
+      </h2>
+      <div
+        class="flex flex-wrap items-center gap-3 p-4 border rounded-lg bg-card"
+      >
+        <div
+          class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80"
+        >
+          Active
+        </div>
+        <div
+          class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80"
+        >
+          Paused
+        </div>
+        <div
+          class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground"
+        >
+          Recreation.gov
+        </div>
+        <div
+          class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80"
+        >
+          Failed
+        </div>
+        <div
+          class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-emerald-600 hover:bg-emerald-700 text-white"
+        >
+          4 Found
+        </div>
+        <div
+          class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-amber-600 hover:bg-amber-700 text-white"
+        >
+          Electric Required
+        </div>
+      </div>
+    </section>
+    <section
+      class="space-y-4"
+    >
+      <h2
+        class="text-xl font-semibold tracking-tight"
+      >
+        Form Controls & Buttons
+      </h2>
+      <div
+        class="rounded-lg border bg-card text-card-foreground shadow-sm"
+      >
+        <div
+          class="p-6 pt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+        >
+          <div
+            class="space-y-2"
+          >
+            <label
+              class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              for="preview-email"
+            >
+              Input Field
+            </label>
+            <input
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              id="preview-email"
+              placeholder="camper@example.com"
+              value="camper@example.com"
+            />
+          </div>
+          <div
+            class="space-y-2"
+          >
+            <label
+              class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Switch Toggle
+            </label>
+            <div
+              class="flex items-center space-x-2 pt-2"
+            >
+              <button
+                aria-checked="true"
+                class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+                data-state="checked"
+                id="preview-switch"
+                role="switch"
+                type="button"
+                value="on"
+              >
+                <span
+                  class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+                  data-state="checked"
+                />
+              </button>
+              <label
+                class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                for="preview-switch"
+              >
+                Notification Active
+              </label>
+            </div>
+          </div>
+          <div
+            class="space-y-2"
+          >
+            <label
+              class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Button Variants
+            </label>
+            <div
+              class="flex flex-wrap gap-2 pt-1"
+            >
+              <button
+                class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3"
+              >
+                Primary
+              </button>
+              <button
+                class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+              >
+                Outline
+              </button>
+              <button
+                class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+              >
+                Ghost
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section
+      class="space-y-4"
+    >
+      <h2
+        class="text-xl font-semibold tracking-tight"
+      >
+        Empty State
+      </h2>
+      <div
+        class="rounded-lg border bg-card text-card-foreground shadow-sm text-center py-10"
+      >
+        <div
+          class="p-6 pt-0 space-y-3"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-calendar h-10 w-10 text-muted-foreground mx-auto"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M8 2v4"
+            />
+            <path
+              d="M16 2v4"
+            />
+            <rect
+              height="18"
+              rx="2"
+              width="18"
+              x="3"
+              y="4"
+            />
+            <path
+              d="M3 10h18"
+            />
+          </svg>
+          <h3
+            class="text-lg font-medium"
+          >
+            No active campsite scans
+          </h3>
+          <p
+            class="text-sm text-muted-foreground max-w-sm mx-auto"
+          >
+            Start by searching for a national park or campground above to track openings.
+          </p>
+          <button
+            class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3 mt-2"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-map-pin h-4 w-4 mr-1.5"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"
+              />
+              <circle
+                cx="12"
+                cy="10"
+                r="3"
+              />
+            </svg>
+            Explore Campgrounds
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > DismissibleBanner > matches snapshot when visible 1`] = `
+<DocumentFragment>
+  <div
+    class=""
+  >
+    <div
+      class="container mx-auto relative"
+    >
+      <div
+        class="flex items-center justify-center gap-2"
+      >
+        <p>
+          Important update announcement
+        </p>
+      </div>
+      <button
+        aria-label="Close banner"
+        class="absolute right-0 top-1/2 -translate-y-1/2 p-1 rounded "
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-x h-4 w-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M18 6 6 18"
+          />
+          <path
+            d="m6 6 12 12"
+          />
+        </svg>
+      </button>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for active scan with filters 1`] = `
+<DocumentFragment>
+  <a
+    class="block"
+    data-discover="true"
+    href="/dashboard/scans/snap-scan-1"
+  >
+    <div
+      class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md"
+    >
+      <div
+        class="flex flex-col space-y-1.5 p-6 pb-3"
+      >
+        <div
+          class="flex items-start justify-between"
+        >
+          <div
+            class="min-w-0 flex-1 pr-2"
+          >
+            <h3
+              class="font-semibold tracking-tight text-base truncate"
+            >
+              Upper Pines Campground
+            </h3>
+            <p
+              class="text-xs text-muted-foreground truncate mt-0.5"
+            >
+              Yosemite National Park
+            </p>
+          </div>
+          <div
+            class="flex items-center gap-1.5 shrink-0"
+          >
+            <div
+              class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-[10px] px-1.5 py-0"
+            >
+              Active
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="p-6 pt-0 pb-3 space-y-2"
+      >
+        <div
+          class="flex items-center gap-1.5 text-sm text-muted-foreground"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-calendar h-3.5 w-3.5 shrink-0"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M8 2v4"
+            />
+            <path
+              d="M16 2v4"
+            />
+            <rect
+              height="18"
+              rx="2"
+              width="18"
+              x="3"
+              y="4"
+            />
+            <path
+              d="M3 10h18"
+            />
+          </svg>
+          <span>
+            Nov 15 – Nov 19
+            <span
+              class="ml-1"
+            >
+              (4 nights)
+            </span>
+          </span>
+        </div>
+        <div
+          class="flex items-center gap-1.5 text-sm"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-activity h-3.5 w-3.5 shrink-0 text-primary"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
+            />
+          </svg>
+          <span>
+            <strong
+              class="text-foreground"
+            >
+              3
+            </strong>
+             
+            <span
+              class="text-muted-foreground"
+            >
+              campsites found
+            </span>
+          </span>
+        </div>
+        <div
+          class="flex flex-wrap gap-1.5"
+        >
+          <div
+            class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px] gap-0.5"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-zap h-3 w-3"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"
+              />
+            </svg>
+             Electric
+          </div>
+          <div
+            class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px]"
+          >
+            Min 2 nights
+          </div>
+          <div
+            class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px]"
+          >
+            STANDARD NONELECTRIC, TENT ONLY
+          </div>
+        </div>
+        <div
+          class="flex items-center gap-1.5 text-xs text-muted-foreground"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-clock h-3 w-3 shrink-0"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 6v6l4 2"
+            />
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+          </svg>
+          <span>
+            Last checked: 0s ago
+          </span>
+        </div>
+      </div>
+      <div
+        class="items-center p-6 border-t pt-3 flex justify-between"
+      >
+        <div
+          class="flex items-center gap-2"
+        >
+          <div>
+            <button
+              aria-checked="true"
+              class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+              data-state="checked"
+              id="active-snap-scan-1"
+              role="switch"
+              type="button"
+              value="on"
+            >
+              <span
+                class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+                data-state="checked"
+              />
+            </button>
+          </div>
+          <label
+            class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
+            for="active-snap-scan-1"
+          >
+            Active
+          </label>
+        </div>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-trash2 lucide-trash-2 h-3.5 w-3.5"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M10 11v6"
+            />
+            <path
+              d="M14 11v6"
+            />
+            <path
+              d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"
+            />
+            <path
+              d="M3 6h18"
+            />
+            <path
+              d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </a>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for ended scan 1`] = `
+<DocumentFragment>
+  <a
+    class="block"
+    data-discover="true"
+    href="/dashboard/scans/snap-scan-3"
+  >
+    <div
+      class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md opacity-60 ring-1 ring-yellow-400/30"
+    >
+      <div
+        class="flex flex-col space-y-1.5 p-6 pb-3"
+      >
+        <div
+          class="flex items-start justify-between"
+        >
+          <div
+            class="min-w-0 flex-1 pr-2"
+          >
+            <h3
+              class="font-semibold tracking-tight text-base truncate"
+            >
+              Lower Pines
+            </h3>
+            <p
+              class="text-xs text-muted-foreground truncate mt-0.5"
+            >
+              Yosemite National Park
+            </p>
+          </div>
+          <div
+            class="flex items-center gap-1.5 shrink-0"
+          >
+            <div
+              class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100 text-[10px] px-1.5 py-0"
+            >
+              Ended
+            </div>
+            <div
+              class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px] px-1.5 py-0"
+            >
+              Paused
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="p-6 pt-0 pb-3 space-y-2"
+      >
+        <div
+          class="flex items-center gap-1.5 text-sm text-muted-foreground"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-calendar h-3.5 w-3.5 shrink-0"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M8 2v4"
+            />
+            <path
+              d="M16 2v4"
+            />
+            <rect
+              height="18"
+              rx="2"
+              width="18"
+              x="3"
+              y="4"
+            />
+            <path
+              d="M3 10h18"
+            />
+          </svg>
+          <span>
+            Sep 1 – Sep 5
+            <span
+              class="ml-1"
+            >
+              (4 nights)
+            </span>
+          </span>
+        </div>
+        <div
+          class="flex items-center gap-1.5 text-sm"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-activity h-3.5 w-3.5 shrink-0 text-primary"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
+            />
+          </svg>
+          <span>
+            <strong
+              class="text-foreground"
+            >
+              0
+            </strong>
+             
+            <span
+              class="text-muted-foreground"
+            >
+              campsites found
+            </span>
+          </span>
+        </div>
+        <div
+          class="flex flex-wrap gap-1.5"
+        />
+        <div
+          class="flex items-center gap-1.5 text-xs text-muted-foreground"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-clock h-3 w-3 shrink-0"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 6v6l4 2"
+            />
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+          </svg>
+          <span>
+            Last checked: Never
+          </span>
+        </div>
+      </div>
+      <div
+        class="items-center p-6 border-t pt-3 flex justify-between"
+      >
+        <div
+          class="flex items-center gap-2"
+        >
+          <div>
+            <button
+              aria-checked="false"
+              class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+              data-state="unchecked"
+              id="active-snap-scan-3"
+              role="switch"
+              type="button"
+              value="on"
+            >
+              <span
+                class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+                data-state="unchecked"
+              />
+            </button>
+          </div>
+          <label
+            class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
+            for="active-snap-scan-3"
+          >
+            Paused
+          </label>
+        </div>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-trash2 lucide-trash-2 h-3.5 w-3.5"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M10 11v6"
+            />
+            <path
+              d="M14 11v6"
+            />
+            <path
+              d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"
+            />
+            <path
+              d="M3 6h18"
+            />
+            <path
+              d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </a>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for paused scan 1`] = `
+<DocumentFragment>
+  <a
+    class="block"
+    data-discover="true"
+    href="/dashboard/scans/snap-scan-2"
+  >
+    <div
+      class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md opacity-60"
+    >
+      <div
+        class="flex flex-col space-y-1.5 p-6 pb-3"
+      >
+        <div
+          class="flex items-start justify-between"
+        >
+          <div
+            class="min-w-0 flex-1 pr-2"
+          >
+            <h3
+              class="font-semibold tracking-tight text-base truncate"
+            >
+              Camp 4 Walk-In
+            </h3>
+            <p
+              class="text-xs text-muted-foreground truncate mt-0.5"
+            >
+              Yosemite National Park
+            </p>
+          </div>
+          <div
+            class="flex items-center gap-1.5 shrink-0"
+          >
+            <div
+              class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px] px-1.5 py-0"
+            >
+              Paused
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="p-6 pt-0 pb-3 space-y-2"
+      >
+        <div
+          class="flex items-center gap-1.5 text-sm text-muted-foreground"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-calendar h-3.5 w-3.5 shrink-0"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M8 2v4"
+            />
+            <path
+              d="M16 2v4"
+            />
+            <rect
+              height="18"
+              rx="2"
+              width="18"
+              x="3"
+              y="4"
+            />
+            <path
+              d="M3 10h18"
+            />
+          </svg>
+          <span>
+            Nov 1 – Nov 3
+            <span
+              class="ml-1"
+            >
+              (2 nights)
+            </span>
+          </span>
+        </div>
+        <div
+          class="flex items-center gap-1.5 text-sm"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-activity h-3.5 w-3.5 shrink-0 text-primary"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
+            />
+          </svg>
+          <span>
+            <strong
+              class="text-foreground"
+            >
+              0
+            </strong>
+             
+            <span
+              class="text-muted-foreground"
+            >
+              campsites found
+            </span>
+          </span>
+        </div>
+        <div
+          class="flex flex-wrap gap-1.5"
+        />
+        <div
+          class="flex items-center gap-1.5 text-xs text-muted-foreground"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-clock h-3 w-3 shrink-0"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 6v6l4 2"
+            />
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+          </svg>
+          <span>
+            Last checked: 0s ago
+          </span>
+        </div>
+      </div>
+      <div
+        class="items-center p-6 border-t pt-3 flex justify-between"
+      >
+        <div
+          class="flex items-center gap-2"
+        >
+          <div>
+            <button
+              aria-checked="false"
+              class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+              data-state="unchecked"
+              id="active-snap-scan-2"
+              role="switch"
+              type="button"
+              value="on"
+            >
+              <span
+                class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+                data-state="unchecked"
+              />
+            </button>
+          </div>
+          <label
+            class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
+            for="active-snap-scan-2"
+          >
+            Paused
+          </label>
+        </div>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-trash2 lucide-trash-2 h-3.5 w-3.5"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M10 11v6"
+            />
+            <path
+              d="M14 11v6"
+            />
+            <path
+              d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"
+            />
+            <path
+              d="M3 6h18"
+            />
+            <path
+              d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </a>
+</DocumentFragment>
+`;

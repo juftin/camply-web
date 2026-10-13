@@ -576,6 +576,7 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
  *     Scenario details.
  */
 async function preparePage(page: Page, scenario: Scenario): Promise<void> {
+  await page.clock.setFixedTime(new Date("2026-10-10T12:00:00Z"));
   await page.setViewportSize(scenario.viewport);
   await page.emulateMedia({
     colorScheme: scenario.theme,
