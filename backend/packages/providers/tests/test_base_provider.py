@@ -9,7 +9,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from db.models import Campground, Provider, RecreationArea, Search
+from db.models.base import Base
 from providers.base import (
     BaseProvider,
     DatabasePopulator,
@@ -719,6 +723,19 @@ class TestBaseProviderPopulateSearchTable:
         assert mock_session.execute.call_count >= 3
 
 
+@pytest.mark.anyio
+async def test_client_close_releases_retry_connection_pool() -> None:
+    """Worker client cleanup must close the inner transport that opens sockets."""
+    provider = ConcreteProvider()
+    transport = provider.async_client._transport
+    assert isinstance(transport, RetryTransport)
+    with patch.object(
+        transport._inner, "aclose", wraps=transport._inner.aclose
+    ) as close_pool:
+        await provider.async_client.aclose()
+        close_pool.assert_awaited_once()
+
+
 # ===========================================================================
 # DatabasePopulator
 # ===========================================================================
@@ -739,3 +756,35 @@ class TestDatabasePopulator:
 
         p = Populator()
         assert isinstance(p, DatabasePopulator)
+
+
+@pytest.mark.anyio
+async def test_search_keeps_nonreservable_parks_with_bookable_campgrounds() -> None:
+    """Park discovery does not require the parent park itself to be reservable."""
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    maker = async_sessionmaker(engine, expire_on_commit=False)
+    provider = ConcreteProvider()
+    try:
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
+        async with maker() as session:
+            session.add(
+                Provider(id=1, name="TestProvider", url="https://test.provider")
+            )
+            await session.flush()
+            session.add(
+                RecreationArea(id="park", provider_id=1, name="Park", reservable=False)
+            )
+            await session.flush()
+            session.add(
+                Campground(
+                    id="camp", provider_id=1, recreation_area_id="park", name="Camp"
+                )
+            )
+            await session.flush()
+            await provider.populate_search_table(session)
+            rows = (await session.scalars(select(Search))).all()
+            assert {row.entity_type for row in rows} == {"RecreationArea", "Campground"}
+    finally:
+        await provider.async_client.aclose()
+        await engine.dispose()

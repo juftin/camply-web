@@ -32,4 +32,6 @@ class Campground(BaseModel):
 
     @computed_field
     def url(self) -> str:
-        return self.provider.get_campground_url(campground_id=self.id)
+        return self.provider.get_campground_url(
+            campground_id=self.id, rec_area_id=self.recreation_area_id
+        )

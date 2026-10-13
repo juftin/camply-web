@@ -4,8 +4,9 @@ Ingestion: Celery tasks for database population.
 Data ingestion tasks that populate the database with provider data
 from offline downloads (RIDB zip, recreation areas, facilities).
 
-- ``populate_database`` orchestrator runs on worker startup and daily at
-  midnight via Celery beat, fanning out one task per registered provider.
+- ``populate_database`` orchestrator runs daily at midnight UTC via Celery
+  beat, fanning out one task per registered provider. Startup ingestion is
+  not currently wired to a worker signal.
 - ``populate_provider_database`` is the per-provider worker with retries.
 """
 

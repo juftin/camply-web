@@ -13,9 +13,8 @@ from typing import Any, ClassVar
 import httpx
 import structlog
 from pydantic import BaseModel, field_validator
-from sqlalchemy import Insert, delete, insert, literal, null, select
+from sqlalchemy import Insert, and_, delete, func, insert, literal, null, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.functions import concat
 
 from db.models import Campground, Provider, RecreationArea, Search
 from providers.dto import CampsiteDTO
@@ -239,6 +238,13 @@ class RetryTransport(httpx.AsyncHTTPTransport):
         self._inner = httpx.AsyncHTTPTransport()
         self._cb_tasks: set[asyncio.Task[None]] = set()
         super().__init__()
+
+    async def aclose(self) -> None:
+        """Release the connection pool used by retries when the client closes."""
+        try:
+            await self._inner.aclose()
+        finally:
+            await super().aclose()
 
     async def handle_async_request(
         self,
@@ -595,13 +601,10 @@ class BaseProvider(ABC):
                 Search.campground_name,
             ],
             select=select(
-                concat(
-                    "RecreationArea",
-                    "/",
-                    self.provider.id,
-                    "/",
-                    RecreationArea.id,
-                    "/",
+                (
+                    literal(f"RecreationArea/{self.provider.id}/")
+                    + RecreationArea.id
+                    + "/"
                 ).label("id"),
                 literal("RecreationArea").label("entity_type"),
                 literal(self.provider.id).label("provider_id"),
@@ -610,7 +613,10 @@ class BaseProvider(ABC):
                 RecreationArea.name.label("recreation_area_name"),
                 null().label("campground_id"),
                 null().label("campground_name"),
-            ).where(RecreationArea.provider_id == self.provider.id),
+            ).where(
+                RecreationArea.provider_id == self.provider.id,
+                RecreationArea.enabled.is_(True),
+            ),
         )
         return rec_areas
 
@@ -631,14 +637,11 @@ class BaseProvider(ABC):
                 Search.campground_name,
             ],
             select=select(
-                concat(
-                    "Campground",
-                    "/",
-                    self.provider.id,
-                    "/",
-                    RecreationArea.id,
-                    "/",
-                    Campground.id,
+                (
+                    literal(f"Campground/{self.provider.id}/")
+                    + func.coalesce(RecreationArea.id, "")
+                    + "/"
+                    + Campground.id
                 ).label("id"),
                 literal("Campground").label("entity_type"),
                 literal(self.provider.id).label("provider_id"),
@@ -651,28 +654,37 @@ class BaseProvider(ABC):
             .select_from(
                 Campground.__table__.outerjoin(
                     RecreationArea,
-                    Campground.recreation_area_id == RecreationArea.id,
+                    and_(
+                        Campground.recreation_area_id == RecreationArea.id,
+                        Campground.provider_id == RecreationArea.provider_id,
+                    ),
                 )
             )
-            .where(Campground.provider_id == self.provider.id),
+            .where(
+                Campground.provider_id == self.provider.id,
+                Campground.enabled.is_(True),
+                Campground.reservable.is_(True),
+            ),
         )
         return campgrounds
 
     async def populate_search_table(self, session: AsyncSession) -> None:
         """
-        Populate the search table with campground and recreation area data.
+        Populate search rows and commit them with any pending metadata updates.
+
+        Reuse the session's current transaction so an ingestion failure
+        cannot publish metadata separately from its search index.
         """
         logger.info(
             "Populating search table",
             provider=self.provider.name,
         )
-        async with session.begin():
-            await session.execute(
-                delete(Search).where(Search.provider_name == self.provider.name)
-            )
-            await session.execute(self.search_rec_area_statement)
-            await session.execute(self.search_campground_statement)
-            await session.commit()
+        await session.execute(
+            delete(Search).where(Search.provider_id == self.provider.id)
+        )
+        await session.execute(self.search_rec_area_statement)
+        await session.execute(self.search_campground_statement)
+        await session.commit()
 
     @classmethod
     @abstractmethod
@@ -683,9 +695,11 @@ class BaseProvider(ABC):
 
     @classmethod
     @abstractmethod
-    def get_campground_url(cls, campground_id: str) -> str:
+    def get_campground_url(
+        cls, campground_id: str, *, rec_area_id: str | None = None
+    ) -> str:
         """
-        Get the URL for a campground.
+        Get the URL for a campground, with park context when required.
         """
 
 

@@ -344,6 +344,7 @@ class TestScannerTaskAsync:
             mock_campground.id = "cg_1"
             mock_campground.name = "Test Campground"
             mock_campground.provider_id = 1
+            mock_campground.recreation_area_id = "park_1"
 
             # Use a real CampsiteDTO to ensure .value works on campsite_type
             from providers.dto import CampsiteDTO as RealCampsiteDTO
@@ -411,3 +412,6 @@ class TestScannerTaskAsync:
 
         assert result["status"] == "success", f"Got: {result}"  # type: ignore[index]
         assert result["availabilities_found"] == 1  # type: ignore[index]
+        mock_provider_cls.get_campground_url.assert_called_once_with(
+            campground_id="cg_1", rec_area_id="park_1"
+        )
