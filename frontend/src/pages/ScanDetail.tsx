@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ScanForm } from "@/components/ScanForm";
 import { useScanDetail } from "@/hooks/useScans";
 import {
   toTitleCase,
@@ -87,6 +88,10 @@ export function ScanDetail() {
             {toTitleCase(scan.recreation_area_name)}
           </p>
         )}
+      </div>
+
+      <div className="mb-6">
+        <ScanForm scan={scan} />
       </div>
 
       <div className="grid gap-6">

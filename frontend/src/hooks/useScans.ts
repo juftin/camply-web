@@ -86,9 +86,7 @@ export function useUpdateScan() {
     { scanId: string; payload: ScanUpdateRequest }
   >({
     mutationFn: ({ scanId, payload }) => updateScan(scanId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["scans"] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["scans"] }),
   });
 }
 

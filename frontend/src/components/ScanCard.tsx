@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Clock, Calendar, Activity, Zap, Trash2 } from "lucide-react";
+import { Clock, Calendar, Activity, Zap, Trash2, Pencil } from "lucide-react";
+import { ScanForm } from "@/components/ScanForm";
+import { getApiErrorMessage } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -31,7 +33,7 @@ import type { ScanResponse } from "@/lib/structs";
 interface ScanCardProps {
   scan: ScanResponse;
   onToggleActive: (scanId: string, isActive: boolean) => void;
-  onDelete: (scanId: string) => void;
+  onDelete: (scanId: string) => void | Promise<void>;
   toggling?: boolean;
 }
 
@@ -42,6 +44,22 @@ export function ScanCard({
   toggling = false,
 }: ScanCardProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await onDelete(scan.id);
+      setShowDeleteDialog(false);
+    } catch (error) {
+      setDeleteError(getApiErrorMessage(error));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const lastChecked = scan.last_checked_at
     ? formatRelativeTime(scan.last_checked_at)
@@ -51,9 +69,12 @@ export function ScanCard({
   const isPastEnd = new Date(scan.end_date) < new Date();
 
   return (
-    <Link to={`/dashboard/scans/${scan.id}`} className="block">
-      <Card
-        className={`transition-all hover:shadow-md ${!scan.is_active ? "opacity-60" : ""} ${isPastEnd ? "ring-1 ring-yellow-400/30" : ""}`}
+    <Card
+      className={`transition-all hover:shadow-md ${!scan.is_active ? "opacity-60" : ""} ${isPastEnd ? "ring-1 ring-yellow-400/30" : ""}`}
+    >
+      <Link
+        to={`/dashboard/scans/${scan.id}`}
+        className="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
@@ -135,69 +156,85 @@ export function ScanCard({
             <span>Last checked: {lastChecked}</span>
           </div>
         </CardContent>
+      </Link>
 
-        <CardFooter
-          className="border-t pt-3 flex justify-between"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center gap-2">
-            <div onClick={(e) => e.stopPropagation()}>
-              <Switch
-                id={`active-${scan.id}`}
-                checked={scan.is_active}
-                onCheckedChange={(checked) => onToggleActive(scan.id, checked)}
-                disabled={toggling}
-              />
-            </div>
-            <Label
-              htmlFor={`active-${scan.id}`}
-              className="text-xs text-muted-foreground cursor-pointer"
-            >
-              {scan.is_active ? "Active" : "Paused"}
-            </Label>
-          </div>
+      <CardFooter className="border-t pt-3 flex justify-between">
+        <div className="flex items-center gap-2">
+          <Switch
+            id={`active-${scan.id}`}
+            checked={scan.is_active}
+            onCheckedChange={(checked) => onToggleActive(scan.id, checked)}
+            disabled={toggling}
+          />
+          <Label
+            htmlFor={`active-${scan.id}`}
+            className="text-xs text-muted-foreground cursor-pointer"
+          >
+            {scan.is_active ? "Active" : "Paused"}
+          </Label>
+        </div>
+        <div className="flex items-center gap-1">
+          <ScanForm
+            scan={scan}
+            trigger={
+              <Button variant="ghost" size="sm" aria-label="Edit scan">
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            }
+          />
           <Button
             variant="ghost"
             size="sm"
             className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={(e) => {
-              e.stopPropagation();
+            aria-label="Delete scan"
+            disabled={deleting}
+            onClick={() => {
+              setDeleteError(null);
               setShowDeleteDialog(true);
             }}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
-        </CardFooter>
+        </div>
+      </CardFooter>
 
-        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Scan</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this scan? This action cannot be
-                undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setShowDeleteDialog(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  onDelete(scan.id);
-                  setShowDeleteDialog(false);
-                }}
-              >
-                Delete
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </Card>
-    </Link>
+      <Dialog
+        open={showDeleteDialog}
+        onOpenChange={(open) => {
+          if (!deleting) setShowDeleteDialog(open);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Scan</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this scan? This action cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && (
+            <p role="alert" className="text-sm text-destructive">
+              {deleteError}
+            </p>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={deleting}
+              onClick={() => setShowDeleteDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleting}
+              onClick={handleDelete}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }

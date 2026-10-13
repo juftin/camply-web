@@ -108,6 +108,10 @@ class ScanUpdateRequest(BaseModel):
     """Payload for ``PATCH /scans/{id}`` — all fields optional."""
 
     is_active: Optional[bool] = None
+    provider_id: int | None = Field(default=None, ge=1)
+    campground_id: str | None = Field(default=None, min_length=1)
+    start_date: datetime.date | None = None
+    end_date: datetime.date | None = None
     min_stay_length: Optional[int] = Field(default=None, ge=1)
     preferred_types: Optional[list[str]] = None
     require_electric: Optional[bool] = None

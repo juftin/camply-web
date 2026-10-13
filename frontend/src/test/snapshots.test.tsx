@@ -5,7 +5,9 @@
  * to catch unintended markup regressions during frontend builds.
  */
 
-import { render } from "@testing-library/react";
+import { render as renderUI } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -33,6 +35,11 @@ import { ThemeProviderContext } from "@/hooks/use-theme";
 import type { AuthState } from "@/hooks/useAuth";
 import type { ScanResponse, SearchResult } from "@/lib/structs";
 import { DevPreview } from "@/pages/DevPreview";
+
+const render = (ui: ReactNode) =>
+  renderUI(
+    <QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>,
+  );
 
 let mockAuthState: AuthState = {
   user: null,

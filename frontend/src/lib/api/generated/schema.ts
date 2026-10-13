@@ -336,7 +336,7 @@ export interface paths {
         head?: never;
         /**
          * Update Scan
-         * @description Update scan filters or toggle ``is_active``.
+         * @description Edit a subscription's target and filters or toggle ``is_active``.
          */
         patch: operations["update_scan_api_scans__scan_id__patch"];
         trace?: never;
@@ -1653,6 +1653,14 @@ export interface components {
         ScanUpdateRequest: {
             /** Is Active */
             is_active?: boolean | null;
+            /** Provider Id */
+            provider_id?: number | null;
+            /** Campground Id */
+            campground_id?: string | null;
+            /** Start Date */
+            start_date?: string | null;
+            /** End Date */
+            end_date?: string | null;
             /** Min Stay Length */
             min_stay_length?: number | null;
             /** Preferred Types */

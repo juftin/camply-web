@@ -881,13 +881,13 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
       <div
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
-        <a
-          class="block"
-          data-discover="true"
-          href="/dashboard/scans/scan-mock-1"
+        <div
+          class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md ring-1 ring-yellow-400/30"
         >
-          <div
-            class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md ring-1 ring-yellow-400/30"
+          <a
+            class="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            data-discover="true"
+            href="/dashboard/scans/scan-mock-1"
           >
             <div
               class="flex flex-col space-y-1.5 p-6 pb-3"
@@ -1048,36 +1048,68 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                 </span>
               </div>
             </div>
+          </a>
+          <div
+            class="items-center p-6 border-t pt-3 flex justify-between"
+          >
             <div
-              class="items-center p-6 border-t pt-3 flex justify-between"
+              class="flex items-center gap-2"
             >
-              <div
-                class="flex items-center gap-2"
-              >
-                <div>
-                  <button
-                    aria-checked="true"
-                    class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                    data-state="checked"
-                    id="active-scan-mock-1"
-                    role="switch"
-                    type="button"
-                    value="on"
-                  >
-                    <span
-                      class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
-                      data-state="checked"
-                    />
-                  </button>
-                </div>
-                <label
-                  class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
-                  for="active-scan-mock-1"
-                >
-                  Active
-                </label>
-              </div>
               <button
+                aria-checked="true"
+                class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+                data-state="checked"
+                id="active-scan-mock-1"
+                role="switch"
+                type="button"
+                value="on"
+              >
+                <span
+                  class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+                  data-state="checked"
+                />
+              </button>
+              <label
+                class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
+                for="active-scan-mock-1"
+              >
+                Active
+              </label>
+            </div>
+            <div
+              class="flex items-center gap-1"
+            >
+              <button
+                aria-expanded="false"
+                aria-haspopup="dialog"
+                aria-label="Edit scan"
+                class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+                data-state="closed"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-pencil h-3.5 w-3.5"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+                  />
+                  <path
+                    d="m15 5 4 4"
+                  />
+                </svg>
+              </button>
+              <button
+                aria-label="Delete scan"
                 class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
               >
                 <svg
@@ -1112,14 +1144,14 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
               </button>
             </div>
           </div>
-        </a>
-        <a
-          class="block"
-          data-discover="true"
-          href="/dashboard/scans/scan-mock-2"
+        </div>
+        <div
+          class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md opacity-60 ring-1 ring-yellow-400/30"
         >
-          <div
-            class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md opacity-60 ring-1 ring-yellow-400/30"
+          <a
+            class="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            data-discover="true"
+            href="/dashboard/scans/scan-mock-2"
           >
             <div
               class="flex flex-col space-y-1.5 p-6 pb-3"
@@ -1275,36 +1307,68 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                 </span>
               </div>
             </div>
+          </a>
+          <div
+            class="items-center p-6 border-t pt-3 flex justify-between"
+          >
             <div
-              class="items-center p-6 border-t pt-3 flex justify-between"
+              class="flex items-center gap-2"
             >
-              <div
-                class="flex items-center gap-2"
-              >
-                <div>
-                  <button
-                    aria-checked="false"
-                    class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                    data-state="unchecked"
-                    id="active-scan-mock-2"
-                    role="switch"
-                    type="button"
-                    value="on"
-                  >
-                    <span
-                      class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
-                      data-state="unchecked"
-                    />
-                  </button>
-                </div>
-                <label
-                  class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
-                  for="active-scan-mock-2"
-                >
-                  Paused
-                </label>
-              </div>
               <button
+                aria-checked="false"
+                class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+                data-state="unchecked"
+                id="active-scan-mock-2"
+                role="switch"
+                type="button"
+                value="on"
+              >
+                <span
+                  class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+                  data-state="unchecked"
+                />
+              </button>
+              <label
+                class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
+                for="active-scan-mock-2"
+              >
+                Paused
+              </label>
+            </div>
+            <div
+              class="flex items-center gap-1"
+            >
+              <button
+                aria-expanded="false"
+                aria-haspopup="dialog"
+                aria-label="Edit scan"
+                class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+                data-state="closed"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-pencil h-3.5 w-3.5"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+                  />
+                  <path
+                    d="m15 5 4 4"
+                  />
+                </svg>
+              </button>
+              <button
+                aria-label="Delete scan"
                 class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
               >
                 <svg
@@ -1339,14 +1403,14 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
               </button>
             </div>
           </div>
-        </a>
-        <a
-          class="block"
-          data-discover="true"
-          href="/dashboard/scans/scan-mock-3"
+        </div>
+        <div
+          class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md ring-1 ring-yellow-400/30"
         >
-          <div
-            class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md ring-1 ring-yellow-400/30"
+          <a
+            class="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            data-discover="true"
+            href="/dashboard/scans/scan-mock-3"
           >
             <div
               class="flex flex-col space-y-1.5 p-6 pb-3"
@@ -1529,36 +1593,68 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                 </span>
               </div>
             </div>
+          </a>
+          <div
+            class="items-center p-6 border-t pt-3 flex justify-between"
+          >
             <div
-              class="items-center p-6 border-t pt-3 flex justify-between"
+              class="flex items-center gap-2"
             >
-              <div
-                class="flex items-center gap-2"
-              >
-                <div>
-                  <button
-                    aria-checked="true"
-                    class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-                    data-state="checked"
-                    id="active-scan-mock-3"
-                    role="switch"
-                    type="button"
-                    value="on"
-                  >
-                    <span
-                      class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
-                      data-state="checked"
-                    />
-                  </button>
-                </div>
-                <label
-                  class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
-                  for="active-scan-mock-3"
-                >
-                  Active
-                </label>
-              </div>
               <button
+                aria-checked="true"
+                class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+                data-state="checked"
+                id="active-scan-mock-3"
+                role="switch"
+                type="button"
+                value="on"
+              >
+                <span
+                  class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+                  data-state="checked"
+                />
+              </button>
+              <label
+                class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
+                for="active-scan-mock-3"
+              >
+                Active
+              </label>
+            </div>
+            <div
+              class="flex items-center gap-1"
+            >
+              <button
+                aria-expanded="false"
+                aria-haspopup="dialog"
+                aria-label="Edit scan"
+                class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+                data-state="closed"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-pencil h-3.5 w-3.5"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+                  />
+                  <path
+                    d="m15 5 4 4"
+                  />
+                </svg>
+              </button>
+              <button
+                aria-label="Delete scan"
                 class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
               >
                 <svg
@@ -1593,7 +1689,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
               </button>
             </div>
           </div>
-        </a>
+        </div>
       </div>
     </section>
     <section
@@ -2801,13 +2897,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot without logo 1`]
 
 exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for active scan with filters 1`] = `
 <DocumentFragment>
-  <a
-    class="block"
-    data-discover="true"
-    href="/dashboard/scans/snap-scan-1"
+  <div
+    class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md"
   >
-    <div
-      class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md"
+    <a
+      class="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      data-discover="true"
+      href="/dashboard/scans/snap-scan-1"
     >
       <div
         class="flex flex-col space-y-1.5 p-6 pb-3"
@@ -2985,36 +3081,68 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for active sca
           </span>
         </div>
       </div>
+    </a>
+    <div
+      class="items-center p-6 border-t pt-3 flex justify-between"
+    >
       <div
-        class="items-center p-6 border-t pt-3 flex justify-between"
+        class="flex items-center gap-2"
       >
-        <div
-          class="flex items-center gap-2"
-        >
-          <div>
-            <button
-              aria-checked="true"
-              class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-              data-state="checked"
-              id="active-snap-scan-1"
-              role="switch"
-              type="button"
-              value="on"
-            >
-              <span
-                class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
-                data-state="checked"
-              />
-            </button>
-          </div>
-          <label
-            class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
-            for="active-snap-scan-1"
-          >
-            Active
-          </label>
-        </div>
         <button
+          aria-checked="true"
+          class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+          data-state="checked"
+          id="active-snap-scan-1"
+          role="switch"
+          type="button"
+          value="on"
+        >
+          <span
+            class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+            data-state="checked"
+          />
+        </button>
+        <label
+          class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
+          for="active-snap-scan-1"
+        >
+          Active
+        </label>
+      </div>
+      <div
+        class="flex items-center gap-1"
+      >
+        <button
+          aria-expanded="false"
+          aria-haspopup="dialog"
+          aria-label="Edit scan"
+          class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+          data-state="closed"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-pencil h-3.5 w-3.5"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+            />
+            <path
+              d="m15 5 4 4"
+            />
+          </svg>
+        </button>
+        <button
+          aria-label="Delete scan"
           class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
         >
           <svg
@@ -3049,19 +3177,19 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for active sca
         </button>
       </div>
     </div>
-  </a>
+  </div>
 </DocumentFragment>
 `;
 
 exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for ended scan 1`] = `
 <DocumentFragment>
-  <a
-    class="block"
-    data-discover="true"
-    href="/dashboard/scans/snap-scan-3"
+  <div
+    class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md opacity-60 ring-1 ring-yellow-400/30"
   >
-    <div
-      class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md opacity-60 ring-1 ring-yellow-400/30"
+    <a
+      class="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      data-discover="true"
+      href="/dashboard/scans/snap-scan-3"
     >
       <div
         class="flex flex-col space-y-1.5 p-6 pb-3"
@@ -3211,36 +3339,68 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for ended scan
           </span>
         </div>
       </div>
+    </a>
+    <div
+      class="items-center p-6 border-t pt-3 flex justify-between"
+    >
       <div
-        class="items-center p-6 border-t pt-3 flex justify-between"
+        class="flex items-center gap-2"
       >
-        <div
-          class="flex items-center gap-2"
-        >
-          <div>
-            <button
-              aria-checked="false"
-              class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-              data-state="unchecked"
-              id="active-snap-scan-3"
-              role="switch"
-              type="button"
-              value="on"
-            >
-              <span
-                class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
-                data-state="unchecked"
-              />
-            </button>
-          </div>
-          <label
-            class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
-            for="active-snap-scan-3"
-          >
-            Paused
-          </label>
-        </div>
         <button
+          aria-checked="false"
+          class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+          data-state="unchecked"
+          id="active-snap-scan-3"
+          role="switch"
+          type="button"
+          value="on"
+        >
+          <span
+            class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+            data-state="unchecked"
+          />
+        </button>
+        <label
+          class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
+          for="active-snap-scan-3"
+        >
+          Paused
+        </label>
+      </div>
+      <div
+        class="flex items-center gap-1"
+      >
+        <button
+          aria-expanded="false"
+          aria-haspopup="dialog"
+          aria-label="Edit scan"
+          class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+          data-state="closed"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-pencil h-3.5 w-3.5"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+            />
+            <path
+              d="m15 5 4 4"
+            />
+          </svg>
+        </button>
+        <button
+          aria-label="Delete scan"
           class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
         >
           <svg
@@ -3275,19 +3435,19 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for ended scan
         </button>
       </div>
     </div>
-  </a>
+  </div>
 </DocumentFragment>
 `;
 
 exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for paused scan 1`] = `
 <DocumentFragment>
-  <a
-    class="block"
-    data-discover="true"
-    href="/dashboard/scans/snap-scan-2"
+  <div
+    class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md opacity-60"
   >
-    <div
-      class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md opacity-60"
+    <a
+      class="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      data-discover="true"
+      href="/dashboard/scans/snap-scan-2"
     >
       <div
         class="flex flex-col space-y-1.5 p-6 pb-3"
@@ -3432,36 +3592,68 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for paused sca
           </span>
         </div>
       </div>
+    </a>
+    <div
+      class="items-center p-6 border-t pt-3 flex justify-between"
+    >
       <div
-        class="items-center p-6 border-t pt-3 flex justify-between"
+        class="flex items-center gap-2"
       >
-        <div
-          class="flex items-center gap-2"
-        >
-          <div>
-            <button
-              aria-checked="false"
-              class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
-              data-state="unchecked"
-              id="active-snap-scan-2"
-              role="switch"
-              type="button"
-              value="on"
-            >
-              <span
-                class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
-                data-state="unchecked"
-              />
-            </button>
-          </div>
-          <label
-            class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
-            for="active-snap-scan-2"
-          >
-            Paused
-          </label>
-        </div>
         <button
+          aria-checked="false"
+          class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+          data-state="unchecked"
+          id="active-snap-scan-2"
+          role="switch"
+          type="button"
+          value="on"
+        >
+          <span
+            class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+            data-state="unchecked"
+          />
+        </button>
+        <label
+          class="font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-xs text-muted-foreground cursor-pointer"
+          for="active-snap-scan-2"
+        >
+          Paused
+        </label>
+      </div>
+      <div
+        class="flex items-center gap-1"
+      >
+        <button
+          aria-expanded="false"
+          aria-haspopup="dialog"
+          aria-label="Edit scan"
+          class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+          data-state="closed"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-pencil h-3.5 w-3.5"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+            />
+            <path
+              d="m15 5 4 4"
+            />
+          </svg>
+        </button>
+        <button
+          aria-label="Delete scan"
           class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 rounded-md px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
         >
           <svg
@@ -3496,7 +3688,7 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for paused sca
         </button>
       </div>
     </div>
-  </a>
+  </div>
 </DocumentFragment>
 `;
 
