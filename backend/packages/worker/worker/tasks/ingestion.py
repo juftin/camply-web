@@ -20,7 +20,7 @@ logger = structlog.getLogger(__name__)
 
 
 @celery_app.task(
-    name="camply.catalog.sync_all_providers",
+    name="catalog.sync-all",
 )
 def populate_database() -> dict:
     """
@@ -39,7 +39,7 @@ def populate_database() -> dict:
 
     for provider_id in provider_ids:
         celery_app.send_task(
-            name="camply.catalog.sync_provider_catalog",
+            name="catalog.sync-provider",
             kwargs={"provider_id": provider_id},
         )
 
@@ -54,7 +54,7 @@ def populate_database() -> dict:
 
 
 @celery_app.task(
-    name="camply.catalog.sync_provider_catalog",
+    name="catalog.sync-provider",
     bind=True,
     max_retries=3,
     default_retry_delay=300,

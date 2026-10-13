@@ -117,7 +117,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: juftin/camply-beat:${BACKEND_VERSION:-local}
-    command: sh -c "celery -A worker.celery_app call camply.catalog.sync_all_providers --expires=600 && celery -A worker.celery_app beat -l info"
+    command: sh -c "celery -A worker.celery_app call catalog.sync-all --expires=600 && celery -A worker.celery_app beat -l info"
     depends_on:
       db:
         condition: service_healthy

@@ -82,7 +82,7 @@ describe("AdminOperations", () => {
       tasks: [
         {
           task_id: "task-abc-123",
-          task_name: "camply.search.check_campsite_availability",
+          task_name: "search.check-availability",
           worker: "celery@worker-node-1",
           finished_at: "2026-10-09T01:04:30Z",
           duration_ms: 1250,
@@ -163,7 +163,7 @@ describe("AdminOperations", () => {
       tasks: [
         {
           task_id: "task-xyz-789",
-          task_name: "camply.search.check_campsite_availability",
+          task_name: "search.check-availability",
           worker: "celery@worker-node-2",
           finished_at: "2026-10-09T01:04:30Z",
           duration_ms: 450,

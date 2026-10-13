@@ -20,7 +20,7 @@ logger = structlog.getLogger(__name__)
 
 
 @celery_app.task(
-    name="camply.notifications.send_pushover_notification",
+    name="notifications.send-pushover",
     bind=True,
     max_retries=3,
     default_retry_delay=120,

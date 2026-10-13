@@ -77,7 +77,7 @@ def _matches_scan_filters(campsite: CampsiteDTO, scan: UserScan) -> bool:
 
 
 @celery_app.task(
-    name="camply.search.check_campsite_availability",
+    name="search.check-availability",
     bind=True,
     max_retries=3,
     default_retry_delay=60,
@@ -323,7 +323,7 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                             continue
                         if _matches_scan_filters(matching_campsite, scan):
                             celery_app.send_task(
-                                name="camply.notifications.send_pushover_notification",
+                                name="notifications.send-pushover",
                                 kwargs={
                                     "user_id": str(scan.user_id),
                                     "notification": opening.model_dump(mode="json"),

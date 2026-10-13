@@ -46,11 +46,11 @@ def create_celery_app() -> Celery:
     # - sync_all_providers daily at midnight UTC
     app.conf.beat_schedule = {
         "schedule-availability-checks": {
-            "task": "camply.search.schedule_checks",
+            "task": "search.schedule-checks",
             "schedule": worker_config.heartbeat_interval,
         },
         "sync-provider-catalogs-daily": {
-            "task": "camply.catalog.sync_all_providers",
+            "task": "catalog.sync-all",
             "schedule": crontab(minute=0, hour=0),
         },
     }

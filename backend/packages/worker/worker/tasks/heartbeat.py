@@ -19,7 +19,7 @@ from worker.telemetry import record_discovery_completion
 logger = structlog.getLogger(__name__)
 
 
-@celery_app.task(name="camply.search.schedule_checks")
+@celery_app.task(name="search.schedule-checks")
 def discover_targets() -> dict:
     """
     Periodic task (every 60s). Discovers UniqueTargets that are due for
@@ -81,7 +81,7 @@ async def _discover_targets_async() -> dict:
         enqueued = 0
         for target in targets:
             celery_app.send_task(
-                name="camply.search.check_campsite_availability",
+                name="search.check-availability",
                 kwargs={"target_id": str(target.id)},
                 queue="celery",
             )

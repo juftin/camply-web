@@ -128,7 +128,7 @@ class TestOperationsEndpoints:
             tasks=[
                 AdminTaskTelemetryItem(
                     task_id="task-1",
-                    task_name="camply.search.check_campsite_availability",
+                    task_name="search.check-availability",
                     worker="celery@worker-1",
                     finished_at=dt.datetime.now(tz=dt.timezone.utc),
                     duration_ms=150.0,
@@ -175,7 +175,7 @@ class TestOperationsEndpoints:
     ) -> None:
         mock_detail = AdminOperationsTaskDetail(
             task_id="task-found",
-            task_name="camply.notifications.send_pushover_notification",
+            task_name="notifications.send-pushover",
             worker="celery@worker-1",
             finished_at=dt.datetime.now(tz=dt.timezone.utc),
             duration_ms=85.0,

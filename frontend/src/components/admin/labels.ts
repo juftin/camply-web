@@ -2,13 +2,11 @@
 export function taskLabel(name: string): string {
   return (
     {
-      "camply.search.schedule_checks": "Schedule availability checks",
-      "camply.search.check_campsite_availability":
-        "Check campsite availability",
-      "camply.notifications.send_pushover_notification":
-        "Send Pushover notification",
-      "camply.catalog.sync_all_providers": "Sync all provider catalogs",
-      "camply.catalog.sync_provider_catalog": "Sync provider catalog",
+      "search.schedule-checks": "Schedule availability checks",
+      "search.check-availability": "Check campsite availability",
+      "notifications.send-pushover": "Send Pushover notification",
+      "catalog.sync-all": "Sync all provider catalogs",
+      "catalog.sync-provider": "Sync provider catalog",
     }[name] ?? name
   );
 }

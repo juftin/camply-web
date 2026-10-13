@@ -51,19 +51,19 @@ class TestCeleryTaskRegistration:
 
     def test_heartbeat_task_registered(self) -> None:
         """The heartbeat schedule_checks task should be registered."""
-        task_name = "camply.search.schedule_checks"
+        task_name = "search.schedule-checks"
         registered_tasks = list(celery_app.tasks.keys())
         assert task_name in registered_tasks
 
     def test_scanner_task_registered(self) -> None:
         """The scanner check_campsite_availability task should be registered."""
-        task_name = "camply.search.check_campsite_availability"
+        task_name = "search.check-availability"
         registered_tasks = list(celery_app.tasks.keys())
         assert task_name in registered_tasks
 
     def test_notifications_task_registered(self) -> None:
         """The send_pushover_notification task should be registered."""
-        task_name = "camply.notifications.send_pushover_notification"
+        task_name = "notifications.send-pushover"
         registered_tasks = list(celery_app.tasks.keys())
         assert task_name in registered_tasks
 
@@ -74,10 +74,9 @@ class TestCeleryTaskRegistration:
         assert "schedule-availability-checks" in beat_schedule
         assert (
             beat_schedule["schedule-availability-checks"]["task"]
-            == "camply.search.schedule_checks"
+            == "search.schedule-checks"
         )
         assert "sync-provider-catalogs-daily" in beat_schedule
         assert (
-            beat_schedule["sync-provider-catalogs-daily"]["task"]
-            == "camply.catalog.sync_all_providers"
+            beat_schedule["sync-provider-catalogs-daily"]["task"] == "catalog.sync-all"
         )
