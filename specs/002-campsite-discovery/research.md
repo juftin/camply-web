@@ -1,38 +1,30 @@
 # Campsite experience research
 
-Status: planning and research only. Competitor material reviewed October 8, 2026;
-repository re-audited October 12, 2026 against `main` at `f17106f`.
-Competitor claims were not rechecked during this repository refresh.
+Status: planning and research only. Repository re-audited October 12, 2026
+against `main` at `f17106f`.
 
 ## Method and limitations
 
-Reviewed public competitor pages, first-party FAQs/product updates, camply's
-frontend components, API schemas/routers, and polling/notification implementation.
-Competitor observations below describe documented features, not a completed
-hands-on evaluation of authenticated flows. Campflare's map exposes little content
-to text browsing, and Campnab's homepage is script-dependent. Hands-on competitor screenshots/comparisons and moderated user testing remain
-future research tasks. Current camply snapshots were inspected for this refresh;
-they are synthetic component fixtures, not live provider or delivery validation. Historical
-posts demonstrate product patterns; current FAQs take precedence when features
-have changed. Recommendations are design hypotheses, not measured user findings.
+Reviewed camply's frontend components, API schemas/routers, polling/notification
+implementation, and current UI snapshots. The snapshots use synthetic component
+fixtures, not live provider or delivery validation. Source findings identify
+implementation gaps; recommendations are design hypotheses pending hands-on
+accessibility review and camper usability testing.
 
-## Competitor patterns worth adapting
+## Interaction hypotheses to validate
 
-| Source                                                                                   | Observed pattern                                                                                                             | Proposed application to camply                                                                           |
-| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| [Campflare home](https://campflare.com/)                                                 | Destination search, suggested campgrounds, map entry point, and a clear free-access proposition.                             | Lead with search; offer starting points; make map discovery a later companion to a usable list.          |
-| [Campflare FAQ](https://campflare.com/info)                                              | Explains notification behavior, cancellation of requests, and why longer consecutive stays are harder to find.               | Place small, relevant explanations next to date/stay choices and alert controls.                         |
-| [Campnab FAQ](https://campnab.com/faq)                                                   | Park → campground → filters → dates; flexible arrivals; specific-site filters; explicit handoff to the reservation provider. | Add helpful guidance within the existing alert dialog and an explicit booking handoff.                   |
-| [Campnab dashboard update](https://campnab.com/blog/improvements-to-the-dashboard)       | Scan summaries, visible state/actions, and links to alert records.                                                           | Make alert cards explain what is watched, whether monitoring is operating, and what action is available. |
-| [Campnab scan naming](https://campnab.com/blog/new-name-your-campnab-scans)              | User-defined names help distinguish scans.                                                                                   | Consider trip names after core management works; needs persisted metadata.                               |
-| [Campnab flexible-date announcement](https://campnab.com/blog/announcing-flexible-dates) | Early example of presenting date flexibility as a simple choice.                                                             | Separate exact stays from flexible windows; use current FAQ for present competitor behavior.             |
+| Pattern                                       | Proposed application to camply                                                                       |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Destination search and useful starting points | Improve existing search and add supported suggestions; geographic exploration follows a usable list. |
+| Relevant date/stay explanations               | Explain consecutive-night matching beside existing date and minimum-stay controls.                   |
+| Optional refinement and clear booking handoff | Keep guidance in the existing alert dialog and link to the official reservation provider.            |
+| Understandable scan summaries and actions     | Show what is watched, monitoring eligibility, and available actions in existing cards.               |
+| User-defined scan names                       | Consider trip names after core management works; persisted metadata is required.                     |
+| Exact stays and flexible windows              | Explain both rules through the current date-window/minimum fields and inline summary.                |
 
-The inference: discoverability, understandable choices, and visible monitoring
-state are stronger starting points than copying branding, pricing mechanics, or
-adding many map layers. Camply can combine discovery with a friendly alert journey
-while preserving its current visual identity, familiar layouts, and free,
-open-source, self-hostable product direction. Competitor patterns do not imply
-copying their page layouts or replacing camply's existing alert dialog.
+The source audit points to discoverability, understandable choices, and visible
+monitoring state as useful starting points. Preserve camply's current visual
+identity, familiar layouts, and free, open-source, self-hostable product direction.
 
 ## Current repository baseline
 
@@ -106,9 +98,9 @@ semantics against [Pushover's API](https://pushover.net/api): destination valida
 provider acceptance, and user-confirmed receipt are separate states. The
 [design review](design-review.md) documents current-theme constraints and proposed
 availability previews, arrival weekdays, comparisons, and grouped notifications.
-These are planning/design findings, not a hands-on competitor assessment.
+These are planning/design findings, not a completed camper usability study.
 
-1. Walk both competitor flows on mobile and desktop with authorized test accounts;
+1. Walk camply's current flows on mobile and desktop with authorized test accounts;
    record search, date-selection, notification setup, and error recovery screens.
 2. Observe 5–8 campers completing camply discovery/alert tasks, including beginners,
    RV users, a flexible-weekend camper, and someone using keyboard/screen reader.

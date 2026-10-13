@@ -5,11 +5,10 @@ not implementation. IDs reference [the prioritized plan](plan.md).
 
 ## Completed in this session
 
-- [x] Research first-party Campflare and Campnab discovery/alert material; distinguish
-      current FAQs from historical product announcements.
+- [x] Define discovery/alert interaction hypotheses and record their validation needs.
 - [x] Audit Home, search, park/campground pages, alert form, auth/access, dashboard,
       results, map, API schemas/routers, provider date extraction, and notification worker.
-- [x] Record limitations of text-based competitor research and source-only code findings.
+- [x] Record limitations of source-only code findings and synthetic UI snapshots.
 - [x] Define camper journeys, requirements, acceptance scenarios, and proposed measures.
 - [x] Design screen hierarchy, interaction/state behavior, mobile/accessibility needs,
       and proposed exact/flexible stay choices.
@@ -54,7 +53,7 @@ planning feature. See [the current source audit](research.md#current-repository-
       empty/error/loading state sheets and actual notification onboarding designs.
 - [ ] Audit current component contrast/focus and propose targeted fixes only where needed.
 - [ ] Validate the clickable wireframe with campers, including planned auth and notification detours.
-- [ ] Complete authorized hands-on competitor review and 5–8 camper usability sessions.
+- [ ] Complete authorized hands-on app review and 5–8 camper usability sessions.
 - [ ] Establish usability/performance baselines and choose approved analytics scope.
 
 ## Phase A: correctness and interaction foundations

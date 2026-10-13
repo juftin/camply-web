@@ -161,7 +161,7 @@ Implementation specification and tasks: [Admin UI plan](../../specs/002-admin-ui
 
 ### 4.3 Discovery & Alert Experience
 
-- [x] T4.3.1 Research Campflare/Campnab and audit current discovery-to-alert behavior.
+- [x] T4.3.1 Review discovery/alert usability and audit current discovery-to-alert behavior.
 - [x] T4.3.2 Define the [proposed UI/UX specification, plan, and staged tasks](../../specs/002-campsite-discovery/plan.md).
 - [x] T4.3.2a Detail first-release work packages and create a local clickable planning wireframe.
 - [x] T4.3.2b Align planning and wireframes with incremental additions to the existing UI.

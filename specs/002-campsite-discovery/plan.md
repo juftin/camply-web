@@ -8,7 +8,6 @@ The direction is **incremental improvements to the existing camply UI**. Preserv
 the blue theme, centered home hero, navigation, card layouts, dashboard, and
 single-dialog alert setup. Make finding a campground and setting up alerts easier
 through better search, useful suggestions, clearer summaries, and reliable recovery.
-Campflare and Campnab inform interaction details, while camply keeps its identity.
 
 **First-release boundary:** no rebrand, replacement home composition, new primary
 navigation, dedicated alert-builder route, or mandatory multistep wizard. Broader
@@ -157,8 +156,8 @@ tray. Provide an explicit “Search this area” action after map movement, avoi
 silent result churn. Location permission is requested only after “Near me.” Rejection
 returns to manual search. Map and list share IDs/filters/selection and have equivalent
 navigation; loading, configuration failure, and missing coordinates keep the list usable.
-Map clusters, geographic queries, and total counts require backend work. Campflare's
-public map/home suggest the direction; detailed map interactions remain our proposal.
+Map clusters, geographic queries, and total counts require backend work.
+Detailed map interactions remain proposals pending usability validation.
 
 ### 3.4 Campground details: support the decision and next step
 
