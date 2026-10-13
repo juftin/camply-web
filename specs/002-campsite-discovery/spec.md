@@ -1,6 +1,8 @@
 # Camply: discovery to campsite alert
 
-Status: proposed product specification. Planning only; no application changes.
+Status: proposed product specification, refreshed against `main` at `f17106f` on
+October 12, 2026. This feature is planning-only; upstream application changes are
+preserved as its implementation baseline.
 
 ## Product outcome
 
@@ -19,7 +21,9 @@ outside this first pass.
 
 - Prioritize the community-facing web experience for new and returning campers,
   with phones as a primary device. Preserve self-hosted use.
-- Browsing is public. Authentication is required when saving personal alerts.
+- Browsing is public. Saving scans follows existing owner-selected `none`, `session`,
+  or `auth0` configuration, optional invite-only access, and scanning eligibility.
+  Reuse implemented auth-aware navigation/guards; HTTP Basic is not supported.
 - Camply remains free and open source; third-party notification costs are disclosed.
 - Booking happens through reservation providers. Camply does not reserve inventory.
 - Recreation.gov is the current reviewed provider; feature/coverage claims follow
@@ -76,7 +80,8 @@ observed at a particular time and can change before the camper books.
   consistent pause/resume, filter edits, explicit delete confirmation, failure feedback, and accurate totals.
 - **FR-11 Act:** Results show observed matching date blocks, freshness, and a useful
   booking handoff. Snapshot results are distinguished from sent-notification history.
-- **FR-12 Capability:** Hide or explain unsupported providers, filters, and channels;
+- **FR-12 Capability:** Preserve current auth, invitation, suspension, and role-gated
+  Admin behavior. Hide or explain unsupported providers, filters, and channels;
   missing metadata is unknown rather than a negative feature claim.
 - **FR-13 Preserve the UI:** Reuse existing page structures, Shadcn primitives,
   theme tokens, navigation, and ScanForm dialog. New copy/help/filter controls fit
@@ -121,6 +126,12 @@ observed at a particular time and can change before the camper books.
     the list. A notification setup detour preserves the alert draft.
 11. Existing users recognize Home, campground details, Dashboard, and ScanForm;
     additions retain their visual identity and familiar navigation/actions.
+12. Automatic-login mode has no sign-in detour; session and Auth0 return to the draft
+    through existing transport/guards. An uninvited or suspended camper sees the
+    correct restriction, retains choices, and cannot create/resume by retrying.
+13. Account suspension preserves saved scan settings while preventing monitoring
+    and delivery. The UI distinguishes that restriction from a user-paused scan;
+    ordinary campers cannot access admin operations to obtain status information.
 
 ## Success measures (proposed targets, not measured baselines)
 

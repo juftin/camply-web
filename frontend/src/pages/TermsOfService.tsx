@@ -128,8 +128,8 @@ export function TermsOfService() {
           </p>
           <p className="mb-4">
             Our liability is limited to the extent permitted by law. We provide
-            this service to help the outdoor community and operate in good
-            faith to maintain reliable campsite monitoring.
+            this service to help the outdoor community and operate in good faith
+            to maintain reliable campsite monitoring.
           </p>
         </section>
 

@@ -29,33 +29,21 @@ const baseScan: ScanResponse = {
 describe("ScanCard", () => {
   it("renders campground name", () => {
     renderWithRouter(
-      <ScanCard
-        scan={baseScan}
-        onToggleActive={vi.fn()}
-        onDelete={vi.fn()}
-      />,
+      <ScanCard scan={baseScan} onToggleActive={vi.fn()} onDelete={vi.fn()} />,
     );
     expect(screen.getByText("Lower Pines Campground")).toBeInTheDocument();
   });
 
   it("shows recreation area name", () => {
     renderWithRouter(
-      <ScanCard
-        scan={baseScan}
-        onToggleActive={vi.fn()}
-        onDelete={vi.fn()}
-      />,
+      <ScanCard scan={baseScan} onToggleActive={vi.fn()} onDelete={vi.fn()} />,
     );
     expect(screen.getByText("Yosemite National Park")).toBeInTheDocument();
   });
 
   it("shows active badge for active scan", () => {
     renderWithRouter(
-      <ScanCard
-        scan={baseScan}
-        onToggleActive={vi.fn()}
-        onDelete={vi.fn()}
-      />,
+      <ScanCard scan={baseScan} onToggleActive={vi.fn()} onDelete={vi.fn()} />,
     );
     // Both the Badge and the switch label say "Active" — get the badge div
     const badges = screen.getAllByText("Active");
@@ -122,11 +110,7 @@ describe("ScanCard", () => {
   it("calls onToggleActive when switch is clicked", async () => {
     const onToggle = vi.fn();
     renderWithRouter(
-      <ScanCard
-        scan={baseScan}
-        onToggleActive={onToggle}
-        onDelete={vi.fn()}
-      />,
+      <ScanCard scan={baseScan} onToggleActive={onToggle} onDelete={vi.fn()} />,
     );
     // The switch should have an id matching active-{scan.id}
     const switchEl = screen.getByRole("switch");
@@ -137,11 +121,7 @@ describe("ScanCard", () => {
   it("calls onDelete after confirmation", async () => {
     const onDelete = vi.fn();
     renderWithRouter(
-      <ScanCard
-        scan={baseScan}
-        onToggleActive={vi.fn()}
-        onDelete={onDelete}
-      />,
+      <ScanCard scan={baseScan} onToggleActive={vi.fn()} onDelete={onDelete} />,
     );
     // Click the trash icon button to open the confirmation dialog
     const trashBtn = screen.getByRole("button", { name: "" });

@@ -1,4 +1,4 @@
-import "@testing-library/jest-dom";
+import "@testing-library/jest-dom/vitest";
 
 // jsdom in some environments has opaque origins where localStorage/sessionStorage
 // throws. Provide a mock so DismissibleBanner and similar tests work.

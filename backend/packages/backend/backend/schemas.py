@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -35,7 +35,9 @@ class MeResponse(BaseModel):
 
     id: uuid.UUID
     email: str
-    is_early_access_user: bool
+    is_invited: bool
+    is_admin: bool = False
+    scanning_enabled: bool = True
     pushover_token: Optional[str] = None
 
 
@@ -43,6 +45,13 @@ class MeUpdateRequest(BaseModel):
     """Payload for ``PATCH /me``."""
 
     pushover_token: Optional[str] = None
+
+
+class SessionLoginRequest(BaseModel):
+    """Credentials submitted through the app's shared-account login form."""
+
+    username: str = Field(min_length=1, max_length=255)
+    password: str = Field(min_length=1, max_length=1024, repr=False)
 
 
 # ===========================================================================
@@ -53,7 +62,7 @@ class MeUpdateRequest(BaseModel):
 class AccessRequestCreate(BaseModel):
     """Payload for ``POST /request-access``."""
 
-    email: str = Field(..., description="Email address requesting early access")
+    email: str = Field(..., description="Email address requesting an invitation")
     name: Optional[str] = Field(default=None, description="Optional name")
 
 
@@ -152,3 +161,296 @@ class SearchResultResponse(BaseModel):
     recreation_area_name: Optional[str] = None
     campground_id: Optional[str] = None
     campground_name: Optional[str] = None
+
+
+# ===========================================================================
+# Admin
+# ===========================================================================
+
+
+class AdminOverviewResponse(BaseModel):
+    """Aggregate statistics for the administration overview."""
+
+    total_users: int
+    scanning_enabled_users: int
+    total_scans: int
+    saved_active_scans: int
+    eligible_scans: int
+    total_targets: int
+    eligible_targets: int
+    overdue_targets: int
+    suspended_users: int
+    dormant_targets: int
+    heartbeat_interval_seconds: int
+    target_cooldown_seconds: int
+    overdue_threshold_seconds: int
+
+
+class AdminUserItem(BaseModel):
+    """User row in admin user list."""
+
+    id: uuid.UUID
+    email: str
+    is_admin: bool
+    is_invited: bool
+    scanning_enabled: bool
+    has_pushover_token: bool
+    total_scans: int
+    active_scans: int
+    created_at: datetime.datetime
+
+
+class AdminUserListResponse(BaseModel):
+    """Paginated admin user list."""
+
+    users: list[AdminUserItem]
+    total: int
+
+
+class AdminUserDetailResponse(BaseModel):
+    """Admin detailed user representation."""
+
+    id: uuid.UUID
+    email: str
+    auth0_id: Optional[str] = None
+    is_admin: bool
+    is_invited: bool
+    scanning_enabled: bool
+    has_pushover_token: bool
+    total_scans: int
+    active_scans: int
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
+
+
+class AdminUserUpdateRequest(BaseModel):
+    """Payload to toggle scanning_enabled for a user."""
+
+    scanning_enabled: bool
+
+
+class AdminScanItem(BaseModel):
+    """Scan summary item in admin scan list."""
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    user_email: str
+    target_id: uuid.UUID
+    provider_id: int
+    campground_id: str
+    campground_name: str
+    start_date: datetime.date
+    end_date: datetime.date
+    is_active: bool
+    is_eligible: bool
+    user_scanning_enabled: bool
+    last_checked_at: Optional[datetime.datetime] = None
+    found_count: int
+    created_at: datetime.datetime
+
+
+class AdminScanListResponse(BaseModel):
+    """Paginated admin scan list."""
+
+    scans: list[AdminScanItem]
+    total: int
+
+
+class AdminScanDetailResponse(BaseModel):
+    """Admin detailed scan view."""
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    user_email: str
+    target_id: uuid.UUID
+    provider_id: int
+    campground_id: str
+    campground_name: str
+    recreation_area_name: str
+    start_date: datetime.date
+    end_date: datetime.date
+    is_active: bool
+    is_eligible: bool
+    user_scanning_enabled: bool
+    min_stay_length: int
+    preferred_types: list[str] = Field(default_factory=list)
+    require_electric: bool
+    last_checked_at: Optional[datetime.datetime] = None
+    created_at: datetime.datetime
+    results: list[ScanResultItem] = Field(default_factory=list)
+
+
+class AdminScanUpdateRequest(BaseModel):
+    """Payload to toggle is_active for a scan."""
+
+    is_active: bool
+
+
+class AdminTargetSubscriberItem(BaseModel):
+    """A subscriber attached to a unique target."""
+
+    scan_id: uuid.UUID
+    user_id: uuid.UUID
+    user_email: str
+    is_active: bool
+    is_eligible: bool
+    user_scanning_enabled: bool
+    created_at: datetime.datetime
+
+
+class AdminTargetDetailResponse(BaseModel):
+    """Admin detailed view of a shared unique target."""
+
+    id: uuid.UUID
+    provider_id: int
+    campground_id: str
+    campground_name: str
+    start_date: datetime.date
+    end_date: datetime.date
+    hash: str
+    last_checked_at: Optional[datetime.datetime] = None
+    created_at: datetime.datetime
+    total_subscribers: int
+    eligible_subscribers: int
+    overdue_threshold_seconds: int
+    status: Literal["active", "overdue", "dormant"]
+    subscribers: list[AdminTargetSubscriberItem] = Field(default_factory=list)
+    subscribers_total: int
+
+
+class AdminAuditEventItem(BaseModel):
+    """Admin audit event log record."""
+
+    id: uuid.UUID
+    actor_id: uuid.UUID
+    actor_email: str
+    action: str
+    subject_type: str
+    subject_id: uuid.UUID
+    prev_value: Optional[bool] = None
+    new_value: Optional[bool] = None
+    created_at: datetime.datetime
+
+
+class AdminAuditListResponse(BaseModel):
+    """Paginated list of admin audit records."""
+
+    events: list[AdminAuditEventItem]
+    total: int
+
+
+# ===========================================================================
+# Admin Operations
+# ===========================================================================
+
+
+class AdminWorkerItem(BaseModel):
+    """Status and queue workload for a single Celery worker node."""
+
+    name: str
+    status: str
+    active_tasks: int | None
+    reserved_tasks: int | None
+    scheduled_tasks: int | None
+
+
+class AdminDiscoveryMetadata(BaseModel):
+    """Metadata from the last completed target discovery cycle."""
+
+    timestamp: datetime.datetime
+    targets_discovered: int
+    targets_enqueued: int
+    status: str
+
+
+class AdminOperationsResponse(BaseModel):
+    """Overview of worker execution nodes, queue depth, and discovery status."""
+
+    workers: list[AdminWorkerItem]
+    queue_depth: int
+    active_tasks_total: int | None
+    reserved_tasks_total: int | None
+    scheduled_tasks_total: int | None
+    last_discovery: Optional[AdminDiscoveryMetadata] = None
+    broker_connected: bool
+    snapshot_at: datetime.datetime
+    inspection_available: bool = True
+    telemetry_available: bool = True
+    stale: bool = False
+    last_successful_at: Optional[datetime.datetime] = None
+    error_message: Optional[str] = None
+
+
+class AdminTaskTelemetryItem(BaseModel):
+    """Allowlisted metadata record of a background task execution."""
+
+    task_id: str
+    event_id: str | None = None
+    attempt: int | None = None
+    task_name: str
+    worker: str
+    finished_at: datetime.datetime
+    duration_ms: float
+    entity_type: Optional[str] = None
+    entity_id: Optional[str] = None
+    outcome: str
+    reason: Optional[str] = None
+
+
+class AdminOperationsTasksResponse(BaseModel):
+    """List of recent task executions."""
+
+    tasks: list[AdminTaskTelemetryItem]
+    total: int
+    available: bool = True
+    error_message: Optional[str] = None
+
+
+class AdminOperationsTaskDetail(AdminTaskTelemetryItem):
+    """Detailed view of a single task attempt, using the same safe metadata as history."""
+
+
+# ===========================================================================
+# Admin Trends & Prometheus Metrics
+# ===========================================================================
+
+
+class TrendPoint(BaseModel):
+    """A single time-value data point."""
+
+    timestamp: datetime.datetime
+    value: float | None
+
+
+class TrendSeries(BaseModel):
+    """A named time series containing data points."""
+
+    name: str
+    labels: dict[str, str] = Field(default_factory=dict)
+    points: list[TrendPoint] = Field(default_factory=list)
+
+
+class TrendMetric(BaseModel):
+    """A single metric panel containing one or more series."""
+
+    metric_id: str
+    title: str
+    description: str
+    unit: str
+    chart_type: str
+    series: list[TrendSeries] = Field(default_factory=list)
+
+
+class AdminTrendsResponse(BaseModel):
+    """Aggregated historical trend metrics from Prometheus."""
+
+    group: str
+    range: str
+    step_seconds: int
+    start_time: datetime.datetime
+    end_time: datetime.datetime
+    timezone: str = "UTC"
+    last_successful_at: Optional[datetime.datetime] = None
+    available: bool
+    error_message: Optional[str] = None
+    metrics: list[TrendMetric] = Field(default_factory=list)

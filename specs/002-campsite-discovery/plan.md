@@ -1,6 +1,8 @@
 # UI/UX plan: find a campground, start a useful alert
 
-Status: proposed; planning/research session only. No application code changed.
+Status: proposed; planning/research session only. Application changes on this branch
+come from the merged `main` baseline (`f17106f`); this feature adds planning artifacts.
+Repository findings were refreshed October 12, 2026.
 
 The direction is **incremental improvements to the existing camply UI**. Preserve
 the blue theme, centered home hero, navigation, card layouts, dashboard, and
@@ -20,6 +22,15 @@ The [first-release brief](implementation.md) defines concrete work packages;
 [design review](design-review.md) records existing UI constraints and additional
 feature opportunities. Use the [clickable wireframe](wireframes.html) to review
 the proposed core journey before implementing it.
+
+## Existing capabilities to preserve
+
+The [current source audit](research.md#current-repository-baseline) distinguishes
+implemented foundations from remaining work. Auth-aware CTAs and invite guards,
+in-app session login, scanning suspension, Dashboard toggle-error feedback, native
+admin monitoring, generated API contracts, and UI snapshots already exist. Do not
+rebuild them. Reuse current configuration/guards and snapshot workflows while
+improving discovery and ScanForm in place. Admin access remains role-gated.
 
 ## 1. Design principles and tradeoffs
 
@@ -59,8 +70,9 @@ usability problems cannot be solved inside the existing dialog.
 | Help and coverage     | Accurate supported providers/channels.                                    | Keep `/providers`, `/how-it-works`, `/faq` and current navigation.      |
 
 Retain Providers, How it works, Ethos, Contribute, account/theme controls, and the
-existing mobile menu. Add a skip link, current-page semantics, route-change focus,
-and auth-mode-aware actions in place. Keep critical controls reachable when the
+existing mobile menu, including its role-gated Admin entry. Auth-mode-aware actions
+already exist; retain them. Add a skip link, current-page semantics, and route-change
+focus in place. Keep critical controls reachable when the
 header's scroll behavior changes. Do not introduce bottom navigation or relocate
 community links in this first pass. `/explore` is an optional later route requiring
 complete results infrastructure; no `/alerts/new` route or `/alerts` alias is needed.
@@ -80,8 +92,8 @@ Small additions inside that structure:
 - Clarify the introduction: camply watches for openings; campers book directly
   through the official reservation provider. Correct unsupported channel/provider
   claims without rewriting the whole page's tone.
-- Retain the signup CTA, adapting its wording/action to Basic versus Auth0 and
-  signed-in state. Keep search as the direct path for people ready to choose a place.
+- Retain the existing capability-aware CTA (`accountPath`). `none` auto-login,
+  `session` sign-in, and Auth0 signup already select appropriate destinations. Keep search as the direct path for people ready to choose a place.
 - Preserve existing feature-card layout and artwork. Update only claims that exceed
   supported behavior. A compact draft-resume link can sit near search after recovery
   exists, without changing the hero composition.
@@ -242,7 +254,9 @@ rule; help/setup can expand in place rather than adding another navigation step.
 - Show a plain-language summary of place, date rule, required preferences, and delivery.
   Use expandable details rather than internal campground/provider IDs.
 - Signed-out campers can configure first, then sign in to save. Resume the draft on
-  return; cancelled login preserves it. Basic auth has no implied signup path.
+  return; cancelled login preserves it. Use existing `none`/`session`/`auth0`
+  capabilities: auto-login needs no detour, session mode has no signup, and Auth0
+  uses the configured signup behavior. Preserve cookie/CSRF transport and 401 recovery.
 - Pushover setup explains install/account/key steps, external cost, and why required.
   A saved key means configured, not verified or guaranteed operational.
 - Preferred behavior: allow a deliberate “Save without notifications” choice with a
@@ -256,8 +270,12 @@ rule; help/setup can expand in place rather than adding another navigation step.
 - Completion fits the existing toast/detail transition: watched place, date summary,
   actual notification readiness, and link to the scan. A short friendly confirmation
   is enough; no replacement success page or illustration is required.
-- If beta access is required, show it before final save and preserve the draft through
-  the access request. Verify actual policy enforcement/routes before designing around it.
+- Optional invite-only access is already enforced in ProtectedRoute and scan APIs.
+  Preserve drafts through InviteOnly request/pending states; Profile setup stays
+  reachable. Request collection sends no invitation email and grants no automatic access.
+- Preserve `scanning_enabled` enforcement in the form, API, worker, and notifications.
+  If suspended, explain why create/resume cannot succeed and keep the draft. Do not
+  clear saved Active settings or infer eligibility from `is_active` alone.
 
 ### 3.6 Existing dashboard: reassure, organize, and act
 
@@ -270,11 +288,15 @@ rename to My alerts or replacement management page.
 - Cards show campground/park, date rule, requirements, state, last check, and delivery
   readiness. One title link opens details; pause/delete are separate controls.
 - Make states mutually understandable: Waiting for first check, Watching, Paused,
-  Ended. Monitoring delayed/error is an operational overlay requiring server data.
+  Ended. Suspension is an account-level eligibility overlay; a saved Active setting
+  is not proof of monitoring. Reuse `MeResponse.scanning_enabled` and existing alerts.
+  Monitoring delayed/error needs owner-safe server data; admin telemetry already exists.
   “No matches yet” describes results, not a failed monitoring state.
 - Ended takes precedence over Active. Use campground-local departure boundary and
   reconcile actual worker lifecycle before presenting definitive ended behavior.
-- Surface mutation errors near the card and allow retry. Preserve previous state until
+- Keep existing Dashboard toggle/resume errors, including suspended-account refusal.
+  Add missing delete feedback and associate pending/errors with the affected card.
+  Preserve previous state until
   success or roll back an optimistic update; pending controls have accessible labels.
 - Delete confirmation names the campground/dates; focus returns to a sensible item.
   Prefer pause for “I don't need messages right now.” Do not offer Undo for a hard-delete
@@ -363,24 +385,24 @@ Email/SMS toggles as a promise of forthcoming support.
 | Notifications | Unconfigured, configured, unavailable host channel, testing, failed, sent, receipt confirmed.    | Setup/help, retry test, explicit save without notifications if chosen. |
 | Dashboard     | None, loading, populated, filtered empty, mutation pending/failed, paused/ended.                 | New alert, reset filters, retry, resume/edit/confirm delete.           |
 | Results       | First check pending, no current matches, matches, stale observation, provider delay/error.       | Show honest status, supported edits, official booking link.            |
-| Auth/access   | Basic login, Auth0 login/signup, cancelled/error, beta access pending.                           | Return to draft, retry, explore publicly; preserve intent.             |
+| Auth/access   | Auto-login, session login, Auth0 login/signup, cancelled/error, invite pending, suspended.       | Return to draft, retry, explore publicly; preserve intent.             |
 
 ## 6. Backend and data prerequisites
 
-| Capability                     | Existing foundation                                          | Required before the corresponding UI                                                                                                            |
-| ------------------------------ | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Exact/flexible overnight rules | Date window + minimum consecutive nights.                    | Define exclusive departure semantics, fix inclusive extraction, validate both ends and stay length; address existing saved-alert compatibility. |
-| Matching results/counts        | Shared target snapshots, filter-aware notification matching. | Apply user requirements to result API with sufficient metadata; return matching blocks/counts consistently.                                     |
-| Operational state              | Last successful check timestamp.                             | Safe check state/error/next-check metadata and provider cadence; distinguish delayed/no-match.                                                  |
-| Eligible search                | Mixed name hits, limit 20; park metadata list.               | Entity/capability filtering and valid detail behavior for unreservable entries; consistent provider support.                                    |
-| Full Explore                   | Name search + individual campground coordinates.             | Paginated browse/geographic filters, total counts, stable sort, coordinate handling, capability/metadata freshness.                             |
-| Delivery readiness             | User key save + Pushover task.                               | Host capability summary, test endpoint/status, observable failures; distinguish provider accepted from device received.                         |
-| Editing dates                  | PATCH only updates filters/active flag.                      | Subscription retargeting with ownership/de-duplication/duplicate handling; preserve history attribution.                                        |
-| Richer filters                 | Type and electric matching, accessibility in DTO.            | Persist/expose required metadata, provider-specific filter capabilities, equipment/site catalogs and matching tests.                            |
-| Multiple campgrounds           | One target per scan.                                         | Decide separate alerts versus trip group; atomic/best-effort bulk behavior, duplicate/conflict handling and request limits.                     |
-| Alert history                  | Replaced latest snapshots.                                   | Notification events with timestamps, matched blocks, channels/outcomes, ownership and retention policy.                                         |
-| Favorites/trip labels          | No reviewed endpoints/models.                                | Persisted user models or explicitly local-only favorites; grouping contract before presenting trip-wide controls.                               |
-| Photos/amenities               | Description, coordinates, source URL.                        | Data source, rights, normalization, unknown handling, refresh process.                                                                          |
+| Capability                     | Existing foundation                                               | Required before the corresponding UI                                                                                                                        |
+| ------------------------------ | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exact/flexible overnight rules | Date window + minimum consecutive nights.                         | Define exclusive departure semantics, fix inclusive extraction, validate both ends and stay length; address existing saved-alert compatibility.             |
+| Matching results/counts        | Shared target snapshots, filter-aware notification matching.      | Apply user requirements to result API with sufficient metadata; return matching blocks/counts consistently.                                                 |
+| Operational state              | Last check, profile scanning eligibility, admin telemetry/trends. | Ownership-safe camper projection of existing monitoring signals and provider cadence; distinguish saved setting, eligible, suspended, delayed and no-match. |
+| Eligible search                | Mixed name hits, limit 20; park metadata list.                    | Entity/capability filtering and valid detail behavior for unreservable entries; consistent provider support.                                                |
+| Full Explore                   | Name search + individual campground coordinates.                  | Paginated browse/geographic filters, total counts, stable sort, coordinate handling, capability/metadata freshness.                                         |
+| Delivery readiness             | User key save + Pushover task.                                    | Host capability summary, test endpoint/status, observable failures; distinguish provider accepted from device received.                                     |
+| Editing dates                  | PATCH only updates filters/active flag.                           | Subscription retargeting with ownership/de-duplication/duplicate handling; preserve history attribution.                                                    |
+| Richer filters                 | Type and electric matching, accessibility in DTO.                 | Persist/expose required metadata, provider-specific filter capabilities, equipment/site catalogs and matching tests.                                        |
+| Multiple campgrounds           | One target per scan.                                              | Decide separate alerts versus trip group; atomic/best-effort bulk behavior, duplicate/conflict handling and request limits.                                 |
+| Alert history                  | Replaced latest snapshots.                                        | Notification events with timestamps, matched blocks, channels/outcomes, ownership and retention policy.                                                     |
+| Favorites/trip labels          | No reviewed endpoints/models.                                     | Persisted user models or explicitly local-only favorites; grouping contract before presenting trip-wide controls.                                           |
+| Photos/amenities               | Description, coordinates, source URL.                             | Data source, rights, normalization, unknown handling, refresh process.                                                                                      |
 
 Do not mutate shared target dates to edit one user's alert. Resolve checkout
 compatibility deliberately: existing inclusive windows may change meaning. Before
@@ -400,9 +422,9 @@ not merely a frontend call to an existing endpoint.
 | UX-02 | Overnight boundaries, stay validation, exact/flexible matching examples.       | P0       | M      | Backend/provider + saved-date compatibility.                             |
 | UX-03 | User-filtered result blocks and accurate counts.                               | P0       | M      | Backend snapshot metadata/filter contract.                               |
 | UX-04 | Shared accessible search; stale-response prevention and clear recovery.        | P0       | M      | Existing API; eligible entity filter may extend it.                      |
-| UX-05 | Semantic navigation/controls and visible mutation errors.                      | P0       | S–M    | Existing frontend components.                                            |
+| UX-05 | Semantic controls and delete/card errors; preserve resume feedback.            | P0       | S–M    | Existing frontend components.                                            |
 | UX-06 | Existing home: accurate copy and destination suggestions.                      | P1       | M      | Accurate support data; existing Home components.                         |
-| UX-07 | Existing header: auth-aware actions, skip link/route focus.                    | P1       | S      | Auth/capability policy.                                                  |
+| UX-07 | Existing header: retain auth/admin actions; add skip link/route focus.         | P1       | S      | Auth/capability policy.                                                  |
 | UX-08 | Park list filtering, counts, stable sorting and map fallback.                  | P1       | M      | Existing full park list; eligibility decision.                           |
 | UX-09 | Existing campground page: clearer alert / reservation actions.                 | P1       | M      | UX-01; metadata fallback.                                                |
 | UX-10 | Enhance existing ScanForm dialog with validation and summary.                  | P1       | L      | UX-02, UX-04, UX-09.                                                     |
@@ -416,7 +438,7 @@ not merely a frontend call to an existing endpoint.
 | UX-18 | Synchronized map/list, Near me and Search this area.                           | P2       | L      | UX-17 + geospatial API/map delivery choice.                              |
 | UX-19 | Flexible-date shortcuts and accessible range-calendar enhancement.             | P2       | M      | UX-02 + usability evidence.                                              |
 | UX-20 | Additional notification channel (evaluate email/browser push).                 | P2       | L      | Delivery infrastructure/cost decision.                                   |
-| UX-21 | Notification history and actionable monitoring diagnostics.                    | P2       | L      | Backend event/operational contracts.                                     |
+| UX-21 | Owner-visible notification history and monitoring diagnostics.                 | P2       | L      | Backend event/operational contracts.                                     |
 | UX-22 | Edit dates and duplicate existing alert with prefilled draft.                  | P2       | M–L    | Retargeting and duplicate semantics.                                     |
 | UX-23 | Favorites and session recents with privacy controls.                           | P2       | M      | Storage/ownership decision.                                              |
 | UX-24 | Multiple campgrounds, trip names/groups and bulk pause.                        | P2       | L      | Group model and multi-target save semantics.                             |
@@ -485,7 +507,9 @@ nested in navigation links.
   weight before/after; defer map and noncritical imagery. Set numeric budgets from
   real baseline/device/network measurements rather than fabricated timings.
 - Quality workflows: `task fix`, `task lint`, `task check`, `task test`, applicable
-  pre-commit hooks, and production frontend compilation. Run focused tests per slice;
+  pre-commit hooks, `task api:check`, and `task frontend:build:static`. For UI
+  changes run `task snapshot`/`task snapshot:check`, inspect diffs, and update baselines
+  only for reviewed intentional changes using `task snapshot:update`. Run focused tests per slice;
   full checks before a PR. Planning artifacts receive the repository quality gates; application-feature
   acceptance remains pending because application code is unchanged.
 
@@ -502,22 +526,28 @@ or personal/credential payloads. Study booking outcomes only via explicit feedba
 
 ## 10. Decisions to settle before implementation
 
-| Decision                  | Recommended starting point                                       | Alternative / remaining evidence                                                |
-| ------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Primary experience        | Existing public discovery followed by improved ScanForm dialog.  | Existing users may need a shorter direct path; test both.                       |
-| Builder container         | Current single dialog with shared validation and restored state. | Page/wizard only after evidence that targeted dialog fixes are insufficient.    |
-| Date model                | Existing window/minimum fields; departure exclusive.             | Preserve inclusive existing records only with explicit compatibility plan.      |
-| Notification requirement  | Encourage readiness, allow deliberate monitoring-only save.      | Require configuration if testing shows users consistently miss the distinction. |
-| Next channel              | Research email and browser push; retain Pushover.                | Select based on audience/delivery/cost, not visual preference.                  |
-| First map increment       | List-first park view/fallback; full map discovery later.         | Map-first is useful only with complete geographic result coverage.              |
-| Multiple campground model | Separate alerts first; group later when needed.                  | Atomic trip builder introduces persistence and partial-save complexity.         |
-| Favorites                 | Session recents first; optional persisted favorites later.       | Local-only saves are simpler but need clear device-specific wording.            |
-| Visual identity           | Retain current blue theme, typography, components, and layouts.  | Only measured contrast/spacing defects justify targeted visual changes.         |
-| Access/coverage           | UI follows verified runtime policy/capabilities.                 | Documentation currently differs from code; resolve before presenting promises.  |
+| Decision                  | Recommended starting point                                                     | Alternative / remaining evidence                                                   |
+| ------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| Primary experience        | Existing public discovery followed by improved ScanForm dialog.                | Existing users may need a shorter direct path; test both.                          |
+| Builder container         | Current single dialog with shared validation and restored state.               | Page/wizard only after evidence that targeted dialog fixes are insufficient.       |
+| Date model                | Existing window/minimum fields; departure exclusive.                           | Preserve inclusive existing records only with explicit compatibility plan.         |
+| Notification requirement  | Encourage readiness, allow deliberate monitoring-only save.                    | Require configuration if testing shows users consistently miss the distinction.    |
+| Next channel              | Research email and browser push; retain Pushover.                              | Select based on audience/delivery/cost, not visual preference.                     |
+| First map increment       | List-first park view/fallback; full map discovery later.                       | Map-first is useful only with complete geographic result coverage.                 |
+| Multiple campground model | Separate alerts first; group later when needed.                                | Atomic trip builder introduces persistence and partial-save complexity.            |
+| Favorites                 | Session recents first; optional persisted favorites later.                     | Local-only saves are simpler but need clear device-specific wording.               |
+| Visual identity           | Retain current blue theme, typography, components, and layouts.                | Only measured contrast/spacing defects justify targeted visual changes.            |
+| Access/coverage           | Preserve existing mode/invite/suspension policy; verify deployed capabilities. | Invitation approval/email and owner-visible health are separate missing contracts. |
 
 ## 11. Planned design deliverables
 
-The [implementation brief](implementation.md) now breaks the first release into
+The current visual baseline is the existing [snapshot report](../../frontend/snapshots/REPORT.md)
+and component catalog at `/dev/preview`. Home, Dashboard, and ScanForm baselines were
+visually inspected. Preserve the guarded admin area; it is outside this feature's
+redesign scope. The standalone wireframe is a proposed camper journey, not a complete
+representation of every auth/admin/suspension state.
+
+The [implementation brief](implementation.md) breaks the first release into
 seven work packages with dependency gates, precise date examples, draft recovery,
 and error behavior. The [responsive clickable wireframe](wireframes.html) covers
 the existing home structure with suggestions, sample name search, the park card

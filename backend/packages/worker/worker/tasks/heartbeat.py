@@ -9,10 +9,12 @@ import structlog
 from sqlalchemy import select
 
 from db.config import db
-from db.models import UniqueTarget, UserScan
+from db.eligibility import eligible_scan_condition
+from db.models import UniqueTarget, User, UserScan
 from worker.celery_app import celery_app
 from worker.config import worker_config
 from worker.metrics import TARGETS_DISCOVERED_TOTAL, TARGETS_ENQUEUED_TOTAL
+from worker.telemetry import record_discovery_completion
 
 logger = structlog.getLogger(__name__)
 
@@ -31,9 +33,20 @@ def discover_targets() -> dict:
     Returns a dict with counts for observability.
     """
     try:
-        return asyncio.run(_discover_targets_async())
+        result = asyncio.run(_discover_targets_async())
+        record_discovery_completion(
+            targets_discovered=result.get("discovered", 0),
+            targets_enqueued=result.get("enqueued", 0),
+            status="success",
+        )
+        return result
     except Exception:
         logger.exception("Heartbeat task failed")
+        record_discovery_completion(
+            targets_discovered=0,
+            targets_enqueued=0,
+            status="error",
+        )
         return {"status": "error"}
 
 
@@ -47,14 +60,15 @@ async def _discover_targets_async() -> dict:
     cooldown_threshold = now - datetime.timedelta(seconds=worker_config.target_cooldown)
 
     async with db.get_session() as session:
-        # Find targets with active user scans that need checking
+        # Find targets with eligible user scans that need checking
         stmt = (
             select(UniqueTarget)
             .join(UserScan, UserScan.target_id == UniqueTarget.id)
+            .join(User, User.id == UserScan.user_id)
             .where(
-                UserScan.is_active == True,  # noqa: E712
+                eligible_scan_condition(),
                 (
-                    (UniqueTarget.last_checked_at == None)  # noqa: E711
+                    (UniqueTarget.last_checked_at.is_(None))
                     | (UniqueTarget.last_checked_at < cooldown_threshold)
                 ),
             )

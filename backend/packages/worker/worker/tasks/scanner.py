@@ -8,10 +8,11 @@ import uuid as uuid_mod
 from typing import Any, Optional
 
 import structlog
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 
 from db.config import db
-from db.models import Campground, ScanResult, UniqueTarget, UserScan
+from db.eligibility import eligible_scan_condition
+from db.models import Campground, ScanResult, UniqueTarget, User, UserScan
 from providers import PROVIDERS
 from providers.dto import CampsiteDTO
 from providers.utils import normalize_name
@@ -21,7 +22,9 @@ from worker.locks import ValkeyLock
 from worker.metrics import (
     CAMPGROUND_API_ERRORS_TOTAL,
     LOCK_CONTENTION_TOTAL,
+    PROVIDER_CHECKS_TOTAL,
     SCAN_RESULTS_STORED_TOTAL,
+    TARGETS_CHECKED_TOTAL,
     UNIQUE_TARGETS_CHECKED,
 )
 from worker.notifications.base import NotificationDTO
@@ -146,6 +149,24 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                 )
                 return {"status": "error", "reason": "campground_not_found"}
 
+            # Check for eligible subscribers before provider call
+            sub_stmt = (
+                select(func.count(UserScan.id))
+                .join(User, User.id == UserScan.user_id)
+                .where(
+                    UserScan.target_id == target_uuid,
+                    eligible_scan_condition(),
+                )
+            )
+            sub_res = await session.execute(sub_stmt)
+            eligible_count = sub_res.scalar() or 0
+            if eligible_count == 0:
+                logger.info(
+                    "No eligible subscribers for target, skipping",
+                    target_id=target_id,
+                )
+                return {"status": "skipped", "reason": "no_eligible_subscribers"}
+
             # Resolve provider class
             provider_cls = PROVIDERS.get(target.provider_id)
             if provider_cls is None:
@@ -155,6 +176,13 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                 )
                 return {"status": "error", "reason": "unknown_provider"}
 
+            # Record checked target execution
+            try:
+                TARGETS_CHECKED_TOTAL.inc()
+                UNIQUE_TARGETS_CHECKED.inc()
+            except Exception:
+                pass
+
             # Instantiate provider and call find_availabilities
             provider = provider_cls()
             try:
@@ -163,10 +191,19 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                     start_date=target.start_date,
                     end_date=target.end_date,
                 )
-            except Exception:
-                CAMPGROUND_API_ERRORS_TOTAL.labels(
-                    provider=str(target.provider_id)
+                PROVIDER_CHECKS_TOTAL.labels(
+                    provider=str(target.provider_id), status="success"
                 ).inc()
+            except Exception:
+                try:
+                    PROVIDER_CHECKS_TOTAL.labels(
+                        provider=str(target.provider_id), status="error"
+                    ).inc()
+                    CAMPGROUND_API_ERRORS_TOTAL.labels(
+                        provider=str(target.provider_id)
+                    ).inc()
+                except Exception:
+                    pass
                 raise
             finally:
                 try:
@@ -258,9 +295,13 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
             # Fan-out: find matching UserScans and enqueue notifications
             notifications_sent = 0
             if new_openings:
-                us_stmt = select(UserScan).where(
-                    UserScan.target_id == target_uuid,
-                    UserScan.is_active == True,  # noqa: E712
+                us_stmt = (
+                    select(UserScan)
+                    .join(User, User.id == UserScan.user_id)
+                    .where(
+                        UserScan.target_id == target_uuid,
+                        eligible_scan_condition(),
+                    )
                 )
                 us_result = await session.execute(us_stmt)
                 active_scans = us_result.scalars().all()
@@ -277,6 +318,7 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                                 kwargs={
                                     "user_id": str(scan.user_id),
                                     "notification": opening.model_dump(mode="json"),
+                                    "scan_id": str(scan.id),
                                 },
                                 queue="celery",
                             )

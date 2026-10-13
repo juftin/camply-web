@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Loader2, LogOut, Key, Mail, ArrowLeft, LayoutDashboard } from "lucide-react";
+import {
+  Loader2,
+  LogOut,
+  Key,
+  Mail,
+  ArrowLeft,
+  LayoutDashboard,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,13 +21,11 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 
 export function Profile() {
-  const { user, isLoading, updatePushoverToken, signOut } =
+  const { user, isLoading, updatePushoverToken, signOut, autoLogin } =
     useAuth();
   const navigate = useNavigate();
 
-  const [pushoverKey, setPushoverKey] = useState(
-    user?.pushover_token ?? "",
-  );
+  const [pushoverKey, setPushoverKey] = useState(user?.pushover_token ?? "");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
@@ -117,11 +122,7 @@ export function Profile() {
               .
             </p>
             <div className="flex items-center gap-2">
-              <Button
-                onClick={handleSavePushover}
-                disabled={saving}
-                size="sm"
-              >
+              <Button onClick={handleSavePushover} disabled={saving} size="sm">
                 {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                 Save
               </Button>
@@ -135,25 +136,23 @@ export function Profile() {
 
           {/* Actions */}
           <div className="pt-4 border-t space-y-3">
-            <Button
-              variant="outline"
-              className="w-full"
-              asChild
-            >
+            <Button variant="outline" className="w-full" asChild>
               <Link to="/dashboard">
                 <LayoutDashboard className="h-4 w-4 mr-2" />
                 Go to Dashboard
               </Link>
             </Button>
 
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={handleSignOut}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+            {!autoLogin && (
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

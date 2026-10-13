@@ -18,7 +18,7 @@ dependencies = [
   "structlog>=25,<26",
   # Monitoring
   "sentry-sdk>=2,<3",
-  "prometheus-client>=0.21,<1",
+  "prometheus-client>=0.21,<1"
 ]
 
 [dependency-groups]
@@ -28,7 +28,7 @@ dev = [
   "ruff>=0.11.0,<0.12.0",
   "mypy>=1,<2",
   "pip>=24,<25",
-  "pytest-vcr>=1.0.2",
+  "pytest-vcr>=1.0.2"
 ]
 
 [build-system]

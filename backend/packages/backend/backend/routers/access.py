@@ -23,7 +23,7 @@ async def request_access(
     body: AccessRequestCreate,
     session: SessionDep,
 ) -> AccessRequestResponse:
-    """Submit an early-access request.
+    """Submit an invitation request.
 
     Duplicate emails are silently accepted (idempotent).
     """
@@ -36,8 +36,7 @@ async def request_access(
         await session.rollback()
         logger.info("Duplicate access request ignored", email=body.email)
 
-    logger.info("Early access requested", email=body.email, name=body.name)
+    logger.info("Invitation requested", email=body.email, name=body.name)
     return AccessRequestResponse(
-        message="Thank you! Your early access request has been received. "
-        "We'll notify you when access is granted."
+        message="Thank you! Your invitation request has been received."
     )

@@ -1,14 +1,17 @@
 # Frontend Dockerfile for React + Vite application
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
+# Enable the package manager pinned in package.json
+RUN corepack enable
+
 # Copy package files
-COPY package.json package-lock.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install dependencies
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # Copy source files
 COPY . .
@@ -18,7 +21,7 @@ ARG CAMPLY_API_URL
 ENV CAMPLY_API_URL=$CAMPLY_API_URL
 
 # Build the application
-RUN npm run build
+RUN pnpm run build
 
 FROM nginx:alpine AS production
 

@@ -23,6 +23,48 @@ tasks:
       - task: backend:test
       - task: frontend:test
 
+  api:generate:
+    desc: Generate API types from the local backend schema without a running server
+    cmds:
+      - task: backend:run
+        vars:
+          CLI_ARGS: python -m backend.openapi --output ../frontend/tmp/openapi.json
+      - task: frontend:codegen
+        vars:
+          OPENAPI_SCHEMA: "{{.ROOT_DIR}}/frontend/tmp/openapi.json"
+
+  api:check:
+    desc: Verify committed API types match the current backend contract
+    cmds:
+      - task: backend:run
+        vars:
+          CLI_ARGS: python -m backend.openapi --output ../frontend/tmp/openapi.json
+      - task: frontend:codegen
+        vars:
+          CLI_ARGS: --check
+          OPENAPI_SCHEMA: "{{.ROOT_DIR}}/frontend/tmp/openapi.json"
+
+  admin:smoke:
+    desc: Verify admin workflows against isolated live monitoring services and Chromium
+    deps: [frontend:install]
+    cmds:
+      - CAMPLY_ADMIN_SMOKE=1 task backend:test -- -c pyproject.toml packages/backend/tests/integration/test_admin_smoke.py -s
+
+  snapshot:
+    desc: Run UI Visual Snapshots and Generate Comparison Report
+    cmds:
+      - task: frontend:snapshot
+
+  snapshot:update:
+    desc: Update UI Visual Snapshot Baselines
+    cmds:
+      - task: frontend:snapshot:update
+
+  snapshot:check:
+    desc: Verify UI Visual Snapshots Match Baselines (CI Gate)
+    cmds:
+      - task: frontend:snapshot:check
+
   lint:
     desc: Lint All Code (Backend + Frontend)
     cmds:
@@ -68,6 +110,13 @@ tasks:
       - test ! -f .pre-commit-config.yaml
     deps: [pre-commit-install]
 
+  admin:provision:
+    desc: Provision an Administrator by User UUID
+    cmds:
+      - task: backend:admin:provision
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
   dev:
     desc: Run Full Stack Development (Backend + Frontend)
     deps: ["frontend:dev", "backend:dev"]
@@ -77,11 +126,40 @@ tasks:
     cmds:
       - docker compose up --build
 
+  compose:up:
+    desc: Start All Services in Background with Docker Compose
+    cmds:
+      - docker compose up -d --build {{.CLI_ARGS}}
+
+  compose:down:
+    desc: Stop All Docker Compose Services
+    cmds:
+      - docker compose down {{.CLI_ARGS}}
+
+  compose:logs:
+    desc: Follow Docker Compose Logs
+    cmds:
+      - docker compose logs -f {{.CLI_ARGS}}
+
+  compose:ps:
+    desc: List Docker Compose Service Statuses
+    cmds:
+      - docker compose ps {{.CLI_ARGS}}
+
+  compose:restart:
+    desc: Restart Docker Compose Services
+    cmds:
+      - docker compose restart {{.CLI_ARGS}}
+
+  compose:infra:
+    desc: Start Backing Infrastructure Only (PostgreSQL + Valkey)
+    cmds:
+      - docker compose up -d db valkey {{.CLI_ARGS}}
+
   default:
-    desc: Install Project, List Tasks
+    desc: List Available Tasks
     cmds:
       - task --list-all
-    deps: [install]
 
   ########################
   # INTERNAL TASKS

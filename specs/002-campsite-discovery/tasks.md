@@ -28,10 +28,27 @@ not implementation. IDs reference [the prioritized plan](plan.md).
 - [x] Capture and visually spot-check desktop home and mobile alert-dialog wireframes for
       PR review, confirming no horizontal overflow at those viewport sizes.
 
+## Implemented baseline to retain
+
+These checked items shipped on `main`; they are not new implementation by this
+planning feature. See [the current source audit](research.md#current-repository-baseline).
+
+- [x] Capability-aware Home/Header actions for `none`, `session`, and `auth0`.
+- [x] In-app session cookies/CSRF, Pages API transport, scan-query auth recovery,
+      and optional invite-only guards with request/pending UI.
+- [x] API/worker/delivery scanning suspension, saved-setting preservation, ScanForm
+      submission block, and Dashboard create/resume feedback.
+- [x] Native admin operations/telemetry, audited role guards, generated admin types,
+      and API contract drift checks.
+- [x] pnpm and current frontend toolchain; DevPreview and UI snapshot workflows.
+- [x] Merge current `main`, reconcile shared documentation, and re-audit this plan's
+      remaining work against the current implementation and component snapshots.
+
 ## Design validation before implementation
 
 - [ ] Review checkout compatibility and saved-alert date model with project owner.
-- [ ] Confirm deployed auth/early-access policy and provider/channel capabilities.
+- [ ] Confirm deployed `none`/`session`/`auth0`, invite-only, scanning eligibility,
+      and provider/channel capabilities using current config and guards.
 - [ ] Decide notification-required versus deliberate monitoring-only save behavior.
 - [ ] Review the responsive wireframe visually on mobile/desktop and add complete
       empty/error/loading state sheets and actual notification onboarding designs.
@@ -42,8 +59,8 @@ not implementation. IDs reference [the prioritized plan](plan.md).
 
 ## Phase A: correctness and interaction foundations
 
-- [ ] UX-01: align coverage, supported channels, auth CTAs and cadence wording with
-      real capability/policy information. Verify unsupported options are never offered.
+- [ ] UX-01: align coverage, supported channels and cadence wording with real
+      capability information; preserve implemented capability-aware auth CTAs. Verify unsupported options are never offered.
 - [ ] UX-02: specify exclusive departure, exact-stay and flexible-window semantics;
       resolve existing inclusive records; validate client/server windows and night limits.
       Verify one-night, month/year boundary, leap-day and DST scenarios.
@@ -51,13 +68,13 @@ not implementation. IDs reference [the prioritized plan](plan.md).
       Verify alerts sharing a target but differing in requirements return different matches.
 - [ ] UX-04: unify search with accessible keyboard semantics, current-query selection,
       debouncing, clear/retry and consistent entity eligibility. Verify race/empty/error states.
-- [ ] UX-05: replace nonsemantic navigation and nested card actions, surface mutation
-      errors, and give controls accessible labels. Verify pause/delete never trigger navigation.
+- [ ] UX-05: replace nonsemantic navigation and nested card actions; retain existing
+      resume feedback, add missing delete/card errors and accessible labels. Verify pause/delete never trigger navigation.
 
 ## Phase B: the complete core journey
 
 - [ ] UX-06/07: add supported suggestions and accurate copy to the existing Home;
-      improve auth-aware actions/focus inside the existing Header. Preserve theme,
+      retain auth/admin-aware actions and improve focus inside the existing Header. Preserve theme,
       hero, sections, and navigation. Verify with before/after screenshots.
 - [ ] UX-08/09: add filtering/counts to existing park lists and clearer actions to
       existing campground cards/pages, preserving layout.
@@ -66,7 +83,8 @@ not implementation. IDs reference [the prioritized plan](plan.md).
       controls, and plain-language summary, keeping current fields/order/actions.
       Verify viewport/focus behavior and full-window vs partial-stay explanations.
 - [ ] UX-11: preserve validated drafts through auth/access detours without credentials
-      in browser storage. Verify success/cancel/error return journeys in both auth modes.
+      in browser storage. Reuse current auth transport/guards; verify all three modes,
+      cancelled/expired sessions, invite pending, and suspension without bypassing access.
 - [ ] UX-12: implement clear channel onboarding/readiness and agreed save-without-
       notifications behavior. Verify configured does not imply tested or operational.
 - [ ] UX-13: implement actual notification test support and duplicate-alert resolution.
@@ -78,7 +96,9 @@ not implementation. IDs reference [the prioritized plan](plan.md).
 - [ ] UX-16: complete keyboard/screen-reader, mobile/zoom, dark-theme, reduced-motion,
       keyboard-open, partial metadata and low-bandwidth acceptance tasks.
 - [ ] Run focused behavioral tests, then task fix/lint/check/test and applicable hooks
-      before a PR; regenerate API types and update docs after contract changes.
+      before a PR; verify `task api:check` and `task frontend:build:static`. For UI
+      changes use existing snapshot tasks, inspect diffs, and update only reviewed
+      intentional baselines. Regenerate API types/docs after contract changes.
 
 ## Phase C: expanded discovery and delivery
 

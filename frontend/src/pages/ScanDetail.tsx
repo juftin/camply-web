@@ -17,7 +17,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useScanDetail } from "@/hooks/useScans";
-import { toTitleCase, formatDate, daysBetween, formatRelativeTime } from "@/lib/utils";
+import {
+  toTitleCase,
+  formatDate,
+  daysBetween,
+  formatRelativeTime,
+} from "@/lib/utils";
 
 export function ScanDetail() {
   const { scanId } = useParams<{ scanId: string }>();
@@ -71,7 +76,11 @@ export function ScanDetail() {
 
       <div className="mb-6">
         <h1 className="text-3xl font-bold">
-          {toTitleCase(scan.campground_name || scan.recreation_area_name || "Unknown Campground")}
+          {toTitleCase(
+            scan.campground_name ||
+              scan.recreation_area_name ||
+              "Unknown Campground",
+          )}
         </h1>
         {scan.recreation_area_name && scan.campground_name && (
           <p className="text-muted-foreground mt-1">

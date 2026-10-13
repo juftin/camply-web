@@ -1206,7 +1206,7 @@
       $("sign-in").addEventListener("click", (event) =>
         showInfo(
           "Sign-in recovery is planned",
-          "This prototype signs into no accounts. The implementation must preserve valid dialog fields through Basic/Auth0 sign-in and reopen the existing form on return.",
+          "This prototype signs into no accounts. The implementation must preserve valid dialog fields through session/Auth0 sign-in and existing invite/suspension guards, then reopen the form on return. Automatic-login mode has no sign-in detour.",
           event.currentTarget,
         ),
       );

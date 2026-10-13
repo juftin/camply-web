@@ -3,9 +3,9 @@ Scan management router — ``/api/scans`` endpoints.
 
 All endpoints are auth-gated through the ``CurrentUserDep`` dependency:
 
-* **basic mode** — HTTP Basic Auth required (default).
-* **local mode** — a synthetic admin user is created on first access
-  (configured via ``CAMPLY_ADMIN_EMAIL``).
+* **none mode** — the configured admin is automatically logged in.
+* **session mode** — an in-app password login establishes a session cookie.
+* **invite-only** — uninvited users cannot manage scans when enabled.
 * **auth0 mode** — a valid ``Authorization: Bearer <JWT>`` header is required;
   users are upserted into the database automatically.
 """
@@ -15,13 +15,14 @@ from __future__ import annotations
 import uuid
 
 import structlog
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from backend.auth import CurrentUserDep
+from backend.auth import CurrentUserDep, require_invitation
 from backend.dependencies import SessionDep
+from backend.metrics import SCANS_CREATED_TOTAL
 from backend.schemas import (
     ScanCreateRequest,
     ScanDetailResponse,
@@ -37,6 +38,9 @@ from db.models import (
     UniqueTarget as UniqueTargetDB,
 )
 from db.models import (
+    User as UserDB,
+)
+from db.models import (
     UserScan as UserScanDB,
 )
 
@@ -46,6 +50,7 @@ logger = structlog.getLogger(__name__)
 scan_router = APIRouter(
     prefix="/scans",
     tags=["scans"],
+    dependencies=[Depends(require_invitation)],
 )
 
 
@@ -192,6 +197,19 @@ async def create_scan(
     (de-duplication).  Otherwise a new target is created.
     """
 
+    # Check scanning eligibility serialized against suspension
+    user_stmt = select(UserDB).where(UserDB.id == current_user.id).with_for_update()
+    user_res = await session.execute(user_stmt)
+    user_row = user_res.scalar_one_or_none()
+    if user_row is None or not user_row.scanning_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "ERR_SCANNING_DISABLED",
+                "message": "Scanning is currently disabled for this account.",
+            },
+        )
+
     # Validate that the campground exists
     campground_db = await _lookup_campground(
         session, body.provider_id, body.campground_id
@@ -243,6 +261,10 @@ async def create_scan(
     session.add(user_scan)
     await session.commit()
     await session.refresh(user_scan)
+    try:
+        SCANS_CREATED_TOTAL.inc()
+    except Exception:
+        pass
 
     return await _scan_to_response(
         user_scan,
@@ -344,6 +366,19 @@ async def update_scan(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Scan not found",
         )
+
+    if body.is_active is True:
+        user_stmt = select(UserDB).where(UserDB.id == current_user.id).with_for_update()
+        user_res = await session.execute(user_stmt)
+        user_row = user_res.scalar_one_or_none()
+        if user_row is None or not user_row.scanning_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error": "ERR_SCANNING_DISABLED",
+                    "message": "Scanning is currently disabled for this account.",
+                },
+            )
 
     if body.is_active is not None:
         scan.is_active = body.is_active

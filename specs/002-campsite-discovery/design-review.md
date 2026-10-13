@@ -11,12 +11,20 @@ need camper testing and component accessibility review.
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | Blue light/dark theme, system typography, Shadcn components              | Reuse current tokens and primitives; fix demonstrated contrast/focus defects.      | Compare screenshots in both themes; inspect actual states.                   |
 | Centered Home hero, headline, SearchBar, feature cards, How It Works     | Add suggestions beneath search and correct unsupported claims.                     | Existing composition is recognizable; search reachable on phones.            |
-| Header links, account/theme controls, mobile menu                        | Auth-aware actions, skip link, current-page/focus semantics.                       | All existing destinations reachable; keyboard/mobile navigation works.       |
+| Header links, account/theme controls, mobile menu and role-gated Admin   | Retain implemented auth/admin actions; add skip link and focus semantics.          | All existing destinations reachable; keyboard/mobile navigation works.       |
 | RecreationArea description/map and campground-list cards                 | Name filter, result count, semantic card links.                                    | No layout replacement; no matches has a reset action.                        |
 | Campground header, Monitor action, overview/map, alternatives            | Clarify action wording and add official reservation URL.                           | The existing decision page remains recognizable.                             |
 | Single ScanForm dialog, date/minimum fields, type chips, electric switch | Human place names, inline matching summary, validation, readiness, draft recovery. | Same entry points/order; no extra mandatory steps; focus/keyboard/zoom work. |
 | Dashboard heading, statistics, settings, scan grid                       | Correct totals, per-card check/readiness, separate actions, visible errors.        | Stats remain; pause/delete never navigate or silently fail.                  |
 | ScanDetail Overview and Availability cards                               | Matching date blocks, last observed time, provider link.                           | Existing cards convey a useful booking handoff.                              |
+
+## Current component baseline
+
+Use the existing [UI snapshot report](../../frontend/snapshots/REPORT.md), committed
+Home/Dashboard/ScanForm baselines, and `/dev/preview` to compare actual components.
+The standalone wireframe illustrates proposed additions with fictional data; it
+omits full auth/invitation/suspension/admin coverage. Implementation must preserve
+those current states, not treat the wireframe as a replacement application spec.
 
 ## Current visual tokens
 

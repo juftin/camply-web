@@ -35,10 +35,11 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 ### 1. Landing & Authentication
 
 - **Hero**: `Home.tsx` landing page with campground search via `SearchBar.tsx`.
-- **Authentication**: Two modes controlled by backend config:
-  - _Local mode_ (default): auto-authenticated, no login required.
-  - _Auth0 mode_: `Auth.tsx` handles OAuth redirect flow.
-- **Early Access Check**: Backend verifies `is_early_access_user` flag; unauthorized users are redirected to `EarlyAccess.tsx` (see `Dashboard.tsx` guard logic).
+- **Authentication**: Three owner-selected modes from `/api/auth-config`: `none`
+  (automatic shared-account login), `session` (in-app password login), and `auth0`
+  (OAuth redirect). Reuse current capability-aware account actions.
+- **Optional invite-only access**: When enabled, the backend enforces `is_invited` for scan operations. `ProtectedRoute.tsx` shows `InviteOnly.tsx` for uninvited dashboard/scan-detail visitors. Profile access is still allowed.
+- **Mode-aware navigation**: The owner selects authentication independently of the environment. `none` automatically logs in and hides sign-in, signup, and logout. `session` offers an in-app password form with HTTP-only cookie persistence and CSRF headers; no signup. `auth0` offers sign-in/signup and requests the API audience supplied by `/api/auth-config`. Marketing links follow these capabilities. Configuration failures show an error instead of selecting another login mode. HTTP Basic authentication is never used.
 
 ### 2. Main Dashboard (`/dashboard`)
 
@@ -62,6 +63,16 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 - **Delete**: Each scan card has a delete button (with confirmation via trash icon).
 - **Detail View**: Clicking through from the dashboard is routed to a dedicated detail view.
 
+### 5. Administration & Operations (`/admin/*`)
+
+- **AdminRoute Guard**: Protects `/admin/*` routes, checking `user.is_admin`. Non-admin users are denied access.
+- **Admin Overview (`/admin`)**: Top-level KPI stat cards (users, active scans, targets, 24h results) plus native usage trend charts (`AdminTrendsPanel`).
+- **User Management (`/admin/users`, `/admin/users/:id`)**: Searchable user table, per-user scanning suspension toggle, scan list, and audit trail. Suspended users are clearly badged.
+- **Scan Management (`/admin/scans`, `/admin/scans/:id`)**: System-wide scan table with status filter, active toggle, and links to target and owner details.
+- **Target Detail (`/admin/targets/:id`)**: Shared target inspection displaying provider details, date ranges, and list of all subscribing user scans.
+- **Operations & Health (`/admin/operations`)**: Worker status cards, queue depth, discovery run metadata, recent task execution stream (Valkey telemetry, auto-refreshed every 15s) with task detail dialog, and worker/API/provider performance trend graphs.
+- **Audit Log (`/admin/audit`)**: Immutable log of administrative actions with timestamps, admin email, action type, target ID, and metadata inspector.
+
 ---
 
 ## 🔄 Frontend Architecture (Implemented)
@@ -75,30 +86,44 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 
 ### Key Files
 
-| File                          | Purpose                                                    |
-| ----------------------------- | ---------------------------------------------------------- |
-| `src/main.tsx`                | Root render with `QueryClientProvider` and `ThemeProvider` |
-| `src/App.tsx`                 | Route definitions (root, dashboard, campgrounds, etc.)     |
-| `src/lib/api.ts`              | Axios HTTP client for all backend endpoints                |
-| `src/lib/structs.ts`          | TypeScript interfaces matching backend Pydantic models     |
-| `src/lib/codegen.ts`          | OpenAPI → TypeScript codegen script                        |
-| `src/hooks/useAuth.tsx`       | Auth context provider (current user, login, sign-out)      |
-| `src/hooks/useScans.ts`       | TanStack Query hooks for scan CRUD                         |
-| `src/hooks/useSearch.ts`      | TanStack Query hook for campground search                  |
-| `src/pages/Dashboard.tsx`     | Scan management dashboard                                  |
-| `src/pages/EarlyAccess.tsx`   | Early-access gate page                                     |
-| `src/components/ScanCard.tsx` | Individual scan status card                                |
-| `src/components/ScanForm.tsx` | Dialog-based scan creation form                            |
+| File                                        | Purpose                                                       |
+| ------------------------------------------- | ------------------------------------------------------------- |
+| `src/main.tsx`                              | Root render with `QueryClientProvider` and `ThemeProvider`    |
+| `src/App.tsx`                               | Route definitions (root, dashboard, campgrounds, etc.)        |
+| `src/lib/api.ts`                            | Axios HTTP client for all backend endpoints                   |
+| `src/lib/structs.ts`                        | TypeScript interfaces matching backend Pydantic models        |
+| `src/lib/codegen.ts`                        | OpenAPI → TypeScript codegen script                           |
+| `src/hooks/useAuth.tsx`                     | Auth context provider (current user, login, sign-out)         |
+| `src/hooks/useScans.ts`                     | TanStack Query hooks for scan CRUD                            |
+| `src/hooks/useSearch.ts`                    | TanStack Query hook for campground search                     |
+| `src/pages/Dashboard.tsx`                   | Scan management dashboard                                     |
+| `src/pages/InviteOnly.tsx`                  | Optional invitation gate page                                 |
+| `src/components/ScanCard.tsx`               | Individual scan status card                                   |
+| `src/components/ScanForm.tsx`               | Dialog-based scan creation form                               |
+| `src/components/AdminRoute.tsx`             | Administrator route authorization guard                       |
+| `src/components/AdminNav.tsx`               | Administration tabbed sub-navigation                          |
+| `src/components/admin/AdminTrendsPanel.tsx` | Reusable Recharts metrics visualization with accessible table |
+| `src/pages/admin/AdminOverview.tsx`         | System overview KPIs and usage trend charts                   |
+| `src/pages/admin/AdminUsers.tsx`            | User management and scanning suspension controls              |
+| `src/pages/admin/AdminScans.tsx`            | System scan management and active status toggling             |
+| `src/pages/admin/AdminOperations.tsx`       | Worker health, queue telemetry, and operational trend charts  |
+| `src/pages/admin/AdminAudit.tsx`            | Immutable audit event log inspector                           |
 
 ---
+
+## Admin terminology and chart labels
+
+- **Scan setting** is the saved active/paused preference. **Eligible for checks** means active with the owner's scanning access enabled; it does not mean a check is currently running.
+- **Scanning suspended** stops scans and new scan creation while preserving login and saved settings.
+- A **shared target** is one provider, campground, and date range. Its linked-scan count counts scans, not distinct users. Dormant targets have no eligible scans; overdue targets are a subset of eligible targets.
+- Charts and tables show readable series names, explicit units, and the browser's local time zone. Tooltips and table rows include full dates. Legends distinguish multiple monitoring sources; missing table measurements remain distinct from zero.
+- Creation bars estimate counts over the preceding interval; rate charts show averages. Percentile descriptions explain the median, 95th percentile, and 99th percentile. Shared-target results may differ from a scan's personal preferences.
 
 ## 📱 Responsiveness Requirements
 
 - **Mobile (< 640px)**: Single-column scan cards, simplified search, bottom navigation.
 - **Desktop (> 1024px)**: Multi-column grid (up to 3 columns), detailed scan cards.
 - Both views share the same component tree — grid layout adjusts via Tailwind `sm:`/`lg:` breakpoints.
-
----
 
 ## Proposed Discovery & Alert Experience (Planning Only)
 
@@ -113,11 +138,18 @@ See the accompanying [research](../../specs/002-campsite-discovery/research.md),
 [specification](../../specs/002-campsite-discovery/spec.md), and
 [tasks](../../specs/002-campsite-discovery/tasks.md). These are proposed changes,
 not implemented features. The source audit records discrepancies between current
-documentation and code, including auth/access routing, advertised capabilities,
-date boundaries, and shared result counts; implementation must resolve them before
+documentation and code, including draft recovery, advertised capabilities,
+date boundaries and shared result counts. Auth/invitation guards, scanning suspension,
+native admin monitoring, and snapshot tooling are now existing foundations;
+implementation must preserve them and resolve remaining gaps before
 presenting the proposed experience as available.
 
 The [first-release implementation brief](../../specs/002-campsite-discovery/implementation.md)
 defines seven work packages and release gates. A standalone
 [clickable wireframe](../../specs/002-campsite-discovery/wireframes.html) illustrates
 the core flow with fictional sample data; it makes no requests and creates no alerts.
+
+Repository alignment: findings were refreshed against `main` at `f17106f`.
+Use `task snapshot`/`task snapshot:check` and `/dev/preview` for actual component
+review, and `task api:check` for generated-contract drift. See the
+[current baseline and remaining source findings](../../specs/002-campsite-discovery/research.md#current-repository-baseline).

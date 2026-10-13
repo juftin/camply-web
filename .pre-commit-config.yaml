@@ -26,22 +26,22 @@ repos:
       - id: ruff-format
         name: format
         description: Runs Code Auto-Formatters
-        entry: uv run ruff format
+        entry: uv run --project backend ruff format
         language: system
         types:
           - python
       - id: ruff-check
         name: lint
         description: Runs Code Linters
-        entry: uv run ruff check --fix
+        entry: uv run --project backend ruff check --fix
         language: system
         types:
           - python
-      - id: prettier
-        name: prettier
+      - id: oxfmt
+        name: oxfmt
         description: Opinionated Code Formatter
-        entry: npm --prefix ./frontend run prettier --
-        args: [--write, --ignore-unknown]
+        entry: pnpm --dir ./frontend run format
+        args: [--write, --no-error-on-unmatched-pattern]
         language: system
         types:
           - text

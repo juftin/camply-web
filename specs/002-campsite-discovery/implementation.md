@@ -1,6 +1,6 @@
 # First-release implementation brief
 
-Status: proposed planning detail. Application code is unchanged. This document
+Status: proposed planning detail, refreshed for `main` at `f17106f` on October 12, 2026. Application changes come from that baseline; this feature remains planning-only. This document
 turns the broader [experience plan](plan.md) into reviewable implementation slices.
 The [clickable wireframe](wireframes.html) illustrates the core flow with fictional
 places and sample dates; it makes no network requests and creates no real alerts.
@@ -47,6 +47,16 @@ provider support, monitoring, and observations are fictional. Authentication is
 not simulated; a help dialog describes the planned return flow. Notification
 setup/test and official booking are explanatory placeholders.
 
+## Existing foundations and remaining work
+
+Reuse capability-aware account actions, `ProtectedRoute`/`InviteOnly`, session
+cookies/CSRF and the Pages API proxy, scan-query 401/403 handling, `scanning_enabled`
+enforcement, Dashboard resume errors, and guarded admin monitoring. These are
+implemented baseline features. W1–W7 describe remaining additions; they do not
+replace auth, add a new admin area, or reconstruct an observability platform.
+Use current pnpm/Task workflows, generated API contracts, and the existing snapshot
+catalog rather than introducing parallel build or screenshot systems.
+
 ## Work packages and order
 
 Packages may be separate PRs. Each has a user-visible outcome and a verification
@@ -71,7 +81,10 @@ touch, or assistive technology; ordinary card controls do not navigate unexpecte
 - Search failures preserve query and support retry. Prefer complete eligible results
   over post-filtering an arbitrary capped mixed response.
 - Replace clickable containers with links and keep action controls outside links.
-  Add accessible labels, explicit pending state, and visible mutation failures.
+  Add accessible labels and per-card pending state. Keep Dashboard resume-error
+  handling; add delete-error recovery without duplicating its existing alert pattern.
+- Preserve header auth/admin capabilities and skip 401/403 retries as today; add
+  focus/current-page semantics without a navigation replacement.
 
 **Gate:** rapidly changing search never opens an old destination; pause/delete never
 opens details; keyboard-only discovery and reset/retry work. This package can ship
@@ -148,9 +161,13 @@ existing scan mutation hook/client, safe draft storage, shared search selection.
   may discard it. Longer persistence across device/browser needs separate user-owned
   storage. Clear draft after confirmed successful creation or explicit discard.
 - Preserve input on errors and cancelled auth. Auth0 redirects return to a safe
-  local route; Basic login respects the same intent. Reject arbitrary external return
+  local route; in-app session login respects the same intent. `none` auto-login skips
+  the detour. Reuse existing cookies/CSRF and the same-origin API transport. Reject external return
   destinations. Re-fetch eligibility/profile after returning.
-- Keep campground selection when reopening the builder from the same detail page;
+- Preserve current invite-only guards and account suspension. Check fresh `is_invited`
+  and `scanning_enabled` after auth/setup return; denied save retains the draft.
+  Invitation request/pending does not imply approval or an email was sent.
+- Keep campground selection when reopening the dialog from the same detail page;
   reset deliberately when starting an unrelated alert. Track navigation changes.
 - Field errors are connected to inputs; submit focuses the first invalid field.
   Optional preferences remain skippable and keyboard operable.
@@ -210,7 +227,10 @@ matching result contract from W3, metadata URL client, optional monitoring-state
   need alignment. Cross-page sorting/search need a complete query contract.
 - Derive Waiting/Watching/Paused/Ended only from authoritative inputs. For legacy
   records without reliable campground timezone, show date-ended policy conservatively;
-  do not display fabricated provider errors/next-check countdowns.
+  do not display fabricated provider errors/next-check countdowns. An Active setting
+  under account suspension is not Watching; preserve the existing account banner and
+  creation/resume blocks. Admin telemetry is available only to authorized admins,
+  so camper diagnostics need an explicit ownership-safe API projection.
 - Display matching observations from W3 with checked time and maximal night blocks.
   Empty matching observations are distinct from the first scan not running yet.
 - Official link uses the campground metadata URL. Showing newly observed openings
@@ -229,6 +249,12 @@ Validate the integrated journey, rather than only individual components. Include
 and screen reader, signed-out/signed-in, metadata gaps, map disabled, and network
 failures. Use the existing task workflows and regenerate API types after contracts.
 Run each focused test suite while implementing, then full quality gates before PR.
+Use `task snapshot`/`task snapshot:check` and inspect diffs against existing baselines;
+use `task snapshot:update` only for reviewed intended changes. Keep generated schema
+checks (`task api:check`) and static builds (`task frontend:build:static`) in validation.
+Include all three auth modes, invite pending, session expiry, suspended create/resume,
+pause/settings while suspended, and admin/non-admin header access. Do not replace
+baseline images to conceal an unintended regression.
 
 ## Dependency graph
 

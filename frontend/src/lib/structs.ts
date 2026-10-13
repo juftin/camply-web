@@ -1,3 +1,5 @@
+import type { components } from "./api/generated/schema";
+
 // =========================================================================
 // Shared type definitions matching the backend API.
 // =========================================================================
@@ -55,7 +57,9 @@ export interface Campground {
 export interface MeResponse {
   id: string;
   email: string;
-  is_early_access_user: boolean;
+  is_invited: boolean;
+  is_admin: boolean;
+  scanning_enabled: boolean;
   pushover_token: string | null;
 }
 
@@ -69,7 +73,7 @@ export interface ScanCreateRequest {
   provider_id: number;
   campground_id: string;
   start_date: string; // YYYY-MM-DD
-  end_date: string;   // YYYY-MM-DD
+  end_date: string; // YYYY-MM-DD
   min_stay_length?: number;
   preferred_types?: string[];
   require_electric?: boolean;
@@ -119,3 +123,44 @@ export interface ScanDetailResponse extends ScanResponse {
 export interface ApiError {
   detail: string | { error: string; message: string };
 }
+
+// ---- Admin UI ----
+
+export type AdminOverviewResponse =
+  components["schemas"]["AdminOverviewResponse"];
+export type AdminUserItem = components["schemas"]["AdminUserItem"];
+export type AdminUserListResponse =
+  components["schemas"]["AdminUserListResponse"];
+export type AdminUserDetailResponse =
+  components["schemas"]["AdminUserDetailResponse"];
+export type AdminUserUpdateRequest =
+  components["schemas"]["AdminUserUpdateRequest"];
+export type AdminScanItem = components["schemas"]["AdminScanItem"];
+export type AdminScanListResponse =
+  components["schemas"]["AdminScanListResponse"];
+export type AdminScanDetailResponse =
+  components["schemas"]["AdminScanDetailResponse"];
+export type AdminScanUpdateRequest =
+  components["schemas"]["AdminScanUpdateRequest"];
+export type AdminTargetSubscriberItem =
+  components["schemas"]["AdminTargetSubscriberItem"];
+export type AdminTargetDetailResponse =
+  components["schemas"]["AdminTargetDetailResponse"];
+export type AdminAuditEventItem = components["schemas"]["AdminAuditEventItem"];
+export type AdminAuditListResponse =
+  components["schemas"]["AdminAuditListResponse"];
+export type AdminWorkerItem = components["schemas"]["AdminWorkerItem"];
+export type AdminDiscoveryMetadata =
+  components["schemas"]["AdminDiscoveryMetadata"];
+export type AdminOperationsResponse =
+  components["schemas"]["AdminOperationsResponse"];
+export type AdminTaskTelemetryItem =
+  components["schemas"]["AdminTaskTelemetryItem"];
+export type AdminOperationsTasksResponse =
+  components["schemas"]["AdminOperationsTasksResponse"];
+export type AdminOperationsTaskDetail =
+  components["schemas"]["AdminOperationsTaskDetail"];
+export type TrendPoint = components["schemas"]["TrendPoint"];
+export type TrendSeries = components["schemas"]["TrendSeries"];
+export type TrendMetric = components["schemas"]["TrendMetric"];
+export type AdminTrendsResponse = components["schemas"]["AdminTrendsResponse"];

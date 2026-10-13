@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Clock,
-  Calendar,
-  Activity,
-  Zap,
-  Trash2,
-} from "lucide-react";
+import { Clock, Calendar, Activity, Zap, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -26,7 +20,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { toTitleCase, formatDate, daysBetween, formatRelativeTime } from "@/lib/utils";
+import {
+  toTitleCase,
+  formatDate,
+  daysBetween,
+  formatRelativeTime,
+} from "@/lib/utils";
 import type { ScanResponse } from "@/lib/structs";
 
 interface ScanCardProps {
@@ -57,142 +56,148 @@ export function ScanCard({
         className={`transition-all hover:shadow-md ${!scan.is_active ? "opacity-60" : ""} ${isPastEnd ? "ring-1 ring-yellow-400/30" : ""}`}
       >
         <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="min-w-0 flex-1 pr-2">
-            <CardTitle className="text-base truncate">
-              {toTitleCase(scan.campground_name || scan.recreation_area_name || "Unknown Campground")}
-            </CardTitle>
-            {scan.recreation_area_name && scan.campground_name && (
-              <p className="text-xs text-muted-foreground truncate mt-0.5">
-                {toTitleCase(scan.recreation_area_name)}
-              </p>
-            )}
+          <div className="flex items-start justify-between">
+            <div className="min-w-0 flex-1 pr-2">
+              <CardTitle className="text-base truncate">
+                {toTitleCase(
+                  scan.campground_name ||
+                    scan.recreation_area_name ||
+                    "Unknown Campground",
+                )}
+              </CardTitle>
+              {scan.recreation_area_name && scan.campground_name && (
+                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                  {toTitleCase(scan.recreation_area_name)}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {isPastEnd && (
+                <Badge variant="warning" className="text-[10px] px-1.5 py-0">
+                  Ended
+                </Badge>
+              )}
+              <Badge
+                variant={scan.is_active ? "success" : "secondary"}
+                className="text-[10px] px-1.5 py-0"
+              >
+                {scan.is_active ? "Active" : "Paused"}
+              </Badge>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {isPastEnd && (
-              <Badge variant="warning" className="text-[10px] px-1.5 py-0">
-                Ended
+        </CardHeader>
+
+        <CardContent className="pb-3 space-y-2">
+          {/* Dates */}
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5 shrink-0" />
+            <span>
+              {formatDate(scan.start_date)} – {formatDate(scan.end_date)}
+              <span className="ml-1">
+                ({daysDiff} night{daysDiff !== 1 ? "s" : ""})
+              </span>
+            </span>
+          </div>
+
+          {/* Found count */}
+          <div className="flex items-center gap-1.5 text-sm">
+            <Activity className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">{scan.found_count}</strong>{" "}
+              <span className="text-muted-foreground">
+                campsite{scan.found_count !== 1 ? "s" : ""} found
+              </span>
+            </span>
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-1.5">
+            {scan.require_electric && (
+              <Badge variant="secondary" className="text-[10px] gap-0.5">
+                <Zap className="h-3 w-3" /> Electric
               </Badge>
             )}
-            <Badge
-              variant={scan.is_active ? "success" : "secondary"}
-              className="text-[10px] px-1.5 py-0"
+            {scan.min_stay_length > 1 && (
+              <Badge variant="secondary" className="text-[10px]">
+                Min {scan.min_stay_length} nights
+              </Badge>
+            )}
+            {(scan.preferred_types ?? []).length > 0 && (
+              <Badge variant="secondary" className="text-[10px]">
+                {(scan.preferred_types ?? []).join(", ")}
+              </Badge>
+            )}
+          </div>
+
+          {/* Last checked */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3 shrink-0" />
+            <span>Last checked: {lastChecked}</span>
+          </div>
+        </CardContent>
+
+        <CardFooter
+          className="border-t pt-3 flex justify-between"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-2">
+            <div onClick={(e) => e.stopPropagation()}>
+              <Switch
+                id={`active-${scan.id}`}
+                checked={scan.is_active}
+                onCheckedChange={(checked) => onToggleActive(scan.id, checked)}
+                disabled={toggling}
+              />
+            </div>
+            <Label
+              htmlFor={`active-${scan.id}`}
+              className="text-xs text-muted-foreground cursor-pointer"
             >
               {scan.is_active ? "Active" : "Paused"}
-            </Badge>
+            </Label>
           </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="pb-3 space-y-2">
-        {/* Dates */}
-        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Calendar className="h-3.5 w-3.5 shrink-0" />
-          <span>
-            {formatDate(scan.start_date)} – {formatDate(scan.end_date)}
-            <span className="ml-1">({daysDiff} night{daysDiff !== 1 ? "s" : ""})</span>
-          </span>
-        </div>
-
-        {/* Found count */}
-        <div className="flex items-center gap-1.5 text-sm">
-          <Activity className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span>
-            <strong className="text-foreground">{scan.found_count}</strong>{" "}
-            <span className="text-muted-foreground">
-              campsite{scan.found_count !== 1 ? "s" : ""} found
-            </span>
-          </span>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-1.5">
-          {scan.require_electric && (
-            <Badge variant="secondary" className="text-[10px] gap-0.5">
-              <Zap className="h-3 w-3" /> Electric
-            </Badge>
-          )}
-          {scan.min_stay_length > 1 && (
-            <Badge variant="secondary" className="text-[10px]">
-              Min {scan.min_stay_length} nights
-            </Badge>
-          )}
-          {(scan.preferred_types ?? []).length > 0 && (
-            <Badge variant="secondary" className="text-[10px]">
-              {(scan.preferred_types ?? []).join(", ")}
-            </Badge>
-          )}
-        </div>
-
-        {/* Last checked */}
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Clock className="h-3 w-3 shrink-0" />
-          <span>Last checked: {lastChecked}</span>
-        </div>
-      </CardContent>
-
-      <CardFooter
-        className="border-t pt-3 flex justify-between"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center gap-2">
-          <div onClick={(e) => e.stopPropagation()}>
-            <Switch
-              id={`active-${scan.id}`}
-              checked={scan.is_active}
-              onCheckedChange={(checked) => onToggleActive(scan.id, checked)}
-              disabled={toggling}
-            />
-          </div>
-          <Label
-            htmlFor={`active-${scan.id}`}
-            className="text-xs text-muted-foreground cursor-pointer"
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDeleteDialog(true);
+            }}
           >
-            {scan.is_active ? "Active" : "Paused"}
-          </Label>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowDeleteDialog(true);
-          }}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-      </CardFooter>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </CardFooter>
 
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Scan</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this scan? This action cannot be
-              undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                onDelete(scan.id);
-                setShowDeleteDialog(false);
-              }}
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Scan</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this scan? This action cannot be
+                undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  onDelete(scan.id);
+                  setShowDeleteDialog(false);
+                }}
+              >
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </Card>
     </Link>
   );
 }

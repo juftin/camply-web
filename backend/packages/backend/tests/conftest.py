@@ -22,6 +22,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.app import app as real_app
+from backend.config import AuthMode, backend_config
 from db.config import db
 from db.models import Base
 
@@ -183,3 +184,10 @@ def pytest_unconfigure() -> None:
         _db_path.unlink(missing_ok=True)
     except OSError:
         pass
+
+
+@pytest.fixture(autouse=True)
+def local_auth(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Use the automatic local admin unless a test opts into deployed authentication."""
+    monkeypatch.setattr(backend_config, "auth_mode", AuthMode.NONE)
+    monkeypatch.setattr(backend_config, "invite_only", False)
