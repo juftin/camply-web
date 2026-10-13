@@ -77,6 +77,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T2.1.15 Allow administrators to promote/demote administrator privileges and reset user passwords with forced rotation on subsequent sign-in via the UI.
 - [x] T2.1.16 Revoke previous sessions on password reset/change, refresh the changing browser's cookies, honor stored bootstrap credentials and roles, and restrict password-change flags to session mode; cover these transitions with regression tests.
 - [x] T2.1.17 Review and refresh user-management visual baselines for the create/reset actions, password-change status, and administrator role controls; verify all 40 snapshot scenarios.
+- [x] T2.1.18 Generate secure random passwords in all admin create/reset dialogs, reveal them while the dialog is open with a copy action, and discard them on close or success; verify lifecycle, clipboard failures, and desktop/mobile/dark visual coverage.
 
 ### 2.2 Access Control
 

@@ -27,6 +27,7 @@ import { AdminNav } from "@/components/AdminNav";
 import { useAdminLocation } from "@/hooks/useAdminLocation";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminFeedback } from "@/components/admin/AdminFeedback";
+import { AdminPasswordInput } from "@/components/admin/AdminPasswordInput";
 import { getApiErrorMessage } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -71,6 +72,14 @@ export function AdminUsers() {
 
   const createMutation = useCreateAdminUser();
   const updateMutation = useUpdateAdminUser();
+
+  const handleCreateOpenChange = (open: boolean) => {
+    setIsCreateOpen(open);
+    if (!open) {
+      setNewPassword("");
+      setCreateError(null);
+    }
+  };
 
   const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -166,7 +175,7 @@ export function AdminUsers() {
         )}
       </div>
 
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      <Dialog open={isCreateOpen} onOpenChange={handleCreateOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Create User</DialogTitle>
@@ -187,18 +196,15 @@ export function AdminUsers() {
                 disabled={createMutation.isPending}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="create-password">Initial Password</Label>
-              <Input
+            {isCreateOpen && (
+              <AdminPasswordInput
                 id="create-password"
-                type="password"
-                placeholder="Assign a password"
+                label="Initial Password"
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
+                onChange={setNewPassword}
                 disabled={createMutation.isPending}
               />
-            </div>
+            )}
             <div className="space-y-3 pt-2 border-t">
               <div className="flex items-center justify-between">
                 <Label htmlFor="create-is-admin" className="cursor-pointer">
@@ -259,7 +265,7 @@ export function AdminUsers() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsCreateOpen(false)}
+                onClick={() => handleCreateOpenChange(false)}
                 disabled={createMutation.isPending}
               >
                 Cancel
@@ -297,18 +303,15 @@ export function AdminUsers() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleResetPassword} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="row-reset-password">New Temporary Password</Label>
-              <Input
+            {resetUser && (
+              <AdminPasswordInput
                 id="row-reset-password"
-                type="password"
-                placeholder="Enter temporary password"
+                label="New Temporary Password"
                 value={resetPassword}
-                onChange={(e) => setResetPassword(e.target.value)}
-                required
+                onChange={setResetPassword}
                 disabled={resettingPassword}
               />
-            </div>
+            )}
             <div className="rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
               The user will be required to create a new password immediately
               upon their next sign-in.
@@ -327,7 +330,11 @@ export function AdminUsers() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setResetUser(null)}
+                onClick={() => {
+                  setResetUser(null);
+                  setResetPassword("");
+                  setResetError(null);
+                }}
                 disabled={resettingPassword}
               >
                 Cancel

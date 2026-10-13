@@ -21,8 +21,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminFeedback } from "@/components/admin/AdminFeedback";
+import { AdminPasswordInput } from "@/components/admin/AdminPasswordInput";
 import { useAdminLocation } from "@/hooks/useAdminLocation";
 import { getApiErrorMessage } from "@/lib/api";
 import { AdminNav } from "@/components/AdminNav";
@@ -278,20 +277,15 @@ export function AdminUserDetail() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleResetPassword} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="detail-reset-password">
-                New Temporary Password
-              </Label>
-              <Input
+            {isResetPasswordOpen && (
+              <AdminPasswordInput
                 id="detail-reset-password"
-                type="password"
-                placeholder="Enter temporary password"
+                label="New Temporary Password"
                 value={resetPassword}
-                onChange={(e) => setResetPassword(e.target.value)}
-                required
+                onChange={setResetPassword}
                 disabled={resettingPassword}
               />
-            </div>
+            )}
             <div className="rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
               The user will be required to create a new password immediately
               upon their next sign-in.
@@ -310,7 +304,11 @@ export function AdminUserDetail() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsResetPasswordOpen(false)}
+                onClick={() => {
+                  setIsResetPasswordOpen(false);
+                  setResetPassword("");
+                  setResetError(null);
+                }}
                 disabled={resettingPassword}
               >
                 Cancel

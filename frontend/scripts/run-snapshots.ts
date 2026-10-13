@@ -61,10 +61,66 @@ interface SnapshotResult {
   diffPath: string | null;
 }
 
+/** Reveal a deterministic synthetic password for visual checks, then restore Web Crypto. */
+async function revealSnapshotPassword(page: Page): Promise<void> {
+  await page.evaluate(`
+    Object.defineProperty(crypto, "getRandomValues", {
+      configurable: true,
+      value: (bytes) => {
+        for (let index = 0; index < bytes.length; index++) bytes[index] = index * 17;
+        return bytes;
+      },
+    });
+  `);
+  await page.getByRole("button", { name: "Generate Password" }).click();
+  await page.getByRole("button", { name: "Copy password" }).waitFor();
+  await page.evaluate(() => {
+    Reflect.deleteProperty(crypto, "getRandomValues");
+  });
+}
+
 /**
  * Standard scenarios covering pages, themes, viewports, and components.
  */
 const SCENARIOS: Scenario[] = [
+  {
+    name: "admin-create-user-password-desktop-light",
+    route: "/admin/users",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description:
+      "Create user dialog reveals a generated password with a copy action",
+    action: async (page: Page) => {
+      await page.getByRole("button", { name: "Create User" }).click();
+      await revealSnapshotPassword(page);
+    },
+  },
+  {
+    name: "admin-reset-password-mobile-light",
+    route: "/admin/users",
+    viewport: { width: 390, height: 844 },
+    theme: "light",
+    description:
+      "User row reset dialog shows generated password and copy action on mobile",
+    action: async (page: Page) => {
+      await page
+        .getByRole("button", { name: "Reset password for camper@example.test" })
+        .click();
+      await revealSnapshotPassword(page);
+    },
+  },
+  {
+    name: "admin-user-detail-reset-password-desktop-dark",
+    route: "/admin/users/user-snap-2",
+    viewport: { width: 1280, height: 800 },
+    theme: "dark",
+    description:
+      "User detail reset dialog reveals a generated password in dark mode",
+    action: async (page: Page) => {
+      await page.getByRole("button", { name: "Reset Password" }).click();
+      await revealSnapshotPassword(page);
+    },
+  },
   {
     name: "admin-operations-partial-desktop-light",
     route: "/admin/operations",

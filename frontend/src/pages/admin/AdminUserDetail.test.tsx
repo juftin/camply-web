@@ -201,6 +201,52 @@ describe("AdminUserDetail Permissions", () => {
     ).toBeInTheDocument();
   });
 
+  it("submits a generated temporary password and discards it after the reset", async () => {
+    vi.mocked(api.updateAdminUser).mockResolvedValue({
+      ...otherUser,
+      must_change_password: true,
+    });
+    const user = setup();
+    const resetButton = await screen.findByRole("button", {
+      name: "Reset Password",
+    });
+    await user.click(resetButton);
+    await user.click(screen.getByRole("button", { name: "Generate Password" }));
+    const password = (
+      screen.getByLabelText("New Temporary Password") as HTMLInputElement
+    ).value;
+    expect(api.updateAdminUser).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Reset Password" }));
+    await waitFor(() =>
+      expect(api.updateAdminUser).toHaveBeenCalledWith(otherUser.id, {
+        password,
+        must_change_password: true,
+      }),
+    );
+    await screen.findByText(/Temporary password set/);
+    expect(screen.queryByDisplayValue(password)).not.toBeInTheDocument();
+    await user.click(resetButton);
+    expect(screen.getByLabelText("New Temporary Password")).toHaveValue("");
+    expect(
+      screen.queryByRole("button", { name: "Copy password" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("discards a generated password when cancelling a detail reset", async () => {
+    const user = setup();
+    const resetButton = await screen.findByRole("button", {
+      name: "Reset Password",
+    });
+    await user.click(resetButton);
+    await user.click(screen.getByRole("button", { name: "Generate Password" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(resetButton);
+    expect(screen.getByLabelText("New Temporary Password")).toHaveValue("");
+    expect(
+      screen.queryByRole("button", { name: "Copy password" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("displays error in dialog if password reset fails", async () => {
     vi.mocked(api.updateAdminUser).mockRejectedValue(
       new Error("Password does not meet complexity requirements"),

@@ -163,23 +163,73 @@ describe("AdminUsers Create User Dialog", () => {
     ).toBeInTheDocument();
   });
 
-  it("closes modal on cancel", async () => {
+  it.each(["cancel", "escape"])(
+    "discards the generated password on %s",
+    async (method) => {
+      const user = setup();
+      await user.click(
+        await screen.findByRole("button", { name: /Create User/i }),
+      );
+
+      expect(
+        screen.getByRole("heading", { name: "Create User" }),
+      ).toBeInTheDocument();
+      await user.click(
+        screen.getByRole("button", { name: "Generate Password" }),
+      );
+
+      if (method === "cancel") {
+        await user.click(screen.getByRole("button", { name: "Cancel" }));
+      } else {
+        await user.keyboard("{Escape}");
+      }
+
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("heading", { name: "Create User" }),
+        ).not.toBeInTheDocument();
+      });
+      await user.click(screen.getByRole("button", { name: "Create User" }));
+      expect(screen.getByLabelText("Initial Password")).toHaveValue("");
+      expect(screen.getByLabelText("Initial Password")).toHaveAttribute(
+        "type",
+        "password",
+      );
+      expect(
+        screen.queryByRole("button", { name: "Copy password" }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it("submits a generated password and clears it after creating the user", async () => {
+    vi.mocked(api.createAdminUser).mockResolvedValue({
+      ...existingUser,
+      updated_at: "2026-10-13T12:00:00Z",
+    });
     const user = setup();
     await user.click(
-      await screen.findByRole("button", { name: /Create User/i }),
+      await screen.findByRole("button", { name: "Create User" }),
     );
-
+    await user.type(screen.getByLabelText("Email"), "generated@example.test");
+    await user.click(screen.getByRole("button", { name: "Generate Password" }));
+    const password = (
+      screen.getByLabelText("Initial Password") as HTMLInputElement
+    ).value;
+    expect(password).toHaveLength(24);
+    expect(api.createAdminUser).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Create User" }));
+    await waitFor(() =>
+      expect(api.createAdminUser).toHaveBeenCalledWith(
+        expect.objectContaining({ password }),
+      ),
+    );
+    await screen.findByText(/created successfully/);
+    expect(screen.queryByDisplayValue(password)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Create User" }));
+    expect(screen.getByLabelText("Initial Password")).toHaveValue("");
     expect(
-      screen.getByRole("heading", { name: "Create User" }),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
-
-    await waitFor(() => {
-      expect(
-        screen.queryByRole("heading", { name: "Create User" }),
-      ).not.toBeInTheDocument();
-    });
+      screen.queryByRole("button", { name: "Copy password" }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -229,6 +279,53 @@ describe("AdminUsers Reset Password Dialog", () => {
     );
     return userEvent.setup();
   }
+
+  it("submits a generated temporary password and clears it when reopening the dialog", async () => {
+    vi.mocked(api.updateAdminUser).mockResolvedValue({
+      ...existingUser,
+      updated_at: "2026-10-13T12:00:00Z",
+      must_change_password: true,
+    });
+    const user = setup();
+    const resetButton = await screen.findByRole("button", {
+      name: `Reset password for ${existingUser.email}`,
+    });
+    await user.click(resetButton);
+    await user.click(screen.getByRole("button", { name: "Generate Password" }));
+    const password = (
+      screen.getByLabelText("New Temporary Password") as HTMLInputElement
+    ).value;
+    expect(api.updateAdminUser).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Reset Password" }));
+    await waitFor(() =>
+      expect(api.updateAdminUser).toHaveBeenCalledWith(existingUser.id, {
+        password,
+        must_change_password: true,
+      }),
+    );
+    await screen.findByText(/Temporary password set/);
+    expect(screen.queryByDisplayValue(password)).not.toBeInTheDocument();
+    await user.click(resetButton);
+    expect(screen.getByLabelText("New Temporary Password")).toHaveValue("");
+    expect(
+      screen.queryByRole("button", { name: "Copy password" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("discards a generated password when cancelling a row reset", async () => {
+    const user = setup();
+    const resetButton = await screen.findByRole("button", {
+      name: `Reset password for ${existingUser.email}`,
+    });
+    await user.click(resetButton);
+    await user.click(screen.getByRole("button", { name: "Generate Password" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(resetButton);
+    expect(screen.getByLabelText("New Temporary Password")).toHaveValue("");
+    expect(
+      screen.queryByRole("button", { name: "Copy password" }),
+    ).not.toBeInTheDocument();
+  });
 
   it("opens reset modal from row action and resets user password with forced change", async () => {
     vi.mocked(api.updateAdminUser).mockResolvedValue({

@@ -1,7 +1,7 @@
 # 📸 UI Snapshot & Visual Feedback Report
 
-**Generated**: `2026-10-13T22:44:58.946Z`
-**Total Views**: **40** | ✅ Unchanged: **40** | ⚠️ Modified: **0** | 🆕 New: **0**
+**Generated**: `2026-10-13T22:58:25.667Z`
+**Total Views**: **43** | ✅ Unchanged: **43** | ⚠️ Modified: **0** | 🆕 New: **0**
 
 ---
 
@@ -23,6 +23,9 @@ When evaluating UI changes or diagnosing unexpected visual diffs:
 
 | Snapshot | Viewport | Theme | Status | Diff % | Baseline Image | Current Image | Visual Diff |
 | :--- | :---: | :---: | :---: | :---: | :--- | :--- | :--- |
+| **admin-create-user-password-desktop-light** | 1280x800 | light | ✅ UNCHANGED | `0.00%` | [`admin-create-user-password-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/cute-impala/frontend/snapshots/baselines/admin-create-user-password-desktop-light.png) | [`admin-create-user-password-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/cute-impala/frontend/snapshots/current/admin-create-user-password-desktop-light.png) | - |
+| **admin-reset-password-mobile-light** | 390x844 | light | ✅ UNCHANGED | `0.00%` | [`admin-reset-password-mobile-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/cute-impala/frontend/snapshots/baselines/admin-reset-password-mobile-light.png) | [`admin-reset-password-mobile-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/cute-impala/frontend/snapshots/current/admin-reset-password-mobile-light.png) | - |
+| **admin-user-detail-reset-password-desktop-dark** | 1280x800 | dark | ✅ UNCHANGED | `0.00%` | [`admin-user-detail-reset-password-desktop-dark.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/cute-impala/frontend/snapshots/baselines/admin-user-detail-reset-password-desktop-dark.png) | [`admin-user-detail-reset-password-desktop-dark.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/cute-impala/frontend/snapshots/current/admin-user-detail-reset-password-desktop-dark.png) | - |
 | **admin-operations-partial-desktop-light** | 1280x800 | light | ✅ UNCHANGED | `0.00%` | [`admin-operations-partial-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/cute-impala/frontend/snapshots/baselines/admin-operations-partial-desktop-light.png) | [`admin-operations-partial-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/cute-impala/frontend/snapshots/current/admin-operations-partial-desktop-light.png) | - |
 | **admin-api-trends-table-desktop-light** | 1280x800 | light | ✅ UNCHANGED | `0.00%` | [`admin-api-trends-table-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/cute-impala/frontend/snapshots/baselines/admin-api-trends-table-desktop-light.png) | [`admin-api-trends-table-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/cute-impala/frontend/snapshots/current/admin-api-trends-table-desktop-light.png) | - |
 | **admin-overview-desktop-light** | 1280x800 | light | ✅ UNCHANGED | `0.00%` | [`admin-overview-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/cute-impala/frontend/snapshots/baselines/admin-overview-desktop-light.png) | [`admin-overview-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/cute-impala/frontend/snapshots/current/admin-overview-desktop-light.png) | - |
