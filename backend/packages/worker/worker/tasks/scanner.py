@@ -10,6 +10,8 @@ from typing import Any, Optional
 import structlog
 from sqlalchemy import delete, func, select
 
+from camply_core.matching import longest_consecutive_nights, matches_filters
+from camply_core.models import CampsiteType, NotificationDTO, SearchFilters
 from db.config import db
 from db.eligibility import eligible_scan_condition
 from db.models import Campground, ScanResult, UniqueTarget, User, UserScan
@@ -27,26 +29,13 @@ from worker.metrics import (
     TARGETS_CHECKED_TOTAL,
     UNIQUE_TARGETS_CHECKED,
 )
-from worker.notifications.base import NotificationDTO
 
 logger = structlog.getLogger(__name__)
 
 
 def _longest_consecutive(dates: list[datetime.date]) -> int:
     """Find the longest consecutive streak of dates."""
-    if not dates:
-        return 0
-    sorted_dates = sorted(dates)
-    longest = 1
-    current = 1
-    for i in range(1, len(sorted_dates)):
-        delta = (sorted_dates[i] - sorted_dates[i - 1]).days
-        if delta == 1:
-            current += 1
-            longest = max(longest, current)
-        else:
-            current = 1
-    return longest
+    return longest_consecutive_nights(dates)
 
 
 def _matches_scan_filters(campsite: CampsiteDTO, scan: UserScan) -> bool:
@@ -58,22 +47,19 @@ def _matches_scan_filters(campsite: CampsiteDTO, scan: UserScan) -> bool:
       - preferred_types: if set, campsite_type must be in the list
       - require_electric: if True, campsite must have electric hookup
     """
-    # Minimum stay length: check for a consecutive block of N nights
-    if scan.min_stay_length and scan.min_stay_length > 1:
-        consec = _longest_consecutive(campsite.available_dates)
-        if consec < scan.min_stay_length:
-            return False
-
-    # Preferred campsite types
+    types: list[CampsiteType] | None = None
     if scan.preferred_types:
-        if campsite.campsite_type.value not in scan.preferred_types:
-            return False
-
-    # Electric required
-    if scan.require_electric and not campsite.is_electric:
-        return False
-
-    return True
+        types = [
+            CampsiteType(t)
+            for t in scan.preferred_types
+            if t in CampsiteType.__members__.values()
+        ]
+    filters = SearchFilters(
+        min_consecutive_nights=scan.min_stay_length or 1,
+        campsite_types=types,
+        electric_requirement=bool(scan.require_electric),
+    )
+    return matches_filters(campsite=campsite, filters=filters)
 
 
 @celery_app.task(

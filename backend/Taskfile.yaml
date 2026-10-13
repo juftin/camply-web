@@ -9,6 +9,12 @@ env:
   UV_LOCKED: 1
 
 tasks:
+  lock:
+    desc: Regenerate uv.lock
+    cmd: uv lock
+    env:
+      UV_LOCKED: 0
+
   install:
     desc: Install Project + Dev Dependencies
     cmds:
@@ -64,6 +70,26 @@ tasks:
     desc: Build the Project Artifacts
     cmds:
       - task: docker
+      - task: cli:build
+      - task: core:build
+
+  cli:dev:
+    desc: Run camply CLI in development mode
+    cmds:
+      - uv run -- camply {{.CLI_ARGS}}
+    deps: [sync]
+
+  cli:build:
+    desc: Build standalone camply distribution
+    cmds:
+      - uv build --package camply --no-sources
+    deps: [sync]
+
+  core:build:
+    desc: Build standalone camply-core distribution
+    cmds:
+      - uv build --package camply-core --no-sources
+    deps: [sync]
 
   docker:
     desc: Build Docker Image

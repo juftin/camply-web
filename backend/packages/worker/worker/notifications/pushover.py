@@ -4,11 +4,11 @@ Pushover notification provider implementation.
 
 from typing import Any, ClassVar
 
-import httpx
 import structlog
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from camply_core.notifications.pushover import PushoverClient
 from worker.notifications.base import BaseNotificationProvider, NotificationDTO
 
 logger = structlog.getLogger(__name__)
@@ -62,25 +62,12 @@ class PushoverProvider(BaseNotificationProvider):
             logger.error("PUSHOVER_APP_TOKEN not configured, cannot send")
             return
 
-        message_data = {
-            "token": self.config.app_token,
-            "user": user_key,
-            "title": payload.title,
-            "message": payload.message,
-            "url": payload.booking_url,
-            "url_title": "Book Now",
-            "priority": 1,  # High priority (bypasses quiet hours)
-            "sound": "pushover",
-        }
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                url=self.config.api_url, json=message_data, timeout=10.0
-            )
-            response.raise_for_status()
-
-        logger.info(
-            "Pushover notification sent",
-            user_key=user_key[:4] + "...",
-            title=payload.title,
+        client = PushoverClient(
+            app_token=self.config.app_token,
+            api_url=self.config.api_url,
+        )
+        await client.send_alert(
+            user_key=user_key,
+            payload=payload,
+            priority=1,
         )

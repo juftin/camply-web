@@ -11,6 +11,11 @@ includes:
     dir: backend
 
 tasks:
+  lock:
+    desc: Regenerate uv.lock
+    cmds:
+      - task: backend:lock
+
   install:
     desc: Install All Dependencies (Backend + Frontend)
     cmds:
@@ -88,6 +93,23 @@ tasks:
     cmds:
       - task: backend:build
       - task: frontend:build
+
+  cli:dev:
+    desc: Run camply CLI in development mode
+    cmds:
+      - task: backend:cli:dev
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  cli:build:
+    desc: Build standalone camply package
+    cmds:
+      - task: backend:cli:build
+
+  core:build:
+    desc: Build standalone camply-core package
+    cmds:
+      - task: backend:core:build
 
   publish:
     desc: Publish the Project Artifacts

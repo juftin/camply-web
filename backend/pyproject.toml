@@ -4,18 +4,15 @@ version = "0.1.0"
 description = "A full-stack application to help you find campsites at sold-out campgrounds"
 license = "PolyForm-Noncommercial-1.0.0"
 requires-python = ">=3.9,<4.0"
-dependencies = [
-  "backend",
-  "db",
-  "providers",
-  "worker"
-]
+dependencies = ["backend", "camply", "camply-core", "db", "providers", "worker"]
 
 [tool.uv.sources]
-backend = { workspace = true }
-db = { workspace = true }
-providers = { workspace = true }
-worker = { workspace = true }
+backend = {workspace = true}
+camply = {workspace = true}
+camply-core = {workspace = true}
+db = {workspace = true}
+providers = {workspace = true}
+worker = {workspace = true}
 
 [tool.uv.workspace]
 members = ["packages/*"]
@@ -49,7 +46,14 @@ select = [
 ban-relative-imports = "all"
 
 [tool.ruff.lint.isort]
-known-first-party = ["backend", "db", "providers", "worker"]
+known-first-party = [
+  "backend",
+  "camply",
+  "camply_core",
+  "db",
+  "providers",
+  "worker"
+]
 
 [tool.ruff.lint.per-file-ignores]
 # Tests can use magic values, assertions, and relative imports
@@ -83,6 +87,4 @@ module = [
 ignore_missing_imports = true
 
 [dependency-groups]
-dev = [
-  "httpx>=0.28.1"
-]
+dev = ["httpx>=0.28.1"]

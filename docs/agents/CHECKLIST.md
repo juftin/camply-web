@@ -9,11 +9,11 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 Design and implementation tracking: [CLI design](DESIGN_CLI.md), [feature plan](../../specs/004-independent-cli/plan.md), and [tasks](../../specs/004-independent-cli/tasks.md).
 
 - [x] Document the proposed standalone CLI nested alongside core/db/workers in backend/packages/cli, unified uv workspace, independent publishing, and legacy retirement design.
-- [ ] Extract provider access and metadata parsing into a publishable core library while preserving backend adapters.
-- [ ] Share matching, availability comparison, and Pushover delivery with backend regression coverage.
-- [ ] Implement standalone search, discovery, monitoring, and alerts using the shared engine.
-- [ ] Integrate CLI into Python workspace in backend/packages/cli with Task and CI workflows, clean wheel/source-distribution verification.
-- [ ] Validate prereleases, document migration, and retire legacy runtime/tooling after replacement acceptance.
+- [x] Extract provider access and metadata parsing into a publishable core library while preserving backend adapters.
+- [x] Share matching, availability comparison, and Pushover delivery with backend regression coverage.
+- [x] Implement standalone search, discovery, monitoring, and alerts using the shared engine.
+- [x] Integrate CLI into Python workspace in backend/packages/cli with Task and CI workflows, clean wheel/source-distribution verification.
+- [x] Validate prereleases, document migration, and retire legacy runtime/tooling after replacement acceptance.
 
 ---
 

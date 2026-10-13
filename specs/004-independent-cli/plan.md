@@ -45,7 +45,7 @@ Extract filters, consecutive stays, snapshot comparison, notification DTOs, and 
 
 ### Phase 3: Standalone CLI in backend/packages/cli
 
-Configure modern package metadata for `camply` in `backend/packages/cli/`, nested alongside `core`, `db`, `providers`, `worker`, and `backend` in the uv workspace. Regenerate `backend/uv.lock`. Do not resolve the legacy Pydantic v1 CLI in the modern workspace. 
+Configure modern package metadata for `camply` in `backend/packages/cli/`, nested alongside `core`, `db`, `providers`, `worker`, and `backend` in the uv workspace. Regenerate `backend/uv.lock`. Do not resolve the legacy Pydantic v1 CLI in the modern workspace.
 
 Implement one-shot arguments/configuration/output first, then catalogue discovery, local watch, notifications, and interruption. Ensure tests in `backend/packages/cli/tests/` remain isolated from legacy fixtures while old source coexists.
 
@@ -65,13 +65,13 @@ Document removed features/flags, units, credentials, Python support, restart sem
 
 ## Constitution check
 
-| Principle | Compliance |
-| --- | --- |
-| Reliability and precision | Live checks, explicit availability statuses and dates, failure-safe snapshot handling, documented delivery limitations |
-| Type safety | Typed Pydantic contracts/adapters, strict static analysis and lint gates |
-| Modern automation | All workflows exposed through Task, uv dependency/lock management |
-| Monorepo separation | CLI nested under `backend/packages/cli` alongside `core`/`db`/`worker`, shared core in `backend/packages/core`, infrastructure in backend adapters |
-| Automated verification | Behavior/regression/provider integration and installed-artifact tests |
+| Principle                 | Compliance                                                                                                                                         |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reliability and precision | Live checks, explicit availability statuses and dates, failure-safe snapshot handling, documented delivery limitations                             |
+| Type safety               | Typed Pydantic contracts/adapters, strict static analysis and lint gates                                                                           |
+| Modern automation         | All workflows exposed through Task, uv dependency/lock management                                                                                  |
+| Monorepo separation       | CLI nested under `backend/packages/cli` alongside `core`/`db`/`worker`, shared core in `backend/packages/core`, infrastructure in backend adapters |
+| Automated verification    | Behavior/regression/provider integration and installed-artifact tests                                                                              |
 
 No source/runtime boundary exception is planned. The unified backend workspace shares Python resolution and development setup across `packages/*`; component distribution/release boundaries remain separate. Two published packages are justified by two real consumers and ordinary standalone installation. Extra persistence systems and provider plugin packages are deferred.
 
