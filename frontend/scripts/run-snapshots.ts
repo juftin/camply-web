@@ -296,6 +296,89 @@ const SCENARIOS: Scenario[] = [
     description:
       "Project Ethos and open-source principles page (Desktop, Light)",
   },
+  {
+    name: "providers-desktop-light",
+    route: "/providers",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description: "Supported booking providers and platforms (Desktop, Light)",
+  },
+  {
+    name: "providers-desktop-dark",
+    route: "/providers",
+    viewport: { width: 1280, height: 800 },
+    theme: "dark",
+    description: "Supported booking providers and platforms (Desktop, Dark)",
+  },
+  {
+    name: "how-it-works-desktop-light",
+    route: "/how-it-works",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description:
+      "How Camply Works architecture and lifecycle explanation (Desktop, Light)",
+  },
+  {
+    name: "how-it-works-desktop-dark",
+    route: "/how-it-works",
+    viewport: { width: 1280, height: 800 },
+    theme: "dark",
+    description:
+      "How Camply Works architecture and lifecycle explanation (Desktop, Dark)",
+  },
+  {
+    name: "faq-desktop-light",
+    route: "/faq",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description: "Frequently Asked Questions catalog (Desktop, Light)",
+  },
+  {
+    name: "faq-desktop-dark",
+    route: "/faq",
+    viewport: { width: 1280, height: 800 },
+    theme: "dark",
+    description: "Frequently Asked Questions catalog (Desktop, Dark)",
+  },
+  {
+    name: "profile-desktop-light",
+    route: "/profile",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description:
+      "User profile settings and Pushover notification config (Desktop, Light)",
+  },
+  {
+    name: "profile-desktop-dark",
+    route: "/profile",
+    viewport: { width: 1280, height: 800 },
+    theme: "dark",
+    description:
+      "User profile settings and Pushover notification config (Desktop, Dark)",
+  },
+  {
+    name: "scan-detail-desktop-light",
+    route: "/dashboard/scans/scan-mock-1",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description:
+      "Scan details view displaying found campsites and polling status (Desktop, Light)",
+  },
+  {
+    name: "home-search-dropdown-desktop-light",
+    route: "/",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description:
+      "Search autocomplete dropdown displaying matched campgrounds and recreation areas (Desktop, Light)",
+    action: async (page: Page) => {
+      const input = page.locator("input[placeholder*='Search']");
+      await input.waitFor({ state: "visible", timeout: 5000 });
+      await input.fill("Yosemite");
+      await page.waitForSelector(".cursor-pointer", { timeout: 5000 });
+      await page.waitForTimeout(300);
+    },
+  },
 ];
 
 /**
@@ -392,6 +475,29 @@ const MOCK_CAMPGROUNDS = [
   },
 ];
 
+const MOCK_SEARCH_RESULTS = [
+  {
+    id: "campground-232447",
+    entity_type: "Campground",
+    provider_id: 1,
+    provider_name: "Recreation.gov",
+    recreation_area_id: "2991",
+    recreation_area_name: "Yosemite National Park",
+    campground_id: "232447",
+    campground_name: "Upper Pines Campground",
+  },
+  {
+    id: "recarea-2991",
+    entity_type: "RecreationArea",
+    provider_id: 1,
+    provider_name: "Recreation.gov",
+    recreation_area_id: "2991",
+    recreation_area_name: "Yosemite National Park",
+    campground_id: null,
+    campground_name: null,
+  },
+];
+
 /**
  * Check if local server is listening on port.
  *
@@ -434,11 +540,19 @@ async function ensureServerRunning(): Promise<ChildProcess | null> {
   }
 
   console.log(`🚀 Starting Vite development server on port ${PORT}...`);
-  const serverProcess = spawn("pnpm", ["run", "dev", "--port", `${PORT}`], {
-    cwd: FRONTEND_ROOT,
-    stdio: "pipe",
-    shell: true,
-  });
+  const serverProcess = spawn(
+    "pnpm",
+    ["run", "dev", "--port", `${PORT}`, "--base", "/"],
+    {
+      cwd: FRONTEND_ROOT,
+      stdio: "pipe",
+      shell: true,
+      env: {
+        ...process.env,
+        GITHUB_REPOSITORY: "",
+      },
+    },
+  );
 
   const started = await new Promise<boolean>((resolve) => {
     const timeout = setTimeout(() => resolve(false), 15000);
@@ -541,10 +655,7 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({
-        campgrounds: MOCK_CAMPGROUNDS,
-        total: MOCK_CAMPGROUNDS.length,
-      }),
+      body: JSON.stringify(MOCK_SEARCH_RESULTS),
     });
   });
 
@@ -576,6 +687,7 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
  *     Scenario details.
  */
 async function preparePage(page: Page, scenario: Scenario): Promise<void> {
+  await page.clock.setFixedTime(new Date("2026-10-10T12:00:00Z"));
   await page.setViewportSize(scenario.viewport);
   await page.emulateMedia({
     colorScheme: scenario.theme,
