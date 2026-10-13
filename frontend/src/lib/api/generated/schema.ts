@@ -674,11 +674,11 @@ export interface components {
             /** Queue Depth */
             queue_depth: number;
             /** Active Tasks Total */
-            active_tasks_total: number;
+            active_tasks_total: number | null;
             /** Reserved Tasks Total */
-            reserved_tasks_total: number;
+            reserved_tasks_total: number | null;
             /** Scheduled Tasks Total */
-            scheduled_tasks_total: number;
+            scheduled_tasks_total: number | null;
             last_discovery?: components["schemas"]["AdminDiscoveryMetadata"] | null;
             /** Broker Connected */
             broker_connected: boolean;
@@ -709,11 +709,15 @@ export interface components {
         };
         /**
          * AdminOperationsTaskDetail
-         * @description Detailed view of a single task execution.
+         * @description Detailed view of a single task attempt, using the same safe metadata as history.
          */
         AdminOperationsTaskDetail: {
             /** Task Id */
             task_id: string;
+            /** Event Id */
+            event_id?: string | null;
+            /** Attempt */
+            attempt?: number | null;
             /** Task Name */
             task_name: string;
             /** Worker */
@@ -1004,6 +1008,10 @@ export interface components {
         AdminTaskTelemetryItem: {
             /** Task Id */
             task_id: string;
+            /** Event Id */
+            event_id?: string | null;
+            /** Attempt */
+            attempt?: number | null;
             /** Task Name */
             task_name: string;
             /** Worker */
@@ -1154,11 +1162,11 @@ export interface components {
             /** Status */
             status: string;
             /** Active Tasks */
-            active_tasks: number;
+            active_tasks: number | null;
             /** Reserved Tasks */
-            reserved_tasks: number;
+            reserved_tasks: number | null;
             /** Scheduled Tasks */
-            scheduled_tasks: number;
+            scheduled_tasks: number | null;
         };
         /**
          * ApiStatus
@@ -1602,7 +1610,7 @@ export interface components {
              */
             timestamp: string;
             /** Value */
-            value: number;
+            value: number | null;
         };
         /**
          * TrendSeries

@@ -165,7 +165,11 @@ export function AdminOperations() {
             <span className="font-medium text-muted-foreground">
               Task Queue:
             </span>
-            {opsData?.broker_connected ? (
+            {!opsData ? (
+              <Badge variant="outline">
+                {isOpsLoading ? "Checking…" : "Unknown"}
+              </Badge>
+            ) : opsData.broker_connected ? (
               <Badge className="bg-emerald-600 text-white flex items-center gap-1">
                 <CheckCircle2 className="h-3 w-3" /> Connected
               </Badge>
@@ -257,11 +261,9 @@ export function AdminOperations() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             ) : (
               <div className="text-2xl font-bold">
-                {(opsData?.inspection_available === false &&
-                  !opsData.last_successful_at) ||
-                !opsData
+                {!opsData
                   ? "Unavailable"
-                  : opsData.active_tasks_total}
+                  : (opsData.active_tasks_total ?? "Unknown")}
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
@@ -282,11 +284,9 @@ export function AdminOperations() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             ) : (
               <div className="text-2xl font-bold">
-                {(opsData?.inspection_available === false &&
-                  !opsData.last_successful_at) ||
-                !opsData
+                {!opsData
                   ? "Unavailable"
-                  : opsData.reserved_tasks_total}
+                  : (opsData.reserved_tasks_total ?? "Unknown")}
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
@@ -311,7 +311,7 @@ export function AdminOperations() {
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              {opsData?.scheduled_tasks_total ?? 0} scheduled tasks
+              {opsData?.scheduled_tasks_total ?? "Unknown"} scheduled tasks
             </p>
           </CardContent>
         </Card>
@@ -395,7 +395,7 @@ export function AdminOperations() {
                   Running tasks are executing. Reserved tasks wait to run.
                   Scheduled tasks wait for a future start time.
                 </p>
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[500px] text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground text-xs font-medium">
                       <th className="pb-2">Worker Node</th>
@@ -423,13 +423,13 @@ export function AdminOperations() {
                           </Badge>
                         </td>
                         <td className="py-2.5 text-right font-medium">
-                          {worker.active_tasks}
+                          {worker.active_tasks ?? "Unknown"}
                         </td>
                         <td className="py-2.5 text-right text-muted-foreground">
-                          {worker.reserved_tasks}
+                          {worker.reserved_tasks ?? "Unknown"}
                         </td>
                         <td className="py-2.5 text-right text-muted-foreground">
-                          {worker.scheduled_tasks}
+                          {worker.scheduled_tasks ?? "Unknown"}
                         </td>
                       </tr>
                     ))}
@@ -566,27 +566,33 @@ export function AdminOperations() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[850px] text-sm">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground text-xs font-medium">
                     <th className="pb-2">Task</th>
                     <th className="pb-2">Worker</th>
                     <th className="pb-2">Related Record</th>
                     <th className="pb-2">Finished At</th>
-                    <th className="pb-2 text-right">Duration</th>
+                    <th className="pb-2 pr-3 text-right">Duration</th>
                     <th className="pb-2">Outcome</th>
                     <th className="pb-2 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {tasksData.tasks.map((task) => (
-                    <tr key={task.task_id} className="hover:bg-muted/30">
+                    <tr
+                      key={
+                        task.event_id ?? `${task.task_id}:${task.finished_at}`
+                      }
+                      className="hover:bg-muted/30"
+                    >
                       <td className="py-2.5">
                         <div className="font-mono text-xs font-medium">
                           {taskLabel(task.task_name)}
                         </div>
                         <div className="text-[11px] text-muted-foreground font-mono">
                           {task.task_id.slice(0, 8)}…
+                          {task.attempt ? ` · Attempt ${task.attempt}` : ""}
                         </div>
                       </td>
                       <td className="py-2.5 font-mono text-xs text-muted-foreground">
@@ -598,7 +604,7 @@ export function AdminOperations() {
                       <td className="py-2.5 text-xs text-muted-foreground">
                         {formatTimestamp(task.finished_at)}
                       </td>
-                      <td className="py-2.5 text-right font-mono text-xs">
+                      <td className="py-2.5 pr-3 text-right font-mono text-xs">
                         {formatDuration(task.duration_ms)}
                       </td>
                       <td className="py-2.5">
@@ -665,12 +671,16 @@ export function AdminOperations() {
               Task Execution Details
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Allowlisted metadata recorded by the worker lifecycle listener.
+              Recorded result for this task attempt.
             </DialogDescription>
           </DialogHeader>
 
           {selectedTask && (
             <div className="space-y-3 py-2 text-sm">
+              <div className="flex justify-between items-start border-b pb-2">
+                <span className="text-muted-foreground text-xs">Attempt:</span>
+                <span>{selectedTask.attempt ?? "Not recorded"}</span>
+              </div>
               <div className="flex justify-between items-start border-b pb-2">
                 <span className="text-muted-foreground text-xs">Task ID:</span>
                 <span className="font-mono text-xs break-all text-right max-w-[240px]">

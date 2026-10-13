@@ -139,7 +139,7 @@ def _on_task_postrun(
 ) -> None:
     """Record task execution count and duration on postrun."""
     task_name = task.name if task else "unknown"
-    status = "success" if state == "SUCCESS" else "failure"
+    status = state.lower()
 
     CELERY_TASKS_TOTAL.labels(task_name=task_name, status=status).inc()
 

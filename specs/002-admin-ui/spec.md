@@ -1,6 +1,6 @@
 # Feature Specification: Admin UI
 
-**Status**: Planned — no application implementation yet.
+**Status**: Implemented — regression tests, live admin smoke coverage, and visual snapshots verified.
 **Date**: 2026-10-08
 
 ## Agreed scope

@@ -107,14 +107,13 @@ def _matrix_to_series(
         points: list[TrendPoint] = []
         for ts_raw, val_raw in raw_values:
             try:
-                val = float(val_raw)
-                if math.isnan(val) or math.isinf(val):
-                    val = 0.0
+                parsed_value = float(val_raw)
+                val = round(parsed_value, 4) if math.isfinite(parsed_value) else None
             except (ValueError, TypeError):
-                val = 0.0
+                val = None
 
             ts = dt.datetime.fromtimestamp(float(ts_raw), tz=dt.timezone.utc)
-            points.append(TrendPoint(timestamp=ts, value=round(val, 4)))
+            points.append(TrendPoint(timestamp=ts, value=val))
 
         series_list.append(
             TrendSeries(
@@ -519,14 +518,24 @@ async def get_admin_trends(
                         end_ts,
                         step_sec,
                     )
-                    series = _matrix_to_series(
-                        res_success, "Success Rate (%)"
-                    ) + _matrix_to_series(res_fail, "Failure Rate (%)")
+                    res_retry = await _query_prometheus_range(
+                        client,
+                        backend_config.prometheus_url,
+                        'sum(rate(camply_celery_tasks_total{status="retry"}[5m])) / sum(rate(camply_celery_tasks_total[5m])) * 100',
+                        start_ts,
+                        end_ts,
+                        step_sec,
+                    )
+                    series = (
+                        _matrix_to_series(res_success, "Successful")
+                        + _matrix_to_series(res_fail, "Failed")
+                        + _matrix_to_series(res_retry, "Retrying")
+                    )
                     metrics.append(
                         TrendMetric(
                             metric_id="task_success_failure_rate",
-                            title="Task Success & Failure Rates",
-                            description="Share of Celery task executions reported as successful or failed. A successful execution may still skip unnecessary work.",
+                            title="Task Completion Status",
+                            description="Share of task attempts that succeed, fail, or retry. Retries are separate from failures; a successful execution may still skip unnecessary work.",
                             unit="%",
                             chart_type="line",
                             series=series,

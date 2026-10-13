@@ -40,6 +40,8 @@ interface Scenario {
   theme: "light" | "dark";
   description: string;
   emptyScans?: boolean;
+  partialOperations?: boolean;
+  missingMeasurements?: boolean;
   action?: (page: Page) => Promise<void>;
 }
 
@@ -63,6 +65,24 @@ interface SnapshotResult {
  * Standard scenarios covering pages, themes, viewports, and components.
  */
 const SCENARIOS: Scenario[] = [
+  {
+    name: "admin-operations-partial-desktop-light",
+    route: "/admin/operations",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description:
+      "Partial worker inspection preserves known counts and marks unanswered counts unknown",
+    partialOperations: true,
+  },
+  {
+    name: "admin-api-trends-table-desktop-light",
+    route: "/admin/operations?tab=api&api_view=table",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description:
+      "API trend table distinguishes missing measurements from measured zero",
+    missingMeasurements: true,
+  },
   {
     name: "admin-overview-desktop-light",
     route: "/admin",
@@ -453,7 +473,7 @@ async function ensureServerRunning(): Promise<ChildProcess | null> {
  *     Auth and scan state needed for the requested snapshot.
  */
 async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
-  await setupAdminSnapshotMocks(page);
+  await setupAdminSnapshotMocks(page, scenario);
   const invitationRequired = scenario.name.startsWith("early-access-");
   const signedOut = scenario.route === "/auth";
   await page.route("**/api/auth-config", (route) => {

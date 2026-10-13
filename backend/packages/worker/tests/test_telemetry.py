@@ -2,9 +2,11 @@
 Tests for worker task telemetry and discovery completion metadata.
 """
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from celery.exceptions import Retry
+from celery.signals import task_failure
 
 from worker.telemetry import (
     _extract_entity_info,
@@ -12,6 +14,33 @@ from worker.telemetry import (
     record_discovery_completion,
     record_task_execution,
 )
+
+
+def test_failed_attempt_is_recorded_once_with_original_duration() -> None:
+    """Celery failure followed by post-run emits one outcome with its worker and duration."""
+    from worker import telemetry
+
+    task = SimpleNamespace(
+        name="synthetic.task", request=SimpleNamespace(hostname="worker-1", retries=0)
+    )
+    with (
+        patch.object(telemetry, "record_task_execution") as record,
+        patch.object(telemetry.time, "monotonic", side_effect=[10.0, 12.0, 13.0]),
+    ):
+        telemetry._on_telemetry_prerun(task_id="failed-attempt")
+        task_failure.send(
+            sender=task,
+            task_id="failed-attempt",
+            exception=ValueError("synthetic"),
+            args=(),
+            kwargs={},
+        )
+        telemetry._on_telemetry_postrun(
+            task=task, task_id="failed-attempt", state="FAILURE"
+        )
+    record.assert_called_once()
+    assert record.call_args.kwargs["start_time"] == 10.0
+    assert record.call_args.kwargs["worker"] == "worker-1"
 
 
 def test_extract_entity_info() -> None:
@@ -114,3 +143,46 @@ def test_record_discovery_completion() -> None:
         assert key == "camply:telemetry:discovery:last"
         assert '"targets_discovered": 5' in value
         assert '"status": "success"' in value
+
+
+def test_retry_and_success_are_distinct_attempts_and_outcomes() -> None:
+    """Retries share a Celery task ID while retaining separate history and metric events."""
+    from worker import telemetry
+
+    client = MagicMock()
+    task = SimpleNamespace(
+        name="synthetic.task", request=SimpleNamespace(hostname="worker-1", retries=0)
+    )
+    with (
+        patch.object(telemetry, "get_redis_client", return_value=client),
+        patch("worker.metrics.APPLICATION_OUTCOMES_TOTAL") as outcomes,
+    ):
+        for retry_count, state in enumerate(("RETRY", "SUCCESS")):
+            task.request.retries = retry_count
+            telemetry._on_telemetry_prerun(task_id="same-task")
+            telemetry._on_telemetry_postrun(
+                task=task,
+                task_id="same-task",
+                state=state,
+                kwargs={"target_id": "synthetic-target"},
+            )
+    records = [call.args[1] for call in client.xadd.call_args_list]
+    assert len(records) == 2
+    assert records[0]["event_id"] != records[1]["event_id"]
+    assert [record["attempt"] for record in records] == [1, 2]
+    assert [record["outcome"] for record in records] == ["retrying", "success"]
+    assert all(record["entity_id"] == "synthetic-target" for record in records)
+    assert outcomes.labels.return_value.inc.call_count == 2
+
+
+def test_retry_execution_is_not_a_celery_failure() -> None:
+    """Execution counters preserve Celery's retry state rather than inflating failures."""
+    from worker import metrics
+
+    with patch.object(metrics, "CELERY_TASKS_TOTAL") as counter:
+        metrics._on_task_postrun(
+            task_id="synthetic-retry",
+            task=SimpleNamespace(name="synthetic.task"),
+            state="RETRY",
+        )
+    counter.labels.assert_called_once_with(task_name="synthetic.task", status="retry")

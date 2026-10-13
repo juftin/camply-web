@@ -50,10 +50,13 @@ def _get_redis_client() -> redis.Redis:
     )
 
 
-def _inspect_celery_sync() -> tuple[bool, list[AdminWorkerItem], int, int, int]:
+def _inspect_celery_sync() -> tuple[
+    bool, list[AdminWorkerItem], int | None, int | None, int | None
+]:
     """
     Synchronously query Celery broker & workers using control inspection.
-    Returns (broker_connected, workers, active_total, reserved_total, scheduled_total).
+    Returns inspection completeness, responding workers, and workload totals.
+    A missing worker response yields an unknown count rather than zero.
     """
     try:
         app = Celery("camply_inspect", broker=backend_config.valkey_url)
@@ -70,7 +73,11 @@ def _inspect_celery_sync() -> tuple[bool, list[AdminWorkerItem], int, int, int]:
             complete = True
             for future in futures:
                 try:
-                    replies.append(future.result() or {})
+                    reply = future.result()
+                    if not isinstance(reply, dict):
+                        complete = False
+                        reply = {}
+                    replies.append(reply)
                 except Exception:
                     complete = False
                     replies.append({})
@@ -84,18 +91,25 @@ def _inspect_celery_sync() -> tuple[bool, list[AdminWorkerItem], int, int, int]:
         )
 
         worker_items: list[AdminWorkerItem] = []
-        active_total = 0
-        reserved_total = 0
-        scheduled_total = 0
 
         for w_name in sorted(all_workers):
-            act_count = len(active.get(w_name, []))
-            res_count = len(reserved.get(w_name, []))
-            sch_count = len(scheduled.get(w_name, []))
-
-            active_total += act_count
-            reserved_total += res_count
-            scheduled_total += sch_count
+            act_count = (
+                len(active[w_name]) if isinstance(active.get(w_name), list) else None
+            )
+            res_count = (
+                len(reserved[w_name])
+                if isinstance(reserved.get(w_name), list)
+                else None
+            )
+            sch_count = (
+                len(scheduled[w_name])
+                if isinstance(scheduled.get(w_name), list)
+                else None
+            )
+            if w_name not in ping or any(
+                count is None for count in (act_count, res_count, sch_count)
+            ):
+                complete = False
 
             is_online = w_name in ping
             worker_items.append(
@@ -108,10 +122,23 @@ def _inspect_celery_sync() -> tuple[bool, list[AdminWorkerItem], int, int, int]:
                 )
             )
 
-        return complete, worker_items, active_total, reserved_total, scheduled_total
+        totals = [
+            sum(len(reply[name]) for name in all_workers)
+            if all_workers
+            and all(isinstance(reply.get(name), list) for name in all_workers)
+            else None
+            for reply in (active, reserved, scheduled)
+        ]
+        return (
+            complete and bool(all_workers),
+            worker_items,
+            totals[0],
+            totals[1],
+            totals[2],
+        )
     except Exception:
         logger.warning("Failed to inspect Celery workers", exc_info=True)
-        return False, [], 0, 0, 0
+        return False, [], None, None, None
 
 
 def _query_valkey_overview_sync() -> tuple[int, Optional[AdminDiscoveryMetadata]]:
@@ -176,7 +203,7 @@ async def get_operations_overview() -> AdminOperationsResponse:
         telemetry_available = not isinstance(telemetry, BaseException)
         workers: list[AdminWorkerItem]
         if isinstance(inspection, BaseException):
-            workers, act_tot, res_tot, sch_tot = [], 0, 0, 0
+            workers, act_tot, res_tot, sch_tot = [], None, None, None
         else:
             _, workers, act_tot, res_tot, sch_tot = inspection
         if not inspection_available and not workers and previous:
@@ -230,6 +257,8 @@ def _parse_telemetry_dict(d: dict[str, Any]) -> Optional[AdminTaskTelemetryItem]
         fin_dt = dt.datetime.fromisoformat(finished_str)
         return AdminTaskTelemetryItem(
             task_id=str(d.get("task_id", "")),
+            event_id=d.get("event_id") or None,
+            attempt=int(d["attempt"]) if d.get("attempt") else None,
             task_name=str(d.get("task_name", "unknown")),
             worker=str(d.get("worker", "unknown")),
             finished_at=fin_dt,
@@ -258,10 +287,17 @@ def _get_recent_tasks_sync(
         raw_items_res = r.xrevrange(STREAM_KEY, max="+", min="-", count=1000)
         raw_items: list[Any] = raw_items_res if isinstance(raw_items_res, list) else []
 
+        oldest_timestamp = dt.datetime.now(tz=dt.timezone.utc) - dt.timedelta(hours=24)
         parsed: list[AdminTaskTelemetryItem] = []
         for _msg_id, fields in raw_items:
             item = _parse_telemetry_dict(fields)
             if item is None:
+                continue
+            if item.event_id is None:
+                item.event_id = str(_msg_id)
+            if item.finished_at.tzinfo is None:
+                item.finished_at = item.finished_at.replace(tzinfo=dt.timezone.utc)
+            if item.finished_at < oldest_timestamp:
                 continue
             if task_name and task_name not in item.task_name:
                 continue
@@ -313,6 +349,8 @@ def _get_task_detail_sync(task_id: str) -> Optional[AdminOperationsTaskDetail]:
             if item:
                 return AdminOperationsTaskDetail(
                     task_id=item.task_id,
+                    event_id=item.event_id,
+                    attempt=item.attempt,
                     task_name=item.task_name,
                     worker=item.worker,
                     finished_at=item.finished_at,

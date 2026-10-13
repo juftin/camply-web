@@ -239,6 +239,26 @@ def test_chart_series_preserve_metric_identity() -> None:
     assert active[0].name != eligible[0].name
 
 
+def test_undefined_measurements_preserve_gaps_and_real_zero() -> None:
+    """Undefined ratios retain timestamps without inventing zero measurements."""
+    from backend.services.trends import _matrix_to_series
+
+    series = _matrix_to_series(
+        [
+            {
+                "metric": {},
+                "values": [
+                    [1760000000 + i, value]
+                    for i, value in enumerate(["0", "NaN", "+Inf", "-Inf", "invalid"])
+                ],
+            }
+        ],
+        default_name="Error percentage",
+    )
+    assert [point.value for point in series[0].points] == [0.0, None, None, None, None]
+    assert len(series[0].points) == 5
+
+
 @pytest.mark.asyncio
 async def test_outage_retains_last_successful_trends() -> None:
     """An expired cache remains visible as stale history when Prometheus is unavailable."""

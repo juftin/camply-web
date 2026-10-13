@@ -194,7 +194,7 @@ class TestOperationsServiceResilience:
             connected, workers, act_tot, res_tot, sch_tot = _inspect_celery_sync()
             assert connected is False
             assert workers == []
-            assert act_tot == 0
+            assert act_tot is None
 
     @pytest.mark.asyncio
     async def test_query_valkey_overview_failure(self) -> None:
@@ -261,6 +261,26 @@ def test_partial_worker_inspection_retains_successful_replies() -> None:
     assert active == 1
 
 
+@pytest.mark.parametrize(
+    "missing_reply", [None, {}, {"worker-1": {"error": "Unavailable"}}]
+)
+def test_unanswered_workload_is_unknown(missing_reply: dict | None) -> None:
+    """Ping alone cannot establish that a worker has no running tasks."""
+    from backend.services.operations import _inspect_celery_sync
+
+    with patch("backend.services.operations.Celery") as factory:
+        inspector = factory.return_value.control.inspect.return_value
+        inspector.ping.return_value = {"worker-1": {"ok": "pong"}}
+        inspector.active.return_value = missing_reply
+        inspector.reserved.return_value = {"worker-1": []}
+        inspector.scheduled.return_value = {"worker-1": []}
+        available, workers, active, reserved, scheduled = _inspect_celery_sync()
+    assert not available
+    assert workers[0].active_tasks is None
+    assert active is None
+    assert reserved == scheduled == 0
+
+
 def test_task_telemetry_outage_is_not_an_empty_success() -> None:
     """An unreadable telemetry stream exposes an outage rather than an idle queue."""
     from backend.services.operations import _get_recent_tasks_sync
@@ -272,3 +292,44 @@ def test_task_telemetry_outage_is_not_an_empty_success() -> None:
         response = _get_recent_tasks_sync()
     assert not response.available
     assert response.error_message
+
+
+def test_task_history_excludes_expired_records_and_identifies_attempts() -> None:
+    """Legacy retry records have distinct event IDs and obey the visible 24-hour window."""
+    from backend.services.operations import _get_recent_tasks_sync
+
+    now = dt.datetime.now(tz=dt.timezone.utc)
+
+    def record(finished_at: dt.datetime, outcome: str) -> dict[str, str]:
+        """Build a synthetic telemetry record from a previous producer version."""
+        return {
+            "task_id": "same-task",
+            "task_name": "synthetic.task",
+            "finished_at": finished_at.isoformat(),
+            "outcome": outcome,
+        }
+
+    with patch("backend.services.operations._get_redis_client") as client:
+        client.return_value.xrevrange.return_value = [
+            ("3-0", record(now, "success")),
+            ("2-0", record(now - dt.timedelta(minutes=1), "retrying")),
+            ("1-0", record(now - dt.timedelta(hours=25), "error")),
+        ]
+        response = _get_recent_tasks_sync()
+    assert response.total == 2
+    assert [task.event_id for task in response.tasks] == ["3-0", "2-0"]
+    assert response.tasks[0].attempt is None
+
+
+def test_idle_worker_reports_measured_zero() -> None:
+    """Empty task lists from a responding worker are measured zeros."""
+    from backend.services.operations import _inspect_celery_sync
+
+    with patch("backend.services.operations.Celery") as factory:
+        inspector = factory.return_value.control.inspect.return_value
+        inspector.ping.return_value = {"worker-1": {"ok": "pong"}}
+        for method in ("active", "reserved", "scheduled"):
+            getattr(inspector, method).return_value = {"worker-1": []}
+        available, _, active, reserved, scheduled = _inspect_celery_sync()
+    assert available
+    assert active == reserved == scheduled == 0

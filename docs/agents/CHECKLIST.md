@@ -127,6 +127,7 @@ Implementation specification and tasks: [Admin UI plan](../../specs/002-admin-ui
 - [x] Integrate pnpm tooling and local Docker session fixes while preserving scan suspension controls.
 - [x] Repair admin contracts, active-target labels, distinct trend series, outage/stale states, mutation feedback/cache refresh, pagination, and shareable investigation filters.
 - [x] Generate admin types from OpenAPI and enforce contract drift checks in CI.
+- [x] Preserve unknown monitoring values, distinct task attempts and retry outcomes; enforce history retention and add live admin smoke verification in CI.
 - [x] Clarify admin scan settings and eligibility, shared-target scan counts, chart units/time zones/legends, and percentile explanations; verify readable charts and tables.
 - [x] Update architecture documentation and pass implementation quality gates.
 

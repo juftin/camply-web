@@ -55,6 +55,8 @@ const SCANS: AdminScanItem[] = USERS.map((user, index) => ({
 const TASKS = [
   {
     task_id: "task-mock-1",
+    event_id: "event-mock-1",
+    attempt: 1,
     task_name: "worker.tasks.scanner.check_target_availability",
     worker: "celery@worker-1",
     finished_at: NOW,
@@ -66,6 +68,8 @@ const TASKS = [
   },
   {
     task_id: "task-mock-2",
+    event_id: "event-mock-2",
+    attempt: 1,
     task_name: "worker.tasks.notifications.send_pushover_notification",
     worker: "celery@worker-1",
     finished_at: NOW,
@@ -197,7 +201,10 @@ function trendMetrics(group: string): TrendMetric[] {
 }
 
 /** Intercept admin GET endpoints with safe, synthetic data. */
-export async function setupAdminSnapshotMocks(page: Page): Promise<void> {
+export async function setupAdminSnapshotMocks(
+  page: Page,
+  options: { partialOperations?: boolean; missingMeasurements?: boolean } = {},
+): Promise<void> {
   await page.route("**/api/admin/**", async (route) => {
     const url = new URL(route.request().url());
     const endpoint = url.pathname.replace(/^.*\/api\/admin\//, "");
@@ -286,13 +293,13 @@ export async function setupAdminSnapshotMocks(page: Page): Promise<void> {
           {
             name: "celery@worker-1",
             status: "online",
-            active_tasks: 2,
+            active_tasks: options.partialOperations ? null : 2,
             reserved_tasks: 3,
             scheduled_tasks: 1,
           },
         ],
         queue_depth: 7,
-        active_tasks_total: 2,
+        active_tasks_total: options.partialOperations ? null : 2,
         reserved_tasks_total: 3,
         scheduled_tasks_total: 1,
         last_discovery: {
@@ -302,10 +309,13 @@ export async function setupAdminSnapshotMocks(page: Page): Promise<void> {
           status: "success",
         },
         broker_connected: true,
-        inspection_available: true,
+        inspection_available: !options.partialOperations,
         telemetry_available: true,
-        stale: false,
-        last_successful_at: NOW,
+        stale: Boolean(options.partialOperations),
+        error_message: options.partialOperations
+          ? "Worker inspection incomplete"
+          : null,
+        last_successful_at: options.partialOperations ? null : NOW,
         snapshot_at: NOW,
       };
     } else if (endpoint === "operations/tasks") {
@@ -314,6 +324,15 @@ export async function setupAdminSnapshotMocks(page: Page): Promise<void> {
       body = TASKS.find((task) => endpoint.endsWith(task.task_id));
     } else if (endpoint === "trends") {
       const group = url.searchParams.get("group") ?? "usage";
+      const metrics = trendMetrics(group);
+      if (options.missingMeasurements) {
+        for (const metric of metrics) {
+          for (const series of metric.series ?? []) {
+            if (series.points?.[0]) series.points[0].value = null;
+            if (series.points?.[1]) series.points[1].value = 0;
+          }
+        }
+      }
       body = {
         group,
         range: url.searchParams.get("range") ?? "24h",
@@ -324,7 +343,7 @@ export async function setupAdminSnapshotMocks(page: Page): Promise<void> {
         available: true,
         last_successful_at: NOW,
         error_message: null,
-        metrics: trendMetrics(group),
+        metrics,
       };
     }
     await route.fulfill({

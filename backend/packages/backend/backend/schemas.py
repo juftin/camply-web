@@ -349,9 +349,9 @@ class AdminWorkerItem(BaseModel):
 
     name: str
     status: str
-    active_tasks: int
-    reserved_tasks: int
-    scheduled_tasks: int
+    active_tasks: int | None
+    reserved_tasks: int | None
+    scheduled_tasks: int | None
 
 
 class AdminDiscoveryMetadata(BaseModel):
@@ -368,9 +368,9 @@ class AdminOperationsResponse(BaseModel):
 
     workers: list[AdminWorkerItem]
     queue_depth: int
-    active_tasks_total: int
-    reserved_tasks_total: int
-    scheduled_tasks_total: int
+    active_tasks_total: int | None
+    reserved_tasks_total: int | None
+    scheduled_tasks_total: int | None
     last_discovery: Optional[AdminDiscoveryMetadata] = None
     broker_connected: bool
     snapshot_at: datetime.datetime
@@ -385,6 +385,8 @@ class AdminTaskTelemetryItem(BaseModel):
     """Allowlisted metadata record of a background task execution."""
 
     task_id: str
+    event_id: str | None = None
+    attempt: int | None = None
     task_name: str
     worker: str
     finished_at: datetime.datetime
@@ -404,18 +406,8 @@ class AdminOperationsTasksResponse(BaseModel):
     error_message: Optional[str] = None
 
 
-class AdminOperationsTaskDetail(BaseModel):
-    """Detailed view of a single task execution."""
-
-    task_id: str
-    task_name: str
-    worker: str
-    finished_at: datetime.datetime
-    duration_ms: float
-    entity_type: Optional[str] = None
-    entity_id: Optional[str] = None
-    outcome: str
-    reason: Optional[str] = None
+class AdminOperationsTaskDetail(AdminTaskTelemetryItem):
+    """Detailed view of a single task attempt, using the same safe metadata as history."""
 
 
 # ===========================================================================
@@ -427,7 +419,7 @@ class TrendPoint(BaseModel):
     """A single time-value data point."""
 
     timestamp: datetime.datetime
-    value: float
+    value: float | None
 
 
 class TrendSeries(BaseModel):

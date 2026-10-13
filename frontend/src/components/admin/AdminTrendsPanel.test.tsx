@@ -100,6 +100,88 @@ beforeEach(() => {
 });
 
 describe("AdminTrendsPanel", () => {
+  it("shows undefined ratios as missing measurements while preserving zero", async () => {
+    vi.mocked(api.getAdminTrends).mockResolvedValue({
+      group: "api",
+      range: "24h",
+      step_seconds: 900,
+      start_time: "2026-10-09T00:00:00Z",
+      end_time: "2026-10-09T01:00:00Z",
+      timezone: "UTC",
+      available: true,
+      metrics: [
+        {
+          metric_id: "ratio",
+          title: "Error percentage",
+          description: "Errors divided by attempts.",
+          unit: "%",
+          chart_type: "line",
+          series: [
+            {
+              name: "Errors",
+              labels: {},
+              points: [
+                { timestamp: "2026-10-09T00:00:00Z", value: null },
+                { timestamp: "2026-10-09T00:15:00Z", value: 0 },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    render(
+      <MemoryRouter initialEntries={["/admin/operations?api_view=table"]}>
+        <QueryClientProvider client={queryClient}>
+          <AdminTrendsPanel group="api" />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("No measurement")).toBeInTheDocument();
+    expect(screen.getByText("0")).toBeInTheDocument();
+  });
+  it("explains an entirely unmeasured chart and keeps its timestamps in the table", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.getAdminTrends).mockResolvedValue({
+      group: "api",
+      range: "24h",
+      step_seconds: 900,
+      start_time: "2026-10-09T00:00:00Z",
+      end_time: "2026-10-09T01:00:00Z",
+      timezone: "UTC",
+      available: true,
+      metrics: [
+        {
+          metric_id: "ratio",
+          title: "Error percentage",
+          description: "Errors divided by attempts.",
+          unit: "%",
+          chart_type: "line",
+          series: [
+            {
+              name: "Errors",
+              labels: {},
+              points: [{ timestamp: "2026-10-09T00:00:00Z", value: null }],
+            },
+          ],
+        },
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <AdminTrendsPanel group="api" />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    expect(
+      await screen.findByText("No measurements available for this time range."),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Table" }));
+    expect(screen.getByText("No measurement")).toBeInTheDocument();
+    expect(
+      screen.getByText(new Date("2026-10-09T00:00:00Z").toLocaleString()),
+    ).toBeInTheDocument();
+  });
   it("renders trend metrics, range controls, and chart toggle", async () => {
     vi.mocked(api.getAdminTrends).mockResolvedValue({
       group: "usage",

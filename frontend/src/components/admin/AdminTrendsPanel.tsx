@@ -120,7 +120,7 @@ export function AdminTrendsPanel({
     if (!metric.series || metric.series.length === 0) return [];
 
     // Map timestamps to objects containing values for each series
-    const dataMap: Record<string, Record<string, number | string>> = {};
+    const dataMap: Record<string, Record<string, number | string | null>> = {};
 
     (metric.series ?? []).forEach((s, index) => {
       (s.points ?? []).forEach((p) => {
@@ -293,9 +293,15 @@ export function AdminTrendsPanel({
                   </p>
                 </CardHeader>
                 <CardContent className="pt-2">
-                  {chartData.length === 0 ? (
+                  {chartData.length === 0 ||
+                  (viewMode === "charts" &&
+                    !(metric.series ?? []).some((series) =>
+                      (series.points ?? []).some(
+                        (point) => point.value !== null,
+                      ),
+                    )) ? (
                     <div className="h-48 flex items-center justify-center text-xs text-muted-foreground border rounded-md border-dashed">
-                      No data recorded for this time range.
+                      No measurements available for this time range.
                     </div>
                   ) : viewMode === "charts" ? (
                     <div className="h-56 w-full">
@@ -323,7 +329,9 @@ export function AdminTrendsPanel({
                             />
                             <Tooltip
                               formatter={(value, name) => [
-                                `${formatValue(Number(value))} ${unit}`,
+                                value == null
+                                  ? "No measurement"
+                                  : `${formatValue(Number(value))} ${unit}`,
                                 name,
                               ]}
                               labelFormatter={(label) =>
@@ -374,7 +382,9 @@ export function AdminTrendsPanel({
                             />
                             <Tooltip
                               formatter={(value, name) => [
-                                `${formatValue(Number(value))} ${unit}`,
+                                value == null
+                                  ? "No measurement"
+                                  : `${formatValue(Number(value))} ${unit}`,
                                 name,
                               ]}
                               labelFormatter={(label) =>
@@ -397,6 +407,7 @@ export function AdminTrendsPanel({
                               <Line
                                 key={s.name}
                                 type="linear"
+                                connectNulls={false}
                                 dataKey={`series_${idx}`}
                                 name={displayLabels[idx]}
                                 stroke={
@@ -442,7 +453,7 @@ export function AdminTrendsPanel({
                                   key={s.name}
                                   className="p-1.5 text-right font-mono"
                                 >
-                                  {row[`series_${seriesIndex}`] === undefined
+                                  {row[`series_${seriesIndex}`] == null
                                     ? "No measurement"
                                     : formatValue(
                                         Number(row[`series_${seriesIndex}`]),

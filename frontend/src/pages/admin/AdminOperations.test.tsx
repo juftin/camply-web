@@ -256,3 +256,43 @@ it("shows telemetry outages as unavailable instead of idle", async () => {
     screen.queryByText("No recent task results match these filters."),
   ).not.toBeInTheDocument();
 });
+
+it("preserves known counts and shows unanswered workload as unknown", async () => {
+  vi.mocked(api.getAdminOperations).mockResolvedValue({
+    workers: [
+      {
+        name: "worker-1",
+        status: "online",
+        active_tasks: null,
+        reserved_tasks: 0,
+        scheduled_tasks: 0,
+      },
+    ],
+    queue_depth: 0,
+    active_tasks_total: null,
+    reserved_tasks_total: 0,
+    scheduled_tasks_total: 0,
+    broker_connected: true,
+    inspection_available: false,
+    telemetry_available: true,
+    stale: true,
+    snapshot_at: "2026-10-10T12:00:00Z",
+    error_message: "Worker inspection incomplete",
+  });
+  vi.mocked(api.listAdminOperationsTasks).mockResolvedValue({
+    tasks: [],
+    total: 0,
+    available: true,
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <AdminOperations />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  expect(await screen.findByText("worker-1")).toBeInTheDocument();
+  expect(screen.getAllByText("Unknown")).toHaveLength(2);
+  expect(screen.getByText("Connected")).toBeInTheDocument();
+  expect(screen.getAllByText("0").length).toBeGreaterThan(0);
+});

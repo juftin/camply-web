@@ -113,3 +113,9 @@ The project uses `pre-commit` to ensure code quality.
 ### API contract verification
 
 Use `task api:generate` to export the local FastAPI OpenAPI schema and regenerate committed TypeScript types without a running backend. Run `task api:check` to verify that the generated file matches the backend. Admin pages consume these generated types directly, so fixtures must use the actual response shapes. The API Contract CI job checks drift on every PR.
+
+### Admin live smoke test
+
+Run `task frontend:browser:install` once if Chromium is unavailable, then `task admin:smoke` with Docker running. This creates test-owned Valkey and Prometheus containers on random loopback ports, a synthetic Celery worker, and an HTTP API backed by the test SQLite database. It cleans up its containers and processes after the test.
+
+The smoke test verifies real failure/retry signal handling, distinct attempts and counter values, worker inspection, Prometheus queries, and Chromium user suspension/restoration and scan pause/resume without intercepted API responses. It also verifies stale inspection after stopping the worker. CI runs this as **Admin Live Smoke**; the normal unit suite skips this opt-in test. External booking providers, notification delivery, PostgreSQL migrations, and prefork deployment behavior are outside this smoke test.

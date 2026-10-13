@@ -75,6 +75,12 @@ tasks:
       - pnpm run test:run {{.CLI_ARGS}}
     deps: [install]
 
+  browser:install:
+    desc: Install Chromium and browser system dependencies for smoke tests
+    cmds:
+      - pnpm exec playwright install --with-deps chromium
+    deps: [install]
+
   snapshot:
     desc: Capture UI Snapshots and Generate Visual Comparison Report
     cmds:

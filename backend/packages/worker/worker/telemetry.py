@@ -10,12 +10,13 @@ Maintains:
 import datetime as dt
 import json
 import time
+import uuid
 from typing import Any, Optional
 
 import redis
 import structlog
 from celery.exceptions import Retry
-from celery.signals import task_failure, task_postrun, task_prerun, task_retry
+from celery.signals import task_postrun, task_prerun
 
 from worker.config import worker_config
 
@@ -105,6 +106,7 @@ def record_task_execution(
     exception: Optional[BaseException] = None,
     args: tuple[Any, ...] = (),
     kwargs: Optional[dict[str, Any]] = None,
+    attempt: int = 1,
 ) -> None:
     """
     Record task execution metadata in Valkey stream and key index.
@@ -118,6 +120,8 @@ def record_task_execution(
     duration_ms = max(0.0, round((finish_time - start_time) * 1000, 2))
 
     record = {
+        "event_id": str(uuid.uuid4()),
+        "attempt": attempt,
         "task_id": task_id,
         "task_name": task_name,
         "worker": worker or "unknown",
@@ -208,7 +212,11 @@ def _on_telemetry_postrun(
     state: str = "UNKNOWN",
     **extra: Any,
 ) -> None:
-    """Record task completion."""
+    """Record each completed attempt once, including failures and retries.
+
+    Celery sends post-run after failure/retry signals; emitting only here
+    preserves one application outcome and the original duration per attempt.
+    """
     if not task_id:
         return
     finish_time = time.monotonic()
@@ -225,63 +233,8 @@ def _on_telemetry_postrun(
         start_time=start_time,
         finish_time=finish_time,
         state=state,
+        attempt=int(getattr(getattr(task, "request", None), "retries", 0) or 0) + 1,
         retval=retval,
-        args=args,
-        kwargs=kwargs,
-    )
-
-
-@task_retry.connect
-def _on_telemetry_retry(
-    sender: Any = None,
-    task_id: str = "",
-    reason: Any = None,
-    einfo: Any = None,
-    **extra: Any,
-) -> None:
-    """Record task retry outcome."""
-    if not task_id:
-        return
-    finish_time = time.monotonic()
-    start_time = _active_task_starts.get(task_id, finish_time)
-    task_name = getattr(sender, "name", "unknown") if sender else "unknown"
-
-    record_task_execution(
-        task_id=task_id,
-        task_name=task_name,
-        worker="unknown",
-        start_time=start_time,
-        finish_time=finish_time,
-        state="RETRY",
-        exception=reason if isinstance(reason, BaseException) else None,
-    )
-
-
-@task_failure.connect
-def _on_telemetry_failure(
-    sender: Any = None,
-    task_id: str = "",
-    exception: Optional[BaseException] = None,
-    args: tuple[Any, ...] = (),
-    kwargs: Optional[dict[str, Any]] = None,
-    einfo: Any = None,
-    **extra: Any,
-) -> None:
-    """Record task failure."""
-    if not task_id:
-        return
-    finish_time = time.monotonic()
-    start_time = _active_task_starts.pop(task_id, finish_time)
-    task_name = getattr(sender, "name", "unknown") if sender else "unknown"
-
-    record_task_execution(
-        task_id=task_id,
-        task_name=task_name,
-        worker="unknown",
-        start_time=start_time,
-        finish_time=finish_time,
-        state="FAILURE",
-        exception=exception,
         args=args,
         kwargs=kwargs,
     )

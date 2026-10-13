@@ -63,3 +63,6 @@ Dependencies: T001–T006 precede user/scan delivery; T012–T015 precede operat
 - [x] T037 Add regressions for contracts, filtering, active targets, stale snapshots, suspension, and navigation; refresh screenshots.
 
 - [x] T038 Review admin terminology and chart interpretation; define shared targets and scan eligibility, explain rates/percentiles, label chart/table units and local times, and distinguish monitoring sources.
+
+- [x] T039 Preserve unknown worker counts and undefined chart measurements; record each task attempt once, separate retry counters from failures, and enforce the recent-history window.
+- [x] T040 Add opt-in live Celery/Valkey/Prometheus/API/Chromium smoke verification and CI coverage; improve task/worker table readability and capture partial-worker and missing-measurement screenshots.

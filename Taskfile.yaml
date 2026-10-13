@@ -44,6 +44,12 @@ tasks:
           CLI_ARGS: --check
           OPENAPI_SCHEMA: "{{.ROOT_DIR}}/frontend/tmp/openapi.json"
 
+  admin:smoke:
+    desc: Verify admin workflows against isolated live monitoring services and Chromium
+    deps: [frontend:install]
+    cmds:
+      - CAMPLY_ADMIN_SMOKE=1 task backend:test -- -c pyproject.toml packages/backend/tests/integration/test_admin_smoke.py -s
+
   snapshot:
     desc: Run UI Visual Snapshots and Generate Comparison Report
     cmds:

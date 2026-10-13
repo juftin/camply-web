@@ -1,7 +1,7 @@
 # 📸 UI Snapshot & Visual Feedback Report
 
-**Generated**: `2026-10-12T03:59:35.767Z`
-**Total Views**: **28** | ✅ Unchanged: **28** | ⚠️ Modified: **0** | 🆕 New: **0**
+**Generated**: `2026-10-13T01:45:21.519Z`
+**Total Views**: **30** | ✅ Unchanged: **30** | ⚠️ Modified: **0** | 🆕 New: **0**
 
 ---
 
@@ -23,6 +23,8 @@ When evaluating UI changes or diagnosing unexpected visual diffs:
 
 | Snapshot | Viewport | Theme | Status | Diff % | Baseline Image | Current Image | Visual Diff |
 | :--- | :---: | :---: | :---: | :---: | :--- | :--- | :--- |
+| **admin-operations-partial-desktop-light** | 1280x800 | light | ✅ UNCHANGED | `0.00%` | [`admin-operations-partial-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/wasteful-eagle/frontend/snapshots/baselines/admin-operations-partial-desktop-light.png) | [`admin-operations-partial-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/wasteful-eagle/frontend/snapshots/current/admin-operations-partial-desktop-light.png) | - |
+| **admin-api-trends-table-desktop-light** | 1280x800 | light | ✅ UNCHANGED | `0.00%` | [`admin-api-trends-table-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/wasteful-eagle/frontend/snapshots/baselines/admin-api-trends-table-desktop-light.png) | [`admin-api-trends-table-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/wasteful-eagle/frontend/snapshots/current/admin-api-trends-table-desktop-light.png) | - |
 | **admin-overview-desktop-light** | 1280x800 | light | ✅ UNCHANGED | `0.00%` | [`admin-overview-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/wasteful-eagle/frontend/snapshots/baselines/admin-overview-desktop-light.png) | [`admin-overview-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/wasteful-eagle/frontend/snapshots/current/admin-overview-desktop-light.png) | - |
 | **admin-overview-desktop-dark** | 1280x800 | dark | ✅ UNCHANGED | `0.00%` | [`admin-overview-desktop-dark.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/wasteful-eagle/frontend/snapshots/baselines/admin-overview-desktop-dark.png) | [`admin-overview-desktop-dark.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/wasteful-eagle/frontend/snapshots/current/admin-overview-desktop-dark.png) | - |
 | **admin-overview-mobile-light** | 390x844 | light | ✅ UNCHANGED | `0.00%` | [`admin-overview-mobile-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/wasteful-eagle/frontend/snapshots/baselines/admin-overview-mobile-light.png) | [`admin-overview-mobile-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/wasteful-eagle/frontend/snapshots/current/admin-overview-mobile-light.png) | - |
