@@ -48,8 +48,9 @@ The owner selects `none`, `session`, or `auth0` with `CAMPLY_AUTH_MODE`, indepen
 
 ### 2. User & Profile (Auth-Required)
 
-- **`GET /api/me`**: Get current user profile, invitation status, administrator role, and scanning eligibility.
-- **`PATCH /api/me`**: Update user-specific settings (e.g., `pushover_token`).
+- **`GET /api/me`**: Get current user profile, invitation status, administrator role, scanning eligibility, and password change status.
+- **`PATCH /api/me`**: Update user-specific settings (e.g., `pushover_token`). Requires password update first if `must_change_password` is set.
+- **`POST /api/change-password`**: Update user password and clear `must_change_password` (session mode).
 
 ### 3. Scan Management (Auth-Required + Optional Invitation)
 
@@ -65,8 +66,9 @@ The owner selects `none`, `session`, or `auth0` with `CAMPLY_AUTH_MODE`, indepen
 
 - **`GET /api/admin/overview`**: Summary counts (users, active scans, targets, 24h results).
 - **`GET /api/admin/users`**: List users with scanning status, scan counts, pagination, and search.
+- **`POST /api/admin/users`**: Create a new database user with password, scanning status, admin status, and optional forced password change (session mode only).
 - **`GET /api/admin/users/{id}`**: User detail with scans and audit history.
-- **`PATCH /api/admin/users/{id}`**: Update user status (e.g., toggle `scanning_enabled`).
+- **`PATCH /api/admin/users/{id}`**: Update user status (e.g., toggle `scanning_enabled`, reset password, or toggle `must_change_password`).
 - **`GET /api/admin/scans`**: List all system scans with filters and pagination.
 - **`GET /api/admin/scans/{id}`**: Scan detail including target and subscriber info.
 - **`PATCH /api/admin/scans/{id}`**: Update scan status (e.g., toggle `is_active`).
@@ -159,6 +161,7 @@ class ScanResultItem(BaseModel):
 | GET    | `/api/rec-area/{provider}/{id}/campgrounds` | —         | —                         | Campgrounds in rec area       |
 | GET    | `/api/me`                                   | ✓         | —                         | Current user profile          |
 | PATCH  | `/api/me`                                   | ✓         | —                         | Update profile                |
+| POST   | `/api/change-password`                      | ✓         | —                         | Change password (session)     |
 | GET    | `/api/scans`                                | ✓         | ✓                         | List user scans               |
 | POST   | `/api/scans`                                | ✓         | ✓                         | Create scan                   |
 | GET    | `/api/scans/{id}`                           | ✓         | ✓                         | Scan detail                   |
@@ -167,6 +170,7 @@ class ScanResultItem(BaseModel):
 | GET    | `/api/health`                               | —         | —                         | Health check                  |
 | GET    | `/api/admin/overview`                       | ✓ (Admin) | —                         | Admin KPI overview            |
 | GET    | `/api/admin/users`                          | ✓ (Admin) | —                         | List users with status        |
+| POST   | `/api/admin/users`                          | ✓ (Admin) | —                         | Create user with credentials  |
 | GET    | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | User details and audit        |
 | PATCH  | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | Update user (toggle scanning) |
 | GET    | `/api/admin/scans`                          | ✓ (Admin) | —                         | List all system scans         |

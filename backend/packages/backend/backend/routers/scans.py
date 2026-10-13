@@ -20,7 +20,11 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from backend.auth import CurrentUserDep, require_invitation
+from backend.auth import (
+    CurrentUserDep,
+    require_invitation,
+    require_password_not_expired,
+)
 from backend.dependencies import SessionDep
 from backend.metrics import SCANS_CREATED_TOTAL
 from backend.schemas import (
@@ -50,7 +54,7 @@ logger = structlog.getLogger(__name__)
 scan_router = APIRouter(
     prefix="/scans",
     tags=["scans"],
-    dependencies=[Depends(require_invitation)],
+    dependencies=[Depends(require_invitation), Depends(require_password_not_expired)],
 )
 
 

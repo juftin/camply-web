@@ -95,9 +95,29 @@ export interface paths {
         put?: never;
         /**
          * Login
-         * @description Validate shared credentials and establish an expiring signed session.
+         * @description Validate credentials and establish an expiring signed session.
          */
         post: operations["login_api_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change Password
+         * @description Change user password and clear must_change_password flag.
+         */
+        post: operations["change_password_api_change_password_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -378,7 +398,11 @@ export interface paths {
          */
         get: operations["list_users_api_admin_users_get"];
         put?: never;
-        post?: never;
+        /**
+         * Create User
+         * @description Create a new user and assign them an initial password in session auth mode.
+         */
+        post: operations["create_user_api_admin_users_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -404,7 +428,7 @@ export interface paths {
         head?: never;
         /**
          * Update User
-         * @description Toggle scanning_enabled for a user and record an audit event.
+         * @description Update a user's scanning access or credentials and record audit events.
          */
         patch: operations["update_user_api_admin_users__user_id__patch"];
         trace?: never;
@@ -1084,6 +1108,46 @@ export interface components {
             metrics?: components["schemas"]["TrendMetric"][];
         };
         /**
+         * AdminUserCreateRequest
+         * @description Payload for creating a user in session authentication mode.
+         */
+        AdminUserCreateRequest: {
+            /**
+             * Email
+             * @description User email address
+             */
+            email: string;
+            /**
+             * Password
+             * @description Initial password
+             */
+            password: string;
+            /**
+             * Is Admin
+             * @description Grant administrator privileges
+             * @default false
+             */
+            is_admin: boolean;
+            /**
+             * Must Change Password
+             * @description Force password change on first sign in
+             * @default false
+             */
+            must_change_password: boolean;
+            /**
+             * Is Invited
+             * @description Invitation status
+             * @default true
+             */
+            is_invited: boolean;
+            /**
+             * Scanning Enabled
+             * @description Enable campsite scanning
+             * @default true
+             */
+            scanning_enabled: boolean;
+        };
+        /**
          * AdminUserDetailResponse
          * @description Admin detailed user representation.
          */
@@ -1105,6 +1169,11 @@ export interface components {
             scanning_enabled: boolean;
             /** Has Pushover Token */
             has_pushover_token: boolean;
+            /**
+             * Must Change Password
+             * @default false
+             */
+            must_change_password: boolean;
             /** Total Scans */
             total_scans: number;
             /** Active Scans */
@@ -1140,6 +1209,11 @@ export interface components {
             scanning_enabled: boolean;
             /** Has Pushover Token */
             has_pushover_token: boolean;
+            /**
+             * Must Change Password
+             * @default false
+             */
+            must_change_password: boolean;
             /** Total Scans */
             total_scans: number;
             /** Active Scans */
@@ -1162,11 +1236,17 @@ export interface components {
         };
         /**
          * AdminUserUpdateRequest
-         * @description Payload to toggle scanning_enabled for a user.
+         * @description Payload to update an existing user.
          */
         AdminUserUpdateRequest: {
+            /** Is Admin */
+            is_admin?: boolean | null;
             /** Scanning Enabled */
-            scanning_enabled: boolean;
+            scanning_enabled?: boolean | null;
+            /** Must Change Password */
+            must_change_password?: boolean | null;
+            /** Password */
+            password?: string | null;
         };
         /**
          * AdminWorkerItem
@@ -1263,6 +1343,16 @@ export interface components {
             /** Url */
             readonly url: string;
         };
+        /**
+         * ChangePasswordRequest
+         * @description Payload for changing the authenticated user's password.
+         */
+        ChangePasswordRequest: {
+            /** Current Password */
+            current_password: string;
+            /** New Password */
+            new_password: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1294,6 +1384,11 @@ export interface components {
             scanning_enabled: boolean;
             /** Pushover Token */
             pushover_token?: string | null;
+            /**
+             * Must Change Password
+             * @default false
+             */
+            must_change_password: boolean;
         };
         /**
          * MeUpdateRequest
@@ -1750,6 +1845,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["SessionLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_password_api_change_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
             };
         };
         responses: {
@@ -2261,6 +2389,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminUserListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_user_api_admin_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUserCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserDetailResponse"];
                 };
             };
             /** @description Validation Error */

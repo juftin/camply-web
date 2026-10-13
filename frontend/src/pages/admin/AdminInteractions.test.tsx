@@ -27,6 +27,7 @@ const user: AdminUserItem = {
   total_scans: 1,
   active_scans: 1,
   created_at: "2026-10-10T12:00:00Z",
+  must_change_password: false,
 };
 const target: AdminTargetDetailResponse = {
   id: "target-1",

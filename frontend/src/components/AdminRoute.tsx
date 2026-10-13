@@ -10,6 +10,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import { ChangePasswordRequired } from "@/components/ChangePasswordRequired";
 
 interface AdminRouteProps {
   children: ReactNode;
@@ -24,6 +25,10 @@ export function AdminRoute({ children }: AdminRouteProps) {
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
+  }
+
+  if (user?.must_change_password) {
+    return <ChangePasswordRequired />;
   }
 
   if (!user || !user.is_admin) {

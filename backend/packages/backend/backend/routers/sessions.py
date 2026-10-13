@@ -6,15 +6,23 @@ import time
 
 import jwt
 from fastapi import APIRouter, HTTPException, Request, Response
+from sqlalchemy import func, select
 
 from backend.auth import (
     CurrentUserDep,
     _get_or_create_admin_user,
+    hash_password,
     session_signing_key,
+    verify_password,
 )
 from backend.config import AuthMode, backend_config
 from backend.dependencies import SessionDep
-from backend.schemas import MeResponse, SessionLoginRequest
+from backend.schemas import (
+    ChangePasswordRequest,
+    MeResponse,
+    SessionLoginRequest,
+)
+from db.models import User as UserDB
 
 session_router = APIRouter(tags=["auth"])
 
@@ -45,18 +53,35 @@ def require_trusted_origin(request: Request) -> None:
 async def login(
     body: SessionLoginRequest, request: Request, response: Response, session: SessionDep
 ) -> MeResponse:
-    """Validate shared credentials and establish an expiring signed session."""
+    """Validate credentials and establish an expiring signed session."""
     require_session_mode()
     require_trusted_origin(request)
-    username_matches = secrets.compare_digest(
-        body.username.encode(), (backend_config.login_username or "").encode()
-    )
-    password_matches = secrets.compare_digest(
-        body.password.encode(), (backend_config.login_password or "").encode()
-    )
-    if not username_matches or not password_matches:
+
+    user: UserDB | None = None
+    if (
+        backend_config.login_username
+        and backend_config.login_password
+        and secrets.compare_digest(
+            body.username.encode(), backend_config.login_username.encode()
+        )
+        and secrets.compare_digest(
+            body.password.encode(), backend_config.login_password.encode()
+        )
+    ):
+        user = await _get_or_create_admin_user(session)
+    else:
+        stmt = select(UserDB).where(func.lower(UserDB.email) == body.username.lower())
+        db_user = (await session.execute(stmt)).scalar_one_or_none()
+        if (
+            db_user is not None
+            and db_user.password_hash is not None
+            and verify_password(body.password, db_user.password_hash)
+        ):
+            user = db_user
+
+    if user is None:
         raise HTTPException(status_code=401, detail="Invalid username or password")
-    user = await _get_or_create_admin_user(session)
+
     csrf = secrets.token_urlsafe(32)
     cookie = jwt.encode(
         {
@@ -83,6 +108,41 @@ async def login(
         samesite="strict",
     )
     response.headers["Cache-Control"] = "no-store"
+    return MeResponse.model_validate(user, from_attributes=True)
+
+
+@session_router.post("/change-password")
+async def change_password(
+    body: ChangePasswordRequest,
+    current_user: CurrentUserDep,
+    session: SessionDep,
+) -> MeResponse:
+    """Change user password and clear must_change_password flag."""
+    require_session_mode()
+    stmt = select(UserDB).where(UserDB.id == current_user.id)
+    user = (await session.execute(stmt)).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    password_verified = False
+    if user.password_hash is not None:
+        password_verified = verify_password(body.current_password, user.password_hash)
+    elif (
+        user.email == backend_config.admin_email
+        and backend_config.login_password is not None
+    ):
+        password_verified = secrets.compare_digest(
+            body.current_password.encode(), backend_config.login_password.encode()
+        )
+
+    if not password_verified:
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    user.password_hash = hash_password(body.new_password)
+    user.must_change_password = False
+    await session.commit()
+    await session.refresh(user)
+
     return MeResponse.model_validate(user, from_attributes=True)
 
 

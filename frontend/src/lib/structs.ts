@@ -61,7 +61,11 @@ export interface MeResponse {
   is_admin: boolean;
   scanning_enabled: boolean;
   pushover_token: string | null;
+  must_change_password?: boolean;
 }
+
+export type ChangePasswordRequest =
+  components["schemas"]["ChangePasswordRequest"];
 
 export interface MeUpdateRequest {
   pushover_token?: string | null;
@@ -133,6 +137,8 @@ export type AdminUserListResponse =
   components["schemas"]["AdminUserListResponse"];
 export type AdminUserDetailResponse =
   components["schemas"]["AdminUserDetailResponse"];
+export type AdminUserCreateRequest =
+  components["schemas"]["AdminUserCreateRequest"];
 export type AdminUserUpdateRequest =
   components["schemas"]["AdminUserUpdateRequest"];
 export type AdminScanItem = components["schemas"]["AdminScanItem"];

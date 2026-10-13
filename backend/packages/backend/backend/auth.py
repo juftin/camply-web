@@ -22,7 +22,7 @@ from fastapi.security import (
 )
 from jwt import PyJWKClient
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -89,6 +89,69 @@ async def _verify_auth0_token(token: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Password hashing helpers
+# ---------------------------------------------------------------------------
+
+
+PASSWORD_HASH_ALGORITHM: str = "pbkdf2_sha256"
+# Identifier used in serialized password hashes.
+
+PASSWORD_HASH_ROUNDS: int = 100_000
+# PBKDF2 HMAC SHA-256 derivation rounds.
+
+PASSWORD_HASH_PARTS: int = 3
+# Expected number of components in a serialized password hash.
+
+
+def hash_password(password: str) -> str:
+    """
+    Hash a plaintext password using PBKDF2-HMAC-SHA256 with a random salt.
+
+    Parameters
+    ----------
+    password : str
+        Plaintext password to hash.
+
+    Returns
+    -------
+    str
+        Formatted string containing algorithm, salt, and derived hash.
+    """
+    salt = secrets.token_hex(16)
+    key = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt.encode("utf-8"), PASSWORD_HASH_ROUNDS
+    ).hex()
+    return f"{PASSWORD_HASH_ALGORITHM}${salt}${key}"
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    """
+    Verify a plaintext password against a stored PBKDF2 hash.
+
+    Parameters
+    ----------
+    password : str
+        Candidate plaintext password.
+    hashed : str
+        Stored password hash.
+
+    Returns
+    -------
+    bool
+        True if the password matches the hash, False otherwise.
+    """
+    parts = hashed.split("$")
+    if len(parts) != PASSWORD_HASH_PARTS or parts[0] != PASSWORD_HASH_ALGORITHM:
+        return False
+    salt = parts[1]
+    expected_key = parts[2]
+    candidate_key = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt.encode("utf-8"), PASSWORD_HASH_ROUNDS
+    ).hex()
+    return secrets.compare_digest(candidate_key, expected_key)
+
+
+# ---------------------------------------------------------------------------
 # Current-user model
 # ---------------------------------------------------------------------------
 
@@ -102,6 +165,7 @@ class CurrentUser(BaseModel):
     is_admin: bool = False
     scanning_enabled: bool = True
     pushover_token: Optional[str] = None
+    must_change_password: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -146,7 +210,7 @@ def session_signing_key() -> bytes:
     ).digest()
 
 
-def verify_session(request: Request) -> None:
+def verify_session(request: Request) -> dict:
     """Validate the signed session and require CSRF proof for state changes."""
     cookie = request.cookies.get("camply_session")
     if not cookie:
@@ -162,12 +226,11 @@ def verify_session(request: Request) -> None:
         raise HTTPException(
             status_code=401, detail="Session expired or invalid"
         ) from exc
-    if payload["sub"] != backend_config.admin_email:
-        raise HTTPException(status_code=401, detail="Session expired or invalid")
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         token = request.headers.get("X-CSRF-Token", "")
         if not secrets.compare_digest(token.encode(), str(payload["csrf"]).encode()):
             raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    return payload
 
 
 # ---------------------------------------------------------------------------
@@ -197,8 +260,21 @@ async def resolve_current_user(
     """
     if backend_config.auto_login or backend_config.auth_mode == AuthMode.SESSION:
         if backend_config.auth_mode == AuthMode.SESSION:
-            verify_session(request)
-        user = await _get_or_create_admin_user(session)
+            payload = verify_session(request)
+            sub = str(payload.get("sub", ""))
+            if sub == backend_config.admin_email:
+                user = await _get_or_create_admin_user(session)
+            else:
+                stmt = select(User).where(func.lower(User.email) == sub.lower())
+                result = await session.execute(stmt)
+                db_user = result.scalar_one_or_none()
+                if db_user is None:
+                    raise HTTPException(
+                        status_code=401, detail="Session expired or invalid"
+                    )
+                user = db_user
+        else:
+            user = await _get_or_create_admin_user(session)
         return CurrentUser(
             id=user.id,
             email=user.email,
@@ -206,6 +282,7 @@ async def resolve_current_user(
             is_admin=user.is_admin,
             scanning_enabled=user.scanning_enabled,
             pushover_token=user.pushover_token,
+            must_change_password=user.must_change_password,
         )
 
     # --- Auth0 mode ---
@@ -252,6 +329,7 @@ async def resolve_current_user(
         is_admin=auth0_user.is_admin,
         scanning_enabled=auth0_user.scanning_enabled,
         pushover_token=auth0_user.pushover_token,
+        must_change_password=auth0_user.must_change_password,
     )
 
 
@@ -273,6 +351,23 @@ def require_invitation(current_user: CurrentUserDep) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Password change guard
+# ---------------------------------------------------------------------------
+
+
+def require_password_not_expired(current_user: CurrentUserDep) -> None:
+    """Deny operations when the user must change their password on first sign in."""
+    if current_user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "ERR_PASSWORD_CHANGE_REQUIRED",
+                "message": "Password change required before proceeding.",
+            },
+        )
+
+
+# ---------------------------------------------------------------------------
 # Admin guard
 # ---------------------------------------------------------------------------
 
@@ -285,6 +380,14 @@ def require_admin(current_user: CurrentUserDep) -> CurrentUser:
             detail={
                 "error": "ERR_ADMIN_REQUIRED",
                 "message": "Administrator access required.",
+            },
+        )
+    if current_user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "ERR_PASSWORD_CHANGE_REQUIRED",
+                "message": "Password change required before proceeding.",
             },
         )
     return current_user

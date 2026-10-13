@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { InviteOnly } from "@/pages/InviteOnly";
+import { ChangePasswordRequired } from "@/components/ChangePasswordRequired";
 
 export function ProtectedRoute({
   children,
@@ -26,6 +27,7 @@ export function ProtectedRoute({
     );
   }
   if (!user) return <Navigate to="/auth" replace />;
+  if (user.must_change_password) return <ChangePasswordRequired />;
   if (requireInvite && inviteOnly && !isInvited) return <InviteOnly />;
   return <>{children}</>;
 }

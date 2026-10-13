@@ -27,9 +27,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.elements import ColumnElement
 
-from backend.auth import AdminUserDep
-from backend.config import backend_config
+from backend.auth import AdminUserDep, hash_password
+from backend.config import AuthMode, backend_config
 from backend.dependencies import SessionDep
+from backend.metrics import USERS_CREATED_TOTAL
 from backend.schemas import (
     AdminAuditEventItem,
     AdminAuditListResponse,
@@ -44,6 +45,7 @@ from backend.schemas import (
     AdminTargetDetailResponse,
     AdminTargetSubscriberItem,
     AdminTrendsResponse,
+    AdminUserCreateRequest,
     AdminUserDetailResponse,
     AdminUserItem,
     AdminUserListResponse,
@@ -288,6 +290,7 @@ async def list_users(
             is_invited=u.is_invited,
             scanning_enabled=u.scanning_enabled,
             has_pushover_token=bool(u.pushover_token),
+            must_change_password=u.must_change_password,
             total_scans=scan_counts.get(u.id, (0, 0))[0],
             active_scans=scan_counts.get(u.id, (0, 0))[1],
             created_at=u.created_at,
@@ -299,7 +302,81 @@ async def list_users(
 
 
 # ===========================================================================
-# 3. GET /api/admin/users/{id}
+# 3. POST /api/admin/users
+# ===========================================================================
+
+
+@admin_router.post("/users", status_code=status.HTTP_201_CREATED)
+async def create_user(
+    body: AdminUserCreateRequest,
+    admin: AdminUserDep,
+    session: SessionDep,
+) -> AdminUserDetailResponse:
+    """
+    Create a new user and assign them an initial password in session auth mode.
+    """
+    if backend_config.auth_mode != AuthMode.SESSION:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User creation with password is only supported in session auth mode",
+        )
+
+    email = body.email.strip().lower()
+    existing = (
+        await session.execute(select(User).where(func.lower(User.email) == email))
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A user with this email already exists",
+        )
+
+    new_user = User(
+        email=email,
+        password_hash=hash_password(body.password),
+        is_admin=body.is_admin,
+        must_change_password=body.must_change_password,
+        is_invited=body.is_invited,
+        scanning_enabled=body.scanning_enabled,
+    )
+    session.add(new_user)
+    await session.flush()
+
+    audit = AdminAuditEvent(
+        actor_id=admin.id,
+        action="user.create",
+        subject_type="user",
+        subject_id=new_user.id,
+        prev_value=None,
+        new_value=None,
+    )
+    session.add(audit)
+    await session.commit()
+    await session.refresh(new_user)
+
+    try:
+        USERS_CREATED_TOTAL.inc()
+    except Exception:
+        pass
+
+    return AdminUserDetailResponse(
+        id=new_user.id,
+        email=new_user.email,
+        auth0_id=new_user.auth0_id,
+        is_admin=new_user.is_admin,
+        is_invited=new_user.is_invited,
+        scanning_enabled=new_user.scanning_enabled,
+        has_pushover_token=bool(new_user.pushover_token),
+        must_change_password=new_user.must_change_password,
+        total_scans=0,
+        active_scans=0,
+        created_at=new_user.created_at,
+        updated_at=new_user.updated_at,
+    )
+
+
+# ===========================================================================
+# 4. GET /api/admin/users/{id}
 # ===========================================================================
 
 
@@ -334,6 +411,7 @@ async def get_user_detail(
         is_invited=user.is_invited,
         scanning_enabled=user.scanning_enabled,
         has_pushover_token=bool(user.pushover_token),
+        must_change_password=user.must_change_password,
         total_scans=total_s or 0,
         active_scans=active_s or 0,
         created_at=user.created_at,
@@ -342,7 +420,7 @@ async def get_user_detail(
 
 
 # ===========================================================================
-# 4. PATCH /api/admin/users/{id}
+# 5. PATCH /api/admin/users/{id}
 # ===========================================================================
 
 
@@ -354,7 +432,7 @@ async def update_user(
     session: SessionDep,
 ) -> AdminUserDetailResponse:
     """
-    Toggle scanning_enabled for a user and record an audit event.
+    Update a user's scanning access or credentials and record audit events.
     """
     user_stmt = select(User).where(User.id == user_id).with_for_update()
     user = (await session.execute(user_stmt)).scalar_one_or_none()
@@ -364,18 +442,75 @@ async def update_user(
             detail="User not found",
         )
 
-    prev_val = user.scanning_enabled
-    user.scanning_enabled = body.scanning_enabled
+    if body.is_admin is not None and body.is_admin != user.is_admin:
+        if user.id == admin.id and not body.is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot remove your own administrator privileges.",
+            )
+        prev_admin = user.is_admin
+        user.is_admin = body.is_admin
+        session.add(
+            AdminAuditEvent(
+                actor_id=admin.id,
+                action="user.is_admin",
+                subject_type="user",
+                subject_id=user.id,
+                prev_value=prev_admin,
+                new_value=body.is_admin,
+            )
+        )
 
-    audit = AdminAuditEvent(
-        actor_id=admin.id,
-        action="user.scanning_enabled",
-        subject_type="user",
-        subject_id=user.id,
-        prev_value=prev_val,
-        new_value=body.scanning_enabled,
-    )
-    session.add(audit)
+    if body.scanning_enabled is not None:
+        prev_val = user.scanning_enabled
+        user.scanning_enabled = body.scanning_enabled
+        session.add(
+            AdminAuditEvent(
+                actor_id=admin.id,
+                action="user.scanning_enabled",
+                subject_type="user",
+                subject_id=user.id,
+                prev_value=prev_val,
+                new_value=body.scanning_enabled,
+            )
+        )
+
+    if body.must_change_password is not None:
+        prev_mcp = user.must_change_password
+        user.must_change_password = body.must_change_password
+        session.add(
+            AdminAuditEvent(
+                actor_id=admin.id,
+                action="user.must_change_password",
+                subject_type="user",
+                subject_id=user.id,
+                prev_value=prev_mcp,
+                new_value=body.must_change_password,
+            )
+        )
+
+    if body.password is not None:
+        if backend_config.auth_mode != AuthMode.SESSION:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password management is only supported in session auth mode.",
+            )
+        user.password_hash = hash_password(body.password)
+        if body.must_change_password is not None:
+            user.must_change_password = body.must_change_password
+        else:
+            user.must_change_password = True
+        session.add(
+            AdminAuditEvent(
+                actor_id=admin.id,
+                action="user.password_reset",
+                subject_type="user",
+                subject_id=user.id,
+                prev_value=None,
+                new_value=None,
+            )
+        )
+
     await session.commit()
     await session.refresh(user)
 
@@ -393,6 +528,7 @@ async def update_user(
         is_invited=user.is_invited,
         scanning_enabled=user.scanning_enabled,
         has_pushover_token=bool(user.pushover_token),
+        must_change_password=user.must_change_password,
         total_scans=total_s or 0,
         active_scans=active_s or 0,
         created_at=user.created_at,
