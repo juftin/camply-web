@@ -10,13 +10,59 @@ import { MemoryRouter } from "react-router-dom";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { CamplyLogo } from "@/components/CamplyLogo";
+import { CollapsibleDescription } from "@/components/CollapsibleDescription";
 import { DismissibleBanner } from "@/components/DismissibleBanner";
+import { Header } from "@/components/Header";
+import { SearchDropdown } from "@/components/SearchDropdown";
 import { AdminNav } from "@/components/AdminNav";
 import { AdminFeedback } from "@/components/admin/AdminFeedback";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { ScanCard } from "@/components/ScanCard";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { ThemeProviderContext } from "@/hooks/use-theme";
+import type { AuthState } from "@/hooks/useAuth";
+import type { ScanResponse, SearchResult } from "@/lib/structs";
 import { DevPreview } from "@/pages/DevPreview";
-import type { ScanResponse } from "@/lib/structs";
+
+let mockAuthState: AuthState = {
+  user: null,
+  isLoading: false,
+  error: null,
+  isInvited: true,
+  isAdmin: false,
+  isScanningEnabled: true,
+  isReady: true,
+  refresh: vi.fn(),
+  updatePushoverToken: vi.fn(),
+  signOut: vi.fn(),
+  login: vi.fn(),
+  authMode: "session",
+  inviteOnly: false,
+  autoLogin: false,
+  signupEnabled: true,
+  accountPath: "/profile",
+};
+
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => mockAuthState,
+}));
+
+const mockThemeContext = {
+  theme: "light" as const,
+  userTheme: "light" as const,
+  setTheme: vi.fn(),
+  toggleTheme: vi.fn(),
+};
 
 const FIXED_TIME = "2026-10-10T12:00:00Z";
 
@@ -71,10 +117,53 @@ const mockEndedScan: ScanResponse = {
   created_at: "2026-08-15T10:00:00Z",
 };
 
+const mockSearchResults: SearchResult[] = [
+  {
+    id: "camp-1",
+    entity_type: "Campground",
+    provider_id: 1,
+    provider_name: "Recreation.gov",
+    recreation_area_id: "rec-1",
+    recreation_area_name: "Yosemite National Park",
+    campground_id: "camp-1",
+    campground_name: "Upper Pines Campground",
+  },
+  {
+    id: "rec-1",
+    entity_type: "RecreationArea",
+    provider_id: 1,
+    provider_name: "Recreation.gov",
+    recreation_area_id: "rec-1",
+    recreation_area_name: "Yosemite National Park",
+    campground_id: null,
+    campground_name: null,
+  },
+];
+
+const mockRegularUser = {
+  id: "user-1",
+  email: "camper@camply.app",
+  is_invited: true,
+  is_admin: false,
+  scanning_enabled: true,
+  pushover_token: null,
+};
+
+const mockAdminUser = {
+  id: "admin-1",
+  email: "admin@camply.app",
+  is_invited: true,
+  is_admin: true,
+  scanning_enabled: true,
+  pushover_token: null,
+};
+
 describe("UI Component DOM Snapshots", () => {
   beforeAll(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(FIXED_TIME));
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
+    window.scrollTo = vi.fn();
   });
 
   afterAll(() => {
@@ -209,6 +298,230 @@ describe("UI Component DOM Snapshots", () => {
             onDelete={vi.fn()}
           />
         </MemoryRouter>,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+  });
+
+  describe("Header", () => {
+    it("matches snapshot for unauthenticated visitor", () => {
+      mockAuthState = { ...mockAuthState, user: null, isAdmin: false };
+      const { asFragment } = render(
+        <ThemeProviderContext.Provider value={mockThemeContext}>
+          <MemoryRouter>
+            <Header />
+          </MemoryRouter>
+        </ThemeProviderContext.Provider>,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot for authenticated user", () => {
+      mockAuthState = {
+        ...mockAuthState,
+        user: mockRegularUser,
+        isAdmin: false,
+      };
+      const { asFragment } = render(
+        <ThemeProviderContext.Provider value={mockThemeContext}>
+          <MemoryRouter>
+            <Header />
+          </MemoryRouter>
+        </ThemeProviderContext.Provider>,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot for authenticated admin", () => {
+      mockAuthState = { ...mockAuthState, user: mockAdminUser, isAdmin: true };
+      const { asFragment } = render(
+        <ThemeProviderContext.Provider value={mockThemeContext}>
+          <MemoryRouter>
+            <Header />
+          </MemoryRouter>
+        </ThemeProviderContext.Provider>,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot without logo", () => {
+      mockAuthState = { ...mockAuthState, user: null, isAdmin: false };
+      const { asFragment } = render(
+        <ThemeProviderContext.Provider value={mockThemeContext}>
+          <MemoryRouter>
+            <Header showLogo={false} />
+          </MemoryRouter>
+        </ThemeProviderContext.Provider>,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+  });
+
+  describe("SearchDropdown", () => {
+    it("matches snapshot for loading state", () => {
+      const { asFragment } = render(
+        <SearchDropdown
+          results={[]}
+          isLoading={true}
+          error={null}
+          query="yosemite"
+          isOpen={true}
+          onSelect={vi.fn()}
+        />,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot for empty results", () => {
+      const { asFragment } = render(
+        <SearchDropdown
+          results={[]}
+          isLoading={false}
+          error={null}
+          query="nonexistent"
+          isOpen={true}
+          onSelect={vi.fn()}
+        />,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot with search results", () => {
+      const { asFragment } = render(
+        <SearchDropdown
+          results={mockSearchResults}
+          isLoading={false}
+          error={null}
+          query="yosemite"
+          isOpen={true}
+          onSelect={vi.fn()}
+        />,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot with selected index", () => {
+      const { asFragment } = render(
+        <SearchDropdown
+          results={mockSearchResults}
+          isLoading={false}
+          error={null}
+          query="yosemite"
+          isOpen={true}
+          selectedIndex={0}
+          onSelect={vi.fn()}
+        />,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot for error state", () => {
+      const { asFragment } = render(
+        <SearchDropdown
+          results={[]}
+          isLoading={false}
+          error={new Error("Network failed")}
+          query="yosemite"
+          isOpen={true}
+          onSelect={vi.fn()}
+        />,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+  });
+
+  describe("CollapsibleDescription", () => {
+    it("matches snapshot for empty description fallback", () => {
+      const { asFragment } = render(
+        <CollapsibleDescription
+          description={null}
+          fallback="No description provided"
+        />,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot for short plain text", () => {
+      const { asFragment } = render(
+        <CollapsibleDescription description="Short description text." />,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot for long plain text", () => {
+      const longText =
+        "This is an extensive campground description detailing the scenic views, surrounding pine trees, nearby hiking trails, river access points, campfire rings, check-in requirements, and seasonal closures across Yosemite National Park.";
+      const { asFragment } = render(
+        <CollapsibleDescription description={longText} />,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot for HTML content", () => {
+      const htmlText =
+        "<p>Upper Pines is nestled in <strong>Yosemite Valley</strong>.</p><p>Features running water and fire pits.</p>";
+      const { asFragment } = render(
+        <CollapsibleDescription description={htmlText} />,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+  });
+
+  describe("UI Primitives", () => {
+    it("matches snapshot for button variants and sizes", () => {
+      const { asFragment } = render(
+        <div className="flex flex-col gap-2">
+          <Button variant="default">Default</Button>
+          <Button variant="secondary">Secondary</Button>
+          <Button variant="destructive">Destructive</Button>
+          <Button variant="outline">Outline</Button>
+          <Button variant="ghost">Ghost</Button>
+          <Button variant="link">Link</Button>
+          <Button size="sm">Small</Button>
+          <Button size="lg">Large</Button>
+          <Button size="icon">Icon</Button>
+        </div>,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot for badge variants", () => {
+      const { asFragment } = render(
+        <div className="flex gap-2">
+          <Badge variant="default">Default</Badge>
+          <Badge variant="secondary">Secondary</Badge>
+          <Badge variant="destructive">Destructive</Badge>
+          <Badge variant="outline">Outline</Badge>
+        </div>,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot for card structure", () => {
+      const { asFragment } = render(
+        <Card className="w-[350px]">
+          <CardHeader>
+            <CardTitle>Card Title</CardTitle>
+            <CardDescription>Card Description</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>Card content text.</p>
+          </CardContent>
+          <CardFooter>
+            <Button size="sm">Footer Action</Button>
+          </CardFooter>
+        </Card>,
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot for switch states", () => {
+      const { asFragment } = render(
+        <div className="flex flex-col gap-2">
+          <Switch checked={true} aria-label="Checked switch" />
+          <Switch checked={false} aria-label="Unchecked switch" />
+          <Switch disabled aria-label="Disabled switch" />
+        </div>,
       );
       expect(asFragment()).toMatchSnapshot();
     });

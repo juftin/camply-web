@@ -506,6 +506,96 @@ exports[`UI Component DOM Snapshots > CamplyLogo > matches snapshot for SVG vari
 </DocumentFragment>
 `;
 
+exports[`UI Component DOM Snapshots > CollapsibleDescription > matches snapshot for HTML content 1`] = `
+<DocumentFragment>
+  <div
+    class="space-y-3"
+  >
+    <div
+      class="transition-all duration-300"
+    >
+      <div
+        class="prose prose-sm max-w-none dark:prose-invert [&>h1:first-child]:mt-4 [&>h2:first-child]:mt-4 [&>h3:first-child]:mt-4 [&>h4:first-child]:mt-4 [&>h5:first-child]:mt-4 [&>h6:first-child]:mt-4"
+      >
+        <p>
+          Upper Pines is nestled in 
+          <strong>
+            Yosemite Valley
+          </strong>
+          .
+        </p>
+      </div>
+    </div>
+    <button
+      class="inline-flex items-center space-x-2 px-3 py-2 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/30 rounded-md transition-all duration-200 hover:shadow-sm"
+    >
+      <span>
+        Show more
+      </span>
+      <svg
+        aria-hidden="true"
+        class="lucide lucide-chevron-down w-4 h-4"
+        fill="none"
+        height="24"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+        width="24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="m6 9 6 6 6-6"
+        />
+      </svg>
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > CollapsibleDescription > matches snapshot for empty description fallback 1`] = `
+<DocumentFragment>
+  <span
+    class="text-muted-foreground italic"
+  >
+    No description provided
+  </span>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > CollapsibleDescription > matches snapshot for long plain text 1`] = `
+<DocumentFragment>
+  <div
+    class="space-y-3"
+  >
+    <div
+      class="transition-all duration-300"
+    >
+      <span>
+        This is an extensive campground description detailing the scenic views, surrounding pine trees, nearby hiking trails, river access points, campfire rings, check-in requirements, and seasonal closures across Yosemite National Park.
+      </span>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > CollapsibleDescription > matches snapshot for short plain text 1`] = `
+<DocumentFragment>
+  <div
+    class="space-y-3"
+  >
+    <div
+      class="transition-all duration-300"
+    >
+      <span>
+        Short description text.
+      </span>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
 exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for design system catalog 1`] = `
 <DocumentFragment>
   <div
@@ -1776,6 +1866,939 @@ exports[`UI Component DOM Snapshots > DismissibleBanner > matches snapshot when 
 </DocumentFragment>
 `;
 
+exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticated admin 1`] = `
+<DocumentFragment>
+  <header
+    class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 translate-y-0"
+  >
+    <div
+      class="container mx-auto px-4 py-4 flex items-center justify-between"
+    >
+      <div
+        class="flex items-center space-x-2 h-8"
+      >
+        <a
+          class="flex items-center space-x-2"
+          data-discover="true"
+          href="/"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-tent-tree h-8 w-8 text-primary"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="4"
+              cy="4"
+              r="2"
+            />
+            <path
+              d="m14 5 3-3 3 3"
+            />
+            <path
+              d="m14 10 3-3 3 3"
+            />
+            <path
+              d="M17 14V2"
+            />
+            <path
+              d="M17 14H7l-5 8h20Z"
+            />
+            <path
+              d="M8 14v8"
+            />
+            <path
+              d="m9 14 5 8"
+            />
+          </svg>
+          <span
+            class="text-2xl font-bold"
+          >
+            camply
+          </span>
+        </a>
+      </div>
+      <nav
+        class="hidden md:flex space-x-6"
+      >
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/providers"
+        >
+          Providers
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/how-it-works"
+        >
+          How It Works
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/ethos"
+        >
+          Ethos
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/contribute"
+        >
+          Contribute
+        </a>
+      </nav>
+      <button
+        aria-label="Toggle mobile menu"
+        class="md:hidden p-2 "
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-menu h-6 w-6"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M4 12h16"
+          />
+          <path
+            d="M4 18h16"
+          />
+          <path
+            d="M4 6h16"
+          />
+        </svg>
+      </button>
+      <div
+        class="hidden md:flex items-center space-x-2 "
+      >
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-sun h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="4"
+            />
+            <path
+              d="M12 2v2"
+            />
+            <path
+              d="M12 20v2"
+            />
+            <path
+              d="m4.93 4.93 1.41 1.41"
+            />
+            <path
+              d="m17.66 17.66 1.41 1.41"
+            />
+            <path
+              d="M2 12h2"
+            />
+            <path
+              d="M20 12h2"
+            />
+            <path
+              d="m6.34 17.66-1.41 1.41"
+            />
+            <path
+              d="m19.07 4.93-1.41 1.41"
+            />
+          </svg>
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-moon absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"
+            />
+          </svg>
+          <span
+            class="sr-only"
+          >
+            Toggle theme
+          </span>
+        </button>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border bg-background hover:text-accent-foreground h-10 px-4 py-2 border-primary/50 text-primary hover:bg-primary/10"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-shield h-4 w-4 mr-1"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+            />
+          </svg>
+          Admin
+        </button>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-layout-dashboard h-4 w-4 mr-1"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              height="9"
+              rx="1"
+              width="7"
+              x="3"
+              y="3"
+            />
+            <rect
+              height="5"
+              rx="1"
+              width="7"
+              x="14"
+              y="3"
+            />
+            <rect
+              height="9"
+              rx="1"
+              width="7"
+              x="14"
+              y="12"
+            />
+            <rect
+              height="5"
+              rx="1"
+              width="7"
+              x="3"
+              y="16"
+            />
+          </svg>
+          Dashboard
+        </button>
+        <button
+          aria-label="Profile"
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-user h-4 w-4"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"
+            />
+            <circle
+              cx="12"
+              cy="7"
+              r="4"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticated user 1`] = `
+<DocumentFragment>
+  <header
+    class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 translate-y-0"
+  >
+    <div
+      class="container mx-auto px-4 py-4 flex items-center justify-between"
+    >
+      <div
+        class="flex items-center space-x-2 h-8"
+      >
+        <a
+          class="flex items-center space-x-2"
+          data-discover="true"
+          href="/"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-tent-tree h-8 w-8 text-primary"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="4"
+              cy="4"
+              r="2"
+            />
+            <path
+              d="m14 5 3-3 3 3"
+            />
+            <path
+              d="m14 10 3-3 3 3"
+            />
+            <path
+              d="M17 14V2"
+            />
+            <path
+              d="M17 14H7l-5 8h20Z"
+            />
+            <path
+              d="M8 14v8"
+            />
+            <path
+              d="m9 14 5 8"
+            />
+          </svg>
+          <span
+            class="text-2xl font-bold"
+          >
+            camply
+          </span>
+        </a>
+      </div>
+      <nav
+        class="hidden md:flex space-x-6"
+      >
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/providers"
+        >
+          Providers
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/how-it-works"
+        >
+          How It Works
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/ethos"
+        >
+          Ethos
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/contribute"
+        >
+          Contribute
+        </a>
+      </nav>
+      <button
+        aria-label="Toggle mobile menu"
+        class="md:hidden p-2 "
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-menu h-6 w-6"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M4 12h16"
+          />
+          <path
+            d="M4 18h16"
+          />
+          <path
+            d="M4 6h16"
+          />
+        </svg>
+      </button>
+      <div
+        class="hidden md:flex items-center space-x-2 "
+      >
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-sun h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="4"
+            />
+            <path
+              d="M12 2v2"
+            />
+            <path
+              d="M12 20v2"
+            />
+            <path
+              d="m4.93 4.93 1.41 1.41"
+            />
+            <path
+              d="m17.66 17.66 1.41 1.41"
+            />
+            <path
+              d="M2 12h2"
+            />
+            <path
+              d="M20 12h2"
+            />
+            <path
+              d="m6.34 17.66-1.41 1.41"
+            />
+            <path
+              d="m19.07 4.93-1.41 1.41"
+            />
+          </svg>
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-moon absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"
+            />
+          </svg>
+          <span
+            class="sr-only"
+          >
+            Toggle theme
+          </span>
+        </button>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-layout-dashboard h-4 w-4 mr-1"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              height="9"
+              rx="1"
+              width="7"
+              x="3"
+              y="3"
+            />
+            <rect
+              height="5"
+              rx="1"
+              width="7"
+              x="14"
+              y="3"
+            />
+            <rect
+              height="9"
+              rx="1"
+              width="7"
+              x="14"
+              y="12"
+            />
+            <rect
+              height="5"
+              rx="1"
+              width="7"
+              x="3"
+              y="16"
+            />
+          </svg>
+          Dashboard
+        </button>
+        <button
+          aria-label="Profile"
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-user h-4 w-4"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"
+            />
+            <circle
+              cx="12"
+              cy="7"
+              r="4"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > Header > matches snapshot for unauthenticated visitor 1`] = `
+<DocumentFragment>
+  <header
+    class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 translate-y-0"
+  >
+    <div
+      class="container mx-auto px-4 py-4 flex items-center justify-between"
+    >
+      <div
+        class="flex items-center space-x-2 h-8"
+      >
+        <a
+          class="flex items-center space-x-2"
+          data-discover="true"
+          href="/"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-tent-tree h-8 w-8 text-primary"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="4"
+              cy="4"
+              r="2"
+            />
+            <path
+              d="m14 5 3-3 3 3"
+            />
+            <path
+              d="m14 10 3-3 3 3"
+            />
+            <path
+              d="M17 14V2"
+            />
+            <path
+              d="M17 14H7l-5 8h20Z"
+            />
+            <path
+              d="M8 14v8"
+            />
+            <path
+              d="m9 14 5 8"
+            />
+          </svg>
+          <span
+            class="text-2xl font-bold"
+          >
+            camply
+          </span>
+        </a>
+      </div>
+      <nav
+        class="hidden md:flex space-x-6"
+      >
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/providers"
+        >
+          Providers
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/how-it-works"
+        >
+          How It Works
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/ethos"
+        >
+          Ethos
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/contribute"
+        >
+          Contribute
+        </a>
+      </nav>
+      <button
+        aria-label="Toggle mobile menu"
+        class="md:hidden p-2 "
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-menu h-6 w-6"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M4 12h16"
+          />
+          <path
+            d="M4 18h16"
+          />
+          <path
+            d="M4 6h16"
+          />
+        </svg>
+      </button>
+      <div
+        class="hidden md:flex items-center space-x-2 "
+      >
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-sun h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="4"
+            />
+            <path
+              d="M12 2v2"
+            />
+            <path
+              d="M12 20v2"
+            />
+            <path
+              d="m4.93 4.93 1.41 1.41"
+            />
+            <path
+              d="m17.66 17.66 1.41 1.41"
+            />
+            <path
+              d="M2 12h2"
+            />
+            <path
+              d="M20 12h2"
+            />
+            <path
+              d="m6.34 17.66-1.41 1.41"
+            />
+            <path
+              d="m19.07 4.93-1.41 1.41"
+            />
+          </svg>
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-moon absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"
+            />
+          </svg>
+          <span
+            class="sr-only"
+          >
+            Toggle theme
+          </span>
+        </button>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+        >
+          Sign In
+        </button>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+        >
+          Sign Up
+        </button>
+      </div>
+    </div>
+  </header>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > Header > matches snapshot without logo 1`] = `
+<DocumentFragment>
+  <header
+    class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 translate-y-0"
+  >
+    <div
+      class="container mx-auto px-4 py-4 flex items-center justify-center relative"
+    >
+      <div
+        class="flex items-center space-x-2 h-8"
+      />
+      <nav
+        class="hidden md:flex space-x-6"
+      >
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/providers"
+        >
+          Providers
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/how-it-works"
+        >
+          How It Works
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/ethos"
+        >
+          Ethos
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/contribute"
+        >
+          Contribute
+        </a>
+      </nav>
+      <button
+        aria-label="Toggle mobile menu"
+        class="md:hidden p-2 absolute right-4"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-menu h-6 w-6"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M4 12h16"
+          />
+          <path
+            d="M4 18h16"
+          />
+          <path
+            d="M4 6h16"
+          />
+        </svg>
+      </button>
+      <div
+        class="hidden md:flex items-center space-x-2 absolute right-4"
+      >
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10"
+        >
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-sun h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="4"
+            />
+            <path
+              d="M12 2v2"
+            />
+            <path
+              d="M12 20v2"
+            />
+            <path
+              d="m4.93 4.93 1.41 1.41"
+            />
+            <path
+              d="m17.66 17.66 1.41 1.41"
+            />
+            <path
+              d="M2 12h2"
+            />
+            <path
+              d="M20 12h2"
+            />
+            <path
+              d="m6.34 17.66-1.41 1.41"
+            />
+            <path
+              d="m19.07 4.93-1.41 1.41"
+            />
+          </svg>
+          <svg
+            aria-hidden="true"
+            class="lucide lucide-moon absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"
+            />
+          </svg>
+          <span
+            class="sr-only"
+          >
+            Toggle theme
+          </span>
+        </button>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+        >
+          Sign In
+        </button>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+        >
+          Sign Up
+        </button>
+      </div>
+    </div>
+  </header>
+</DocumentFragment>
+`;
+
 exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for active scan with filters 1`] = `
 <DocumentFragment>
   <a
@@ -2474,5 +3497,514 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for paused sca
       </div>
     </div>
   </a>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot for empty results 1`] = `
+<DocumentFragment>
+  <div
+    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto transition-all duration-200 opacity-100 visible transform scale-100"
+  >
+    <div
+      class="p-4"
+    >
+      <p
+        class="text-sm text-muted-foreground text-center"
+      >
+        No campgrounds found for "nonexistent". Try a different search term.
+      </p>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot for error state 1`] = `
+<DocumentFragment>
+  <div
+    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto transition-all duration-200 opacity-100 visible transform scale-100"
+  >
+    <div
+      class="p-4"
+    >
+      <p
+        class="text-sm text-red-600 text-center"
+      >
+        Failed to search campgrounds. Please try again.
+      </p>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot for loading state 1`] = `
+<DocumentFragment>
+  <div
+    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto transition-all duration-200 opacity-100 visible transform scale-100"
+  >
+    <div
+      class="flex items-center justify-center p-4"
+    >
+      <svg
+        aria-hidden="true"
+        class="lucide lucide-loader-circle h-4 w-4 animate-spin mr-2"
+        fill="none"
+        height="24"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+        width="24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M21 12a9 9 0 1 1-6.219-8.56"
+        />
+      </svg>
+      <span
+        class="text-sm text-muted-foreground"
+      >
+        Searching campgrounds...
+      </span>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot with search results 1`] = `
+<DocumentFragment>
+  <div
+    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto transition-all duration-200 opacity-100 visible transform scale-100"
+  >
+    <div
+      class="py-1 relative"
+    >
+      <div
+        class="px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 hover:bg-muted opacity-100"
+      >
+        <div
+          class="flex items-start space-x-3"
+        >
+          <div
+            class="flex-shrink-0 mt-0.5"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-tent h-4 w-4 text-primary"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M3.5 21 14 3"
+              />
+              <path
+                d="M20.5 21 10 3"
+              />
+              <path
+                d="M15.5 21 12 15l-3.5 6"
+              />
+              <path
+                d="M2 21h20"
+              />
+            </svg>
+          </div>
+          <div
+            class="flex-1 min-w-0"
+          >
+            <h4
+              class="text-sm font-medium text-foreground truncate"
+            >
+              Upper Pines Campground
+            </h4>
+            <p
+              class="text-xs text-muted-foreground"
+            >
+              Recreation.gov
+            </p>
+            <p
+              class="text-xs text-muted-foreground"
+            >
+              in Yosemite National Park
+            </p>
+          </div>
+          <div
+            class="flex-shrink-0"
+          >
+            <span
+              class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
+            >
+              Camp
+            </span>
+          </div>
+        </div>
+      </div>
+      <div
+        class="px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 hover:bg-muted opacity-100"
+      >
+        <div
+          class="flex items-start space-x-3"
+        >
+          <div
+            class="flex-shrink-0 mt-0.5"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-mountain h-4 w-4 text-primary"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m8 3 4 8 5-5 5 15H2L8 3z"
+              />
+            </svg>
+          </div>
+          <div
+            class="flex-1 min-w-0"
+          >
+            <h4
+              class="text-sm font-medium text-foreground truncate"
+            >
+              Yosemite National Park
+            </h4>
+            <p
+              class="text-xs text-muted-foreground"
+            >
+              Recreation.gov
+            </p>
+          </div>
+          <div
+            class="flex-shrink-0"
+          >
+            <span
+              class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
+            >
+              Area
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot with selected index 1`] = `
+<DocumentFragment>
+  <div
+    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto transition-all duration-200 opacity-100 visible transform scale-100"
+  >
+    <div
+      class="py-1 relative"
+    >
+      <div
+        class="px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 bg-primary/15 ring-1 ring-primary/20 opacity-100"
+      >
+        <div
+          class="flex items-start space-x-3"
+        >
+          <div
+            class="flex-shrink-0 mt-0.5"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-tent h-4 w-4 text-primary"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M3.5 21 14 3"
+              />
+              <path
+                d="M20.5 21 10 3"
+              />
+              <path
+                d="M15.5 21 12 15l-3.5 6"
+              />
+              <path
+                d="M2 21h20"
+              />
+            </svg>
+          </div>
+          <div
+            class="flex-1 min-w-0"
+          >
+            <h4
+              class="text-sm font-medium text-foreground truncate"
+            >
+              Upper Pines Campground
+            </h4>
+            <p
+              class="text-xs text-muted-foreground"
+            >
+              Recreation.gov
+            </p>
+            <p
+              class="text-xs text-muted-foreground"
+            >
+              in Yosemite National Park
+            </p>
+          </div>
+          <div
+            class="flex-shrink-0"
+          >
+            <span
+              class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
+            >
+              Camp
+            </span>
+          </div>
+        </div>
+      </div>
+      <div
+        class="px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 hover:bg-muted opacity-100"
+      >
+        <div
+          class="flex items-start space-x-3"
+        >
+          <div
+            class="flex-shrink-0 mt-0.5"
+          >
+            <svg
+              aria-hidden="true"
+              class="lucide lucide-mountain h-4 w-4 text-primary"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="m8 3 4 8 5-5 5 15H2L8 3z"
+              />
+            </svg>
+          </div>
+          <div
+            class="flex-1 min-w-0"
+          >
+            <h4
+              class="text-sm font-medium text-foreground truncate"
+            >
+              Yosemite National Park
+            </h4>
+            <p
+              class="text-xs text-muted-foreground"
+            >
+              Recreation.gov
+            </p>
+          </div>
+          <div
+            class="flex-shrink-0"
+          >
+            <span
+              class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
+            >
+              Area
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > UI Primitives > matches snapshot for badge variants 1`] = `
+<DocumentFragment>
+  <div
+    class="flex gap-2"
+  >
+    <div
+      class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80"
+    >
+      Default
+    </div>
+    <div
+      class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80"
+    >
+      Secondary
+    </div>
+    <div
+      class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80"
+    >
+      Destructive
+    </div>
+    <div
+      class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground"
+    >
+      Outline
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > UI Primitives > matches snapshot for button variants and sizes 1`] = `
+<DocumentFragment>
+  <div
+    class="flex flex-col gap-2"
+  >
+    <button
+      class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+    >
+      Default
+    </button>
+    <button
+      class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2"
+    >
+      Secondary
+    </button>
+    <button
+      class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2"
+    >
+      Destructive
+    </button>
+    <button
+      class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+    >
+      Outline
+    </button>
+    <button
+      class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+    >
+      Ghost
+    </button>
+    <button
+      class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-primary underline-offset-4 hover:underline h-10 px-4 py-2"
+    >
+      Link
+    </button>
+    <button
+      class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3"
+    >
+      Small
+    </button>
+    <button
+      class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 rounded-md px-8"
+    >
+      Large
+    </button>
+    <button
+      class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 w-10"
+    >
+      Icon
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > UI Primitives > matches snapshot for card structure 1`] = `
+<DocumentFragment>
+  <div
+    class="rounded-lg border bg-card text-card-foreground shadow-sm w-[350px]"
+  >
+    <div
+      class="flex flex-col space-y-1.5 p-6"
+    >
+      <h3
+        class="text-2xl font-semibold leading-none tracking-tight"
+      >
+        Card Title
+      </h3>
+      <p
+        class="text-sm text-muted-foreground"
+      >
+        Card Description
+      </p>
+    </div>
+    <div
+      class="p-6 pt-0"
+    >
+      <p>
+        Card content text.
+      </p>
+    </div>
+    <div
+      class="flex items-center p-6 pt-0"
+    >
+      <button
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-md px-3"
+      >
+        Footer Action
+      </button>
+    </div>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > UI Primitives > matches snapshot for switch states 1`] = `
+<DocumentFragment>
+  <div
+    class="flex flex-col gap-2"
+  >
+    <button
+      aria-checked="true"
+      aria-label="Checked switch"
+      class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+      data-state="checked"
+      role="switch"
+      type="button"
+      value="on"
+    >
+      <span
+        class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+        data-state="checked"
+      />
+    </button>
+    <button
+      aria-checked="false"
+      aria-label="Unchecked switch"
+      class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+      data-state="unchecked"
+      role="switch"
+      type="button"
+      value="on"
+    >
+      <span
+        class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+        data-state="unchecked"
+      />
+    </button>
+    <button
+      aria-checked="false"
+      aria-label="Disabled switch"
+      class="peer inline-flex h-[24px] w-[44px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
+      data-disabled=""
+      data-state="unchecked"
+      disabled=""
+      role="switch"
+      type="button"
+      value="on"
+    >
+      <span
+        class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+        data-disabled=""
+        data-state="unchecked"
+      />
+    </button>
+  </div>
 </DocumentFragment>
 `;
