@@ -5,7 +5,6 @@ Providers
 from db.data import providers as identities
 from providers.base import BaseProvider
 from providers.recreation_gov.provider import RecreationGovProvider
-from providers.reserve_california.provider import ReserveCaliforniaProvider
 from providers.usedirect.variations import (
     ArizonaStateParksProvider,
     FairfaxCountyParksProvider,
@@ -15,6 +14,7 @@ from providers.usedirect.variations import (
     NorthernTerritoryProvider,
     OhioStateParksProvider,
     OregonMetroProvider,
+    ReserveCaliforniaProvider,
     VirginiaStateParksProvider,
 )
 

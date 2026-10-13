@@ -16,8 +16,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from db.models import Base, Campground, Provider, RecreationArea, Search
 from providers import PROVIDERS
 from providers.dto import CampsiteType
-from providers.reserve_california.provider import ReserveCaliforniaProvider
 from providers.usedirect.models.api import AvailabilityUnit, SearchFilters
+from providers.usedirect.variations import ReserveCaliforniaProvider
 
 
 @pytest.fixture

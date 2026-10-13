@@ -135,7 +135,7 @@ Regression tests use generated synthetic responses, including a VCR replay with 
 
 `UseDirectProvider(BaseProvider, ABC)` in `providers.usedirect.provider` owns the shared async RDR requests, per-instance pacing/cache, date-window aggregation, and atomic metadata/search refreshes. Shared source models live in `providers.usedirect.models`; no backend provider imports the legacy CLI. Concrete variations supply the inherited abstract provider identity plus `api_url`, `booking_url`, and `state_code`. `country_code` defaults to US and is AU for Northern Territory. Provider and park IDs scope all catalog updates and search joins.
 
-ReserveCalifornia retains its existing import path and modern booking overrides. The other concrete providers live in `providers.usedirect.variations`:
+All concrete UseDirect providers live in `providers.usedirect.variations`:
 
 | ID  | Provider              | State / country | Booking behavior                              |
 | --- | --------------------- | --------------- | --------------------------------------------- |
