@@ -66,3 +66,4 @@ Dependencies: T001–T006 precede user/scan delivery; T012–T015 precede operat
 
 - [x] T039 Preserve unknown worker counts and undefined chart measurements; record each task attempt once, separate retry counters from failures, and enforce the recent-history window.
 - [x] T040 Add opt-in live Celery/Valkey/Prometheus/API/Chromium smoke verification and CI coverage; improve task/worker table readability and capture partial-worker and missing-measurement screenshots.
+- [x] T041 Verify session user management transitions: revoke old cookies after password reset/change, refresh the changing browser's session, honor stored bootstrap passwords and demotions, and prevent password-change lockout outside session mode.

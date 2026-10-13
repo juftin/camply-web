@@ -1,4 +1,4 @@
-"""In-app shared-account login and cookie-session logout."""
+"""In-app password login, credential rotation, and cookie-session logout."""
 
 import re
 import secrets
@@ -12,6 +12,7 @@ from backend.auth import (
     CurrentUserDep,
     _get_or_create_admin_user,
     hash_password,
+    session_credential_version,
     session_signing_key,
     verify_password,
 )
@@ -25,6 +26,36 @@ from backend.schemas import (
 from db.models import User as UserDB
 
 session_router = APIRouter(tags=["auth"])
+
+
+def _set_session_cookies(response: Response, user: UserDB, csrf: str) -> None:
+    """Issue a bounded session tied to current credentials and preserve its CSRF proof."""
+    cookie = jwt.encode(
+        {
+            "sub": user.email,
+            "csrf": csrf,
+            "credentials": session_credential_version(user),
+            "exp": int(time.time()) + backend_config.session_max_age,
+        },
+        session_signing_key(),
+        algorithm="HS256",
+    )
+    response.set_cookie(
+        key="camply_session",
+        value=cookie,
+        max_age=backend_config.session_max_age,
+        httponly=True,
+        secure=backend_config.session_cookie_secure,
+        samesite="strict",
+    )
+    response.set_cookie(
+        key="camply_csrf",
+        value=csrf,
+        max_age=backend_config.session_max_age,
+        secure=backend_config.session_cookie_secure,
+        samesite="strict",
+    )
+    response.headers["Cache-Control"] = "no-store"
 
 
 def require_session_mode() -> None:
@@ -57,63 +88,31 @@ async def login(
     require_session_mode()
     require_trusted_origin(request)
 
-    user: UserDB | None = None
-    if (
-        backend_config.login_username
-        and backend_config.login_password
-        and secrets.compare_digest(
-            body.username.encode(), backend_config.login_username.encode()
-        )
-        and secrets.compare_digest(
-            body.password.encode(), backend_config.login_password.encode()
-        )
-    ):
-        user = await _get_or_create_admin_user(session)
+    is_bootstrap_login = secrets.compare_digest(
+        body.username.encode(), (backend_config.login_username or "").encode()
+    )
+    email = backend_config.admin_email if is_bootstrap_login else body.username
+    stmt = select(UserDB).where(func.lower(UserDB.email) == email.lower())
+    db_user = (await session.execute(stmt)).scalar_one_or_none()
+    if db_user is not None and db_user.password_hash is not None:
+        password_matches = verify_password(body.password, db_user.password_hash)
     else:
-        stmt = select(UserDB).where(func.lower(UserDB.email) == body.username.lower())
-        db_user = (await session.execute(stmt)).scalar_one_or_none()
-        if (
-            db_user is not None
-            and db_user.password_hash is not None
-            and verify_password(body.password, db_user.password_hash)
-        ):
-            user = db_user
-
-    if user is None:
+        password_matches = is_bootstrap_login and secrets.compare_digest(
+            body.password.encode(), (backend_config.login_password or "").encode()
+        )
+    if not password_matches:
         raise HTTPException(status_code=401, detail="Invalid username or password")
-
-    csrf = secrets.token_urlsafe(32)
-    cookie = jwt.encode(
-        {
-            "sub": user.email,
-            "csrf": csrf,
-            "exp": int(time.time()) + backend_config.session_max_age,
-        },
-        session_signing_key(),
-        algorithm="HS256",
-    )
-    response.set_cookie(
-        key="camply_session",
-        value=cookie,
-        max_age=backend_config.session_max_age,
-        httponly=True,
-        secure=backend_config.session_cookie_secure,
-        samesite="strict",
-    )
-    response.set_cookie(
-        key="camply_csrf",
-        value=csrf,
-        max_age=backend_config.session_max_age,
-        secure=backend_config.session_cookie_secure,
-        samesite="strict",
-    )
-    response.headers["Cache-Control"] = "no-store"
+    user = await _get_or_create_admin_user(session) if is_bootstrap_login else db_user
+    assert user is not None
+    _set_session_cookies(response, user=user, csrf=secrets.token_urlsafe(32))
     return MeResponse.model_validate(user, from_attributes=True)
 
 
 @session_router.post("/change-password")
 async def change_password(
     body: ChangePasswordRequest,
+    request: Request,
+    response: Response,
     current_user: CurrentUserDep,
     session: SessionDep,
 ) -> MeResponse:
@@ -143,6 +142,7 @@ async def change_password(
     await session.commit()
     await session.refresh(user)
 
+    _set_session_cookies(response, user=user, csrf=request.headers["X-CSRF-Token"])
     return MeResponse.model_validate(user, from_attributes=True)
 
 

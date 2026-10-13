@@ -174,7 +174,7 @@ class CurrentUser(BaseModel):
 
 
 async def _get_or_create_admin_user(session: AsyncSession) -> User:
-    """Return the shared admin identity, creating it on first use."""
+    """Return the configured account, restoring admin rights only for automatic login."""
     result = await session.execute(
         select(User).where(User.email == backend_config.admin_email)
     )
@@ -193,7 +193,7 @@ async def _get_or_create_admin_user(session: AsyncSession) -> User:
             USERS_CREATED_TOTAL.inc()
         except Exception:
             pass
-    elif not user.is_admin:
+    elif backend_config.auto_login and not user.is_admin:
         user.is_admin = True
         await session.commit()
         await session.refresh(user)
@@ -210,6 +210,13 @@ def session_signing_key() -> bytes:
     ).digest()
 
 
+def session_credential_version(user: User) -> str:
+    """Bind a cookie to the current salted password hash without exposing that hash."""
+    return hmac.new(
+        session_signing_key(), (user.password_hash or "").encode(), hashlib.sha256
+    ).hexdigest()
+
+
 def verify_session(request: Request) -> dict:
     """Validate the signed session and require CSRF proof for state changes."""
     cookie = request.cookies.get("camply_session")
@@ -220,7 +227,7 @@ def verify_session(request: Request) -> dict:
             cookie,
             session_signing_key(),
             algorithms=["HS256"],
-            options={"require": ["exp", "sub", "csrf"]},
+            options={"require": ["exp", "sub", "csrf", "credentials"]},
         )
     except jwt.InvalidTokenError as exc:
         raise HTTPException(
@@ -262,17 +269,20 @@ async def resolve_current_user(
         if backend_config.auth_mode == AuthMode.SESSION:
             payload = verify_session(request)
             sub = str(payload.get("sub", ""))
-            if sub == backend_config.admin_email:
-                user = await _get_or_create_admin_user(session)
-            else:
-                stmt = select(User).where(func.lower(User.email) == sub.lower())
-                result = await session.execute(stmt)
-                db_user = result.scalar_one_or_none()
-                if db_user is None:
-                    raise HTTPException(
-                        status_code=401, detail="Session expired or invalid"
-                    )
-                user = db_user
+            stmt = select(User).where(func.lower(User.email) == sub.lower())
+            result = await session.execute(stmt)
+            db_user = result.scalar_one_or_none()
+            if db_user is None:
+                raise HTTPException(
+                    status_code=401, detail="Session expired or invalid"
+                )
+            user = db_user
+            if not secrets.compare_digest(
+                str(payload["credentials"]), session_credential_version(user)
+            ):
+                raise HTTPException(
+                    status_code=401, detail="Session expired or invalid"
+                )
         else:
             user = await _get_or_create_admin_user(session)
         return CurrentUser(
@@ -282,7 +292,10 @@ async def resolve_current_user(
             is_admin=user.is_admin,
             scanning_enabled=user.scanning_enabled,
             pushover_token=user.pushover_token,
-            must_change_password=user.must_change_password,
+            must_change_password=(
+                backend_config.auth_mode == AuthMode.SESSION
+                and user.must_change_password
+            ),
         )
 
     # --- Auth0 mode ---
@@ -329,7 +342,7 @@ async def resolve_current_user(
         is_admin=auth0_user.is_admin,
         scanning_enabled=auth0_user.scanning_enabled,
         pushover_token=auth0_user.pushover_token,
-        must_change_password=auth0_user.must_change_password,
+        must_change_password=False,
     )
 
 

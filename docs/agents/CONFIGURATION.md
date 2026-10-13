@@ -54,7 +54,9 @@ Every request automatically uses `CAMPLY_ADMIN_EMAIL`. There is no password or l
 
 ### In-app password login (`session`)
 
-Set `CAMPLY_AUTH_MODE=session`, `CAMPLY_LOGIN_USERNAME`, `CAMPLY_LOGIN_PASSWORD`, and `CAMPLY_SESSION_SECRET` (at least 32 characters). The app shows a username/password form, posts JSON to `/api/login`, and remembers login through a signed, expiring HTTP-only cookie. No Basic header or browser password prompt is involved. This mode uses the shared admin account and has no signup.
+Set `CAMPLY_AUTH_MODE=session`, `CAMPLY_LOGIN_USERNAME`, `CAMPLY_LOGIN_PASSWORD`, and `CAMPLY_SESSION_SECRET` (at least 32 characters). The app shows a username/password form, posts JSON to `/api/login`, and remembers login through a signed, expiring HTTP-only cookie. No Basic header or browser password prompt is involved. Administrators can provision additional local accounts through User Management; public signup is unavailable.
+
+The configured credentials bootstrap the `CAMPLY_ADMIN_EMAIL` account. After an administrator resets its password or the account changes its password, the stored password replaces `CAMPLY_LOGIN_PASSWORD` for authentication. The account can then sign in with its email or the configured username and its new password. In session mode, its administrator role comes from the database, so another administrator can demote it. Automatic login always grants the configured account administrator access. Password-change requirements apply only in session mode, including when switching authentication modes.
 
 The local Docker Compose stack supplies `admin` / `camply` and a development signing secret when these variables are unset. It also sets `CAMPLY_SESSION_COOKIE_SECURE=false` for its HTTP frontend. These known values are only for local development. Override the username, password, and signing secret before exposing the stack to other users, and set `CAMPLY_SESSION_COOKIE_SECURE=true` when serving it over HTTPS.
 
@@ -62,7 +64,7 @@ Cookies default to `Secure` and `SameSite=Strict`. For an HTTP-only local setup,
 
 The frontend verifies the session through `/api/me` after login before opening the dashboard. A successful `/api/login` response alone does not prove the browser accepted the cookies. If verification fails or scan requests return 401 immediately after login, check HTTPS versus `CAMPLY_SESSION_COOKIE_SECURE`, browser cookie settings, and whether the frontend and API share the same site. For local development, use the `/api` proxy rather than a separate API hostname. Scan queries do not automatically retry 401/403 responses.
 
-Sessions expire after `CAMPLY_SESSION_MAX_AGE` seconds. A scan query returning 401 clears the cached profile and scan data and returns the user to sign-in; a new login fetches scans again. Logout removes both session and CSRF cookies. Changing the configured username, password, or signing secret invalidates existing sessions. Cookies are stateless: clearing a browser session does not individually revoke a copied cookie before expiry; individual server-side revocation remains a follow-up.
+Sessions expire after `CAMPLY_SESSION_MAX_AGE` seconds. A scan query returning 401 clears the cached profile and scan data and returns the user to sign-in; a new login fetches scans again. Logout removes both session and CSRF cookies. Changing the configured username, password, or signing secret invalidates existing sessions. Resetting or changing a stored password invalidates every earlier cookie for that account, even when the same password is assigned again. A successful password change issues fresh cookies to the current browser while preserving its CSRF token. Cookies from before credential versioning was introduced require a new login. Clearing a browser session does not individually revoke a copied cookie before expiry; individual session revocation remains a follow-up.
 
 ### Auth0 (`auth0`)
 

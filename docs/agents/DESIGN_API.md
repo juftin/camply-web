@@ -23,6 +23,8 @@ The owner selects `none`, `session`, or `auth0` with `CAMPLY_AUTH_MODE`, indepen
 - **`GET /api/auth-config`**: public configuration returns `auth_mode`, `auth0_domain`, `auth0_client_id`, `auth0_audience`, `auto_login`, `signup_enabled`, and `invite_only`. The React SDK requests the returned audience. Auth0 mode must supply domain, audience, and client ID.
 - **`GET /api/me`**: the profile exposes `is_invited`, `is_admin`, and `scanning_enabled`. The existing database column remains `is_early_access_user` for compatibility with stored data.
 
+Session cookies include a credential version derived by HMAC from the current salted password hash. Every authenticated session request checks this version against the database, so a password reset or change invalidates earlier cookies without adding a database column or exposing the hash. `POST /api/change-password` refreshes the current browser's cookies and preserves its CSRF token. Legacy cookies without a credential version require sign-in again. Stored bootstrap passwords replace the configured password for authentication; the configured username remains an alias. Session mode honors the stored administrator role, including bootstrap account demotions. Automatic login restores administrator access and ignores password-change flags; Auth0 also ignores these session-only flags.
+
 ### 2. Optional invite-only guard
 
 `CAMPLY_INVITE_ONLY` defaults to `false`. When enabled, every `/api/scans` operation requires the user's `is_invited` flag. Uninvited authenticated callers receive `403` with `ERR_INVITE_REQUIRED`. The frontend gates dashboard and scan detail routes with the invitation request screen. Profiles and public metadata remain accessible. Existing scan ownership checks apply in both configurations.
@@ -68,7 +70,7 @@ The owner selects `none`, `session`, or `auth0` with `CAMPLY_AUTH_MODE`, indepen
 - **`GET /api/admin/users`**: List users with scanning status, scan counts, pagination, and search.
 - **`POST /api/admin/users`**: Create a new database user with password, scanning status, admin status, and optional forced password change (session mode only).
 - **`GET /api/admin/users/{id}`**: User detail with scans and audit history.
-- **`PATCH /api/admin/users/{id}`**: Update user status (e.g., toggle `scanning_enabled`, reset password, or toggle `must_change_password`).
+- **`PATCH /api/admin/users/{id}`**: Update scanning access or administrator role, rejecting self-demotion. Password resets and `must_change_password` updates require session mode; requests containing either field outside session mode return `400` before applying changes. Password resets revoke existing sessions and default to requiring password rotation.
 - **`GET /api/admin/scans`**: List all system scans with filters and pagination.
 - **`GET /api/admin/scans/{id}`**: Scan detail including target and subscriber info.
 - **`PATCH /api/admin/scans/{id}`**: Update scan status (e.g., toggle `is_active`).

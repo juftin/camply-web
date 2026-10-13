@@ -434,6 +434,14 @@ async def update_user(
     """
     Update a user's scanning access or credentials and record audit events.
     """
+    if (
+        body.password is not None or body.must_change_password is not None
+    ) and backend_config.auth_mode != AuthMode.SESSION:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password management is only supported in session auth mode.",
+        )
+
     user_stmt = select(User).where(User.id == user_id).with_for_update()
     user = (await session.execute(user_stmt)).scalar_one_or_none()
     if user is None:
@@ -490,11 +498,6 @@ async def update_user(
         )
 
     if body.password is not None:
-        if backend_config.auth_mode != AuthMode.SESSION:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password management is only supported in session auth mode.",
-            )
         user.password_hash = hash_password(body.password)
         if body.must_change_password is not None:
             user.must_change_password = body.must_change_password
