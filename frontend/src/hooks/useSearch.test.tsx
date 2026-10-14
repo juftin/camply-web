@@ -64,7 +64,11 @@ describe("useSearch", () => {
     await waitFor(() => {
       expect(result.current.data).toEqual([mockSearchResult]);
     });
-    expect(api.searchCampgrounds).toHaveBeenCalledWith("te");
+    expect(api.searchCampgrounds).toHaveBeenCalledWith(
+      "te",
+      20,
+      expect.any(AbortSignal),
+    );
   });
 
   it("passes trimmed query to the API", async () => {
@@ -77,7 +81,11 @@ describe("useSearch", () => {
     await waitFor(() => {
       expect(result.current.data).toEqual([mockSearchResult]);
     });
-    expect(api.searchCampgrounds).toHaveBeenCalledWith("test");
+    expect(api.searchCampgrounds).toHaveBeenCalledWith(
+      "test",
+      20,
+      expect.any(AbortSignal),
+    );
   });
 
   it("returns empty array when API returns empty", async () => {
@@ -141,10 +149,31 @@ describe("useSearchExplore", () => {
     await waitFor(() => {
       expect(result.current.data).toEqual(mockExploreResponse);
     });
-    expect(api.searchExplore).toHaveBeenCalledWith({
-      query: "Yosemite",
-      state: "CA",
-      hasElectric: true,
-    });
+    expect(api.searchExplore).toHaveBeenCalledWith(
+      {
+        query: "Yosemite",
+        state: "CA",
+        hasElectric: true,
+      },
+      expect.any(AbortSignal),
+    );
   });
+});
+
+it("aborts obsolete Explore requests when filters change", async () => {
+  vi.mocked(api.searchExplore).mockImplementation(() => new Promise(() => {}));
+  const { rerender, unmount } = renderHook(
+    ({ state }) => useSearchExplore({ state }),
+    { wrapper: createWrapper(), initialProps: { state: "CA" } },
+  );
+  await waitFor(() => expect(api.searchExplore).toHaveBeenCalled());
+  const requests = vi.mocked(api.searchExplore).mock.calls;
+  const firstSignal = requests[requests.length - 1][1]!;
+  expect(firstSignal.aborted).toBe(false);
+  rerender({ state: "CO" });
+  await waitFor(() => expect(firstSignal.aborted).toBe(true));
+  const secondSignal = requests[requests.length - 1][1]!;
+  expect(secondSignal.aborted).toBe(false);
+  unmount();
+  expect(secondSignal.aborted).toBe(true);
 });

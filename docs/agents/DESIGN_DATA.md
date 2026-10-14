@@ -108,7 +108,13 @@ Because we use composite keys, all foreign key relationships MUST include both t
 
 ### The "Search" Table Algorithm
 
-We will continue to use the `Search.algorithm()` method (FastAPI Backend) to power the "Find a Park" input in the Shadcn UI. This table acts as a read-cache for the metadata layer.
+`Search.algorithm()` powers autocomplete and `Search.search()` powers Explore. Both search the committed metadata cache inside PostgreSQL; there is no external search service or index synchronization worker.
+
+A weighted `simple`-dictionary full-text vector ranks campground names (A), recreation area names (B), cities (C), and state codes (D). A GIN expression index supports token/prefix matching. Each query token must match a full-text prefix or an indexed `pg_trgm` word match on campground, recreation-area, or city names. Tokens shorter than four characters require a full-text match; the transaction-local word similarity threshold is 0.5. Exact displayed names rank ahead of prefixes, parent-name matches, and fuzzy matches. Name and ID tie breakers make pagination deterministic. SQLite retains portable literal substring matching without typo tolerance.
+
+Migration `2ac874f9d2ad` adds the weighted vector and city trigram indexes; the existing name trigram indexes remain in use. PostgreSQL maintains these indexes transactionally whenever provider ingestion refreshes the search table. Autocomplete skips count/facet queries; Explore returns exact totals and facets for the active criteria. See the [search implementation plan](../../specs/007-live-search/plan.md).
+
+Provider imports currently omit the Search amenity and RV columns, leaving their defaults; these filters depend on future catalog enrichment. Native search indexes cannot supply missing metadata.
 
 ### Metadata vs. Scan results
 

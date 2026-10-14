@@ -171,3 +171,22 @@ it("attaches only a bearer token for application authentication", async () => {
   const request = await interceptor({ headers: {} });
   expect(request.headers.Authorization).toBe("Bearer synthetic-access-token");
 });
+
+it("forwards cancellation signals and filters to search transport", async () => {
+  mockGet.mockResolvedValue({ data: [] });
+  const api = await import("@/lib/api");
+  const signal = new AbortController().signal;
+  await api.searchExplore(
+    { query: " Pines ", state: "CA", hasElectric: true, page: 2 },
+    signal,
+  );
+  expect(mockGet).toHaveBeenLastCalledWith("/search/explore", {
+    params: { q: "Pines", state: "CA", has_electric: true, page: 2 },
+    signal,
+  });
+  await api.searchCampgrounds("Pines", 20, signal);
+  expect(mockGet).toHaveBeenLastCalledWith("/search", {
+    params: { query: "Pines", limit: 20 },
+    signal,
+  });
+});

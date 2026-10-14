@@ -109,11 +109,13 @@ export async function fetchAuthConfig(): Promise<AuthConfig> {
 export async function searchCampgrounds(
   query: string,
   limit: number = 20,
+  signal?: AbortSignal,
 ): Promise<SearchResult[]> {
   if (!query.trim()) return [];
 
   const response = await api.get<SearchResult[]>("/search", {
     params: { query: query.trim(), limit },
+    signal,
   });
   return response.data;
 }
@@ -136,6 +138,7 @@ export interface SearchExploreParams {
 
 export async function searchExplore(
   params: SearchExploreParams = {},
+  signal?: AbortSignal,
 ): Promise<SearchExploreResponse> {
   const queryParams: Record<string, string | number | boolean> = {};
   if (params.query?.trim()) queryParams.q = params.query.trim();
@@ -159,6 +162,7 @@ export async function searchExplore(
 
   const response = await api.get<SearchExploreResponse>("/search/explore", {
     params: queryParams,
+    signal,
   });
   return response.data;
 }

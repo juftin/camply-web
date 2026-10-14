@@ -12,7 +12,7 @@ export function useSearch(query: string, enabled: boolean = true) {
 
   return useQuery<SearchResult[]>({
     queryKey: ["search", trimmedQuery],
-    queryFn: () => searchCampgrounds(trimmedQuery),
+    queryFn: ({ signal }) => searchCampgrounds(trimmedQuery, 20, signal),
     enabled: shouldSearch,
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     gcTime: 10 * 60 * 1000, // Keep cache for 10 minutes
@@ -29,7 +29,7 @@ export function useSearchExplore(
 ) {
   return useQuery<SearchExploreResponse>({
     queryKey: ["search-explore", params],
-    queryFn: () => searchExplore(params),
+    queryFn: ({ signal }) => searchExplore(params, signal),
     enabled,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,

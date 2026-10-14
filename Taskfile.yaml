@@ -44,6 +44,11 @@ tasks:
           CLI_ARGS: --check
           OPENAPI_SCHEMA: "{{.ROOT_DIR}}/frontend/tmp/openapi.json"
 
+  search:smoke:
+    desc: Verify search and migrations against an isolated PostgreSQL container
+    cmds:
+      - CAMPLY_POSTGRES_SEARCH_TEST=1 task backend:test -- -c pyproject.toml packages/db/tests/test_postgres_search.py
+
   admin:smoke:
     desc: Verify admin workflows against isolated live monitoring services and Chromium
     deps: [frontend:install]

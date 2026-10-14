@@ -122,3 +122,9 @@ Use `task api:generate` to export the local FastAPI OpenAPI schema and regenerat
 Run `task frontend:browser:install` once if Chromium is unavailable, then `task admin:smoke` with Docker running. This creates test-owned Valkey and Prometheus containers on random loopback ports, a synthetic Celery worker, and an HTTP API backed by the test SQLite database. It cleans up its containers and processes after the test.
 
 The smoke test verifies real failure/retry signal handling, distinct attempts and counter values, worker inspection, Prometheus queries, and Chromium user suspension/restoration and scan pause/resume without intercepted API responses. It also verifies stale inspection after stopping the worker. CI runs this as **Admin Live Smoke**; the normal unit suite skips this opt-in test. External booking providers, notification delivery, PostgreSQL migrations, and prefork deployment behavior are outside this smoke test.
+
+### PostgreSQL search verification
+
+Apply the search index migration with `task backend:migration-upgrade`. PostgreSQL's native full-text search and `pg_trgm` power autocomplete and Explore; no extra search service or credentials are required. SQLite development uses portable substring matching, so validate typo tolerance on PostgreSQL.
+
+Run `task search:smoke` with Docker running. It starts a test-owned PostgreSQL 17 container on a random loopback port, applies the complete migration chain, verifies downgrade/re-upgrade, and tests synthetic search ranking, typos, cross-field tokens, filters, facets, pagination, and GIN index usage. It removes its container on completion. CI runs this as **PostgreSQL Search**; normal unit tests skip the opt-in suite.
