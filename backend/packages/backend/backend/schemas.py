@@ -548,3 +548,57 @@ class AdminTrendsResponse(BaseModel):
     available: bool
     error_message: Optional[str] = None
     metrics: list[TrendMetric] = Field(default_factory=list)
+
+
+class GeographicBounds(BaseModel):
+    """A geographic extent; west greater than east crosses the dateline."""
+
+    west: float = Field(ge=-180, le=180, allow_inf_nan=False)
+    south: float = Field(ge=-90, le=90, allow_inf_nan=False)
+    east: float = Field(ge=-180, le=180, allow_inf_nan=False)
+    north: float = Field(ge=-90, le=90, allow_inf_nan=False)
+
+
+class SearchMapSummaryResponse(BaseModel):
+    """Counts and initial extent for the entire filtered catalog."""
+
+    total: int = Field(ge=0)
+    mappable_total: int = Field(ge=0)
+    unmappable_total: int = Field(ge=0)
+    bounds: GeographicBounds | None
+
+
+class SearchMapLocation(BaseModel):
+    """One independently actionable mapped catalog location."""
+
+    kind: Literal["location"] = "location"
+    cell_id: str
+    item: SearchResultResponse
+
+
+class SearchMapGroup(BaseModel):
+    """An explorable bounded group, including exactly overlapping places."""
+
+    kind: Literal["group"] = "group"
+    cell_id: str
+    count: int = Field(ge=2)
+    latitude: float
+    longitude: float
+    bounds: GeographicBounds
+
+
+class SearchMapResponse(BaseModel):
+    """A complete bounded representation of the filtered visible area."""
+
+    viewport: GeographicBounds
+    grid_level: int = Field(ge=1, le=20)
+    represented_total: int = Field(ge=0)
+    features: list[SearchMapLocation | SearchMapGroup] = Field(max_length=512)
+
+
+class SearchMapMembersResponse(BaseModel):
+    """A keyset page for a selected group and its original viewport."""
+
+    items: list[SearchResultResponse] = Field(max_length=100)
+    total: int = Field(ge=0)
+    next_cursor: str | None

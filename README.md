@@ -69,7 +69,8 @@ to book your spot!
 - **Forms**: React Hook Form + Zod for strict validation.
 - **API**: Axios client with OpenAPI TypeScript codegen.
 - **Auth**: Auth0 redirect or local auto-auth, toggleable via backend config.
-- **Pages**: Home (search), Dashboard (scan management), Early Access gate,
+- **Maps**: MapLibre GL JS with a keyless OpenStreetMap default and configurable raster sources. Explore offers a collapsible map above the list across all filtered matches; see [mapping configuration](docs/agents/CONFIGURATION.md#maps-public-frontend-build-settings).
+- **Pages**: Home (search), Explore, Dashboard (scan management), Early Access gate,
   Campground/Rec Area detail, static content pages.
 - The frontend can be published as a static site served by any web server.
 

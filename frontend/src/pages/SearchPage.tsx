@@ -12,6 +12,8 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   Loader2,
 } from "lucide-react";
@@ -22,10 +24,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { ExploreMap, type SavedMapView } from "@/components/ExploreMap";
+import { toCampground, detailUrl } from "@/lib/maps";
+import { mapQueryParams } from "@/lib/api";
 import { ScanForm } from "@/components/ScanForm";
 import { useSearchExplore } from "@/hooks/useSearch";
 import { toTitleCase } from "@/lib/utils";
-import type { Campground, SearchResult } from "@/lib/structs";
 
 const POPULAR_STATES = ["CA", "CO", "WA", "OR", "UT", "AZ", "TX", "FL"];
 
@@ -44,6 +48,9 @@ export function SearchPage() {
   const parsedPage = Number(searchParams.get("page") || "1");
   const page =
     Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
+  const [isMapOpen, setIsMapOpen] = useState(true);
+  const [savedMap, setSavedMap] = useState<SavedMapView | null>(null);
 
   // Local state for free-text search input
   const [searchInput, setSearchInput] = useState(query);
@@ -129,22 +136,6 @@ export function SearchPage() {
   const totalPages = data?.total_pages || 1;
   const items = data?.items || [];
   const facets = data?.facets;
-
-  // Convert SearchResult to Campground structure for prefilling ScanForm
-  const toCampgroundModel = (item: SearchResult): Campground => ({
-    id: item.campground_id || item.id,
-    provider_id: item.provider_id,
-    recreation_area_id: item.recreation_area_id,
-    name: item.campground_name || item.recreation_area_name || "Campground",
-    description: null,
-    country: item.country || null,
-    state: item.state || null,
-    longitude: item.longitude || null,
-    latitude: item.latitude || null,
-    reservable: item.reservable ?? true,
-    enabled: true,
-    url: "",
-  });
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -342,7 +333,10 @@ export function SearchPage() {
         </aside>
 
         {/* Results Section */}
-        <main className="md:col-span-3 space-y-6" aria-busy={isFetching}>
+        <main
+          className="md:col-span-3 min-w-0 space-y-6"
+          aria-busy={isFetching}
+        >
           {/* Results Summary Bar */}
           <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b">
             <div>
@@ -378,184 +372,225 @@ export function SearchPage() {
             )}
           </div>
 
-          {/* Results List */}
-          {error ? (
-            <Card>
-              <CardContent className="p-8 text-center text-red-600">
-                Failed to load campgrounds. Please try again or adjust your
-                filters.
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => void refetch()}
-                >
-                  Retry
-                </Button>
-              </CardContent>
-            </Card>
-          ) : !isLoading && items.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center space-y-4">
-                <Tent className="h-12 w-12 mx-auto text-muted-foreground/60" />
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    No campgrounds found
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                    We couldn't find any campsites matching your filters. Try
-                    loosening amenity constraints or searching a broader area.
-                  </p>
-                </div>
-                {activeFilterCount > 0 && (
-                  <Button variant="outline" onClick={handleClearFilters}>
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Clear All Filters
-                  </Button>
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                aria-expanded={isMapOpen}
+                aria-controls="explore-map-content"
+                onClick={() => setIsMapOpen((open) => !open)}
+                className="gap-2"
+              >
+                <MapPin className="h-4 w-4" />
+                {isMapOpen ? "Hide map" : "Show map"}
+                {isMapOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
                 )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {items.map((item) => {
-                const displayName =
-                  item.campground_name ||
-                  item.recreation_area_name ||
-                  "Campground";
-                const parentArea =
-                  item.entity_type === "Campground"
-                    ? item.recreation_area_name
-                    : null;
-                const isCampground = item.entity_type === "Campground";
-                const detailUrl =
-                  isCampground && item.campground_id
-                    ? `/campground/${item.provider_id}/${item.campground_id}`
-                    : `/rec-area/${item.provider_id}/${item.recreation_area_id}`;
+              </Button>
+              <div id="explore-map-content" hidden={!isMapOpen}>
+                {isMapOpen && (
+                  <ExploreMap
+                    key={JSON.stringify(mapQueryParams(exploreParams))}
+                    params={exploreParams}
+                    saved={savedMap}
+                    onSave={setSavedMap}
+                  />
+                )}
+              </div>
+            </div>
+            <section aria-label="Search results" className="min-w-0 space-y-4">
+              {/* Results List */}
+              {error ? (
+                <Card>
+                  <CardContent className="p-8 text-center text-red-600">
+                    Failed to load campgrounds. Please try again or adjust your
+                    filters.
+                    <Button
+                      variant="outline"
+                      className="mt-4"
+                      onClick={() => void refetch()}
+                    >
+                      Retry
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : !isLoading && items.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center space-y-4">
+                    <Tent className="h-12 w-12 mx-auto text-muted-foreground/60" />
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        No campgrounds found
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                        We couldn't find any campsites matching your filters.
+                        Try loosening amenity constraints or searching a broader
+                        area.
+                      </p>
+                    </div>
+                    {activeFilterCount > 0 && (
+                      <Button variant="outline" onClick={handleClearFilters}>
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Clear All Filters
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {items.map((item) => {
+                    const displayName =
+                      item.campground_name ||
+                      item.recreation_area_name ||
+                      "Campground";
+                    const parentArea =
+                      item.entity_type === "Campground"
+                        ? item.recreation_area_name
+                        : null;
+                    const isCampground = item.entity_type === "Campground";
+                    const destination = detailUrl(item);
 
-                return (
-                  <Card
-                    key={item.id}
-                    className="overflow-hidden hover:border-primary/40 transition-colors"
-                  >
-                    <CardContent className="p-5">
-                      <div className="flex flex-col sm:flex-row justify-between gap-4">
-                        <div className="space-y-1.5 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                              {isCampground ? (
-                                <Tent className="h-3 w-3" />
-                              ) : (
-                                <Mountain className="h-3 w-3" />
+                    return (
+                      <Card
+                        key={item.id}
+                        className="overflow-hidden hover:border-primary/40 transition-colors"
+                      >
+                        <CardContent className="p-5">
+                          <div className="flex flex-col sm:flex-row justify-between gap-4">
+                            <div className="space-y-1.5 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                  {isCampground ? (
+                                    <Tent className="h-3 w-3" />
+                                  ) : (
+                                    <Mountain className="h-3 w-3" />
+                                  )}
+                                  {isCampground
+                                    ? "Campground"
+                                    : "Recreation Area"}
+                                </span>
+                                <Badge variant="outline" className="text-xs">
+                                  {toTitleCase(item.provider_name)}
+                                </Badge>
+                                {item.state && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    {item.state.toUpperCase()}
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <h3 className="text-lg font-bold text-foreground">
+                                <Link
+                                  to={destination}
+                                  className="hover:text-primary transition-colors"
+                                >
+                                  {toTitleCase(displayName)}
+                                </Link>
+                              </h3>
+
+                              {parentArea && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  in {toTitleCase(parentArea)}
+                                  {item.city
+                                    ? ` · ${toTitleCase(item.city)}`
+                                    : ""}
+                                </p>
                               )}
-                              {isCampground ? "Campground" : "Recreation Area"}
-                            </span>
-                            <Badge variant="outline" className="text-xs">
-                              {toTitleCase(item.provider_name)}
-                            </Badge>
-                            {item.state && (
-                              <Badge variant="secondary" className="text-xs">
-                                {item.state.toUpperCase()}
-                              </Badge>
-                            )}
+
+                              {/* Amenity Pills */}
+                              <div className="flex flex-wrap gap-2 pt-2">
+                                {item.has_electric && (
+                                  <span className="inline-flex items-center gap-1 text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded">
+                                    <Zap className="h-3 w-3" />
+                                    Electric
+                                  </span>
+                                )}
+                                {item.pets_allowed && (
+                                  <span className="inline-flex items-center gap-1 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded">
+                                    🐾 Pets
+                                  </span>
+                                )}
+                                {item.max_rv_length &&
+                                item.max_rv_length > 0 ? (
+                                  <span className="inline-flex items-center gap-1 text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded">
+                                    🚐 RV {item.max_rv_length}'
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex sm:flex-col justify-end sm:justify-center gap-2 shrink-0">
+                              {isCampground && (
+                                <ScanForm
+                                  preselectedCampground={toCampground(item)}
+                                  preselectedProviderId={item.provider_id}
+                                  trigger={
+                                    <Button size="sm" className="gap-1.5">
+                                      <Bell className="h-3.5 w-3.5" />
+                                      Monitor
+                                    </Button>
+                                  }
+                                />
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                asChild
+                                className="gap-1.5"
+                              >
+                                <Link to={destination}>
+                                  Details
+                                  <ExternalLink className="h-3 w-3" />
+                                </Link>
+                              </Button>
+                            </div>
                           </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
 
-                          <h3 className="text-lg font-bold text-foreground">
-                            <Link
-                              to={detailUrl}
-                              className="hover:text-primary transition-colors"
-                            >
-                              {toTitleCase(displayName)}
-                            </Link>
-                          </h3>
-
-                          {parentArea && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              in {toTitleCase(parentArea)}
-                              {item.city ? ` · ${toTitleCase(item.city)}` : ""}
-                            </p>
-                          )}
-
-                          {/* Amenity Pills */}
-                          <div className="flex flex-wrap gap-2 pt-2">
-                            {item.has_electric && (
-                              <span className="inline-flex items-center gap-1 text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded">
-                                <Zap className="h-3 w-3" />
-                                Electric
-                              </span>
-                            )}
-                            {item.pets_allowed && (
-                              <span className="inline-flex items-center gap-1 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded">
-                                🐾 Pets
-                              </span>
-                            )}
-                            {item.max_rv_length && item.max_rv_length > 0 ? (
-                              <span className="inline-flex items-center gap-1 text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded">
-                                🚐 RV {item.max_rv_length}'
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex sm:flex-col justify-end sm:justify-center gap-2 shrink-0">
-                          {isCampground && (
-                            <ScanForm
-                              preselectedCampground={toCampgroundModel(item)}
-                              preselectedProviderId={item.provider_id}
-                              trigger={
-                                <Button size="sm" className="gap-1.5">
-                                  <Bell className="h-3.5 w-3.5" />
-                                  Monitor
-                                </Button>
-                              }
-                            />
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="gap-1.5"
-                          >
-                            <Link to={detailUrl}>
-                              Details
-                              <ExternalLink className="h-3 w-3" />
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Pagination Controls */}
-          {!error && totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isFetching || isPlaceholderData || page <= 1}
-                onClick={() => updateParams({ page: String(page - 1) })}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground px-3">
-                Page {page} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isFetching || isPlaceholderData || page >= totalPages}
-                onClick={() => updateParams({ page: String(page + 1) })}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          )}
+              {/* Pagination Controls */}
+              {!error && totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isFetching || isPlaceholderData || page <= 1}
+                    onClick={() => updateParams({ page: String(page - 1) })}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground px-3">
+                    Page {page} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={
+                      isFetching || isPlaceholderData || page >= totalPages
+                    }
+                    onClick={() => updateParams({ page: String(page + 1) })}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </section>
+          </div>
         </main>
       </div>
     </div>

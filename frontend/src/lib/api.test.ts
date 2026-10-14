@@ -99,6 +99,44 @@ describe("API Client", () => {
     );
   });
 
+  it("keeps map membership independent of list pagination/sort and forwards cancellation", async () => {
+    const api = await import("@/lib/api");
+    mockGet.mockResolvedValue({ data: {} });
+    const signal = new AbortController().signal;
+    const filters = {
+      query: " Pines ",
+      state: "CA",
+      page: 3,
+      pageSize: 20,
+      sortBy: "name_desc",
+      hasElectric: true,
+    };
+    await api.searchMapSummary(filters, signal);
+    expect(mockGet).toHaveBeenLastCalledWith("/search/map/summary", {
+      params: { q: "Pines", state: "CA", has_electric: true },
+      signal,
+    });
+    const bounds = { west: 179, east: -179, south: -1, north: 1 };
+    await api.searchMapMembers(
+      filters,
+      bounds,
+      "1:0:0",
+      "Camp/2/area/shared",
+      signal,
+    );
+    expect(mockGet).toHaveBeenLastCalledWith("/search/map/members", {
+      params: {
+        q: "Pines",
+        state: "CA",
+        has_electric: true,
+        ...bounds,
+        cell_id: "1:0:0",
+        after_id: "Camp/2/area/shared",
+      },
+      signal,
+    });
+  });
+
   it("searchCampgrounds calls GET /search with correct params", async () => {
     mockGet.mockResolvedValue({
       data: [{ id: "1", entity_type: "Campground" }],

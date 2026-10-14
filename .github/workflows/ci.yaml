@@ -103,6 +103,24 @@ jobs:
       - uses: ./.github/actions/setup-backend
       - run: task search:smoke
 
+  map-verification:
+    name: Map Database and Browser Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0
+      - uses: ./.github/actions/setup-backend
+      - uses: ./.github/actions/setup-frontend
+      - run: task frontend:browser:install
+      - run: task maps:verify
+      - name: Upload map verification evidence
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: map-verification
+          path: frontend/tmp/maps-*
+          if-no-files-found: ignore
+
   admin-smoke:
     name: Admin Live Smoke
     runs-on: ubuntu-latest

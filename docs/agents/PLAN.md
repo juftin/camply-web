@@ -43,7 +43,7 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 ### 3. Discovery & UX
 
 - **Global Search**: Unified search across all providers (Recreation.gov, State Parks, etc.).
-- **Map-Based Discovery**: (Future) Integrate maps to help users find campgrounds near specific areas.
+- **Map-Based Discovery**: Explore offers MapLibre GL JS mapping across all filtered results, with bounded geographic groups and campground monitoring actions; detail maps share the keyless/configurable basemap. See the [mapping plan](../../specs/007-open-source-explore-maps/plan.md).
 - **Permit Monitoring**: Extend scanning logic to support Wilderness/Backcountry permits and Tours.
 
 ---

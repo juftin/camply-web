@@ -49,6 +49,13 @@ tasks:
     cmds:
       - CAMPLY_POSTGRES_SEARCH_TEST=1 task backend:test -- -c pyproject.toml packages/db/tests/test_postgres_search.py
 
+  maps:verify:
+    desc: Verify bounded map discovery with isolated PostgreSQL, API and Chromium
+    deps: [frontend:install]
+    cmds:
+      - task: backend:maps:test-postgres
+      - CAMPLY_MAPS_SMOKE=1 task backend:test -- -c pyproject.toml packages/backend/tests/integration/test_maps_smoke.py -s
+
   admin:smoke:
     desc: Verify admin workflows against isolated live monitoring services and Chromium
     deps: [frontend:install]

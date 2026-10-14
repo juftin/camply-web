@@ -317,3 +317,32 @@ async def test_autocomplete_avoids_aggregate_queries(
         rows = await Search.algorithm(session=async_session, term="Pines")
     assert len(rows) == 2
     assert execute.await_count == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "options,expected",
+    [
+        (
+            {
+                "state": " ca ",
+                "has_electric": False,
+                "pets_allowed": False,
+                "min_rv_length": 0,
+            },
+            1,
+        ),
+        ({"provider_ids": [2]}, 1),
+        ({"lat": 0, "radius_miles": 1}, 5),
+        ({"term": "Upper Pines"}, 1),
+    ],
+)
+async def test_matching_defaults_survive_predicate_extraction(
+    async_session: AsyncSession,
+    seeded_search_data: list[Search],
+    options: dict,
+    expected: int,
+) -> None:
+    """Preserve explicit false, nonpositive and incomplete-radius semantics."""
+    _, total, _ = await Search.search(async_session, **options)
+    assert total == expected

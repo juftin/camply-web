@@ -206,6 +206,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/search/map/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Map Summary
+         * @description Get global filtered counts and initial circular map bounds.
+         */
+        get: operations["search_map_summary_api_search_map_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/search/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Map
+         * @description Represent all matching visible places in bounded geographic groups.
+         */
+        get: operations["search_map_api_search_map_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/search/map/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Map Members
+         * @description Page through a selected group's members, even at identical coordinates.
+         */
+        get: operations["search_map_members_api_search_map_members_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/campground/{provider}/{id}": {
         parameters: {
             query?: never;
@@ -1415,6 +1475,20 @@ export interface components {
             /** New Password */
             new_password: string;
         };
+        /**
+         * GeographicBounds
+         * @description A geographic extent; west greater than east crosses the dateline.
+         */
+        GeographicBounds: {
+            /** West */
+            west: number;
+            /** South */
+            south: number;
+            /** East */
+            east: number;
+            /** North */
+            north: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1764,6 +1838,80 @@ export interface components {
             entity_types?: {
                 [key: string]: number;
             };
+        };
+        /**
+         * SearchMapGroup
+         * @description An explorable bounded group, including exactly overlapping places.
+         */
+        SearchMapGroup: {
+            /**
+             * Kind
+             * @default group
+             * @constant
+             */
+            kind: "group";
+            /** Cell Id */
+            cell_id: string;
+            /** Count */
+            count: number;
+            /** Latitude */
+            latitude: number;
+            /** Longitude */
+            longitude: number;
+            bounds: components["schemas"]["GeographicBounds"];
+        };
+        /**
+         * SearchMapLocation
+         * @description One independently actionable mapped catalog location.
+         */
+        SearchMapLocation: {
+            /**
+             * Kind
+             * @default location
+             * @constant
+             */
+            kind: "location";
+            /** Cell Id */
+            cell_id: string;
+            item: components["schemas"]["SearchResultResponse"];
+        };
+        /**
+         * SearchMapMembersResponse
+         * @description A keyset page for a selected group and its original viewport.
+         */
+        SearchMapMembersResponse: {
+            /** Items */
+            items: components["schemas"]["SearchResultResponse"][];
+            /** Total */
+            total: number;
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * SearchMapResponse
+         * @description A complete bounded representation of the filtered visible area.
+         */
+        SearchMapResponse: {
+            viewport: components["schemas"]["GeographicBounds"];
+            /** Grid Level */
+            grid_level: number;
+            /** Represented Total */
+            represented_total: number;
+            /** Features */
+            features: (components["schemas"]["SearchMapLocation"] | components["schemas"]["SearchMapGroup"])[];
+        };
+        /**
+         * SearchMapSummaryResponse
+         * @description Counts and initial extent for the entire filtered catalog.
+         */
+        SearchMapSummaryResponse: {
+            /** Total */
+            total: number;
+            /** Mappable Total */
+            mappable_total: number;
+            /** Unmappable Total */
+            unmappable_total: number;
+            bounds: components["schemas"]["GeographicBounds"] | null;
         };
         /**
          * SearchResultResponse
@@ -2174,6 +2322,141 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchExploreResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_map_summary_api_search_map_summary_get: {
+        parameters: {
+            query?: {
+                query?: string;
+                q?: string | null;
+                provider_id?: number | null;
+                entity_type?: string | null;
+                state?: string | null;
+                has_electric?: boolean | null;
+                pets_allowed?: boolean | null;
+                min_rv_length?: number | null;
+                lat?: number | null;
+                lng?: number | null;
+                radius_miles?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchMapSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_map_api_search_map_get: {
+        parameters: {
+            query: {
+                zoom: number;
+                query?: string;
+                q?: string | null;
+                provider_id?: number | null;
+                entity_type?: string | null;
+                state?: string | null;
+                has_electric?: boolean | null;
+                pets_allowed?: boolean | null;
+                min_rv_length?: number | null;
+                lat?: number | null;
+                lng?: number | null;
+                radius_miles?: number | null;
+                west: number;
+                south: number;
+                east: number;
+                north: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchMapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_map_members_api_search_map_members_get: {
+        parameters: {
+            query: {
+                cell_id: string;
+                after_id?: string | null;
+                page_size?: number;
+                query?: string;
+                q?: string | null;
+                provider_id?: number | null;
+                entity_type?: string | null;
+                state?: string | null;
+                has_electric?: boolean | null;
+                pets_allowed?: boolean | null;
+                min_rv_length?: number | null;
+                lat?: number | null;
+                lng?: number | null;
+                radius_miles?: number | null;
+                west: number;
+                south: number;
+                east: number;
+                north: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchMapMembersResponse"];
                 };
             };
             /** @description Validation Error */

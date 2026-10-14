@@ -1,5 +1,7 @@
 # Search Revamp & Campground Discovery Specification
 
+**Mapping follow-up**: [Open-Source Maps & Explore Map View](../007-open-source-explore-maps/spec.md) completes geographic discovery and replaces the existing detail-page maps. Its map-specific requirements cover all filtered results, bounded discovery, source configuration, and monitoring actions.
+
 ## User Stories
 
 - **Campground Seekers**: As an outdoor enthusiast, I want to search for campgrounds by name, region, or nearby destination with typo tolerance and compound queries (e.g. "Yosemite Upper Pines") so that I can quickly find the exact facility I want to camp at.
@@ -10,6 +12,7 @@
 ## Requirements
 
 ### Backend & Search Engine
+
 1. **Enriched Search Data Model**:
    - The `search` table must store `latitude`, `longitude`, `city`, `state`, `country`, `reservable`, `campsite_types` (JSON list), and amenity flags (`has_electric`, `has_water`, `has_sewer`, `pets_allowed`, `ada_accessible`, `max_rv_length`).
    - Populate these fields during provider metadata sync for recreation areas and campgrounds.
@@ -22,11 +25,12 @@
    - Maintain backward compatibility for existing callers of `/api/search?query=...`.
 
 ### Frontend UI/UX
+
 1. **Dedicated Search & Explore Page (`/search`)**:
    - Implement `/search` route supporting URL query parameter syncing (`?q=...&state=CA&types=RV`).
    - Split layout: Responsive filters sidebar + Result cards + Interactive Map Explorer.
 2. **Interactive Map Explorer**:
-   - Open-source, zero-API-key mapping with Leaflet or MapLibre displaying campground markers and popups with a "Monitor" CTA.
+   - Open-source, zero-API-key mapping with MapLibre GL JS displaying campground markers and popups with a "Monitor" CTA.
 3. **Global Autocomplete Search Bar**:
    - Update `SearchBar` so typing displays rich autocomplete suggestions, while pressing Enter navigates to `/search?q=...`.
 4. **Streamlined Scan Creation (`ScanForm`)**:

@@ -197,3 +197,12 @@ export type TrendPoint = components["schemas"]["TrendPoint"];
 export type TrendSeries = components["schemas"]["TrendSeries"];
 export type TrendMetric = components["schemas"]["TrendMetric"];
 export type AdminTrendsResponse = components["schemas"]["AdminTrendsResponse"];
+
+export type SearchMapSummary =
+  components["schemas"]["SearchMapSummaryResponse"];
+export type SearchMapResponse = components["schemas"]["SearchMapResponse"];
+export type SearchMapMembers =
+  components["schemas"]["SearchMapMembersResponse"];
+export type SearchMapGroup = components["schemas"]["SearchMapGroup"];
+
+export type MapSearchResult = components["schemas"]["SearchResultResponse"];
