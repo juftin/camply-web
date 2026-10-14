@@ -346,3 +346,78 @@ async def test_matching_defaults_survive_predicate_extraction(
     """Preserve explicit false, nonpositive and incomplete-radius semantics."""
     _, total, _ = await Search.search(async_session, **options)
     assert total == expected
+
+
+@pytest.mark.asyncio
+async def test_search_backfill_populates_missing_coordinates(
+    async_session: AsyncSession,
+) -> None:
+    """A search row missing coordinates is populated from its catalog entity."""
+    from sqlalchemy import text
+
+    from db.models import Campground, Provider
+
+    provider = Provider(id=99, name="Test", url="https://example.test", enabled=True)
+    cg = Campground(
+        id="cg-1",
+        provider_id=99,
+        name="Backfilled Campground",
+        state="OR",
+        country="USA",
+        city="Bend",
+        latitude=44.0582,
+        longitude=-121.3153,
+        reservable=True,
+    )
+    unpopulated = Search(
+        id="Campground/99/cg-1",
+        entity_type="Campground",
+        provider_id=99,
+        provider_name="Test",
+        campground_id="cg-1",
+        campground_name="Backfilled Campground",
+        latitude=None,
+        longitude=None,
+        city=None,
+        state=None,
+        country=None,
+    )
+    async_session.add_all([provider, cg, unpopulated])
+    await async_session.commit()
+
+    await async_session.execute(
+        text(
+            """
+            UPDATE search
+            SET latitude = (
+                    SELECT latitude FROM campgrounds c
+                    WHERE c.provider_id = search.provider_id AND c.id = search.campground_id
+                ),
+                longitude = (
+                    SELECT longitude FROM campgrounds c
+                    WHERE c.provider_id = search.provider_id AND c.id = search.campground_id
+                ),
+                city = (
+                    SELECT city FROM campgrounds c
+                    WHERE c.provider_id = search.provider_id AND c.id = search.campground_id
+                ),
+                state = (
+                    SELECT state FROM campgrounds c
+                    WHERE c.provider_id = search.provider_id AND c.id = search.campground_id
+                ),
+                country = (
+                    SELECT country FROM campgrounds c
+                    WHERE c.provider_id = search.provider_id AND c.id = search.campground_id
+                )
+            WHERE entity_type = 'Campground' AND (latitude IS NULL OR longitude IS NULL);
+            """
+        )
+    )
+    await async_session.commit()
+    await async_session.refresh(unpopulated)
+
+    reloaded = await async_session.get(Search, "Campground/99/cg-1")
+    assert reloaded is not None
+    assert reloaded.latitude == 44.0582
+    assert reloaded.longitude == -121.3153
+    assert reloaded.state == "OR"
