@@ -63,8 +63,16 @@ class BackendConfig(BaseSettings):
     prometheus_url: str = "http://localhost:9090"
 
     # Worker timing mirrors (heartbeat & cooldown)
-    heartbeat_interval: int = 60
-    target_cooldown: int = 55
+    heartbeat_interval: int = Field(
+        default=300,
+        description="Interval in seconds for periodic campsite availability discovery (defaults to 300s = 5m).",
+    )
+    """Heartbeat interval in seconds for target discovery and availability searching."""
+    target_cooldown: int = Field(
+        default=55,
+        description="How stale a target must be before re-checking in seconds.",
+    )
+    """Minimum seconds elapsed before a previously checked target is re-scanned."""
 
     # CORS
     cors_origins: list[str] = [
