@@ -57,3 +57,46 @@
     @apply bg-background text-foreground;
   }
 }
+
+.camply-map {
+  min-height: 240px;
+  background: hsl(var(--muted));
+}
+.camply-map-pin {
+  display: flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 1px 5px #0006;
+  color: white;
+  font-weight: 700;
+}
+.camply-map-camp {
+  background: #2563eb;
+}
+.camply-map-area {
+  background: #15803d;
+}
+.camply-map-group {
+  background: #334155;
+}
+.camply-map .maplibregl-ctrl-attrib {
+  background: #fffe;
+  color: #111827;
+}
+.camply-map .maplibregl-ctrl-attrib a {
+  color: #166534;
+}
+.camply-map .camply-map-marker:focus-visible {
+  outline: 3px solid #f97316;
+  outline-offset: 3px;
+}
+
+.camply-map-marker {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}

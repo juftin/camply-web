@@ -128,3 +128,11 @@ The smoke test verifies real failure/retry signal handling, distinct attempts an
 Apply the search index migration with `task backend:migration-upgrade`. PostgreSQL's native full-text search and `pg_trgm` power autocomplete and Explore; no extra search service or credentials are required. SQLite development uses portable substring matching, so validate typo tolerance on PostgreSQL.
 
 Run `task search:smoke` with Docker running. It starts a test-owned PostgreSQL 17 container on a random loopback port, applies the complete migration chain, verifies downgrade/re-upgrade, and tests synthetic search ranking, typos, cross-field tokens, filters, facets, pagination, and GIN index usage. It removes its container on completion. CI runs this as **PostgreSQL Search**; normal unit tests skip the opt-in suite.
+
+### Map Discovery Verification
+
+`task maps:verify` runs real map-query checks against a disposable PostgreSQL container, then serves a temporary synthetic SQLite application to Chromium. Install the browser first with `task frontend:browser:install`. Docker is required; live checks fail explicitly when unavailable and ordinary `task test` skips their opt-in entrypoints. No operator database or secret file is used.
+
+The 5,000-place fixture proves all-pages discovery, bounded groups/member pagination, provider identity, view/history behavior, and map-failure recovery. It records timings, query plans, and browser screenshots under `frontend/tmp/maps-*`. Tile requests are intercepted locally so automation does not load public OSM tiles. `task snapshot` additionally covers maps at 375px/1440px in both themes and selected/error states. Inspect intended visual changes before `task snapshot:update`, then run `task snapshot:check`.
+
+Mapping setup needs no key by default. Public build-time overrides and production tile-source options are in [CONFIGURATION.md](CONFIGURATION.md). Changing source settings requires a frontend rebuild, including for Docker/static hosting.

@@ -277,6 +277,60 @@ def _build_text_search(
     return _build_sqlite_text_search(cls=cls, term_cleaned=term_cleaned)
 
 
+async def build_search_filters(
+    cls: type[Search],
+    session: AsyncSession,
+    term: str = "",
+    *,
+    provider_ids: Sequence[int] | None = None,
+    entity_types: Sequence[str] | None = None,
+    state: str | None = None,
+    has_electric: bool | None = None,
+    pets_allowed: bool | None = None,
+    min_rv_length: int | None = None,
+    lat: float | None = None,
+    lng: float | None = None,
+    radius_miles: float | None = None,
+    dialect_name: str | None = None,
+) -> tuple[list[Any], Any | None]:
+    """Share exact attribute and dialect-specific text matching with map queries."""
+    filters = _build_attribute_filters(
+        cls=cls,
+        provider_ids=provider_ids,
+        entity_types=entity_types,
+        state=state,
+        has_electric=has_electric,
+        pets_allowed=pets_allowed,
+        min_rv_length=min_rv_length,
+        lat=lat,
+        lng=lng,
+        radius_miles=radius_miles,
+    )
+
+    bind = session.bind or session.get_bind()
+    active_dialect = dialect_name or (bind.dialect.name if bind else "sqlite")
+
+    if active_dialect == "postgresql" and term.strip():
+        await session.execute(
+            select(
+                func.set_config(
+                    "pg_trgm.word_similarity_threshold",
+                    PG_WORD_SIMILARITY_THRESHOLD,
+                    True,
+                )
+            )
+        )
+
+    text_filter, total_score = _build_text_search(
+        cls=cls,
+        term=term,
+        dialect_name=active_dialect,
+    )
+    if text_filter is not None:
+        filters.append(text_filter)
+    return filters, total_score
+
+
 async def _compute_facets(
     cls: type[Search],
     session: AsyncSession,
@@ -543,8 +597,10 @@ class Search(Base):
         tuple[list[Self], int, dict[str, Any]]
             A tuple of (result_rows, total_matching_count, facet_dictionary).
         """
-        filters = _build_attribute_filters(
+        filters, total_score = await build_search_filters(
             cls=cls,
+            session=session,
+            term=term,
             provider_ids=provider_ids,
             entity_types=entity_types,
             state=state,
@@ -554,29 +610,8 @@ class Search(Base):
             lat=lat,
             lng=lng,
             radius_miles=radius_miles,
+            dialect_name=dialect_name,
         )
-
-        bind = session.bind or session.get_bind()
-        active_dialect = dialect_name or (bind.dialect.name if bind else "sqlite")
-
-        if active_dialect == "postgresql" and term.strip():
-            await session.execute(
-                select(
-                    func.set_config(
-                        "pg_trgm.word_similarity_threshold",
-                        PG_WORD_SIMILARITY_THRESHOLD,
-                        True,
-                    )
-                )
-            )
-
-        text_filter, total_score = _build_text_search(
-            cls=cls,
-            term=term,
-            dialect_name=active_dialect,
-        )
-        if text_filter is not None:
-            filters.append(text_filter)
 
         total_count = 0
         facets: dict[str, Any] = {}

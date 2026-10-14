@@ -129,3 +129,11 @@ Typing searches the backend after a 300 ms pause. Filters and explicit Search su
 - **Mobile (< 640px)**: Single-column scan cards, simplified search, bottom navigation.
 - **Desktop (> 1024px)**: Multi-column grid (up to 3 columns), detailed scan cards.
 - Both views share the same component tree — grid layout adjusts via Tailwind `sm:`/`lg:` breakpoints.
+
+## Explore and Shared Maps
+
+Explore remains at `/search` and initially shows an interactive MapLibre GL JS map above the result list in a vertical stack at every screen size. There is no List/Map selector, and legacy `view` parameters do not change the layout. An accessible Show map/Hide map control collapses only the map while the list stays visible. Collapse state persists during the visit; reopening restores the saved camera for unchanged filters, and new filters fit their matching locations. Existing filters apply to both representations. List page/sort and map panning remain independent; shareable links/history restore filters and list page. Extent persists across pagination, sorting, and scan dialogs during the current visit.
+
+`MapComponent` owns a cleaned-up MapLibre GL JS instance, fits valid detail locations initially, and uses linked source attribution. `ExploreMap` uses independent summary, bounded viewport, and group-member queries. Groups offer Zoom in and View places with explicit Load more, so exact coordinate overlap never hides a place. React summaries preserve provider/entity-qualified Details and campground-only Monitor actions. Missing/invalid coordinates remain discoverable in the list; valid zeros are plotted. Circular bounds and projection-edge handling support dateline and polar catalog entries.
+
+Map initialization, tile, summary, viewport, and member errors have separate recovery actions and preserve list access. Controls and markers have accessible names, keyboard focus, and equivalent list actions. Source configuration is documented in [CONFIGURATION.md](CONFIGURATION.md); map software and tile hosting are independent. Browser verification intercepts raster requests and uses synthetic catalog data through `task maps:verify`.

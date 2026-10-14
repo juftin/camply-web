@@ -159,6 +159,18 @@ Implementation specification and tasks: [Admin UI plan](../../specs/002-admin-ui
 - [ ] T3.2.2 Implement equipment length (RV/Trailer) validation in poller.
 - [ ] T3.2.3 Implement minimum stay requirement (X nights) in poller logic.
 
+### 3.3 Open-Source Maps & Explore Discovery
+
+Feature specification: [Open-Source Maps & Explore Map View](../../specs/007-open-source-explore-maps/spec.md).
+
+- [x] T3.3.1 Specify replacement of proprietary maps and Explore discovery across all filtered results, including acceptance scenarios and a specification quality checklist.
+- [x] T3.3.2 Complete the [technical plan](../../specs/007-open-source-explore-maps/plan.md), selecting MapLibre GL JS, a keyless OpenStreetMap default, configurable raster sources, and bounded map/group-member contracts.
+- [x] T3.3.2a Generate dependency-ordered [implementation tasks](../../specs/007-open-source-explore-maps/tasks.md) for the mapping plan, including story acceptance checks and live database/browser validation.
+- [x] T3.3.3 Replace existing detail maps and add responsive Explore mapping with a collapsible map stacked above the list, filter parity, pagination-independent discovery, and detail/monitor actions.
+- [x] T3.3.4 Verify coordinate handling, overlapping/provider-qualified identities, loading and failure recovery, navigation, accessibility, performance, and visual coverage; update mapping setup documentation.
+- [x] T3.3.5 Remove the redundant matching-locations/in-view count above Explore's map and refresh visual coverage.
+- [ ] T3.3.6 Configure production tile hosting or caching (e.g. MapTiler, Stadia Maps, Cloudflare reverse proxy cache, or self-hosted PMTiles) via `VITE_MAP_*` build variables to adhere to OpenStreetMap's public tile usage policy for high-traffic releases.
+
 ---
 
 ## 🛠️ Phase 4: Scale, Polish, & Infrastructure

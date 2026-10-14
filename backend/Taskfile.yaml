@@ -128,6 +128,11 @@ tasks:
     cmds:
       - uv run -- celery -A worker.celery_app worker -l info -Q celery --concurrency=2 -B
 
+  maps:test-postgres:
+    desc: Verify map queries against an isolated PostgreSQL container
+    cmds:
+      - CAMPLY_MAPS_POSTGRES=1 task test -- -c pyproject.toml packages/db/tests/integration/test_search_maps_postgres.py -s
+
   ########################
   # INTERNAL TASKS
   ########################

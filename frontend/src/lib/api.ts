@@ -28,6 +28,9 @@ import type {
   AdminSyncProvidersResponse,
   AdminTrendsResponse,
   SearchExploreResponse,
+  SearchMapSummary,
+  SearchMapResponse,
+  SearchMapMembers,
 } from "@/lib/structs.ts";
 
 // ---------------------------------------------------------------------------
@@ -136,10 +139,9 @@ export interface SearchExploreParams {
   radiusMiles?: number;
 }
 
-export async function searchExplore(
+export function exploreQueryParams(
   params: SearchExploreParams = {},
-  signal?: AbortSignal,
-): Promise<SearchExploreResponse> {
+): Record<string, string | number | boolean> {
   const queryParams: Record<string, string | number | boolean> = {};
   if (params.query?.trim()) queryParams.q = params.query.trim();
   if (params.page !== undefined) queryParams.page = params.page;
@@ -160,6 +162,22 @@ export async function searchExplore(
   if (params.radiusMiles !== undefined)
     queryParams.radius_miles = params.radiusMiles;
 
+  return queryParams;
+}
+
+export function mapQueryParams(params: SearchExploreParams = {}) {
+  const result = exploreQueryParams(params);
+  delete result.page;
+  delete result.page_size;
+  delete result.sort_by;
+  return result;
+}
+
+export async function searchExplore(
+  params: SearchExploreParams = {},
+  signal?: AbortSignal,
+): Promise<SearchExploreResponse> {
+  const queryParams = exploreQueryParams(params);
   const response = await api.get<SearchExploreResponse>("/search/explore", {
     params: queryParams,
     signal,
@@ -459,4 +477,48 @@ export async function getAdminTrends(params?: {
     params,
   });
   return response.data;
+}
+
+export async function searchMapSummary(
+  params: SearchExploreParams,
+  signal?: AbortSignal,
+): Promise<SearchMapSummary> {
+  return (
+    await api.get<SearchMapSummary>("/search/map/summary", {
+      params: mapQueryParams(params),
+      signal,
+    })
+  ).data;
+}
+export async function searchMap(
+  params: SearchExploreParams,
+  bounds: import("./maps").GeoBounds,
+  zoom: number,
+  signal?: AbortSignal,
+): Promise<SearchMapResponse> {
+  return (
+    await api.get<SearchMapResponse>("/search/map", {
+      params: { ...mapQueryParams(params), ...bounds, zoom },
+      signal,
+    })
+  ).data;
+}
+export async function searchMapMembers(
+  params: SearchExploreParams,
+  bounds: import("./maps").GeoBounds,
+  cellId: string,
+  afterId?: string,
+  signal?: AbortSignal,
+): Promise<SearchMapMembers> {
+  return (
+    await api.get<SearchMapMembers>("/search/map/members", {
+      params: {
+        ...mapQueryParams(params),
+        ...bounds,
+        cell_id: cellId,
+        after_id: afterId,
+      },
+      signal,
+    })
+  ).data;
 }

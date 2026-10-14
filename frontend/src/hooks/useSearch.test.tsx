@@ -2,11 +2,21 @@ import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useSearch, useSearchExplore } from "./useSearch";
+import {
+  useSearch,
+  useSearchExplore,
+  useMapSummary,
+  useMapMembers,
+} from "./useSearch";
 import * as api from "@/lib/api";
 import type { SearchExploreResponse, SearchResult } from "@/lib/structs";
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api", async (importOriginal) => ({
+  mapQueryParams: (await importOriginal<typeof import("@/lib/api")>())
+    .mapQueryParams,
+  searchMapSummary: vi.fn(),
+  searchMap: vi.fn(),
+  searchMapMembers: vi.fn(),
   searchCampgrounds: vi.fn(),
   searchExplore: vi.fn(),
 }));
@@ -176,4 +186,97 @@ it("aborts obsolete Explore requests when filters change", async () => {
   expect(secondSignal.aborted).toBe(false);
   unmount();
   expect(secondSignal.aborted).toBe(true);
+});
+
+describe("map query lifecycles", () => {
+  it("does not refetch summary when only list page/sort changes", async () => {
+    vi.mocked(api.searchMapSummary).mockResolvedValue({
+      total: 1,
+      mappable_total: 0,
+      unmappable_total: 1,
+      bounds: null,
+    });
+    const wrapper = createWrapper();
+    const { result, rerender } = renderHook(
+      ({ page }) =>
+        useMapSummary({
+          query: "Fixture",
+          page,
+          sortBy: page === 1 ? "relevance" : "name_desc",
+        }),
+      { wrapper, initialProps: { page: 1 } },
+    );
+    await waitFor(() => expect(result.current.data?.total).toBe(1));
+    const calls = vi.mocked(api.searchMapSummary).mock.calls.length;
+    rerender({ page: 2 });
+    expect(api.searchMapSummary).toHaveBeenCalledTimes(calls);
+  });
+  it("discards a superseded response and aborts its signal", async () => {
+    let resolveOld!: (value: {
+      total: number;
+      mappable_total: number;
+      unmappable_total: number;
+      bounds: null;
+    }) => void;
+    vi.mocked(api.searchMapSummary)
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveOld = resolve;
+          }),
+      )
+      .mockResolvedValue({
+        total: 2,
+        mappable_total: 0,
+        unmappable_total: 2,
+        bounds: null,
+      });
+    const { result, rerender } = renderHook(
+      ({ query }) => useMapSummary({ query }),
+      { wrapper: createWrapper(), initialProps: { query: "Old" } },
+    );
+    const signal = vi.mocked(api.searchMapSummary).mock.calls[
+      vi.mocked(api.searchMapSummary).mock.calls.length - 1
+    ][1]!;
+    rerender({ query: "New" });
+    await waitFor(() => expect(result.current.data?.total).toBe(2));
+    resolveOld({
+      total: 1,
+      mappable_total: 0,
+      unmappable_total: 1,
+      bounds: null,
+    });
+    await waitFor(() => expect(signal.aborted).toBe(true));
+    expect(result.current.data?.total).toBe(2);
+  });
+  it("loads member pages only on request using the captured viewport", async () => {
+    vi.mocked(api.searchMapMembers)
+      .mockResolvedValueOnce({ items: [], total: 101, next_cursor: "next" })
+      .mockResolvedValueOnce({ items: [], total: 101, next_cursor: null });
+    const selection = {
+      bounds: { west: 179, east: -179, south: -1, north: 1 },
+      cellId: "1:0:0",
+    };
+    const { result } = renderHook(
+      () => useMapMembers({ query: "Fixture" }, selection),
+      { wrapper: createWrapper() },
+    );
+    await waitFor(() => expect(result.current.hasNextPage).toBe(true));
+    expect(api.searchMapMembers).toHaveBeenLastCalledWith(
+      { query: "Fixture" },
+      selection.bounds,
+      selection.cellId,
+      undefined,
+      expect.any(AbortSignal),
+    );
+    await result.current.fetchNextPage();
+    await waitFor(() => expect(result.current.hasNextPage).toBe(false));
+    expect(api.searchMapMembers).toHaveBeenLastCalledWith(
+      { query: "Fixture" },
+      selection.bounds,
+      selection.cellId,
+      "next",
+      expect.any(AbortSignal),
+    );
+  });
 });

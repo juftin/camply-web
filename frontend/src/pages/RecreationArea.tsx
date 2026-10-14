@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SearchBar } from "@/components/SearchBar";
+import { validCoordinates } from "@/lib/maps";
 import { MapComponent } from "@/components/MapComponent";
 import { CollapsibleDescription } from "@/components/CollapsibleDescription";
 import { getRecreationArea, getProvider, getCampgrounds } from "@/lib/api";
@@ -154,15 +155,21 @@ export function RecreationArea() {
                     </p>
                   </div>
                 )}
-                {recreationArea.latitude && recreationArea.longitude && (
+                {validCoordinates(
+                  recreationArea.latitude,
+                  recreationArea.longitude,
+                ) && (
                   <MapComponent
-                    latitude={recreationArea.latitude}
-                    longitude={recreationArea.longitude}
+                    latitude={recreationArea.latitude!}
+                    longitude={recreationArea.longitude!}
                     label={toTitleCase(recreationArea.name)}
                     additionalLocations={
                       campgrounds
-                        ?.filter((c) => c.latitude && c.longitude)
+                        ?.filter((c) =>
+                          validCoordinates(c.latitude, c.longitude),
+                        )
                         .map((c) => ({
+                          id: `${c.provider_id}/campground/${c.id}`,
                           lat: c.latitude!,
                           lng: c.longitude!,
                           label: toTitleCase(c.name),

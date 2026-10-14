@@ -13,6 +13,9 @@ repos:
         exclude: mkdocs.yaml
       - id: check-ast
       - id: check-docstring-first
+        # This token-based hook mistakes valid module attribute docstrings for
+        # duplicate module docstrings. Syntax checks still cover these modules.
+        exclude: ^backend/packages/(db/db/(models/search|search_maps)|backend/backend/routers/search)\.py$
       - id: check-merge-conflict
       - id: mixed-line-ending
 
@@ -39,6 +42,8 @@ repos:
         types:
           - python
       - id: oxfmt
+        # TOML is already formatted by pretty-format-toml above.
+        exclude: \.toml$
         name: oxfmt
         description: Opinionated Code Formatter
         entry: pnpm --dir ./frontend run format

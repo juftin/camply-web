@@ -566,6 +566,80 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
+for (const [name, width] of [
+  ["desktop", 1440],
+  ["mobile", 375],
+] as const) {
+  for (const theme of ["light", "dark"] as const) {
+    for (const [surface, route] of [
+      ["explore", "/search?q=yosemite"],
+      ["campground", "/campground/1/232447"],
+      ["area", "/rec-area/1/2991"],
+    ]) {
+      SCENARIOS.push({
+        name: `map-${surface}-${name}-${theme}`,
+        route,
+        viewport: { width, height: 1000 },
+        theme,
+        description: `${surface} map at ${width}px in ${theme} theme`,
+        action: async (page) => {
+          await page
+            .locator(".camply-map-marker")
+            .first()
+            .waitFor({ state: "visible" });
+        },
+      });
+    }
+  }
+}
+for (const [name, width, theme] of [
+  ["desktop-light", 1440, "light"],
+  ["mobile-dark", 375, "dark"],
+] as const) {
+  SCENARIOS.push({
+    name: `map-collapsed-${name}`,
+    route: "/search?q=yosemite",
+    viewport: { width, height: 1000 },
+    theme,
+    description:
+      "Explore with the map collapsed and list actions still visible",
+    action: async (page) => {
+      await page.getByRole("button", { name: "Hide map", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Show map", exact: true })
+        .waitFor();
+    },
+  });
+}
+SCENARIOS.push({
+  name: "map-selected-desktop-light",
+  route: "/search?q=yosemite",
+  viewport: { width: 1440, height: 1000 },
+  theme: "light",
+  description: "Explore overlapping-place picker with details and monitoring",
+  action: async (page) => {
+    await page.locator('.camply-map-marker[title="3 places"]').click();
+    await page
+      .getByRole("button", { name: "View places", exact: true })
+      .click();
+    await page
+      .getByLabel("Selected map location")
+      .getByRole("link", { name: "Details" })
+      .first()
+      .waitFor();
+  },
+});
+SCENARIOS.push({
+  name: "map-error-mobile-dark",
+  route: "/search?q=yosemite",
+  viewport: { width: 375, height: 1000 },
+  theme: "dark",
+  description: "Recoverable map summary failure on mobile",
+  action: async (page) => {
+    await page.getByRole("button", { name: "Retry map summary" }).waitFor();
+  },
+});
+
 /**
  * Mock data used for consistent and deterministic rendering.
  */
@@ -905,13 +979,16 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
     });
   });
 
-  await page.route("**/api/search*", (route) => {
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(MOCK_SEARCH_ITEMS),
-    });
-  });
+  await page.route(
+    (url) => url.pathname === "/api/search",
+    (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(MOCK_SEARCH_ITEMS),
+      });
+    },
+  );
 
   await page.route("**/api/providers", (route) => {
     route.fulfill({
@@ -928,6 +1005,115 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
       ]),
     });
   });
+  const raster = new PNG({ width: 256, height: 256 });
+  for (let i = 0; i < raster.data.length; i += 4) {
+    raster.data[i] = 225;
+    raster.data[i + 1] = 235;
+    raster.data[i + 2] = 219;
+    raster.data[i + 3] = 255;
+  }
+  await page.route("https://tile.openstreetmap.org/**", (route) =>
+    route.fulfill({
+      contentType: "image/png",
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: PNG.sync.write(raster),
+    }),
+  );
+  const bounds = { west: -119.61, east: -119.55, south: 37.73, north: 37.75 };
+  await page.route("**/api/search/map/summary*", (route) =>
+    route.fulfill({
+      status: scenario.name.startsWith("map-error") ? 503 : 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        total: 3,
+        mappable_total: 3,
+        unmappable_total: 0,
+        bounds,
+      }),
+    }),
+  );
+  await page.route(
+    (url) => url.pathname === "/api/search/map",
+    (route) => {
+      const query = new URL(route.request().url()).searchParams;
+      const viewport = Object.fromEntries(
+        ["west", "south", "east", "north"].map((key) => [
+          key,
+          Number(query.get(key)),
+        ]),
+      );
+      return route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          viewport,
+          grid_level: 12,
+          represented_total: 3,
+          features: [
+            {
+              kind: "group",
+              cell_id: "12:0:0",
+              count: 3,
+              latitude: 37.74,
+              longitude: -119.58,
+              bounds,
+            },
+          ],
+        }),
+      });
+    },
+  );
+  await page.route("**/api/search/map/members*", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: MOCK_SEARCH_ITEMS,
+        total: 3,
+        next_cursor: null,
+      }),
+    }),
+  );
+  await page.route("**/api/provider/1", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: 1,
+        name: "Recreation.gov",
+        description: "Federal booking",
+        url: "https://example.test",
+        enabled: true,
+      }),
+    }),
+  );
+  await page.route("**/api/campground/1/232447", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(MOCK_CAMPGROUNDS[0]),
+    }),
+  );
+  await page.route("**/api/rec-area/1/2991", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "2991",
+        provider_id: 1,
+        name: "Yosemite National Park",
+        description: "Synthetic recreation area for map verification.",
+        latitude: 37.74,
+        longitude: -119.58,
+        state: "CA",
+        country: "US",
+        reservable: true,
+        enabled: true,
+        url: "https://example.test",
+      }),
+    }),
+  );
+  await page.route("**/api/rec-area/1/2991/campgrounds", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(MOCK_CAMPGROUNDS),
+    }),
+  );
 }
 
 /**
@@ -999,12 +1185,26 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
     );
   }
 
+  if (
+    scenario.route.startsWith("/search") ||
+    scenario.name.startsWith("map-")
+  ) {
+    await page.waitForFunction(
+      () =>
+        !Array.from(document.querySelectorAll('[role="status"]')).some(
+          (element) => element.textContent === "Loading map…",
+        ),
+    );
+  }
+
   // Settle time for layout rendering
   await page.waitForTimeout(200);
 
   if (scenario.action) {
     await scenario.action(page);
   }
+  if (scenario.name.startsWith("map-"))
+    await page.evaluate(() => window.scrollTo(0, 0));
 }
 
 /**
@@ -1311,6 +1511,8 @@ async function main(): Promise<void> {
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-animations",
+        "--use-angle=swiftshader",
+        "--enable-unsafe-swiftshader",
       ],
     });
 
@@ -1401,10 +1603,18 @@ async function main(): Promise<void> {
 
     // Write reports
     const markdownReport = generateMarkdownReport(results);
-    fs.writeFileSync(REPORT_MD_PATH, markdownReport, "utf-8");
+    fs.writeFileSync(
+      REPORT_MD_PATH,
+      markdownReport.replace(/[ \t]+$/gm, "").trimEnd() + "\n",
+      "utf-8",
+    );
 
     const htmlReport = generateHtmlReport(results);
-    fs.writeFileSync(REPORT_HTML_PATH, htmlReport, "utf-8");
+    fs.writeFileSync(
+      REPORT_HTML_PATH,
+      htmlReport.replace(/[ \t]+$/gm, "").trimEnd() + "\n",
+      "utf-8",
+    );
 
     console.log(
       "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",

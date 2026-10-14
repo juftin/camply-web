@@ -149,3 +149,20 @@ These variables are primarily used in `docker-compose.yaml`.
 | `POSTGRES_DB`       | DB Name                       | `camply` |
 | `BACKEND_VERSION`   | Docker image tag for backend  | `local`  |
 | `FRONTEND_VERSION`  | Docker image tag for frontend | `local`  |
+
+## Maps (Public Frontend Build Settings)
+
+All maps use MapLibre GL JS and default to keyless OpenStreetMap raster tiles. No Google Maps account or key is needed. These public Vite values are embedded in the frontend bundle; never put secrets in them. Set them in the frontend build environment (or Compose build arguments) and rebuild after a change. A root backend `.env` is not automatically a Vite environment file.
+
+| Variable                    | Default                                          | Meaning                                                                                 |
+| --------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `VITE_MAP_TILE_URL`         | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | Compatible 256px raster XYZ tiles in EPSG:3857; HTTPS or same-origin root-relative path |
+| `VITE_MAP_ATTRIBUTION_TEXT` | © OpenStreetMap contributors                     | Plain-text source credit                                                                |
+| `VITE_MAP_ATTRIBUTION_URL`  | `https://www.openstreetmap.org/copyright`        | HTTPS source attribution/license page                                                   |
+| `VITE_MAP_MAX_NATIVE_ZOOM`  | `19`                                             | Integer 0–19; tiles may be overzoomed up to map zoom 19                                 |
+
+A custom tile URL requires its own attribution text and link. For a self-hosted source, use its XYZ endpoint and applicable contributor credit; for example `/tiles/{z}/{x}/{y}.png` with a source-specific HTTPS license page. Invalid settings produce a recoverable map error while list search stays available. Docker builds accept the same four argument names; Compose forwards their process/environment settings.
+
+Open-source map software and openly licensed map data are separate from tile hosting costs and capacity. The default public service has no SLA; follow [OpenStreetMap's tile usage policy](https://operations.osmfoundation.org/policies/tiles/) for linked attribution, browser caching, origin referrers, and no bulk/offline downloading. Choose a compatible hosted or self-hosted service for production capacity beyond those terms. Map requests do not use the authenticated API client, attach authorization/CSRF headers, or submit scan settings. External tile hosts still see client IP addresses and requested tile coordinates; self-hosting avoids that external dependency. Device location is not requested.
+
+MapLibre GL JS requires WebGL 2. If the browser cannot create a graphics context, the map shows a local error with retry and the list remains usable. The renderer worker is bundled as a same-origin Vite asset, including under a repository subpath. Cross-origin raster sources must permit CORS for the frontend origin (the default OSM source does); self-hosted sources on the same origin need no CORS configuration. If you enforce a Content Security Policy, permit the bundled same-origin worker and the configured tile origin.

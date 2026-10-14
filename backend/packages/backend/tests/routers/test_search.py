@@ -108,7 +108,44 @@ class TestSearchBounds:
 
     def test_search_query_bounds(self, test_client: TestClient) -> None:
         """Bound token work for both endpoints and query aliases."""
-        for path in ("/api/search", "/api/search/explore"):
+        for path in ("/api/search", "/api/search/explore", "/api/search/map/summary"):
             for alias in ("q", "query"):
                 response = test_client.get(path, params={alias: "x" * 201})
                 assert response.status_code == 422
+
+
+class TestSearchMap:
+    """Public map endpoints preserve catalog discovery and validate bounds."""
+
+    def test_empty_summary(self, test_client: TestClient) -> None:
+        """No catalog locations is an explicit successful empty summary."""
+        response = test_client.get("/api/search/map/summary")
+        assert response.status_code == 200
+        assert response.json()["bounds"] is None
+        assert response.json()["mappable_total"] == 0
+
+    def test_invalid_viewports(self, test_client: TestClient) -> None:
+        """Missing, reversed, equal and nonfinite map bounds are rejected."""
+        invalid_params: list[dict[str, str | int]] = [
+            {},
+            {"west": 0, "east": 0, "south": -1, "north": 1, "zoom": 1},
+            {"west": -1, "east": 1, "south": 2, "north": 1, "zoom": 1},
+            {"west": 180, "east": -180, "south": -1, "north": 1, "zoom": 1},
+            {"west": "nan", "east": 1, "south": 0, "north": 1, "zoom": 1},
+        ]
+        for params in invalid_params:
+            assert test_client.get("/api/search/map", params=params).status_code == 422
+
+    def test_valid_world_and_invalid_cells(self, test_client: TestClient) -> None:
+        """World view is valid but malformed member identifiers are not."""
+        params = {"west": -180, "east": 180, "south": -90, "north": 90, "zoom": 19}
+        result = test_client.get("/api/search/map", params=params)
+        assert result.status_code == 200
+        assert len(result.json()["features"]) <= 512
+        for cell in ["bad", "21:0:0", "1:2:0", "1:0:1"]:
+            assert (
+                test_client.get(
+                    "/api/search/map/members", params={**params, "cell_id": cell}
+                ).status_code
+                == 422
+            )

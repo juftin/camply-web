@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/SearchBar";
+import { validCoordinates } from "@/lib/maps";
 import { MapComponent } from "@/components/MapComponent";
 import { CollapsibleDescription } from "@/components/CollapsibleDescription";
 import { ScanForm } from "@/components/ScanForm";
@@ -221,18 +222,24 @@ export function Campground() {
                     )}
                   </div>
                 </div>
-                {campground.latitude && campground.longitude && (
+                {validCoordinates(
+                  campground.latitude,
+                  campground.longitude,
+                ) && (
                   <MapComponent
-                    latitude={campground.latitude}
-                    longitude={campground.longitude}
+                    primaryType="campground"
+                    latitude={campground.latitude!}
+                    longitude={campground.longitude!}
                     label={toTitleCase(campground.name)}
                     additionalLocations={
                       otherCampgrounds
                         ?.filter(
                           (c) =>
-                            c.id !== campgroundId && c.latitude && c.longitude,
+                            c.id !== campgroundId &&
+                            validCoordinates(c.latitude, c.longitude),
                         )
                         .map((c) => ({
+                          id: `${c.provider_id}/campground/${c.id}`,
                           lat: c.latitude!,
                           lng: c.longitude!,
                           label: toTitleCase(c.name),
