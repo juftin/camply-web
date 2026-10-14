@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { AdminFeedback } from "@/components/admin/AdminFeedback";
 import { getApiErrorMessage } from "@/lib/api";
+import { parseDateTime } from "@/lib/utils";
 import { AdminNav } from "@/components/AdminNav";
 import { useAdminScan, useUpdateAdminScan } from "@/hooks/useAdmin";
 
@@ -193,7 +194,7 @@ export function AdminScanDetail() {
                 <span className="flex items-center gap-1 text-xs">
                   <Clock className="h-3 w-3 text-muted-foreground" />
                   {scan.last_checked_at
-                    ? new Date(scan.last_checked_at).toLocaleString()
+                    ? parseDateTime(scan.last_checked_at).toLocaleString()
                     : "Never"}
                 </span>
               </div>
@@ -203,7 +204,7 @@ export function AdminScanDetail() {
                 </span>
                 <span className="flex items-center gap-1 text-xs">
                   <Clock className="h-3 w-3 text-muted-foreground" />
-                  {new Date(scan.created_at).toLocaleString()}
+                  {parseDateTime(scan.created_at).toLocaleString()}
                 </span>
               </div>
             </div>

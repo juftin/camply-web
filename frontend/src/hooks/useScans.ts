@@ -41,6 +41,7 @@ export function useScans(params?: {
     queryFn: () => listScans(params),
     retry: retryScanQuery,
     staleTime: 30 * 1000, // 30 seconds – scans update frequently
+    refetchInterval: 30 * 1000,
   });
 }
 
@@ -55,6 +56,7 @@ export function useScanDetail(scanId: string | null) {
     retry: retryScanQuery,
     enabled: scanId !== null,
     staleTime: 15 * 1000,
+    refetchInterval: 15 * 1000,
   });
 }
 

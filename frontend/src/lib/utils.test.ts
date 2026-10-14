@@ -2,6 +2,7 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 import {
   toTitleCase,
   formatRelativeTime,
+  parseDateTime,
   parseIsoDate,
   toIsoDateString,
   getTodayString,
@@ -127,6 +128,42 @@ describe("formatRelativeTime", () => {
     expect(formatRelativeTime("2025-06-15T12:05:00Z")).toBe("in 5m");
     expect(formatRelativeTime("2025-06-15T14:00:00Z")).toBe("in 2h");
     expect(formatRelativeTime("2025-06-18T12:00:00Z")).toBe("in 3d");
+  });
+
+  it("parses naive ISO timestamps (without Z) as UTC instead of local time", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2025-06-15T12:00:00Z"));
+
+    expect(formatRelativeTime("2025-06-15T11:59:30")).toBe("30s ago");
+    expect(formatRelativeTime("2025-06-15T11:30:00")).toBe("30m ago");
+    expect(formatRelativeTime("2025-06-15T10:00:00")).toBe("2h ago");
+  });
+
+  it("returns empty string for empty input or invalid date", () => {
+    expect(formatRelativeTime("")).toBe("");
+    expect(formatRelativeTime("not-a-date")).toBe("");
+  });
+});
+
+describe("parseDateTime", () => {
+  it("parses naive ISO date-time as UTC", () => {
+    const d = parseDateTime("2026-10-14T03:54:33");
+    expect(d.toISOString()).toBe("2026-10-14T03:54:33.000Z");
+  });
+
+  it("parses aware ISO date-time with Z as UTC", () => {
+    const d = parseDateTime("2026-10-14T03:54:33Z");
+    expect(d.toISOString()).toBe("2026-10-14T03:54:33.000Z");
+  });
+
+  it("parses ISO date-time with timezone offset", () => {
+    const d = parseDateTime("2026-10-14T03:54:33-05:00");
+    expect(d.toISOString()).toBe("2026-10-14T08:54:33.000Z");
+  });
+
+  it("parses date-only string as UTC midnight", () => {
+    const d = parseDateTime("2026-10-14");
+    expect(d.toISOString()).toBe("2026-10-14T00:00:00.000Z");
   });
 });
 

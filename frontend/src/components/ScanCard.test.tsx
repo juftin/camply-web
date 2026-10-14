@@ -101,6 +101,21 @@ describe("ScanCard", () => {
     expect(screen.getByText(/Last checked:/)).toBeInTheDocument();
   });
 
+  it("renders last checked time correctly for naive UTC timestamps without producing future relative time", () => {
+    const naiveUtc = new Date(Date.now() - 30 * 1000)
+      .toISOString()
+      .replace("Z", "");
+    renderWithRouter(
+      <ScanCard
+        scan={{ ...baseScan, last_checked_at: naiveUtc }}
+        onToggleActive={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(/Last checked:/)).toBeInTheDocument();
+    expect(screen.queryByText(/Last checked: in /)).not.toBeInTheDocument();
+  });
+
   it("shows electric badge when required", () => {
     renderWithRouter(
       <ScanCard

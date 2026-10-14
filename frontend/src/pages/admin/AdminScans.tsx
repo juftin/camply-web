@@ -10,6 +10,7 @@ import { useAdminLocation } from "@/hooks/useAdminLocation";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminFeedback } from "@/components/admin/AdminFeedback";
 import { getApiErrorMessage } from "@/lib/api";
+import { parseDateTime } from "@/lib/utils";
 import { useAdminScans, useUpdateAdminScan } from "@/hooks/useAdmin";
 
 export function AdminScans() {
@@ -305,13 +306,18 @@ export function AdminScans() {
                         {s.last_checked_at ? (
                           <>
                             <time dateTime={s.last_checked_at}>
-                              {new Date(s.last_checked_at).toLocaleString()}
+                              {parseDateTime(
+                                s.last_checked_at,
+                              ).toLocaleString()}
                             </time>
                             <p className="text-muted-foreground">
                               {Math.max(
                                 0,
                                 Math.floor(
-                                  (Date.now() - Date.parse(s.last_checked_at)) /
+                                  (Date.now() -
+                                    parseDateTime(
+                                      s.last_checked_at,
+                                    ).getTime()) /
                                     1000,
                                 ),
                               )}

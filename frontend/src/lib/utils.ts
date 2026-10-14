@@ -155,9 +155,26 @@ export function getUpcomingFriday(fromIso?: string): string {
   return toIsoDateString(target);
 }
 
+/**
+ * Safely parse an ISO date/time string from the backend into a Date object.
+ *
+ * Ensures date-time strings without timezone offsets are treated as UTC,
+ * preventing JavaScript's default behavior of parsing naive ISO strings as local time.
+ */
+export function parseDateTime(iso: string): Date {
+  if (!iso) return new Date(NaN);
+  if (!iso.includes("T")) {
+    return new Date(`${iso}T00:00:00Z`);
+  }
+  const hasTimezone = iso.endsWith("Z") || /[+-]\d{2}(:\d{2})?$/.test(iso);
+  return new Date(hasTimezone ? iso : `${iso}Z`);
+}
+
 export function formatRelativeTime(iso: string): string {
+  if (!iso) return "";
   const now = Date.now();
-  const then = new Date(iso).getTime();
+  const then = parseDateTime(iso).getTime();
+  if (Number.isNaN(then)) return "";
   const diffSec = Math.floor((now - then) / 1000);
   if (diffSec < 0) {
     const abs = Math.abs(diffSec);
