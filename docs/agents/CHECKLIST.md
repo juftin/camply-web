@@ -169,6 +169,7 @@ Feature specification: [Open-Source Maps & Explore Map View](../../specs/007-ope
 - [x] T3.3.3 Replace existing detail maps and add responsive Explore mapping with a collapsible map stacked above the list, filter parity, pagination-independent discovery, and detail/monitor actions.
 - [x] T3.3.4 Verify coordinate handling, overlapping/provider-qualified identities, loading and failure recovery, navigation, accessibility, performance, and visual coverage; update mapping setup documentation.
 - [x] T3.3.5 Remove the redundant matching-locations/in-view count above Explore's map and refresh visual coverage.
+- [ ] T3.3.6 Configure production tile hosting or caching (e.g. MapTiler, Stadia Maps, Cloudflare reverse proxy cache, or self-hosted PMTiles) via `VITE_MAP_*` build variables to adhere to OpenStreetMap's public tile usage policy for high-traffic releases.
 
 ---
 
