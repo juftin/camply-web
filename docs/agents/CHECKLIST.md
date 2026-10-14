@@ -183,6 +183,8 @@ Feature specification: [Open-Source Maps & Explore Map View](../../specs/007-ope
 
 ### 4.2 Deployment
 
+- [x] T4.2.1 Complete the pre-implementation Spec-Kit specification, clarification review, research, design/contracts, tasking, and consistency analysis for optional Python-served frontend assets, SQLite, and background work without Celery, Redis/Valkey, or Prometheus; see [standalone runtime plan](../../specs/007-standalone-runtime/plan.md).
+- [ ] T4.2.2 Implement and verify the standalone runtime, minimal dependency installation, notification recovery, Python-served frontend, and service-free browser smoke tests while preserving the distributed stack.
 - [ ] T4.1.4 Finalize production `docker-compose.yml`.
 - [ ] T4.1.5 Create Kubernetes manifests for API and Worker scaling.
 - [ ] T4.1.6 Complete a full mobile-responsive audit of the UI.
