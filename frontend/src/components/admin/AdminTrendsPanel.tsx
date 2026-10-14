@@ -271,11 +271,36 @@ export function AdminTrendsPanel({
             const chartData = transformChartData(metric);
             const unit = UNIT_LABELS[metric.unit] ?? metric.unit;
             const labels = (metric.series ?? []).map(seriesLabel);
-            const displayLabels = labels.map((label, index) =>
-              labels.filter((candidate) => candidate === label).length > 1
-                ? `${label} · ${(metric.series ?? [])[index].labels?.instance ?? `source ${index + 1}`}`
-                : label,
-            );
+            const displayLabels = labels.map((label, index) => {
+              const matchingIndices = labels
+                .map((l, i) => (l === label ? i : -1))
+                .filter((i) => i !== -1);
+              if (matchingIndices.length <= 1) return label;
+
+              const instances = matchingIndices.map(
+                (i) => (metric.series ?? [])[i].labels?.instance,
+              );
+              const uniqueInstances = new Set(instances.filter(Boolean));
+              const currentInstance = (metric.series ?? [])[index].labels
+                ?.instance;
+
+              if (
+                uniqueInstances.size === matchingIndices.length &&
+                currentInstance
+              ) {
+                return `${label} · ${currentInstance}`;
+              }
+
+              const workerOrPid =
+                (metric.series ?? [])[index].labels?.worker ??
+                (metric.series ?? [])[index].labels?.pid;
+              if (workerOrPid) {
+                return `${label} · worker ${workerOrPid}`;
+              }
+
+              const rank = matchingIndices.indexOf(index) + 1;
+              return `${label} · source ${rank}`;
+            });
 
             return (
               <Card key={metric.metric_id} className="overflow-hidden">

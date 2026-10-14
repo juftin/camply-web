@@ -50,21 +50,25 @@ HTTP_REQUEST_DURATION_SECONDS = Histogram(
 ACTIVE_USERS = Gauge(
     f"{METRICS_PREFIX}_active_users",
     "Number of active users in the database",
+    multiprocess_mode="mostrecent",
 )
 
 TOTAL_SCANS = Gauge(
     f"{METRICS_PREFIX}_total_scans",
     "Total number of user scans",
+    multiprocess_mode="mostrecent",
 )
 
 ACTIVE_SCANS = Gauge(
     f"{METRICS_PREFIX}_active_scans",
     "Number of currently active scans",
+    multiprocess_mode="mostrecent",
 )
 
 TOTAL_UNIQUE_TARGETS = Gauge(
     f"{METRICS_PREFIX}_total_unique_targets",
     "Total number of unique targets",
+    multiprocess_mode="mostrecent",
 )
 
 TOTAL_SEARCH_REQUESTS = Counter(
@@ -96,16 +100,19 @@ SCANS_CREATED_TOTAL = Counter(
 REGISTERED_USERS_TOTAL = Gauge(
     f"{METRICS_PREFIX}_registered_users_total",
     "Total registered users in the database",
+    multiprocess_mode="mostrecent",
 )
 
 ELIGIBLE_SCANS = Gauge(
     f"{METRICS_PREFIX}_eligible_scans",
     "Number of eligible scans (active scan and user scanning enabled)",
+    multiprocess_mode="mostrecent",
 )
 
 ELIGIBLE_TARGETS = Gauge(
     f"{METRICS_PREFIX}_eligible_targets",
     "Number of distinct targets with at least one eligible scan subscriber",
+    multiprocess_mode="mostrecent",
 )
 
 

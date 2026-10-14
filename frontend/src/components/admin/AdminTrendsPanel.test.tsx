@@ -350,3 +350,58 @@ it("restores a chart range from the URL and queries the selected range", async (
     ),
   );
 });
+
+it("disambiguates series sharing the same instance using worker or source instead of duplicate instance label", async () => {
+  vi.mocked(api.getAdminTrends).mockResolvedValue({
+    group: "usage",
+    range: "24h",
+    step_seconds: 900,
+    start_time: "2026-10-09T00:00:00Z",
+    end_time: "2026-10-09T01:00:00Z",
+    timezone: "UTC",
+    available: true,
+    metrics: [
+      {
+        metric_id: "registered_users",
+        title: "Total Registered Users",
+        description: "Number of registered users.",
+        unit: "users",
+        chart_type: "line",
+        series: [
+          {
+            name: "Registered Users (instance=camply:8000, pid=101)",
+            labels: { instance: "camply:8000", pid: "101" },
+            points: [{ timestamp: "2026-10-09T00:00:00Z", value: 10 }],
+          },
+          {
+            name: "Registered Users (instance=camply:8000, pid=102)",
+            labels: { instance: "camply:8000", pid: "102" },
+            points: [{ timestamp: "2026-10-09T00:00:00Z", value: 10 }],
+          },
+        ],
+      },
+    ],
+  });
+  render(
+    <MemoryRouter initialEntries={["/admin?usage_view=table"]}>
+      <QueryClientProvider client={queryClient}>
+        <AdminTrendsPanel group="usage" />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+  expect(
+    await screen.findByRole("columnheader", {
+      name: "Registered Users · worker 101 (users)",
+    }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("columnheader", {
+      name: "Registered Users · worker 102 (users)",
+    }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("columnheader", {
+      name: /Registered Users · camply:8000/,
+    }),
+  ).not.toBeInTheDocument();
+});
