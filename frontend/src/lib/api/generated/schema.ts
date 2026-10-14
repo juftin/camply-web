@@ -175,9 +175,29 @@ export interface paths {
         };
         /**
          * Search
-         * @description Database Search for Recreation Areas and Campgrounds
+         * @description Database Search for Recreation Areas and Campgrounds (flat list format).
          */
         get: operations["search_api_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/search/explore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Explore
+         * @description Faceted, paginated exploration endpoint for the dedicated discovery UI.
+         */
+        get: operations["search_explore_api_search_explore_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1711,10 +1731,45 @@ export interface components {
             require_electric?: boolean | null;
         };
         /**
-         * SearchResult
-         * @description Search Result Model
+         * SearchExploreResponse
+         * @description Paginated search response with faceted metadata.
          */
-        SearchResult: {
+        SearchExploreResponse: {
+            /** Items */
+            items?: components["schemas"]["SearchResultResponse"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Total Pages */
+            total_pages: number;
+            facets: components["schemas"]["SearchFacets"];
+        };
+        /**
+         * SearchFacets
+         * @description Faceted counts for search results.
+         */
+        SearchFacets: {
+            /** Providers */
+            providers?: {
+                [key: string]: number;
+            };
+            /** States */
+            states?: {
+                [key: string]: number;
+            };
+            /** Entity Types */
+            entity_types?: {
+                [key: string]: number;
+            };
+        };
+        /**
+         * SearchResultResponse
+         * @description Single search hit with enriched location and amenities.
+         */
+        SearchResultResponse: {
             /** Id */
             id: string;
             /** Entity Type */
@@ -1724,13 +1779,57 @@ export interface components {
             /** Provider Name */
             provider_name: string;
             /** Recreation Area Id */
-            recreation_area_id: string | null;
+            recreation_area_id?: string | null;
             /** Recreation Area Name */
-            recreation_area_name: string | null;
+            recreation_area_name?: string | null;
             /** Campground Id */
-            campground_id: string | null;
+            campground_id?: string | null;
             /** Campground Name */
-            campground_name: string | null;
+            campground_name?: string | null;
+            /** City */
+            city?: string | null;
+            /** State */
+            state?: string | null;
+            /** Country */
+            country?: string | null;
+            /** Latitude */
+            latitude?: number | null;
+            /** Longitude */
+            longitude?: number | null;
+            /**
+             * Reservable
+             * @default true
+             */
+            reservable: boolean;
+            /** Campsite Types */
+            campsite_types?: string[];
+            /**
+             * Has Electric
+             * @default false
+             */
+            has_electric: boolean;
+            /**
+             * Has Water
+             * @default false
+             */
+            has_water: boolean;
+            /**
+             * Has Sewer
+             * @default false
+             */
+            has_sewer: boolean;
+            /**
+             * Pets Allowed
+             * @default false
+             */
+            pets_allowed: boolean;
+            /**
+             * Ada Accessible
+             * @default false
+             */
+            ada_accessible: boolean;
+            /** Max Rv Length */
+            max_rv_length?: number | null;
         };
         /**
          * SessionLoginRequest
@@ -2004,9 +2103,19 @@ export interface operations {
     };
     search_api_search_get: {
         parameters: {
-            query: {
-                query: string;
+            query?: {
+                query?: string;
+                q?: string | null;
                 limit?: number;
+                provider_id?: number | null;
+                entity_type?: string | null;
+                state?: string | null;
+                has_electric?: boolean | null;
+                pets_allowed?: boolean | null;
+                min_rv_length?: number | null;
+                lat?: number | null;
+                lng?: number | null;
+                radius_miles?: number | null;
             };
             header?: never;
             path?: never;
@@ -2020,7 +2129,51 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SearchResult"][];
+                    "application/json": components["schemas"]["SearchResultResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_explore_api_search_explore_get: {
+        parameters: {
+            query?: {
+                query?: string;
+                q?: string | null;
+                page?: number;
+                page_size?: number;
+                sort_by?: string;
+                provider_id?: number | null;
+                entity_type?: string | null;
+                state?: string | null;
+                has_electric?: boolean | null;
+                pets_allowed?: boolean | null;
+                min_rv_length?: number | null;
+                lat?: number | null;
+                lng?: number | null;
+                radius_miles?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchExploreResponse"];
                 };
             };
             /** @description Validation Error */

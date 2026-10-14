@@ -599,6 +599,12 @@ class BaseProvider(ABC):
                 Search.recreation_area_name,
                 Search.campground_id,
                 Search.campground_name,
+                Search.city,
+                Search.state,
+                Search.country,
+                Search.latitude,
+                Search.longitude,
+                Search.reservable,
             ],
             select=select(
                 (
@@ -613,6 +619,12 @@ class BaseProvider(ABC):
                 RecreationArea.name.label("recreation_area_name"),
                 null().label("campground_id"),
                 null().label("campground_name"),
+                RecreationArea.city.label("city"),
+                RecreationArea.state.label("state"),
+                RecreationArea.country.label("country"),
+                RecreationArea.latitude.label("latitude"),
+                RecreationArea.longitude.label("longitude"),
+                RecreationArea.reservable.label("reservable"),
             ).where(
                 RecreationArea.provider_id == self.provider.id,
                 RecreationArea.enabled.is_(True),
@@ -635,6 +647,12 @@ class BaseProvider(ABC):
                 Search.recreation_area_name,
                 Search.campground_id,
                 Search.campground_name,
+                Search.city,
+                Search.state,
+                Search.country,
+                Search.latitude,
+                Search.longitude,
+                Search.reservable,
             ],
             select=select(
                 (
@@ -650,6 +668,12 @@ class BaseProvider(ABC):
                 RecreationArea.name.label("recreation_area_name"),
                 Campground.id.label("campground_id"),
                 Campground.name.label("campground_name"),
+                Campground.city.label("city"),
+                Campground.state.label("state"),
+                Campground.country.label("country"),
+                Campground.latitude.label("latitude"),
+                Campground.longitude.label("longitude"),
+                Campground.reservable.label("reservable"),
             )
             .select_from(
                 Campground.__table__.outerjoin(

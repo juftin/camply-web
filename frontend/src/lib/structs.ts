@@ -13,6 +13,36 @@ export interface SearchResult {
   recreation_area_name: string | null;
   campground_id: string | null;
   campground_name: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  reservable?: boolean;
+  campsite_types?: string[];
+  has_electric?: boolean;
+  has_water?: boolean;
+  has_sewer?: boolean;
+  pets_allowed?: boolean;
+  ada_accessible?: boolean;
+  max_rv_length?: number | null;
+}
+
+export type SearchResultResponse = SearchResult;
+
+export interface SearchFacets {
+  providers: Record<string, number>;
+  states: Record<string, number>;
+  entity_types: Record<string, number>;
+}
+
+export interface SearchExploreResponse {
+  items: SearchResult[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  facets: SearchFacets;
 }
 
 export interface RecreationArea {

@@ -163,7 +163,7 @@ class ScanDetailResponse(ScanResponse):
 
 
 class SearchResultResponse(BaseModel):
-    """Single search hit."""
+    """Single search hit with enriched location and amenities."""
 
     id: str
     entity_type: str
@@ -173,6 +173,38 @@ class SearchResultResponse(BaseModel):
     recreation_area_name: Optional[str] = None
     campground_id: Optional[str] = None
     campground_name: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    reservable: bool = True
+    campsite_types: list[str] = Field(default_factory=list)
+    has_electric: bool = False
+    has_water: bool = False
+    has_sewer: bool = False
+    pets_allowed: bool = False
+    ada_accessible: bool = False
+    max_rv_length: Optional[int] = None
+
+
+class SearchFacets(BaseModel):
+    """Faceted counts for search results."""
+
+    providers: dict[str, int] = Field(default_factory=dict)
+    states: dict[str, int] = Field(default_factory=dict)
+    entity_types: dict[str, int] = Field(default_factory=dict)
+
+
+class SearchExploreResponse(BaseModel):
+    """Paginated search response with faceted metadata."""
+
+    items: list[SearchResultResponse] = Field(default_factory=list)
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    facets: SearchFacets
 
 
 # ===========================================================================

@@ -2028,6 +2028,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         <a
           class="text-muted-foreground hover:text-foreground "
           data-discover="true"
+          href="/search"
+        >
+          Explore
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
           href="/providers"
         >
           Providers
@@ -2322,6 +2329,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         <a
           class="text-muted-foreground hover:text-foreground "
           data-discover="true"
+          href="/search"
+        >
+          Explore
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
           href="/providers"
         >
           Providers
@@ -2594,6 +2608,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for unauthentica
         <a
           class="text-muted-foreground hover:text-foreground "
           data-discover="true"
+          href="/search"
+        >
+          Explore
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
           href="/providers"
         >
           Providers
@@ -2750,6 +2771,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot without logo 1`]
       <nav
         class="hidden md:flex space-x-6"
       >
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/search"
+        >
+          Explore
+        </a>
         <a
           class="text-muted-foreground hover:text-foreground "
           data-discover="true"

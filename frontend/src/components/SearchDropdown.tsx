@@ -10,6 +10,7 @@ interface SearchDropdownProps {
   query: string;
   isOpen: boolean;
   onSelect: (result: SearchResult) => void;
+  onViewAll?: () => void;
   isFetching?: boolean;
   selectedIndex?: number;
 }
@@ -21,6 +22,7 @@ export function SearchDropdown({
   query,
   isOpen,
   onSelect,
+  onViewAll,
   isFetching,
   selectedIndex = -1,
 }: SearchDropdownProps) {
@@ -125,6 +127,14 @@ export function SearchDropdown({
                   </div>
                 </div>
               ))}
+              {results.length > 0 && onViewAll && (
+                <div
+                  className="px-4 py-2 bg-muted/40 hover:bg-muted cursor-pointer text-center text-xs font-medium text-primary border-t transition-colors"
+                  onClick={onViewAll}
+                >
+                  View all results for "{query}" →
+                </div>
+              )}
             </div>
           )}
         </>

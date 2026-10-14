@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { searchCampgrounds } from "@/lib/api";
-import { SearchResult } from "@/lib/structs.ts";
+import {
+  searchCampgrounds,
+  searchExplore,
+  type SearchExploreParams,
+} from "@/lib/api";
+import { SearchResult, SearchExploreResponse } from "@/lib/structs.ts";
 
 export function useSearch(query: string, enabled: boolean = true) {
   const trimmedQuery = query.trim();
@@ -15,6 +19,21 @@ export function useSearch(query: string, enabled: boolean = true) {
     refetchOnWindowFocus: false,
     retry: 1,
     // Keep previous data while loading new results to prevent flicker
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+export function useSearchExplore(
+  params: SearchExploreParams = {},
+  enabled: boolean = true,
+) {
+  return useQuery<SearchExploreResponse>({
+    queryKey: ["search-explore", params],
+    queryFn: () => searchExplore(params),
+    enabled,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
     placeholderData: (previousData) => previousData,
   });
 }

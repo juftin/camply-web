@@ -4,6 +4,7 @@ import { Auth0Provider } from "@auth0/auth0-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
 import { Home } from "@/pages/Home";
+import { SearchPage } from "@/pages/SearchPage";
 import { Providers } from "@/pages/Providers";
 import { Auth } from "@/pages/Auth";
 import { Dashboard } from "@/pages/Dashboard";
@@ -45,6 +46,7 @@ function AppRoutes() {
             <Layout>
               <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/search" element={<SearchPage />} />
                 <Route path="/providers" element={<Providers />} />
                 <Route path="/ethos" element={<Ethos />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />

@@ -86,6 +86,14 @@ export function Header({ showLogo = true }: HeaderProps) {
           </div>
           <nav className="hidden md:flex space-x-6">
             <Link
+              to="/search"
+              className={`text-muted-foreground hover:text-foreground ${
+                location.pathname === "/search" ? "text-foreground" : ""
+              }`}
+            >
+              Explore
+            </Link>
+            <Link
               to="/providers"
               className={`text-muted-foreground hover:text-foreground ${
                 location.pathname === "/providers" ? "text-foreground" : ""
@@ -184,6 +192,15 @@ export function Header({ showLogo = true }: HeaderProps) {
       {isMobileMenuOpen && (
         <div className="md:hidden sticky top-[73px] z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <nav className="container mx-auto px-4 py-4 space-y-4">
+            <Link
+              to="/search"
+              className={`block text-muted-foreground hover:text-foreground ${
+                location.pathname === "/search" ? "text-foreground" : ""
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Explore
+            </Link>
             <Link
               to="/providers"
               className={`block text-muted-foreground hover:text-foreground ${
