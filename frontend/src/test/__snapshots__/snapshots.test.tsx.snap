@@ -518,7 +518,7 @@ exports[`UI Component DOM Snapshots > CollapsibleDescription > matches snapshot 
         class="prose prose-sm max-w-none dark:prose-invert [&>h1:first-child]:mt-4 [&>h2:first-child]:mt-4 [&>h3:first-child]:mt-4 [&>h4:first-child]:mt-4 [&>h5:first-child]:mt-4 [&>h6:first-child]:mt-4"
       >
         <p>
-          Upper Pines is nestled in
+          Upper Pines is nestled in 
           <strong>
             Yosemite Valley
           </strong>
@@ -996,7 +996,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                   >
                     4
                   </strong>
-
+                   
                   <span
                     class="text-muted-foreground"
                   >
@@ -1228,7 +1228,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                   >
                     0
                   </strong>
-
+                   
                   <span
                     class="text-muted-foreground"
                   >
@@ -1455,7 +1455,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                   >
                     1
                   </strong>
-
+                   
                   <span
                     class="text-muted-foreground"
                   >
@@ -2911,7 +2911,7 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for active sca
             >
               3
             </strong>
-
+             
             <span
               class="text-muted-foreground"
             >
@@ -3170,7 +3170,7 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for ended scan
             >
               0
             </strong>
-
+             
             <span
               class="text-muted-foreground"
             >
@@ -3391,7 +3391,7 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for paused sca
             >
               0
             </strong>
-
+             
             <span
               class="text-muted-foreground"
             >
