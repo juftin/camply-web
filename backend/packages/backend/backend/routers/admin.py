@@ -42,6 +42,7 @@ from backend.schemas import (
     AdminScanItem,
     AdminScanListResponse,
     AdminScanUpdateRequest,
+    AdminSyncProvidersResponse,
     AdminTargetDetailResponse,
     AdminTargetSubscriberItem,
     AdminTrendsResponse,
@@ -56,6 +57,7 @@ from backend.services.operations import (
     get_operations_overview,
     get_recent_tasks,
     get_task_detail,
+    trigger_provider_sync,
 )
 from backend.services.trends import get_admin_trends
 from db.eligibility import eligible_scan_condition, is_scan_eligible
@@ -1033,6 +1035,46 @@ async def get_admin_operations_task_detail(
             detail="Task not found in telemetry history",
         )
     return item
+
+
+@admin_router.post(
+    "/operations/sync-providers",
+    response_model=AdminSyncProvidersResponse,
+)
+async def sync_providers(
+    admin: AdminUserDep,
+) -> AdminSyncProvidersResponse:
+    """
+    Trigger a background task to synchronize metadata from all providers.
+
+    Parameters
+    ----------
+    admin : CurrentUser
+        The authenticated administrator initiating synchronization.
+
+    Returns
+    -------
+    AdminSyncProvidersResponse
+        Information about the dispatched background task.
+    """
+    try:
+        task_id = await trigger_provider_sync()
+        logger.info(
+            "Admin triggered provider metadata sync",
+            admin_id=str(admin.id),
+            task_id=task_id,
+        )
+        return AdminSyncProvidersResponse(
+            task_id=task_id,
+            status="queued",
+            message="Metadata sync initiated for all providers.",
+        )
+    except Exception as exc:
+        logger.exception("Failed to dispatch provider catalog sync", exc_info=exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Failed to dispatch provider sync task. Worker broker may be unreachable.",
+        ) from exc
 
 
 # ===========================================================================

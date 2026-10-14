@@ -330,6 +330,12 @@ export async function setupAdminSnapshotMocks(
       body = { tasks: TASKS, total: TASKS.length, available: true };
     } else if (endpoint.startsWith("operations/tasks/")) {
       body = TASKS.find((task) => endpoint.endsWith(task.task_id));
+    } else if (endpoint === "operations/sync-providers") {
+      body = {
+        task_id: "task-mock-sync-1",
+        status: "queued",
+        message: "Metadata sync initiated for all providers.",
+      };
     } else if (endpoint === "trends") {
       const group = url.searchParams.get("group") ?? "usage";
       const metrics = trendMetrics(group);

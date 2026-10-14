@@ -444,6 +444,14 @@ class AdminOperationsTaskDetail(AdminTaskTelemetryItem):
     """Detailed view of a single task attempt, using the same safe metadata as history."""
 
 
+class AdminSyncProvidersResponse(BaseModel):
+    """Response returned when triggering provider metadata synchronization."""
+
+    task_id: str
+    status: str
+    message: str
+
+
 # ===========================================================================
 # Admin Trends & Prometheus Metrics
 # ===========================================================================

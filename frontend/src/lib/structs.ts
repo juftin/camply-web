@@ -166,6 +166,8 @@ export type AdminOperationsTasksResponse =
   components["schemas"]["AdminOperationsTasksResponse"];
 export type AdminOperationsTaskDetail =
   components["schemas"]["AdminOperationsTaskDetail"];
+export type AdminSyncProvidersResponse =
+  components["schemas"]["AdminSyncProvidersResponse"];
 export type TrendPoint = components["schemas"]["TrendPoint"];
 export type TrendSeries = components["schemas"]["TrendSeries"];
 export type TrendMetric = components["schemas"]["TrendMetric"];

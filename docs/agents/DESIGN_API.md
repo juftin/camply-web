@@ -153,37 +153,38 @@ class ScanResultItem(BaseModel):
 
 ## 🗺️ Endpoint Summary
 
-| Method | Path                                        | Auth      | Invitation (when enabled) | Purpose                       |
-| ------ | ------------------------------------------- | --------- | ------------------------- | ----------------------------- |
-| GET    | `/api/search?query=`                        | —         | —                         | Search campgrounds/rec areas  |
-| GET    | `/api/providers`                            | —         | —                         | List providers                |
-| GET    | `/api/provider/{id}`                        | —         | —                         | Single provider               |
-| GET    | `/api/campground/{provider}/{id}`           | —         | —                         | Single campground             |
-| GET    | `/api/rec-area/{provider}/{id}`             | —         | —                         | Single rec area               |
-| GET    | `/api/rec-area/{provider}/{id}/campgrounds` | —         | —                         | Campgrounds in rec area       |
-| GET    | `/api/me`                                   | ✓         | —                         | Current user profile          |
-| PATCH  | `/api/me`                                   | ✓         | —                         | Update profile                |
-| POST   | `/api/change-password`                      | ✓         | —                         | Change password (session)     |
-| GET    | `/api/scans`                                | ✓         | ✓                         | List user scans               |
-| POST   | `/api/scans`                                | ✓         | ✓                         | Create scan                   |
-| GET    | `/api/scans/{id}`                           | ✓         | ✓                         | Scan detail                   |
-| PATCH  | `/api/scans/{id}`                           | ✓         | ✓                         | Update scan                   |
-| DELETE | `/api/scans/{id}`                           | ✓         | ✓                         | Delete scan                   |
-| GET    | `/api/health`                               | —         | —                         | Health check                  |
-| GET    | `/api/admin/overview`                       | ✓ (Admin) | —                         | Admin KPI overview            |
-| GET    | `/api/admin/users`                          | ✓ (Admin) | —                         | List users with status        |
-| POST   | `/api/admin/users`                          | ✓ (Admin) | —                         | Create user with credentials  |
-| GET    | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | User details and audit        |
-| PATCH  | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | Update user (toggle scanning) |
-| GET    | `/api/admin/scans`                          | ✓ (Admin) | —                         | List all system scans         |
-| GET    | `/api/admin/scans/{id}`                     | ✓ (Admin) | —                         | Scan detail and target info   |
-| PATCH  | `/api/admin/scans/{id}`                     | ✓ (Admin) | —                         | Update scan (toggle active)   |
-| GET    | `/api/admin/targets/{id}`                   | ✓ (Admin) | —                         | Shared target detail          |
-| GET    | `/api/admin/audit`                          | ✓ (Admin) | —                         | Immutable audit event log     |
-| GET    | `/api/admin/operations`                     | ✓ (Admin) | —                         | Celery worker states & queue  |
-| GET    | `/api/admin/operations/tasks`               | ✓ (Admin) | —                         | Valkey telemetry stream       |
-| GET    | `/api/admin/operations/tasks/{id}`          | ✓ (Admin) | —                         | Task execution telemetry      |
-| GET    | `/api/admin/trends`                         | ✓ (Admin) | —                         | Prometheus metrics proxy      |
+| Method | Path                                        | Auth      | Invitation (when enabled) | Purpose                        |
+| ------ | ------------------------------------------- | --------- | ------------------------- | ------------------------------ |
+| GET    | `/api/search?query=`                        | —         | —                         | Search campgrounds/rec areas   |
+| GET    | `/api/providers`                            | —         | —                         | List providers                 |
+| GET    | `/api/provider/{id}`                        | —         | —                         | Single provider                |
+| GET    | `/api/campground/{provider}/{id}`           | —         | —                         | Single campground              |
+| GET    | `/api/rec-area/{provider}/{id}`             | —         | —                         | Single rec area                |
+| GET    | `/api/rec-area/{provider}/{id}/campgrounds` | —         | —                         | Campgrounds in rec area        |
+| GET    | `/api/me`                                   | ✓         | —                         | Current user profile           |
+| PATCH  | `/api/me`                                   | ✓         | —                         | Update profile                 |
+| POST   | `/api/change-password`                      | ✓         | —                         | Change password (session)      |
+| GET    | `/api/scans`                                | ✓         | ✓                         | List user scans                |
+| POST   | `/api/scans`                                | ✓         | ✓                         | Create scan                    |
+| GET    | `/api/scans/{id}`                           | ✓         | ✓                         | Scan detail                    |
+| PATCH  | `/api/scans/{id}`                           | ✓         | ✓                         | Update scan                    |
+| DELETE | `/api/scans/{id}`                           | ✓         | ✓                         | Delete scan                    |
+| GET    | `/api/health`                               | —         | —                         | Health check                   |
+| GET    | `/api/admin/overview`                       | ✓ (Admin) | —                         | Admin KPI overview             |
+| GET    | `/api/admin/users`                          | ✓ (Admin) | —                         | List users with status         |
+| POST   | `/api/admin/users`                          | ✓ (Admin) | —                         | Create user with credentials   |
+| GET    | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | User details and audit         |
+| PATCH  | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | Update user (toggle scanning)  |
+| GET    | `/api/admin/scans`                          | ✓ (Admin) | —                         | List all system scans          |
+| GET    | `/api/admin/scans/{id}`                     | ✓ (Admin) | —                         | Scan detail and target info    |
+| PATCH  | `/api/admin/scans/{id}`                     | ✓ (Admin) | —                         | Update scan (toggle active)    |
+| GET    | `/api/admin/targets/{id}`                   | ✓ (Admin) | —                         | Shared target detail           |
+| GET    | `/api/admin/audit`                          | ✓ (Admin) | —                         | Immutable audit event log      |
+| GET    | `/api/admin/operations`                     | ✓ (Admin) | —                         | Celery worker states & queue   |
+| GET    | `/api/admin/operations/tasks`               | ✓ (Admin) | —                         | Valkey telemetry stream        |
+| GET    | `/api/admin/operations/tasks/{id}`          | ✓ (Admin) | —                         | Task execution telemetry       |
+| POST   | `/api/admin/operations/sync-providers`      | ✓ (Admin) | —                         | Dispatch provider catalog sync |
+| GET    | `/api/admin/trends`                         | ✓ (Admin) | —                         | Prometheus metrics proxy       |
 
 ### Admin contract and monitoring availability
 

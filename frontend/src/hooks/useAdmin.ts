@@ -13,6 +13,7 @@ import {
   getAdminOperations,
   listAdminOperationsTasks,
   getAdminOperationsTask,
+  syncAdminProviders,
   getAdminTrends,
 } from "@/lib/api";
 import type {
@@ -185,6 +186,19 @@ export function useAdminOperationsTask(taskId: string) {
     queryKey: ["admin", "operations", "tasks", taskId],
     queryFn: () => getAdminOperationsTask(taskId),
     enabled: Boolean(taskId),
+  });
+}
+
+export function useSyncAdminProviders() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: syncAdminProviders,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "operations"] });
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "operations", "tasks"],
+      });
+    },
   });
 }
 

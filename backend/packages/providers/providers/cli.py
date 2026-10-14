@@ -24,23 +24,32 @@ rich.traceback.install(
 )
 @click.option(
     "--provider-id",
-    type=click.Choice([str(provider_id) for provider_id in PROVIDERS]),
+    type=click.Choice([str(provider_id) for provider_id in PROVIDERS] + ["all"]),
     default="1",
     show_default=True,
-    help="Provider ID to populate; use --help to list supported providers.",
+    help="Provider ID to populate, or 'all' for all providers; use --help to list supported providers.",
 )
 def populate_database(provider_id: str) -> None:
     """
-    Populate the Database with Provider Data
+    Populate the Database with Provider Data.
+
+    Parameters
+    ----------
+    provider_id : str
+        Specific provider ID to populate, or 'all' to populate all registered providers.
     """
 
     async def populate() -> None:
-        """Populate the selected provider and release its HTTP connections."""
-        provider = PROVIDERS[int(provider_id)]()
-        try:
-            await provider.populate_database()
-        finally:
-            await provider.async_client.aclose()
+        """Populate the selected provider (or all providers) and release HTTP connections."""
+        target_ids = (
+            list(PROVIDERS.keys()) if provider_id == "all" else [int(provider_id)]
+        )
+        for pid in target_ids:
+            provider = PROVIDERS[pid]()
+            try:
+                await provider.populate_database()
+            finally:
+                await provider.async_client.aclose()
 
     asyncio.run(populate())
 
