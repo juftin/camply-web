@@ -88,6 +88,7 @@ SCAN_RESULTS_STORED_TOTAL = Counter(
 UNIQUE_TARGETS_CHECKED = Gauge(
     f"{METRICS_PREFIX}_unique_targets_checked",
     "Number of unique targets checked",
+    multiprocess_mode="livesum",
 )
 
 CAMPGROUND_API_ERRORS_TOTAL = Counter(

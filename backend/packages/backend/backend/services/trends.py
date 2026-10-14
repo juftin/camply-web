@@ -166,7 +166,7 @@ async def get_admin_trends(
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "camply_registered_users_total",
+                        "max(camply_registered_users_total)",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -235,7 +235,7 @@ async def get_admin_trends(
                     res_active = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "camply_active_scans",
+                        "max(camply_active_scans)",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -243,7 +243,7 @@ async def get_admin_trends(
                     res_eligible = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "camply_eligible_scans",
+                        "max(camply_eligible_scans)",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -269,7 +269,7 @@ async def get_admin_trends(
                     res_targets = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "camply_total_unique_targets",
+                        "max(camply_total_unique_targets)",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -277,7 +277,7 @@ async def get_admin_trends(
                     res_elig_targets = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "camply_eligible_targets",
+                        "max(camply_eligible_targets)",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -620,7 +620,7 @@ async def get_admin_trends(
                     res_disc = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "rate(camply_targets_discovered_total[1m]) * 60",
+                        "sum(rate(camply_targets_discovered_total[1m])) * 60",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -628,7 +628,7 @@ async def get_admin_trends(
                     res_enq = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "rate(camply_targets_enqueued_total[1m]) * 60",
+                        "sum(rate(camply_targets_enqueued_total[1m])) * 60",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -654,7 +654,7 @@ async def get_admin_trends(
                     res_stored = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "rate(camply_scan_results_stored_total[1m]) * 60",
+                        "sum(rate(camply_scan_results_stored_total[1m])) * 60",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -662,7 +662,7 @@ async def get_admin_trends(
                     res_notif = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "rate(camply_notifications_sent_total[1m]) * 60",
+                        "sum(rate(camply_notifications_sent_total[1m])) * 60",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -724,7 +724,7 @@ async def get_admin_trends(
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "rate(camply_targets_checked_total[1m]) * 60",
+                        "sum(rate(camply_targets_checked_total[1m])) * 60",
                         start_ts,
                         end_ts,
                         step_sec,

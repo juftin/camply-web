@@ -279,3 +279,45 @@ async def test_outage_retains_last_successful_trends() -> None:
     assert not stale.available
     assert stale.metrics == healthy.metrics
     assert stale.last_successful_at == healthy.last_successful_at
+
+
+@pytest.mark.asyncio
+async def test_trends_promql_aggregates_across_workers() -> None:
+    """
+    Verify PromQL queries for global gauges and worker rates use aggregation.
+
+    Guarantees that multi-process workers (Gunicorn/Celery) do not produce
+    duplicate series in charts and legends.
+    """
+    from typing import Any
+
+    executed_queries: list[str] = []
+
+    async def fake_query(
+        client: httpx.AsyncClient,
+        prometheus_url: str,
+        query: str,
+        start: float,
+        end: float,
+        step: int,
+    ) -> list[dict[str, Any]]:
+        executed_queries.append(query)
+        return [{"metric": {}, "values": []}]
+
+    with patch(
+        "backend.services.trends._query_prometheus_range",
+        side_effect=fake_query,
+    ):
+        await get_admin_trends(group="usage", range_param="24h")
+        await get_admin_trends(group="worker", range_param="24h")
+
+    assert "max(camply_registered_users_total)" in executed_queries
+    assert "max(camply_active_scans)" in executed_queries
+    assert "max(camply_eligible_scans)" in executed_queries
+    assert "max(camply_total_unique_targets)" in executed_queries
+    assert "max(camply_eligible_targets)" in executed_queries
+    assert "sum(rate(camply_targets_discovered_total[1m])) * 60" in executed_queries
+    assert "sum(rate(camply_targets_enqueued_total[1m])) * 60" in executed_queries
+    assert "sum(rate(camply_scan_results_stored_total[1m])) * 60" in executed_queries
+    assert "sum(rate(camply_notifications_sent_total[1m])) * 60" in executed_queries
+    assert "sum(rate(camply_targets_checked_total[1m])) * 60" in executed_queries
