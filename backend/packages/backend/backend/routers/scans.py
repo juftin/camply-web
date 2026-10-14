@@ -12,11 +12,13 @@ All endpoints are auth-gated through the ``CurrentUserDep`` dependency:
 
 from __future__ import annotations
 
+import datetime
 import uuid
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -100,6 +102,84 @@ async def _scan_to_response(
         found_count=found_count,
         created_at=scan.created_at,
     )
+
+
+async def _get_or_create_target(
+    session: AsyncSession,
+    *,
+    provider_id: int,
+    campground_id: str,
+    start_date: datetime.date,
+    end_date: datetime.date,
+) -> UniqueTargetDB:
+    """Reuse a shared target, including when another user creates it concurrently."""
+    target_hash = UniqueTargetDB.calculate_hash(
+        provider_id, campground_id, start_date, end_date
+    )
+    query = select(UniqueTargetDB).where(UniqueTargetDB.hash == target_hash)
+    target = await session.scalar(query)
+    if target is not None:
+        return target
+
+    try:
+        async with session.begin_nested():
+            target = UniqueTargetDB(
+                provider_id=provider_id,
+                campground_id=campground_id,
+                start_date=start_date,
+                end_date=end_date,
+            )
+            session.add(target)
+            await session.flush()
+    except IntegrityError:
+        existing = await session.scalar(query)
+        if existing is None:
+            raise
+        return existing
+    return target
+
+
+async def _edited_target(
+    session: AsyncSession, scan: UserScanDB, body: ScanUpdateRequest
+) -> UniqueTargetDB:
+    """Validate merged target fields and relink without modifying other subscribers."""
+    provider_id = (
+        body.provider_id if body.provider_id is not None else scan.target.provider_id
+    )
+    campground_id = (
+        body.campground_id
+        if body.campground_id is not None
+        else scan.target.campground_id
+    )
+    start_date = (
+        body.start_date if body.start_date is not None else scan.target.start_date
+    )
+    end_date = body.end_date if body.end_date is not None else scan.target.end_date
+    if end_date <= start_date:
+        raise HTTPException(status_code=422, detail="Check-out must be after check-in")
+    if await _lookup_campground(session, provider_id, campground_id) is None:
+        raise HTTPException(status_code=404, detail="Campground not found for provider")
+
+    target = await _get_or_create_target(
+        session,
+        provider_id=provider_id,
+        campground_id=campground_id,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    existing = await session.scalar(
+        select(UserScanDB.id).where(
+            UserScanDB.user_id == scan.user_id,
+            UserScanDB.target_id == target.id,
+            UserScanDB.id != scan.id,
+        )
+    )
+    if existing is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="A scan for this campground and date range already exists",
+        )
+    return target
 
 
 # ---------------------------------------------------------------------------
@@ -225,22 +305,13 @@ async def create_scan(
         )
 
     # Check / create unique target (de-duplication)
-    target_hash = UniqueTargetDB.calculate_hash(
-        body.provider_id, body.campground_id, body.start_date, body.end_date
+    target = await _get_or_create_target(
+        session,
+        provider_id=body.provider_id,
+        campground_id=body.campground_id,
+        start_date=body.start_date,
+        end_date=body.end_date,
     )
-    result = await session.execute(
-        select(UniqueTargetDB).where(UniqueTargetDB.hash == target_hash)
-    )
-    target = result.scalar_one_or_none()
-    if target is None:
-        target = UniqueTargetDB(
-            provider_id=body.provider_id,
-            campground_id=body.campground_id,
-            start_date=body.start_date,
-            end_date=body.end_date,
-        )
-        session.add(target)
-        await session.flush()  # get the generated UUID and hash
 
     # Check for duplicate scan (same user + same target)
     existing = await session.execute(
@@ -357,11 +428,16 @@ async def update_scan(
     current_user: CurrentUserDep,
     session: SessionDep,
 ) -> ScanResponse:
-    """Update scan filters or toggle ``is_active``."""
+    """Edit a subscription's target and filters or toggle ``is_active``."""
+
+    # Serialize edits against creation and suspension for this owner.
+    user_row = await session.scalar(
+        select(UserDB).where(UserDB.id == current_user.id).with_for_update()
+    )
 
     result = await session.execute(
         select(UserScanDB)
-        .options(joinedload(UserScanDB.target))
+        .options(joinedload(UserScanDB.target).joinedload(UniqueTargetDB.scan_results))
         .where(UserScanDB.id == scan_id, UserScanDB.user_id == current_user.id)
     )
     scan = result.unique().scalar_one_or_none()
@@ -371,18 +447,22 @@ async def update_scan(
             detail="Scan not found",
         )
 
-    if body.is_active is True:
-        user_stmt = select(UserDB).where(UserDB.id == current_user.id).with_for_update()
-        user_res = await session.execute(user_stmt)
-        user_row = user_res.scalar_one_or_none()
-        if user_row is None or not user_row.scanning_enabled:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "error": "ERR_SCANNING_DISABLED",
-                    "message": "Scanning is currently disabled for this account.",
-                },
-            )
+    if body.is_active is True and (user_row is None or not user_row.scanning_enabled):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "ERR_SCANNING_DISABLED",
+                "message": "Scanning is currently disabled for this account.",
+            },
+        )
+
+    if body.model_fields_set & {
+        "provider_id",
+        "campground_id",
+        "start_date",
+        "end_date",
+    }:
+        scan.target = await _edited_target(session, scan, body)
 
     if body.is_active is not None:
         scan.is_active = body.is_active
@@ -404,6 +484,7 @@ async def update_scan(
         scan,
         campground_name=cg.name if cg else "",
         rec_area_name=cg.recreation_area.name if cg and cg.recreation_area else "",
+        found_count=len({result.campsite_id for result in scan.target.scan_results}),
     )
 
 

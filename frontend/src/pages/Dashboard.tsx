@@ -80,11 +80,7 @@ export function Dashboard() {
 
   const handleDelete = useCallback(
     async (scanId: string) => {
-      try {
-        await deleteScan.mutateAsync(scanId);
-      } catch {
-        // error is surfaced via the mutation state
-      }
+      await deleteScan.mutateAsync(scanId);
     },
     [deleteScan],
   );

@@ -279,6 +279,60 @@ const SCENARIOS: Scenario[] = [
       "Dashboard empty state when user has zero active scans (Desktop, Light)",
   },
   {
+    name: "scan-edit-dialog-desktop-light",
+    route: "/dashboard",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description: "Edit scan dialog prefilled with saved dates and filters",
+    action: async (page: Page) => {
+      await page
+        .getByRole("button", { name: "Edit scan", exact: true })
+        .first()
+        .click();
+      await page.getByRole("dialog", { name: "Edit Scan" }).waitFor();
+    },
+  },
+  {
+    name: "scan-edit-dialog-mobile-dark",
+    route: "/dashboard",
+    viewport: { width: 390, height: 844 },
+    theme: "dark",
+    description: "Edit scan dialog fits a mobile viewport in dark mode",
+    action: async (page: Page) => {
+      await page
+        .getByRole("button", { name: "Edit scan", exact: true })
+        .first()
+        .click();
+      await page.getByRole("dialog", { name: "Edit Scan" }).waitFor();
+    },
+  },
+  {
+    name: "scan-delete-error-desktop-light",
+    route: "/dashboard",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description: "Delete failure stays in its confirmation dialog for retry",
+    action: async (page: Page) => {
+      await page.route("**/api/scans/scan-mock-1", (route) =>
+        route.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({
+            detail: "Unable to delete scan. Please try again.",
+          }),
+        }),
+      );
+      await page
+        .getByRole("button", { name: "Delete scan", exact: true })
+        .first()
+        .click();
+      await page.getByRole("button", { name: "Delete", exact: true }).click();
+      await page.getByRole("alert").waitFor();
+      if (new URL(page.url()).pathname !== "/dashboard")
+        throw new Error("Deleting navigated away from the dashboard");
+    },
+  },
+  {
     name: "scan-form-dialog-desktop-light",
     route: "/dashboard",
     viewport: { width: 1280, height: 800 },

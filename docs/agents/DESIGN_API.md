@@ -61,7 +61,7 @@ Session cookies include a credential version derived by HMAC from the current sa
   - **Logic**: Backend calculates the target `hash`, creates/links the `UniqueTarget` (de-duplication), and creates the `UserScan`.
   - Returns `201 Created` on success, `409 Conflict` if a duplicate scan exists.
 - **`GET /api/scans/{id}`**: Detailed view of a scan, including recent `scan_results`.
-- **`PATCH /api/scans/{id}`**: Update scan filters (`min_stay_length`, `preferred_types`, `require_electric`) or toggle `is_active`.
+- **`PATCH /api/scans/{id}`**: Edit the campground/provider, dates, filters (`min_stay_length`, `preferred_types`, `require_electric`), or toggle `is_active`. All fields are optional. Target changes validate the merged date range and campground, then relink only this subscription to a new or existing `UniqueTarget`; shared targets and other subscribers remain unchanged. Duplicate subscriptions return `409`, invalid date ranges return `422`, and unknown campgrounds return `404`. Editing preserves the scan ID, creation date, and active preference unless explicitly changed. Suspended users can edit saved scans, but cannot resume them.
 - **`DELETE /api/scans/{id}`**: Unsubscribe from a scan (returns `204 No Content`).
 
 ### 4. Administration & Operations (Admin-Only)

@@ -19,10 +19,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useCreateScan } from "@/hooks/useScans";
+import { useCreateScan, useUpdateScan } from "@/hooks/useScans";
 import { useAuth } from "@/hooks/useAuth";
 import { getApiErrorMessage, searchCampgrounds } from "@/lib/api";
-import type { Campground, SearchResult } from "@/lib/structs";
+import type { Campground, ScanResponse, SearchResult } from "@/lib/structs";
 import {
   addDays,
   daysBetween,
@@ -56,11 +56,13 @@ const scanFormSchema = z
 type ScanFormValues = z.input<typeof scanFormSchema>;
 
 interface ScanFormProps {
+  /** Saved scan to edit; omitted when creating a scan. */
+  scan?: ScanResponse;
   /** If a ParkSearch result was selected, pre-fill campground details. */
   preselectedCampground?: Campground;
   preselectedProviderId?: number;
   /** Otherwise, allow searching from within the dialog. */
-  /** Called after successful creation. */
+  /** Called after successfully saving. */
   onSuccess?: () => void;
   /** Trigger element (defaults to a "New Scan" button). */
   trigger?: ReactNode;
@@ -82,17 +84,22 @@ const CAMPSITE_TYPES = [
 // ---------------------------------------------------------------------------
 
 export function ScanForm({
+  scan,
   preselectedCampground,
   preselectedProviderId,
   onSuccess,
   trigger,
 }: ScanFormProps) {
   const [open, setOpen] = useState(false);
-  const [campground, setCampground] = useState<Campground | null>(
-    preselectedCampground ?? null,
-  );
+  const initialCampground = scan
+    ? { id: scan.campground_id, name: scan.campground_name }
+    : (preselectedCampground ?? null);
+  const [campground, setCampground] = useState<Pick<
+    Campground,
+    "id" | "name"
+  > | null>(initialCampground);
   const [providerId, setProviderId] = useState<number>(
-    preselectedProviderId ?? 0,
+    scan?.provider_id ?? preselectedProviderId ?? 0,
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -102,6 +109,15 @@ export function ScanForm({
 
   const { user } = useAuth();
   const createScan = useCreateScan();
+  const updateScan = useUpdateScan();
+  const isPending = createScan.isPending || updateScan.isPending;
+  const defaultValues = {
+    start_date: scan?.start_date ?? "",
+    end_date: scan?.end_date ?? "",
+    min_stay_length: scan?.min_stay_length ?? 1,
+    require_electric: scan?.require_electric ?? false,
+    preferred_types: scan?.preferred_types ?? [],
+  };
   const {
     register,
     handleSubmit,
@@ -111,13 +127,7 @@ export function ScanForm({
     formState: { errors },
   } = useForm<ScanFormValues>({
     resolver: zodResolver(scanFormSchema) as never,
-    defaultValues: {
-      start_date: "",
-      end_date: "",
-      min_stay_length: 1,
-      require_electric: false,
-      preferred_types: [],
-    },
+    defaultValues,
   });
 
   useEffect(() => {
@@ -181,17 +191,7 @@ export function ScanForm({
   const selectCampground = (result: SearchResult) => {
     setCampground({
       id: result.campground_id ?? "",
-      provider_id: result.provider_id,
-      recreation_area_id: result.recreation_area_id,
       name: result.campground_name ?? result.recreation_area_name ?? "",
-      description: null,
-      country: null,
-      state: null,
-      longitude: null,
-      latitude: null,
-      reservable: true,
-      enabled: true,
-      url: "",
     });
     setProviderId(result.provider_id);
     setSearchTerm(result.campground_name ?? result.recreation_area_name ?? "");
@@ -212,13 +212,14 @@ export function ScanForm({
 
   // ---- Submit ----
   const onSubmit = async (data: ScanFormValues) => {
+    if (isPending) return;
     if (!campground) {
       setError("Please select a campground first");
       return;
     }
     setError(null);
     try {
-      await createScan.mutateAsync({
+      const payload = {
         provider_id: providerId,
         campground_id: campground.id,
         start_date: data.start_date,
@@ -226,7 +227,12 @@ export function ScanForm({
         min_stay_length: Number(data.min_stay_length),
         preferred_types: data.preferred_types,
         require_electric: data.require_electric,
-      });
+      };
+      if (scan) {
+        await updateScan.mutateAsync({ scanId: scan.id, payload });
+      } else {
+        await createScan.mutateAsync(payload);
+      }
       reset();
       setCampground(null);
       setSearchTerm("");
@@ -238,6 +244,14 @@ export function ScanForm({
   };
 
   const handleOpenChange = (newOpen: boolean) => {
+    if (isPending) return;
+    if (newOpen) {
+      reset(defaultValues);
+      setCampground(initialCampground);
+      setProviderId(scan?.provider_id ?? preselectedProviderId ?? 0);
+      setSearchTerm("");
+      setSearchResults([]);
+    }
     setOpen(newOpen);
     if (!newOpen) {
       setError(null);
@@ -251,13 +265,15 @@ export function ScanForm({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        {trigger ?? <Button>New Scan</Button>}
+        {trigger ?? <Button>{scan ? "Edit Scan" : "New Scan"}</Button>}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create a New Scan</DialogTitle>
+          <DialogTitle>{scan ? "Edit Scan" : "Create a New Scan"}</DialogTitle>
           <DialogDescription>
-            Monitor a campground for cancellations.
+            {scan
+              ? "Update your campground, dates, and campsite preferences."
+              : "Monitor a campground for cancellations."}
           </DialogDescription>
         </DialogHeader>
 
@@ -450,7 +466,10 @@ export function ScanForm({
 
           {/* ---- Error ---- */}
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <div
+              role="alert"
+              className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+            >
               {error}
             </div>
           )}
@@ -468,6 +487,7 @@ export function ScanForm({
             <Button
               type="button"
               variant="outline"
+              disabled={isPending}
               onClick={() => handleOpenChange(false)}
             >
               Cancel
@@ -475,16 +495,18 @@ export function ScanForm({
             <Button
               type="submit"
               disabled={
-                createScan.isPending ||
+                isPending ||
                 !hasCampground ||
-                user?.scanning_enabled === false
+                (!scan && user?.scanning_enabled === false)
               }
             >
-              {createScan.isPending ? (
+              {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
+                  {scan ? "Saving..." : "Creating..."}
                 </>
+              ) : scan ? (
+                "Save Changes"
               ) : (
                 "Create Scan"
               )}
