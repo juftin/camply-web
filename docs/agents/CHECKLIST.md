@@ -168,6 +168,7 @@ Feature specification: [Open-Source Maps & Explore Map View](../../specs/007-ope
 - [x] T3.3.2a Generate dependency-ordered [implementation tasks](../../specs/007-open-source-explore-maps/tasks.md) for the mapping plan, including story acceptance checks and live database/browser validation.
 - [x] T3.3.3 Replace existing detail maps and add responsive Explore mapping with a collapsible map stacked above the list, filter parity, pagination-independent discovery, and detail/monitor actions.
 - [x] T3.3.4 Verify coordinate handling, overlapping/provider-qualified identities, loading and failure recovery, navigation, accessibility, performance, and visual coverage; update mapping setup documentation.
+- [x] T3.3.5 Remove the redundant matching-locations/in-view count above Explore's map and refresh visual coverage.
 
 ---
 

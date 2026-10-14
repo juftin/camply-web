@@ -85,3 +85,9 @@ Rebased onto current main, retaining live Explore's debounced input, immediate p
 The integrated full suite passed: 549 backend tests and 277 frontend tests, with the normal opt-in integrations skipped. `task search:smoke` passed all nine PostgreSQL migration/index/ranking checks. `task maps:verify` passed both PostgreSQL and real API/Chromium checks. All 4,998 mappable records were reachable with 265 world features and member pages capped at 100; initial usable map was 937 ms, selection 41 ms, and members 109 ms on the controlled local fixture. WebGL recovery, custom source settings, and the production static subpath passed with zero unexpected browser errors.
 
 `task fix`, `task lint`, `task check`, and `task api:check` passed after integration. The targeted router/model regressions passed all 29 tests. `task snapshot:check` passed all 67 views against the reviewed baselines. The all-files hooks passed after formatting the completed snapshot report. All 55 implementation tasks are complete.
+
+## Explore Count Simplification (2026-10-14)
+
+Removed the redundant matching-locations/in-view count above the map. Reviewed and refreshed eight Explore/search baselines; the other 59 views were unchanged. The full suite passed (549 backend and 277 frontend tests), along with lint and type checks.
+
+`task snapshot:check` passed all 67 views against the refreshed baselines. All 56 implementation tasks are complete.

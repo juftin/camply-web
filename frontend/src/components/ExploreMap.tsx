@@ -164,10 +164,6 @@ export const ExploreMap = ({ params, saved, onSave }: Props) => {
     return <p role="status">No places match your search.</p>;
   return (
     <section aria-label="Explore map" className="space-y-3 min-w-0">
-      <p className="text-sm" aria-live="polite">
-        {summary.data?.mappable_total} matching places with locations
-        {features.data ? ` · ${features.data.represented_total} in view` : ""}
-      </p>
       {!!summary.data?.unmappable_total && (
         <p className="text-sm text-muted-foreground">
           {summary.data.unmappable_total} matching{" "}

@@ -220,3 +220,5 @@ Deliver US1 first as the independently demonstrable mapping-replacement MVP. Add
 Use the final real-database/browser checks to confirm the design's bounds and performance rather than infer them from mocked unit tests. Do not add indexes, caches, persistent geometry, or additional infrastructure unless measurement demonstrates the need and the plan is updated accordingly. Updating task status records implementation evidence; this document's creation records only readiness to implement.
 
 - [x] T055 Integrate current main live Explore search and indexed PostgreSQL matching; share transaction-local fuzzy threshold setup across list and map queries, preserve explicit false amenity filters, debounce/cancellation, history and pagination behavior, then rerun verification.
+
+- [x] T056 Remove the redundant matching-locations/in-view count above Explore's map and update affected visual baselines.

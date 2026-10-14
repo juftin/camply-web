@@ -7,7 +7,7 @@
 - At every width, the expanded map appears above the usable result list in a vertical stack; filters remain accessible. Validate at 375px and 1440px.
 - Filters and list page survive reload/shared links and browser back/forward, with the list available whether the map is expanded or collapsed. Extent need only survive the current Explore visit and must survive collapse/reopen for unchanged filters. Save the camera immediately on movement; debounce only viewport requests. Changing filters while collapsed must fit the new matching set when reopened. Selection is ephemeral.
 - Opening Explore first fits the global filtered mappable bounds. Later fits occur only on filter changes; pan/zoom, list page/sort, scan dialog opening/closing, and resize do not trigger a fresh global fit.
-- Display total matches and unmappable matches from summary, and label visible represented matches separately. Group counts count places, not available campsites.
+- Keep the overall result total in the list summary; omit the redundant mappable/visible count line above the map. Explain unmappable matches when present. Group counts count places, not available campsites.
 
 ## Locations, Groups, and Actions
 
