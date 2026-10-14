@@ -64,6 +64,10 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 - **Delete**: Each scan card has an accessible delete button and confirmation dialog. Card controls sit outside the detail link. Confirmation awaits the request, disables repeat submissions while pending, and keeps failures visible in the dialog for retry; success refreshes the dashboard.
 - **Detail View**: Clicking through from the dashboard is routed to a dedicated detail view.
 
+### Explore (`/search`)
+
+Typing searches the backend after a 300 ms pause. Filters and explicit Search submission immediately apply the current input, including typing that has not yet settled. Query and filter changes reset pagination; URL parameters preserve the query, filters, sort, and page for links and browser navigation. TanStack Query passes abort signals through Axios to cancel obsolete requests. Previous cards remain visible during refresh, with a searching/updating status; pagination is disabled until current results arrive. Failed requests offer Retry.
+
 ### 5. Administration & Operations (`/admin/*`)
 
 - **AdminRoute Guard**: Protects `/admin/*` routes, checking `user.is_admin`. Non-admin users are denied access.

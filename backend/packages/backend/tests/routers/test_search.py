@@ -93,3 +93,22 @@ class TestSearchExplore:
         assert "providers" in data["facets"]
         assert "states" in data["facets"]
         assert "entity_types" in data["facets"]
+
+
+class TestSearchBounds:
+    """Bound live-search requests without changing successful response shapes."""
+
+    def test_search_limit_bounds(self, test_client: TestClient) -> None:
+        """Reject limits that exceed the supported autocomplete range."""
+        for limit in (0, -1, 101):
+            response = test_client.get(
+                "/api/search", params={"q": "Pines", "limit": limit}
+            )
+            assert response.status_code == 422
+
+    def test_search_query_bounds(self, test_client: TestClient) -> None:
+        """Bound token work for both endpoints and query aliases."""
+        for path in ("/api/search", "/api/search/explore"):
+            for alias in ("q", "query"):
+                response = test_client.get(path, params={alias: "x" * 201})
+                assert response.status_code == 422

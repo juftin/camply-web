@@ -251,7 +251,10 @@ def test_build_text_search_postgres_compilation() -> None:
     stmt = select(Search, total_score).where(text_filter)
     compiled = str(stmt.compile(dialect=postgresql.dialect()))
 
-    assert "similarity(" in compiled
+    assert "to_tsvector(" in compiled
+    assert "ts_rank_cd(" in compiled
+    assert "@@" in compiled
+    assert "%>" in compiled
     assert "word_similarity(" in compiled
     assert "greatest(" in compiled
 
@@ -269,3 +272,48 @@ def test_build_text_search_empty_term() -> None:
     )
     assert text_filter is None
     assert total_score is None
+
+
+@pytest.mark.asyncio
+async def test_search_keeps_short_location_tokens(
+    async_session: AsyncSession, seeded_search_data: list[Search]
+) -> None:
+    """A state token remains required even alongside a campground name."""
+    rows, total, _ = await Search.search(session=async_session, term="Pines CO")
+    assert rows == []
+    assert total == 0
+
+
+@pytest.mark.asyncio
+async def test_search_punctuation_is_not_a_wildcard(
+    async_session: AsyncSession, seeded_search_data: list[Search]
+) -> None:
+    """SQL wildcard punctuation never turns a query into a catalog-wide match."""
+    rows, total, _ = await Search.search(session=async_session, term="%_!")
+    assert rows == []
+    assert total == 0
+
+
+@pytest.mark.asyncio
+async def test_search_false_amenity_filter(
+    async_session: AsyncSession, seeded_search_data: list[Search]
+) -> None:
+    """Explicit negative filters exclude rows that have the selected amenity."""
+    rows, total, _ = await Search.search(session=async_session, pets_allowed=False)
+    assert total == 1
+    assert rows[0].campground_name == "Lower Pines"
+
+
+@pytest.mark.asyncio
+async def test_autocomplete_avoids_aggregate_queries(
+    async_session: AsyncSession, seeded_search_data: list[Search]
+) -> None:
+    """Autocomplete fetches matching rows without counts or facet aggregations."""
+    from unittest.mock import AsyncMock, patch
+
+    with patch.object(
+        async_session, "execute", new=AsyncMock(wraps=async_session.execute)
+    ) as execute:
+        rows = await Search.algorithm(session=async_session, term="Pines")
+    assert len(rows) == 2
+    assert execute.await_count == 1

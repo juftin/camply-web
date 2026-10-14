@@ -94,6 +94,15 @@ jobs:
       - uses: ./.github/actions/setup-frontend
       - run: task api:check
 
+  search-smoke:
+    name: PostgreSQL Search
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0
+      - uses: ./.github/actions/setup-backend
+      - run: task search:smoke
+
   admin-smoke:
     name: Admin Live Smoke
     runs-on: ubuntu-latest

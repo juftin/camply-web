@@ -5,6 +5,7 @@ Search
 from __future__ import annotations
 
 import math
+import re
 from collections.abc import Sequence
 from typing import Any, Self
 
@@ -17,17 +18,17 @@ from sqlalchemy import (
     String,
     and_,
     case,
+    false,
     func,
+    literal_column,
     or_,
     select,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql.elements import ColumnElement
 
 from db.models.base import Base
-
-MIN_SEARCH_TOKEN_LENGTH: int = 2
-"""Minimum character length for query tokens in full-text search matching."""
 
 MILES_PER_LATITUDE_DEGREE: float = 69.0
 """Approximate miles per degree of latitude for bounding box calculation."""
@@ -35,32 +36,50 @@ MILES_PER_LATITUDE_DEGREE: float = 69.0
 MAX_FACET_STATES: int = 50
 """Maximum number of unique states returned in search facet aggregations."""
 
-PG_TRGM_SIMILARITY_THRESHOLD: float = 0.3
-"""Similarity threshold for pg_trgm fuzzy matching."""
+PG_WORD_SIMILARITY_THRESHOLD: str = "0.5"
+"""Transaction-local typo threshold, allowing a single missing letter in short names."""
 
-PG_TRGM_SCORE_MULTIPLIER: float = 100.0
-"""Score multiplier for pg_trgm similarity values."""
+MIN_FUZZY_TOKEN_LENGTH: int = 4
+"""Require four characters before allowing typo matches."""
 
-EXACT_MATCH_SCORE: int = 100
-"""Score awarded for an exact string match."""
 
-PREFIX_MATCH_SCORE: int = 75
-"""Score awarded for a prefix string match."""
+def _search_vector(cls: type[Search]) -> Any:
+    """Build the weighted native search vector, matching the PostgreSQL GIN index.
 
-SUBSTRING_MATCH_SCORE: int = 50
-"""Score awarded for a substring string match."""
+    The simple dictionary preserves proper names and short state codes instead
+    of stemming them or dropping stop words. Literal constants ensure the
+    expression matches the index even when PostgreSQL uses a generic plan.
+    """
+    config: ColumnElement[str] = literal_column("'simple'::regconfig")
+    empty: ColumnElement[str] = literal_column("''")
+    vectors = [
+        func.setweight(
+            func.to_tsvector(config, func.coalesce(column, empty)),
+            literal_column(f"'{weight}'"),
+        )
+        for column, weight in (
+            (cls.campground_name, "A"),
+            (cls.recreation_area_name, "B"),
+            (cls.city, "C"),
+            (cls.state, "D"),
+        )
+    ]
+    vector: ColumnElement[Any] = vectors[0]
+    for part in vectors[1:]:
+        vector = vector.op("||")(part)
+    return vector
 
-CITY_MATCH_SCORE: int = 30
-"""Score awarded for a city substring match."""
 
-FALLBACK_MATCH_SCORE: int = 10
-"""Fallback match score awarded when a match condition is met."""
-
-RECAREA_ENTITY_SCORE: int = 100
-"""Bonus score awarded to RecreationArea entities."""
-
-CAMPGROUND_ENTITY_SCORE: int = 50
-"""Bonus score awarded to Campground entities."""
+def _name_match_score(cls: type[Search], term: str) -> Any:
+    """Prioritize the displayed name over a match inherited from its parent park."""
+    name = func.lower(func.coalesce(cls.campground_name, cls.recreation_area_name))
+    return case(
+        (name == term, 1000),
+        (name.startswith(term, autoescape=True), 500),
+        (name.contains(term, autoescape=True), 250),
+        (func.lower(cls.recreation_area_name) == term, 100),
+        else_=0,
+    )
 
 
 def _build_attribute_filters(
@@ -114,10 +133,10 @@ def _build_attribute_filters(
         filters.append(cls.entity_type.in_(list(entity_types)))
     if state:
         filters.append(func.upper(cls.state) == state.strip().upper())
-    if has_electric is True:
-        filters.append(cls.has_electric.is_(True))
-    if pets_allowed is True:
-        filters.append(cls.pets_allowed.is_(True))
+    if has_electric is not None:
+        filters.append(cls.has_electric.is_(has_electric))
+    if pets_allowed is not None:
+        filters.append(cls.pets_allowed.is_(pets_allowed))
     if min_rv_length is not None and min_rv_length > 0:
         filters.append(cls.max_rv_length >= min_rv_length)
     if (
@@ -153,49 +172,26 @@ def _build_sqlite_text_search(
     tuple[Any, Any]
         A tuple of (text_filter_expression, total_score_expression).
     """
-    exact = term_cleaned
-    prefix = f"{term_cleaned}%"
-    substring = f"%{term_cleaned}%"
-
-    tokens = [t for t in term_cleaned.split() if len(t) >= MIN_SEARCH_TOKEN_LENGTH]
+    tokens = re.findall(r"[^\W_]+", term_cleaned)
     if not tokens:
-        tokens = [term_cleaned]
-
-    def _token_cond(tok: str) -> Any:
-        tok_sub = f"%{tok}%"
-        return or_(
-            func.lower(cls.recreation_area_name).like(tok_sub),
-            func.lower(cls.campground_name).like(tok_sub),
-            func.lower(cls.city).like(tok_sub),
-            func.lower(cls.state).like(tok_sub),
-        )
-
-    text_filter = (
-        and_(*[_token_cond(tok) for tok in tokens])
-        if len(tokens) > 1
-        else _token_cond(tokens[0])
+        return false(), None
+    text_filter = and_(
+        *[
+            or_(
+                *[
+                    func.lower(column).contains(token, autoescape=True)
+                    for column in (
+                        cls.recreation_area_name,
+                        cls.campground_name,
+                        cls.city,
+                        cls.state,
+                    )
+                ]
+            )
+            for token in tokens
+        ]
     )
-
-    match_score = case(
-        (func.lower(cls.recreation_area_name) == exact, EXACT_MATCH_SCORE),
-        (func.lower(cls.campground_name) == exact, EXACT_MATCH_SCORE),
-        (func.lower(cls.recreation_area_name).like(prefix), PREFIX_MATCH_SCORE),
-        (func.lower(cls.campground_name).like(prefix), PREFIX_MATCH_SCORE),
-        (func.lower(cls.recreation_area_name).like(substring), SUBSTRING_MATCH_SCORE),
-        (func.lower(cls.campground_name).like(substring), SUBSTRING_MATCH_SCORE),
-        (func.lower(cls.city).like(substring), CITY_MATCH_SCORE),
-        else_=FALLBACK_MATCH_SCORE,
-        value=None,
-    ).label("match_score")
-
-    entity_score = case(
-        (cls.entity_type == "RecreationArea", RECAREA_ENTITY_SCORE),
-        (cls.entity_type == "Campground", CAMPGROUND_ENTITY_SCORE),
-        else_=0,
-    ).label("entity_score")
-
-    total_score = (entity_score + match_score).label("total_score")
-    return text_filter, total_score
+    return text_filter, _name_match_score(cls=cls, term=term_cleaned)
 
 
 def _build_postgres_text_search(
@@ -203,10 +199,12 @@ def _build_postgres_text_search(
     term_cleaned: str,
 ) -> tuple[Any, Any]:
     """
-    Build PostgreSQL pg_trgm text match filter and ranking score expression.
+    Build indexed native full-text and per-token typo matching with weighted ranking.
 
-    Combines standard substring matching with trigram similarity thresholding
-    to provide fuzzy typo tolerance and ranking.
+    Every token must match, including tokens spread across names and locations.
+    Trigram operators use the existing name indexes and the city index; numeric
+    similarity predicates would scan rows instead. Full-text prefix matching
+    supports live typing while the simple dictionary preserves proper names.
 
     Parameters
     ----------
@@ -220,98 +218,31 @@ def _build_postgres_text_search(
     tuple[Any, Any]
         A tuple of (text_filter_expression, total_score_expression).
     """
-    exact = term_cleaned
-    prefix = f"{term_cleaned}%"
-    substring = f"%{term_cleaned}%"
-
-    tokens = [t for t in term_cleaned.split() if len(t) >= MIN_SEARCH_TOKEN_LENGTH]
+    tokens = re.findall(r"[^\W_]+", term_cleaned)
     if not tokens:
-        tokens = [term_cleaned]
+        return false(), None
 
-    def _token_cond(tok: str) -> Any:
-        tok_sub = f"%{tok}%"
-        return or_(
-            func.lower(cls.recreation_area_name).like(tok_sub),
-            func.lower(cls.campground_name).like(tok_sub),
-            func.lower(cls.city).like(tok_sub),
-            func.lower(cls.state).like(tok_sub),
-        )
+    config: ColumnElement[str] = literal_column("'simple'::regconfig")
+    vector = _search_vector(cls=cls)
+    token_filters = []
+    fuzzy_scores = []
+    for token in tokens:
+        prefix_query = func.to_tsquery(config, f"{token}:*")
+        matches = [vector.bool_op("@@")(prefix_query)]
+        if len(token) >= MIN_FUZZY_TOKEN_LENGTH:
+            for column in (cls.campground_name, cls.recreation_area_name, cls.city):
+                # %> is the indexable commutator of word_similarity's <% operator.
+                matches.append(column.bool_op("%>")(token))
+                fuzzy_scores.append(func.word_similarity(token, column))
+        token_filters.append(or_(*matches))
 
-    token_filter = (
-        and_(*[_token_cond(tok) for tok in tokens])
-        if len(tokens) > 1
-        else _token_cond(tokens[0])
+    query = func.to_tsquery(config, " & ".join(f"{token}:*" for token in tokens))
+    rank = func.ts_rank_cd(vector, query, 32) * 100
+    fuzzy_rank = func.greatest(*fuzzy_scores) * 10 if fuzzy_scores else 0
+    score = (_name_match_score(cls=cls, term=term_cleaned) + rank + fuzzy_rank).label(
+        "total_score"
     )
-
-    fuzzy_cond = or_(
-        func.similarity(
-            func.lower(func.coalesce(cls.campground_name, "")),
-            term_cleaned,
-        )
-        >= PG_TRGM_SIMILARITY_THRESHOLD,
-        func.similarity(
-            func.lower(func.coalesce(cls.recreation_area_name, "")),
-            term_cleaned,
-        )
-        >= PG_TRGM_SIMILARITY_THRESHOLD,
-        func.word_similarity(
-            term_cleaned,
-            func.lower(func.coalesce(cls.campground_name, "")),
-        )
-        >= PG_TRGM_SIMILARITY_THRESHOLD,
-        func.word_similarity(
-            term_cleaned,
-            func.lower(func.coalesce(cls.recreation_area_name, "")),
-        )
-        >= PG_TRGM_SIMILARITY_THRESHOLD,
-    )
-
-    text_filter = or_(token_filter, fuzzy_cond)
-
-    case_score = case(
-        (func.lower(cls.recreation_area_name) == exact, EXACT_MATCH_SCORE),
-        (func.lower(cls.campground_name) == exact, EXACT_MATCH_SCORE),
-        (func.lower(cls.recreation_area_name).like(prefix), PREFIX_MATCH_SCORE),
-        (func.lower(cls.campground_name).like(prefix), PREFIX_MATCH_SCORE),
-        (func.lower(cls.recreation_area_name).like(substring), SUBSTRING_MATCH_SCORE),
-        (func.lower(cls.campground_name).like(substring), SUBSTRING_MATCH_SCORE),
-        (func.lower(cls.city).like(substring), CITY_MATCH_SCORE),
-        else_=FALLBACK_MATCH_SCORE,
-        value=None,
-    )
-
-    trgm_score = (
-        func.greatest(
-            func.similarity(
-                func.lower(func.coalesce(cls.campground_name, "")),
-                term_cleaned,
-            ),
-            func.similarity(
-                func.lower(func.coalesce(cls.recreation_area_name, "")),
-                term_cleaned,
-            ),
-            func.word_similarity(
-                term_cleaned,
-                func.lower(func.coalesce(cls.campground_name, "")),
-            ),
-            func.word_similarity(
-                term_cleaned,
-                func.lower(func.coalesce(cls.recreation_area_name, "")),
-            ),
-        )
-        * PG_TRGM_SCORE_MULTIPLIER
-    )
-
-    match_score = func.greatest(case_score, trgm_score).label("match_score")
-
-    entity_score = case(
-        (cls.entity_type == "RecreationArea", RECAREA_ENTITY_SCORE),
-        (cls.entity_type == "Campground", CAMPGROUND_ENTITY_SCORE),
-        else_=0,
-    ).label("entity_score")
-
-    total_score = (entity_score + match_score).label("total_score")
-    return text_filter, total_score
+    return and_(*token_filters), score
 
 
 def _build_text_search(
@@ -337,7 +268,7 @@ def _build_text_search(
     tuple[Any | None, Any | None]
         A tuple of (text_filter_expression, total_score_expression).
     """
-    term_cleaned = term.strip().lower()
+    term_cleaned = " ".join(term.lower().split())
     if not term_cleaned:
         return None, None
 
@@ -428,17 +359,28 @@ def _apply_ordering(
     """
     if sort_by == "name_asc":
         return stmt.order_by(
-            func.coalesce(cls.campground_name, cls.recreation_area_name).asc()
+            func.lower(
+                func.coalesce(cls.campground_name, cls.recreation_area_name)
+            ).asc(),
+            cls.id,
         )
     if sort_by == "name_desc":
         return stmt.order_by(
-            func.coalesce(cls.campground_name, cls.recreation_area_name).desc()
+            func.lower(
+                func.coalesce(cls.campground_name, cls.recreation_area_name)
+            ).desc(),
+            cls.id,
         )
     if total_score is not None:
-        return stmt.order_by(total_score.desc(), cls.provider_name)
+        return stmt.order_by(
+            total_score.desc(),
+            func.lower(func.coalesce(cls.campground_name, cls.recreation_area_name)),
+            cls.id,
+        )
     return stmt.order_by(
         cls.provider_name,
-        func.coalesce(cls.campground_name, cls.recreation_area_name).asc(),
+        func.lower(func.coalesce(cls.campground_name, cls.recreation_area_name)).asc(),
+        cls.id,
     )
 
 
@@ -556,6 +498,7 @@ class Search(Base):
         offset: int = 0,
         sort_by: str = "relevance",
         dialect_name: str | None = None,
+        include_metadata: bool = True,
     ) -> tuple[list[Self], int, dict[str, Any]]:
         """
         Execute composable multi-criteria search with total count and facet aggregations.
@@ -592,6 +535,8 @@ class Search(Base):
             Sorting strategy ('relevance', 'name_asc', 'name_desc').
         dialect_name : str | None
             Optional database dialect name override ('postgresql' or 'sqlite').
+        include_metadata : bool
+            Compute totals and facets; disable for autocomplete requests.
 
         Returns
         -------
@@ -614,6 +559,17 @@ class Search(Base):
         bind = session.bind or session.get_bind()
         active_dialect = dialect_name or (bind.dialect.name if bind else "sqlite")
 
+        if active_dialect == "postgresql" and term.strip():
+            await session.execute(
+                select(
+                    func.set_config(
+                        "pg_trgm.word_similarity_threshold",
+                        PG_WORD_SIMILARITY_THRESHOLD,
+                        True,
+                    )
+                )
+            )
+
         text_filter, total_score = _build_text_search(
             cls=cls,
             term=term,
@@ -622,16 +578,14 @@ class Search(Base):
         if text_filter is not None:
             filters.append(text_filter)
 
-        count_stmt = select(func.count(cls.id))
-        if filters:
-            count_stmt = count_stmt.where(and_(*filters))
-        total_count = (await session.execute(count_stmt)).scalar() or 0
-
-        facets = await _compute_facets(
-            cls=cls,
-            session=session,
-            filters=filters,
-        )
+        total_count = 0
+        facets: dict[str, Any] = {}
+        if include_metadata:
+            count_stmt = select(func.count(cls.id))
+            if filters:
+                count_stmt = count_stmt.where(and_(*filters))
+            total_count = (await session.execute(count_stmt)).scalar() or 0
+            facets = await _compute_facets(cls=cls, session=session, filters=filters)
 
         stmt = select(cls, total_score) if total_score is not None else select(cls)
         if filters:
@@ -691,5 +645,6 @@ class Search(Base):
             offset=offset,
             sort_by=sort_by,
             dialect_name=dialect_name,
+            include_metadata=False,
         )
         return rows

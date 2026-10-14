@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import {
   Search,
@@ -41,7 +41,9 @@ export function SearchPage() {
     ? parseInt(searchParams.get("rv")!, 10)
     : 0;
   const sortBy = searchParams.get("sort") || "relevance";
-  const page = parseInt(searchParams.get("page") || "1", 10);
+  const parsedPage = Number(searchParams.get("page") || "1");
+  const page =
+    Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   // Local state for free-text search input
   const [searchInput, setSearchInput] = useState(query);
@@ -62,24 +64,48 @@ export function SearchPage() {
     [query, state, hasElectric, petsAllowed, minRvLength, sortBy, page],
   );
 
-  const { data, isLoading, isFetching, error } =
+  const { data, isLoading, isFetching, isPlaceholderData, error, refetch } =
     useSearchExplore(exploreParams);
 
-  // Update URL helper
+  useEffect(() => {
+    setSearchInput(query);
+  }, [query]);
+
+  useEffect(() => {
+    if (searchInput.trim() === query) return;
+    const timeout = window.setTimeout(() => {
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          if (searchInput.trim()) next.set("q", searchInput.trim());
+          else next.delete("q");
+          next.delete("page");
+          return next;
+        },
+        { replace: true },
+      );
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [searchInput, query, setSearchParams]);
+
+  // Filters commit the current input immediately, including pending typing.
   const updateParams = (updates: Record<string, string | null>) => {
-    const nextParams = new URLSearchParams(searchParams);
-    for (const [key, value] of Object.entries(updates)) {
-      if (value === null || value === "" || value === "0") {
-        nextParams.delete(key);
-      } else {
-        nextParams.set(key, value);
+    setSearchParams((current) => {
+      const nextParams = new URLSearchParams(current);
+      if (!("page" in updates)) {
+        nextParams.delete("page");
+        if (searchInput.trim()) nextParams.set("q", searchInput.trim());
+        else nextParams.delete("q");
       }
-    }
-    // Reset to page 1 unless updating page directly
-    if (!("page" in updates)) {
-      nextParams.delete("page");
-    }
-    setSearchParams(nextParams);
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === null || value === "" || value === "0") {
+          nextParams.delete(key);
+        } else {
+          nextParams.set(key, value);
+        }
+      }
+      return nextParams;
+    });
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -139,7 +165,8 @@ export function SearchPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
-              type="text"
+              type="search"
+              aria-label="Search campgrounds"
               placeholder="Search by campground name, park, or city..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -315,12 +342,16 @@ export function SearchPage() {
         </aside>
 
         {/* Results Section */}
-        <main className="md:col-span-3 space-y-6">
+        <main className="md:col-span-3 space-y-6" aria-busy={isFetching}>
           {/* Results Summary Bar */}
           <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b">
             <div>
-              <p className="text-sm font-medium">
-                {isLoading ? (
+              <p
+                className="text-sm font-medium"
+                role="status"
+                aria-live="polite"
+              >
+                {isLoading || isPlaceholderData ? (
                   <span className="flex items-center gap-2 text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Searching campgrounds...
@@ -353,6 +384,13 @@ export function SearchPage() {
               <CardContent className="p-8 text-center text-red-600">
                 Failed to load campgrounds. Please try again or adjust your
                 filters.
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => void refetch()}
+                >
+                  Retry
+                </Button>
               </CardContent>
             </Card>
           ) : !isLoading && items.length === 0 ? (
@@ -493,12 +531,12 @@ export function SearchPage() {
           )}
 
           {/* Pagination Controls */}
-          {totalPages > 1 && (
+          {!error && totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-6">
               <Button
                 variant="outline"
                 size="sm"
-                disabled={page <= 1}
+                disabled={isFetching || isPlaceholderData || page <= 1}
                 onClick={() => updateParams({ page: String(page - 1) })}
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
@@ -510,7 +548,7 @@ export function SearchPage() {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={page >= totalPages}
+                disabled={isFetching || isPlaceholderData || page >= totalPages}
                 onClick={() => updateParams({ page: String(page + 1) })}
               >
                 Next

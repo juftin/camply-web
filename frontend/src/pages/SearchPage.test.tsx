@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter, useNavigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { SearchPage } from "./SearchPage";
@@ -49,6 +49,16 @@ const mockExploreData: SearchExploreResponse = {
   },
 };
 
+function HistoryControls() {
+  const navigate = useNavigate();
+  return (
+    <>
+      <button onClick={() => navigate(-1)}>Go back</button>
+      <button onClick={() => navigate(1)}>Go forward</button>
+    </>
+  );
+}
+
 function renderSearchPage(initialEntries = ["/search?q=Upper"]) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -58,6 +68,7 @@ function renderSearchPage(initialEntries = ["/search?q=Upper"]) {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={initialEntries}>
         <SearchPage />
+        <HistoryControls />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -118,4 +129,94 @@ describe("SearchPage", () => {
 
     expect(screen.getByText(/Searching campgrounds/i)).toBeInTheDocument();
   });
+});
+
+describe("live Explore", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(searchHook, "useSearchExplore").mockReturnValue({
+      data: mockExploreData,
+      isLoading: false,
+      isFetching: false,
+      error: null,
+    } as unknown as ReturnType<typeof searchHook.useSearchExplore>);
+  });
+
+  it("searches after typing without submitting and resets the page", async () => {
+    vi.useFakeTimers();
+    try {
+      renderSearchPage(["/search?q=Upper&page=3"]);
+      fireEvent.change(screen.getByPlaceholderText(/Search by campground/), {
+        target: { value: "Pines" },
+      });
+      expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+        expect.objectContaining({ query: "Upper", page: 3 }),
+      );
+      await act(async () => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+        expect.objectContaining({ query: "Pines", page: 1 }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("applies filters to the pending query immediately", () => {
+    renderSearchPage();
+    fireEvent.change(screen.getByPlaceholderText(/Search by campground/), {
+      target: { value: "Pines" },
+    });
+    fireEvent.click(screen.getByRole("switch", { name: "Electric Hookups" }));
+    expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: "Pines", hasElectric: true, page: 1 }),
+    );
+  });
+
+  it("reset cancels pending typing and clears filters", async () => {
+    vi.useFakeTimers();
+    try {
+      renderSearchPage(["/search?q=Upper&electric=true&page=2"]);
+      fireEvent.change(screen.getByPlaceholderText(/Search by campground/), {
+        target: { value: "Pines" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+      await act(async () => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(screen.getByPlaceholderText(/Search by campground/)).toHaveValue(
+        "",
+      );
+      expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          query: undefined,
+          hasElectric: undefined,
+          page: 1,
+        }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+it("synchronizes the input with browser back and forward navigation", () => {
+  vi.spyOn(searchHook, "useSearchExplore").mockReturnValue({
+    data: mockExploreData,
+    isLoading: false,
+    isFetching: false,
+    error: null,
+  } as unknown as ReturnType<typeof searchHook.useSearchExplore>);
+  renderSearchPage(["/search?q=Upper"]);
+  const input = screen.getByRole("searchbox", { name: "Search campgrounds" });
+  fireEvent.change(input, { target: { value: "Pines" } });
+  fireEvent.click(screen.getByRole("button", { name: /^Search$/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+  expect(input).toHaveValue("Upper");
+  expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+    expect.objectContaining({ query: "Upper" }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Go forward" }));
+  expect(input).toHaveValue("Pines");
 });

@@ -47,9 +47,9 @@ def _row_to_result(row: Search) -> SearchResultResponse:
 @search_router.get("/search")
 async def search(
     session: SessionDep,
-    query: str = Query(default=""),
-    q: str | None = Query(default=None),
-    limit: int = 20,
+    query: str = Query(default="", max_length=200),
+    q: str | None = Query(default=None, max_length=200),
+    limit: int = Query(default=20, ge=1, le=100),
     provider_id: int | None = None,
     entity_type: str | None = None,
     state: str | None = None,
@@ -105,8 +105,8 @@ async def search(
 @search_router.get("/search/explore")
 async def search_explore(
     session: SessionDep,
-    query: str = Query(default=""),
-    q: str | None = Query(default=None),
+    query: str = Query(default="", max_length=200),
+    q: str | None = Query(default=None, max_length=200),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     sort_by: str = Query(default="relevance"),
