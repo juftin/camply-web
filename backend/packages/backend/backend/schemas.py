@@ -6,9 +6,25 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field
+
+
+def _ensure_utc(v: datetime.datetime) -> datetime.datetime:
+    """
+    Ensure datetimes (including naive ones from SQLAlchemy) are treated as UTC.
+
+    When serialized to JSON, this ensures timestamps include a 'Z' UTC offset,
+    preventing clients from incorrectly parsing them as local time.
+    """
+    if v.tzinfo is None:
+        return v.replace(tzinfo=datetime.timezone.utc)
+    return v.astimezone(datetime.timezone.utc)
+
+
+UtcDateTime = Annotated[datetime.datetime, AfterValidator(_ensure_utc)]
+
 
 # ===========================================================================
 # Providers
@@ -139,9 +155,9 @@ class ScanResponse(BaseModel):
     min_stay_length: int
     preferred_types: list[str] = Field(default_factory=list)
     require_electric: bool
-    last_checked_at: Optional[datetime.datetime] = None
+    last_checked_at: Optional[UtcDateTime] = None
     found_count: int = 0
-    created_at: datetime.datetime
+    created_at: UtcDateTime
 
 
 class ScanListResponse(BaseModel):
@@ -242,7 +258,7 @@ class AdminUserItem(BaseModel):
     must_change_password: bool = False
     total_scans: int
     active_scans: int
-    created_at: datetime.datetime
+    created_at: UtcDateTime
 
 
 class AdminUserListResponse(BaseModel):
@@ -265,8 +281,8 @@ class AdminUserDetailResponse(BaseModel):
     must_change_password: bool = False
     total_scans: int
     active_scans: int
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
+    created_at: UtcDateTime
+    updated_at: UtcDateTime
 
 
 class AdminUserCreateRequest(BaseModel):
@@ -310,9 +326,9 @@ class AdminScanItem(BaseModel):
     is_active: bool
     is_eligible: bool
     user_scanning_enabled: bool
-    last_checked_at: Optional[datetime.datetime] = None
+    last_checked_at: Optional[UtcDateTime] = None
     found_count: int
-    created_at: datetime.datetime
+    created_at: UtcDateTime
 
 
 class AdminScanListResponse(BaseModel):
@@ -341,8 +357,8 @@ class AdminScanDetailResponse(BaseModel):
     min_stay_length: int
     preferred_types: list[str] = Field(default_factory=list)
     require_electric: bool
-    last_checked_at: Optional[datetime.datetime] = None
-    created_at: datetime.datetime
+    last_checked_at: Optional[UtcDateTime] = None
+    created_at: UtcDateTime
     results: list[ScanResultItem] = Field(default_factory=list)
 
 
@@ -361,7 +377,7 @@ class AdminTargetSubscriberItem(BaseModel):
     is_active: bool
     is_eligible: bool
     user_scanning_enabled: bool
-    created_at: datetime.datetime
+    created_at: UtcDateTime
 
 
 class AdminTargetDetailResponse(BaseModel):
@@ -374,8 +390,8 @@ class AdminTargetDetailResponse(BaseModel):
     start_date: datetime.date
     end_date: datetime.date
     hash: str
-    last_checked_at: Optional[datetime.datetime] = None
-    created_at: datetime.datetime
+    last_checked_at: Optional[UtcDateTime] = None
+    created_at: UtcDateTime
     total_subscribers: int
     eligible_subscribers: int
     overdue_threshold_seconds: int
@@ -395,7 +411,7 @@ class AdminAuditEventItem(BaseModel):
     subject_id: uuid.UUID
     prev_value: Optional[bool] = None
     new_value: Optional[bool] = None
-    created_at: datetime.datetime
+    created_at: UtcDateTime
 
 
 class AdminAuditListResponse(BaseModel):
@@ -423,7 +439,7 @@ class AdminWorkerItem(BaseModel):
 class AdminDiscoveryMetadata(BaseModel):
     """Metadata from the last completed target discovery cycle."""
 
-    timestamp: datetime.datetime
+    timestamp: UtcDateTime
     targets_discovered: int
     targets_enqueued: int
     status: str
@@ -439,11 +455,11 @@ class AdminOperationsResponse(BaseModel):
     scheduled_tasks_total: int | None
     last_discovery: Optional[AdminDiscoveryMetadata] = None
     broker_connected: bool
-    snapshot_at: datetime.datetime
+    snapshot_at: UtcDateTime
     inspection_available: bool = True
     telemetry_available: bool = True
     stale: bool = False
-    last_successful_at: Optional[datetime.datetime] = None
+    last_successful_at: Optional[UtcDateTime] = None
     error_message: Optional[str] = None
 
 
@@ -455,7 +471,7 @@ class AdminTaskTelemetryItem(BaseModel):
     attempt: int | None = None
     task_name: str
     worker: str
-    finished_at: datetime.datetime
+    finished_at: UtcDateTime
     duration_ms: float
     entity_type: Optional[str] = None
     entity_id: Optional[str] = None
@@ -496,7 +512,7 @@ class AdminSyncProvidersResponse(BaseModel):
 class TrendPoint(BaseModel):
     """A single time-value data point."""
 
-    timestamp: datetime.datetime
+    timestamp: UtcDateTime
     value: float | None
 
 
@@ -525,10 +541,10 @@ class AdminTrendsResponse(BaseModel):
     group: str
     range: str
     step_seconds: int
-    start_time: datetime.datetime
-    end_time: datetime.datetime
+    start_time: UtcDateTime
+    end_time: UtcDateTime
     timezone: str = "UTC"
-    last_successful_at: Optional[datetime.datetime] = None
+    last_successful_at: Optional[UtcDateTime] = None
     available: bool
     error_message: Optional[str] = None
     metrics: list[TrendMetric] = Field(default_factory=list)

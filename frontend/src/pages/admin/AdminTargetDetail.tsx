@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { AdminNav } from "@/components/AdminNav";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { useAdminLocation } from "@/hooks/useAdminLocation";
+import { parseDateTime } from "@/lib/utils";
 import type { AdminTargetDetailResponse } from "@/lib/structs";
 import { useAdminTarget } from "@/hooks/useAdmin";
 
@@ -165,7 +166,7 @@ export function AdminTargetDetail() {
                 <span className="flex items-center gap-1 text-xs">
                   <Clock className="h-3 w-3 text-muted-foreground" />
                   {target.last_checked_at
-                    ? new Date(target.last_checked_at).toLocaleString()
+                    ? parseDateTime(target.last_checked_at).toLocaleString()
                     : "Never"}
                 </span>
                 {target.last_checked_at && (
@@ -173,7 +174,8 @@ export function AdminTargetDetail() {
                     {Math.max(
                       0,
                       Math.floor(
-                        (Date.now() - Date.parse(target.last_checked_at)) /
+                        (Date.now() -
+                          parseDateTime(target.last_checked_at).getTime()) /
                           1000,
                       ),
                     )}
@@ -196,7 +198,7 @@ export function AdminTargetDetail() {
                 </span>
                 <span className="flex items-center gap-1 text-xs">
                   <Clock className="h-3 w-3 text-muted-foreground" />
-                  {new Date(target.created_at).toLocaleString()}
+                  {parseDateTime(target.created_at).toLocaleString()}
                 </span>
               </div>
             </div>

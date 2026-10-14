@@ -183,3 +183,98 @@ class TestCampgroundSchema:
         errors = exc_info.value.errors()
         field_names = {e["loc"][0] for e in errors}
         assert "id" in field_names
+
+
+class TestScanResponseDatetime:
+    """Tests for UtcDateTime serialization in ScanResponse."""
+
+    def test_naive_datetime_serialized_with_utc_z(self) -> None:
+        """
+        Naive datetimes from SQLAlchemy are converted to UTC aware datetimes
+        and serialized with the 'Z' suffix to avoid client-side timezone mismatch.
+        """
+        import datetime
+        import json
+        import uuid
+
+        from backend.schemas import ScanResponse
+
+        naive_dt = datetime.datetime(2026, 10, 14, 3, 54, 33)
+        scan = ScanResponse(
+            id=uuid.uuid4(),
+            provider_id=1,
+            campground_id="123",
+            start_date=datetime.date(2026, 11, 1),
+            end_date=datetime.date(2026, 11, 3),
+            is_active=True,
+            min_stay_length=1,
+            require_electric=False,
+            last_checked_at=naive_dt,
+            created_at=naive_dt,
+        )
+
+        assert scan.last_checked_at is not None
+        assert scan.last_checked_at.tzinfo == datetime.timezone.utc
+        assert scan.created_at.tzinfo == datetime.timezone.utc
+
+        data = json.loads(scan.model_dump_json())
+        assert data["last_checked_at"] == "2026-10-14T03:54:33Z"
+        assert data["created_at"] == "2026-10-14T03:54:33Z"
+
+    def test_aware_datetime_serialized_with_utc_z(self) -> None:
+        """
+        Aware datetimes are preserved and serialized with the 'Z' suffix.
+        """
+        import datetime
+        import json
+        import uuid
+
+        from backend.schemas import ScanResponse
+
+        aware_dt = datetime.datetime(
+            2026, 10, 14, 3, 54, 33, tzinfo=datetime.timezone.utc
+        )
+        scan = ScanResponse(
+            id=uuid.uuid4(),
+            provider_id=1,
+            campground_id="123",
+            start_date=datetime.date(2026, 11, 1),
+            end_date=datetime.date(2026, 11, 3),
+            is_active=True,
+            min_stay_length=1,
+            require_electric=False,
+            last_checked_at=aware_dt,
+            created_at=aware_dt,
+        )
+
+        data = json.loads(scan.model_dump_json())
+        assert data["last_checked_at"] == "2026-10-14T03:54:33Z"
+        assert data["created_at"] == "2026-10-14T03:54:33Z"
+
+    def test_none_last_checked_at_remains_none(self) -> None:
+        """
+        Optional last_checked_at can be None and serializes to null in JSON.
+        """
+        import datetime
+        import json
+        import uuid
+
+        from backend.schemas import ScanResponse
+
+        created_dt = datetime.datetime(2026, 10, 14, 3, 54, 33)
+        scan = ScanResponse(
+            id=uuid.uuid4(),
+            provider_id=1,
+            campground_id="123",
+            start_date=datetime.date(2026, 11, 1),
+            end_date=datetime.date(2026, 11, 3),
+            is_active=True,
+            min_stay_length=1,
+            require_electric=False,
+            last_checked_at=None,
+            created_at=created_dt,
+        )
+
+        assert scan.last_checked_at is None
+        data = json.loads(scan.model_dump_json())
+        assert data["last_checked_at"] is None
