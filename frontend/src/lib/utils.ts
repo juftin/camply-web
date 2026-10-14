@@ -104,6 +104,57 @@ export function daysBetween(start: string, end: string): number {
   return Math.max(0, Math.round((e.getTime() - s.getTime()) / 86400000));
 }
 
+export function parseIsoDate(iso: string): Date {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, (month || 1) - 1, day || 1);
+}
+
+export function toIsoDateString(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function getTodayString(): string {
+  return toIsoDateString(new Date());
+}
+
+export function addDays(iso: string, days: number): string {
+  const date = parseIsoDate(iso);
+  date.setDate(date.getDate() + days);
+  return toIsoDateString(date);
+}
+
+export function formatDisplayDate(
+  iso: string,
+  includeDayOfWeek = true,
+): string {
+  if (!iso) return "";
+  const d = parseIsoDate(iso);
+  const options: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  };
+  if (includeDayOfWeek) {
+    options.weekday = "short";
+  }
+  return d.toLocaleDateString("en-US", options);
+}
+
+export function getUpcomingFriday(fromIso?: string): string {
+  const base = fromIso ? parseIsoDate(fromIso) : new Date();
+  const dayOfWeek = base.getDay();
+  const daysUntilFriday = (5 - dayOfWeek + 7) % 7 || 7;
+  const target = new Date(
+    base.getFullYear(),
+    base.getMonth(),
+    base.getDate() + daysUntilFriday,
+  );
+  return toIsoDateString(target);
+}
+
 export function formatRelativeTime(iso: string): string {
   const now = Date.now();
   const then = new Date(iso).getTime();

@@ -294,6 +294,57 @@ const SCENARIOS: Scenario[] = [
     },
   },
   {
+    name: "scan-form-checkin-calendar-desktop-light",
+    route: "/dashboard",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description: "Scan modal with Check-in DatePicker calendar open",
+    action: async (page: Page) => {
+      const button = page.locator("button:has-text('New Scan')");
+      await button.waitFor({ state: "visible", timeout: 5000 });
+      await button.click();
+      await page.waitForSelector("[role='dialog']", { timeout: 5000 });
+      await page.locator("#start_date").click();
+      await page.waitForSelector("[role='dialog'] [role='dialog']", {
+        timeout: 5000,
+      });
+      await page.waitForTimeout(200);
+    },
+  },
+  {
+    name: "scan-form-checkout-calendar-desktop-light",
+    route: "/dashboard",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description:
+      "Scan modal with Check-out DatePicker calendar open anchored to future start date",
+    action: async (page: Page) => {
+      const button = page.locator("button:has-text('New Scan')");
+      await button.waitFor({ state: "visible", timeout: 5000 });
+      await button.click();
+      await page.waitForSelector("[role='dialog']", { timeout: 5000 });
+      await page.locator("#start_date").click();
+      await page.waitForSelector("[role='dialog'] [role='dialog']", {
+        timeout: 5000,
+      });
+      // Click next month
+      await page.locator("button[aria-label='Next month']").click();
+      await page.waitForTimeout(100);
+      // Select 15th
+      await page
+        .locator("[role='dialog'] button:has-text('15')")
+        .last()
+        .click();
+      await page.waitForTimeout(200);
+      // Open check-out picker
+      await page.locator("#end_date").click();
+      await page.waitForSelector("[role='dialog'] [role='dialog']", {
+        timeout: 5000,
+      });
+      await page.waitForTimeout(200);
+    },
+  },
+  {
     name: "early-access-desktop-light",
     route: "/dashboard",
     viewport: { width: 1280, height: 800 },
