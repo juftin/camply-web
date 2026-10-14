@@ -11,6 +11,7 @@ import {
 import { useScans } from "@/hooks/useScans";
 import type { ScanListResponse, ScanResponse } from "@/lib/structs";
 import { ScanForm } from "./ScanForm";
+import { formatDisplayDate } from "@/lib/utils";
 
 let scanningEnabled = true;
 vi.mock("@/hooks/useAuth", () => ({
@@ -54,6 +55,22 @@ function renderForm(scan: ScanResponse | undefined = savedScan) {
   return { client, ...view };
 }
 
+async function selectDate(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+  date: string,
+) {
+  const [year, month, day] = date.split("-").map(Number);
+  await user.click(screen.getByLabelText(label));
+  fireEvent.change(screen.getByRole("combobox", { name: "Select year" }), {
+    target: { value: String(year) },
+  });
+  fireEvent.change(screen.getByRole("combobox", { name: "Select month" }), {
+    target: { value: String(month - 1) },
+  });
+  await user.click(screen.getByRole("button", { name: String(day) }));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   scanningEnabled = true;
@@ -63,6 +80,33 @@ beforeEach(() => {
 });
 
 describe("ScanForm editing", () => {
+  it("anchors checkout to an edited check-in and preserves the minimum stay", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+    await selectDate(user, "Check-in", "2027-07-20");
+    expect(screen.getByLabelText("Check-out")).toHaveTextContent(
+      formatDisplayDate("2027-07-22"),
+    );
+    await user.click(screen.getByLabelText("Check-out"));
+    expect(screen.getByRole("combobox", { name: "Select month" })).toHaveValue(
+      "6",
+    );
+    expect(screen.getByRole("button", { name: "20" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "3 nights" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() =>
+      expect(updateScan).toHaveBeenCalledWith(
+        savedScan.id,
+        expect.objectContaining({
+          start_date: "2027-07-20",
+          end_date: "2027-07-23",
+          min_stay_length: 2,
+        }),
+      ),
+    );
+  });
+
   it("waits for active scan queries to refresh before closing", async () => {
     const user = userEvent.setup();
     let complete!: (list: ScanListResponse) => void;
@@ -105,14 +149,16 @@ describe("ScanForm editing", () => {
     client.setQueryData(detailKey, { ...savedScan, results: [] });
     await user.click(screen.getByRole("button", { name: "Edit Scan" }));
     expect(screen.getByText("Original Campground")).toBeInTheDocument();
-    expect(screen.getByLabelText("Check-in")).toHaveValue(savedScan.start_date);
-    expect(screen.getByLabelText("Check-out")).toHaveValue(savedScan.end_date);
+    expect(screen.getByLabelText("Check-in")).toHaveTextContent(
+      formatDisplayDate(savedScan.start_date),
+    );
+    expect(screen.getByLabelText("Check-out")).toHaveTextContent(
+      formatDisplayDate(savedScan.end_date),
+    );
     expect(screen.getByLabelText("Minimum Stay (nights)")).toHaveValue(2);
     expect(screen.getByRole("switch")).toBeChecked();
 
-    fireEvent.change(screen.getByLabelText("Check-out"), {
-      target: { value: "2027-07-10" },
-    });
+    await selectDate(user, "Check-out", "2027-07-10");
     fireEvent.change(screen.getByLabelText("Minimum Stay (nights)"), {
       target: { value: "3" },
     });
@@ -178,9 +224,7 @@ describe("ScanForm editing", () => {
     const user = userEvent.setup();
     const { rerender, client } = renderForm();
     await user.click(screen.getByRole("button", { name: "Edit Scan" }));
-    fireEvent.change(screen.getByLabelText("Check-in"), {
-      target: { value: "2027-07-03" },
-    });
+    await selectDate(user, "Check-in", "2027-07-03");
     await user.click(screen.getByRole("button", { name: "Change" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(updateScan).not.toHaveBeenCalled();
@@ -190,21 +234,23 @@ describe("ScanForm editing", () => {
       </QueryClientProvider>,
     );
     await user.click(screen.getByRole("button", { name: "Edit Scan" }));
-    expect(screen.getByLabelText("Check-in")).toHaveValue(savedScan.start_date);
-    expect(screen.getByLabelText("Check-out")).toHaveValue("2027-07-12");
+    expect(screen.getByLabelText("Check-in")).toHaveTextContent(
+      formatDisplayDate(savedScan.start_date),
+    );
+    expect(screen.getByLabelText("Check-out")).toHaveTextContent(
+      formatDisplayDate("2027-07-12"),
+    );
     expect(screen.getByText("Original Campground")).toBeInTheDocument();
   });
 
-  it("validates dates before submitting", async () => {
+  it("rejects a cleared checkout before submitting", async () => {
     const user = userEvent.setup();
     renderForm();
     await user.click(screen.getByRole("button", { name: "Edit Scan" }));
-    fireEvent.change(screen.getByLabelText("Check-out"), {
-      target: { value: savedScan.start_date },
-    });
+    await user.click(screen.getAllByRole("button", { name: "Clear date" })[1]);
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
     expect(
-      await screen.findByText("Check-out must be after check-in"),
+      await screen.findByText("Check-out date is required"),
     ).toBeInTheDocument();
     expect(updateScan).not.toHaveBeenCalled();
   });
@@ -216,14 +262,14 @@ describe("ScanForm editing", () => {
     );
     renderForm();
     await user.click(screen.getByRole("button", { name: "Edit Scan" }));
-    fireEvent.change(screen.getByLabelText("Check-out"), {
-      target: { value: "2027-07-10" },
-    });
+    await selectDate(user, "Check-out", "2027-07-10");
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "A scan already exists",
     );
-    expect(screen.getByLabelText("Check-out")).toHaveValue("2027-07-10");
+    expect(screen.getByLabelText("Check-out")).toHaveTextContent(
+      formatDisplayDate("2027-07-10"),
+    );
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
@@ -287,12 +333,8 @@ describe("ScanForm editing", () => {
       </QueryClientProvider>,
     );
     await user.click(screen.getByRole("button", { name: "New Scan" }));
-    fireEvent.change(screen.getByLabelText("Check-in"), {
-      target: { value: "2027-08-01" },
-    });
-    fireEvent.change(screen.getByLabelText("Check-out"), {
-      target: { value: "2027-08-05" },
-    });
+    await selectDate(user, "Check-in", "2027-08-01");
+    await selectDate(user, "Check-out", "2027-08-05");
     await user.click(screen.getByRole("button", { name: "Create Scan" }));
     await waitFor(() =>
       expect(createScan).toHaveBeenCalledWith(

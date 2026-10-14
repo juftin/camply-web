@@ -1,14 +1,15 @@
-import { useState, type ReactNode } from "react";
+import { useState, useMemo, useEffect, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,12 @@ import { useCreateScan, useUpdateScan } from "@/hooks/useScans";
 import { useAuth } from "@/hooks/useAuth";
 import { getApiErrorMessage, searchCampgrounds } from "@/lib/api";
 import type { Campground, ScanResponse, SearchResult } from "@/lib/structs";
+import {
+  addDays,
+  daysBetween,
+  formatDisplayDate,
+  getTodayString,
+} from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Validation schema
@@ -123,8 +130,43 @@ export function ScanForm({
     defaultValues,
   });
 
+  useEffect(() => {
+    register("start_date");
+    register("end_date");
+  }, [register]);
+
+  const startDate = watch("start_date");
+  const endDate = watch("end_date");
+  const minStayLength = watch("min_stay_length") ?? 1;
   const preferredTypes = watch("preferred_types");
   const requireElectric = watch("require_electric");
+
+  const todayStr = useMemo(() => getTodayString(), []);
+  const minEndDate = useMemo(() => {
+    if (!startDate) return todayStr;
+    return addDays(startDate, 1);
+  }, [startDate, todayStr]);
+
+  const handleStartDateChange = (newStartDate: string) => {
+    setValue("start_date", newStartDate, { shouldValidate: true });
+    if (!newStartDate) return;
+
+    // Use start date as input: if end date is empty or on/before the start date,
+    // advance end date to start date + min stay length (or 1 night).
+    if (!endDate || endDate <= newStartDate) {
+      const stay = Math.max(1, Number(minStayLength) || 1);
+      setValue("end_date", addDays(newStartDate, stay), {
+        shouldValidate: true,
+      });
+    }
+  };
+
+  const handleEndDateChange = (newEndDate: string) => {
+    setValue("end_date", newEndDate, { shouldValidate: true });
+  };
+
+  const hasValidRange = Boolean(startDate && endDate && endDate > startDate);
+  const nights = hasValidRange ? daysBetween(startDate, endDate) : 0;
 
   // ---- Campground search ----
   const handleSearch = async (term: string) => {
@@ -308,41 +350,59 @@ export function ScanForm({
           </div>
 
           {/* ---- Date range ---- */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="start_date">Check-in</Label>
-              <label className="relative block">
-                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="start_date">Check-in</Label>
+                <DatePicker
                   id="start_date"
-                  type="date"
-                  className="pl-10"
-                  {...register("start_date")}
+                  name="start_date"
+                  value={startDate}
+                  onChange={handleStartDateChange}
+                  minDate={todayStr}
+                  placeholder="Select check-in"
+                  error={!!errors.start_date}
                 />
-              </label>
-              {errors.start_date && (
-                <p className="text-xs text-destructive">
-                  {errors.start_date.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="end_date">Check-out</Label>
-              <label className="relative block">
-                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
+                {errors.start_date && (
+                  <p className="text-xs text-destructive">
+                    {errors.start_date.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="end_date">Check-out</Label>
+                <DatePicker
                   id="end_date"
-                  type="date"
-                  className="pl-10"
-                  {...register("end_date")}
+                  name="end_date"
+                  value={endDate}
+                  onChange={handleEndDateChange}
+                  minDate={minEndDate}
+                  defaultMonth={startDate || todayStr}
+                  startDate={startDate}
+                  placeholder="Select check-out"
+                  error={!!errors.end_date}
+                  align="right"
                 />
-              </label>
-              {errors.end_date && (
-                <p className="text-xs text-destructive">
-                  {errors.end_date.message}
-                </p>
-              )}
+                {errors.end_date && (
+                  <p className="text-xs text-destructive">
+                    {errors.end_date.message}
+                  </p>
+                )}
+              </div>
             </div>
+
+            {/* Stay duration preview */}
+            {hasValidRange && (
+              <div className="flex items-center justify-between rounded-md bg-muted/60 px-3 py-1.5 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  {nights} {nights === 1 ? "night" : "nights"}
+                </span>
+                <span>
+                  {formatDisplayDate(startDate, false)} &ndash;{" "}
+                  {formatDisplayDate(endDate, false)}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* ---- Min stay ---- */}
@@ -352,7 +412,21 @@ export function ScanForm({
               id="min_stay_length"
               type="number"
               min={1}
-              {...register("min_stay_length")}
+              {...register("min_stay_length", {
+                onChange: (e) => {
+                  const val = Number(e.target.value);
+                  if (startDate && val > 0) {
+                    const currentNights = endDate
+                      ? daysBetween(startDate, endDate)
+                      : 0;
+                    if (currentNights < val) {
+                      setValue("end_date", addDays(startDate, val), {
+                        shouldValidate: true,
+                      });
+                    }
+                  }
+                },
+              })}
             />
           </div>
 

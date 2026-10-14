@@ -1,7 +1,7 @@
 # 📸 UI Snapshot & Visual Feedback Report
 
-**Generated**: `2026-10-13T23:57:02.866Z`
-**Total Views**: **46** | ✅ Unchanged: **46** | ⚠️ Modified: **0** | 🆕 New: **0**
+**Generated**: `2026-10-14T00:47:01.879Z`
+**Total Views**: **48** | ✅ Unchanged: **48** | ⚠️ Modified: **0** | 🆕 New: **0**
 
 ---
 
@@ -51,6 +51,8 @@ When evaluating UI changes or diagnosing unexpected visual diffs:
 | **scan-edit-dialog-mobile-dark** | 390x844 | dark | ✅ UNCHANGED | `0.00%` | [`scan-edit-dialog-mobile-dark.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/baselines/scan-edit-dialog-mobile-dark.png) | [`scan-edit-dialog-mobile-dark.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/current/scan-edit-dialog-mobile-dark.png) | - |
 | **scan-delete-error-desktop-light** | 1280x800 | light | ✅ UNCHANGED | `0.00%` | [`scan-delete-error-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/baselines/scan-delete-error-desktop-light.png) | [`scan-delete-error-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/current/scan-delete-error-desktop-light.png) | - |
 | **scan-form-dialog-desktop-light** | 1280x800 | light | ✅ UNCHANGED | `0.00%` | [`scan-form-dialog-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/baselines/scan-form-dialog-desktop-light.png) | [`scan-form-dialog-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/current/scan-form-dialog-desktop-light.png) | - |
+| **scan-form-checkin-calendar-desktop-light** | 1280x800 | light | ✅ UNCHANGED | `0.00%` | [`scan-form-checkin-calendar-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/baselines/scan-form-checkin-calendar-desktop-light.png) | [`scan-form-checkin-calendar-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/current/scan-form-checkin-calendar-desktop-light.png) | - |
+| **scan-form-checkout-calendar-desktop-light** | 1280x800 | light | ✅ UNCHANGED | `0.00%` | [`scan-form-checkout-calendar-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/baselines/scan-form-checkout-calendar-desktop-light.png) | [`scan-form-checkout-calendar-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/current/scan-form-checkout-calendar-desktop-light.png) | - |
 | **early-access-desktop-light** | 1280x800 | light | ✅ UNCHANGED | `0.00%` | [`early-access-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/baselines/early-access-desktop-light.png) | [`early-access-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/current/early-access-desktop-light.png) | - |
 | **early-access-mobile-light** | 390x844 | light | ✅ UNCHANGED | `0.00%` | [`early-access-mobile-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/baselines/early-access-mobile-light.png) | [`early-access-mobile-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/current/early-access-mobile-light.png) | - |
 | **auth-desktop-light** | 1280x800 | light | ✅ UNCHANGED | `0.00%` | [`auth-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/baselines/auth-desktop-light.png) | [`auth-desktop-light.png`](file:///Users/juftin/.paseo/worktrees/3uei2oz1/magical-puma/frontend/snapshots/current/auth-desktop-light.png) | - |

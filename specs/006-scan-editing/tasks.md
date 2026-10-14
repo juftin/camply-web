@@ -7,9 +7,13 @@
 - [x] Regenerate API types and update architecture/checklist documentation.
 - [x] Pass formatting, lint, type, and automated test checks.
 
-Verified: `task test` (469 backend and 200 frontend tests passed; 6 opt-in tests
+Verified: `task test` (469 backend and 220 frontend tests passed; 6 opt-in tests
 skipped), `task lint`, `task check`, `task api:check`, and `task snapshot:check`
-(46 views). Generated DOM snapshots are excluded from whitespace trimming to
+(48 views). Generated DOM snapshots are excluded from whitespace trimming to
 preserve literal whitespace. Visual evidence: [desktop editor](../../frontend/snapshots/baselines/scan-edit-dialog-desktop-light.png),
 [mobile editor](../../frontend/snapshots/baselines/scan-edit-dialog-mobile-dark.png),
 and [delete failure](../../frontend/snapshots/baselines/scan-delete-error-desktop-light.png).
+
+Calendar integration preserves checkout anchoring and duration presets when
+editing saved scans. Both the creation-calendar and editing regression suites
+are retained, including an edited check-in advancing checkout by the minimum stay.
