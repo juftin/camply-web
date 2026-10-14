@@ -20,7 +20,7 @@ graph TD
     C -->|No| D[Create New UniqueTarget]
     C -->|Yes| E[Link UserScan to Existing]
 
-    F[Celery Beat Scheduler] -->|Every 60s| G[Identify Targets to Check]
+    F[Celery Beat Scheduler] -->|Every 5m (default)| G[Identify Targets to Check]
     G -->|Enqueue| H[camply.search.check_campsite_availability Task]
 
     H -->|Hit Provider API| I[Raw Results]

@@ -229,9 +229,9 @@ export async function setupAdminSnapshotMocks(
         eligible_targets: 6,
         dormant_targets: 2,
         overdue_targets: 1,
-        heartbeat_interval_seconds: 60,
+        heartbeat_interval_seconds: 300,
         target_cooldown_seconds: 55,
-        overdue_threshold_seconds: 175,
+        overdue_threshold_seconds: 655,
       };
     } else if (endpoint === "users") {
       body = { users: USERS, total: USERS.length };

@@ -42,7 +42,7 @@ def create_celery_app() -> Celery:
     app.conf.result_expires = 3600
 
     # Beat schedule:
-    # - schedule_checks every 60 seconds
+    # - schedule_checks every 5 minutes (configurable via CAMPLY_HEARTBEAT_INTERVAL)
     # - sync_all_providers daily at midnight UTC
     app.conf.beat_schedule = {
         "schedule-availability-checks": {

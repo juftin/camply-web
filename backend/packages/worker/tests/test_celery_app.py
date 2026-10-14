@@ -3,6 +3,7 @@ Tests for the Celery application configuration and task registration.
 """
 
 from worker.celery_app import celery_app
+from worker.config import worker_config
 
 
 class TestCeleryAppConfiguration:
@@ -76,6 +77,11 @@ class TestCeleryTaskRegistration:
             beat_schedule["schedule-availability-checks"]["task"]
             == "camply.search.schedule_checks"
         )
+        assert (
+            beat_schedule["schedule-availability-checks"]["schedule"]
+            == worker_config.heartbeat_interval
+        )
+        assert beat_schedule["schedule-availability-checks"]["schedule"] == 300
         assert "sync-provider-catalogs-daily" in beat_schedule
         assert (
             beat_schedule["sync-provider-catalogs-daily"]["task"]

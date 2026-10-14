@@ -22,7 +22,7 @@ logger = structlog.getLogger(__name__)
 @celery_app.task(name="camply.search.schedule_checks")
 def discover_targets() -> dict:
     """
-    Periodic task (every 60s). Discovers UniqueTargets that are due for
+    Periodic task (defaults to every 5m / 300s). Discovers UniqueTargets that are due for
     a fresh availability check and enqueues checker tasks.
 
     A target is "due" if:

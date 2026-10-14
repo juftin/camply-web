@@ -154,7 +154,7 @@ class TestAdminEndpoints:
                 start_date=dt.date(2026, 11, 5),
                 end_date=dt.date(2026, 11, 7),
                 created_at=dt.datetime.now(tz=dt.timezone.utc)
-                - dt.timedelta(seconds=500),
+                - dt.timedelta(seconds=1000),
             )
             # Target 3: only suspended subscriber -> dormant
             t3 = UniqueTarget(
@@ -163,7 +163,7 @@ class TestAdminEndpoints:
                 start_date=dt.date(2026, 11, 9),
                 end_date=dt.date(2026, 11, 11),
                 created_at=dt.datetime.now(tz=dt.timezone.utc)
-                - dt.timedelta(seconds=500),
+                - dt.timedelta(seconds=1000),
             )
             session.add_all([t1, t2, t3])
             await session.flush()
@@ -357,6 +357,7 @@ def test_overview_frontend_contract(
     )
     assert data["dormant_targets"] == data["total_targets"] - data["eligible_targets"]
     assert data["heartbeat_interval_seconds"] == backend_config.heartbeat_interval
+    assert data["heartbeat_interval_seconds"] == 300
     assert data["target_cooldown_seconds"] == backend_config.target_cooldown
     assert (
         data["overdue_threshold_seconds"]

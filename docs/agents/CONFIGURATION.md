@@ -38,9 +38,11 @@ Database config uses `CAMPLY_DB_` prefix (defined in `backend/packages/db/db/con
 
 Valkey/Celery & Operations config:
 
-| Variable     | Description                         | Default                    |
-| ------------ | ----------------------------------- | -------------------------- |
-| `VALKEY_URL` | Valkey connection string for Celery | `redis://localhost:6379/0` |
+| Variable                    | Description                                                                       | Default                    |
+| --------------------------- | --------------------------------------------------------------------------------- | -------------------------- |
+| `CAMPLY_VALKEY_URL`         | Valkey connection string for Celery                                               | `redis://localhost:6379/0` |
+| `CAMPLY_HEARTBEAT_INTERVAL` | Heartbeat / campsite search interval in seconds (alias: `CAMPLY_SEARCH_INTERVAL`) | `300` (5 minutes)          |
+| `CAMPLY_TARGET_COOLDOWN`    | Minimum seconds elapsed before an existing target is eligible for re-checking     | `55`                       |
 
 ---
 
