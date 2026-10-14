@@ -60,7 +60,8 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 
 - **ScanCard**: Shows campground name, rec area, dates, found count, filters (badges), last-checked time, and active/paused state.
 - **Toggle**: Each scan card has a switch to pause/resume monitoring.
-- **Delete**: Each scan card has a delete button (with confirmation via trash icon).
+- **Edit**: Each scan card and detail page offers an edit action. `ScanForm` opens with saved campground, dates, and filters, sends PATCH, and refreshes list/detail queries on success. Cancel discards changes; reopening loads current saved values. Failed saves preserve the form and show an error. Suspended users can edit existing scans.
+- **Delete**: Each scan card has an accessible delete button and confirmation dialog. Card controls sit outside the detail link. Confirmation awaits the request, disables repeat submissions while pending, and keeps failures visible in the dialog for retry; success refreshes the dashboard.
 - **Detail View**: Clicking through from the dashboard is routed to a dedicated detail view.
 
 ### 5. Administration & Operations (`/admin/*`)

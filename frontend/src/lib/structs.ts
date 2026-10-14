@@ -83,12 +83,7 @@ export interface ScanCreateRequest {
   require_electric?: boolean;
 }
 
-export interface ScanUpdateRequest {
-  is_active?: boolean;
-  min_stay_length?: number;
-  preferred_types?: string[];
-  require_electric?: boolean;
-}
+export type ScanUpdateRequest = components["schemas"]["ScanUpdateRequest"];
 
 export interface ScanResultItem {
   campsite_id: string;

@@ -1,13 +1,29 @@
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import React from "react";
 import { ScanCard } from "./ScanCard";
 import type { ScanResponse } from "@/lib/structs";
 
 function renderWithRouter(ui: React.ReactElement) {
-  return render(ui, { wrapper: MemoryRouter });
+  function Location() {
+    return <output data-testid="location">{useLocation().pathname}</output>;
+  }
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={["/dashboard"]}>
+        {ui}
+        <Location />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
 }
+
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({ user: { scanning_enabled: true } }),
+}));
 
 const baseScan: ScanResponse = {
   id: "test-scan-1",
@@ -124,11 +140,93 @@ describe("ScanCard", () => {
       <ScanCard scan={baseScan} onToggleActive={vi.fn()} onDelete={onDelete} />,
     );
     // Click the trash icon button to open the confirmation dialog
-    const trashBtn = screen.getByRole("button", { name: "" });
+    const trashBtn = screen.getByRole("button", { name: "Delete scan" });
     trashBtn.click();
     // Wait for the confirmation dialog to appear and click "Delete"
     const confirmBtn = await screen.findByRole("button", { name: "Delete" });
     confirmBtn.click();
     expect(onDelete).toHaveBeenCalledWith("test-scan-1");
+  });
+
+  it("keeps controls and confirmation interactions on the dashboard", async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn().mockResolvedValue(undefined);
+    renderWithRouter(
+      <ScanCard scan={baseScan} onToggleActive={vi.fn()} onDelete={onDelete} />,
+    );
+    await user.click(screen.getByRole("switch"));
+    await user.click(screen.getByText("Active", { selector: "label" }));
+    expect(screen.getByTestId("location")).toHaveTextContent(/^\/dashboard$/);
+    await user.click(screen.getByRole("button", { name: "Delete scan" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(screen.getByTestId("location")).toHaveTextContent(/^\/dashboard$/);
+    await user.click(screen.getByRole("button", { name: "Delete scan" }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent(/^\/dashboard$/);
+  });
+
+  it("shows delete errors and lets the user retry", async () => {
+    const user = userEvent.setup();
+    const onDelete = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Delete failed"))
+      .mockResolvedValueOnce(undefined);
+    renderWithRouter(
+      <ScanCard scan={baseScan} onToggleActive={vi.fn()} onDelete={onDelete} />,
+    );
+    await user.click(screen.getByRole("button", { name: "Delete scan" }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Delete failed");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(onDelete).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps deletion pending until the request succeeds", async () => {
+    const user = userEvent.setup();
+    let complete!: () => void;
+    const onDelete = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          complete = resolve;
+        }),
+    );
+    renderWithRouter(
+      <ScanCard scan={baseScan} onToggleActive={vi.fn()} onDelete={onDelete} />,
+    );
+    await user.click(screen.getByRole("button", { name: "Delete scan" }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    expect(screen.getByRole("button", { name: "Deleting..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    complete();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the edit form without navigating and still links the scan body", async () => {
+    const user = userEvent.setup();
+    renderWithRouter(
+      <ScanCard scan={baseScan} onToggleActive={vi.fn()} onDelete={vi.fn()} />,
+    );
+    await user.click(screen.getByRole("button", { name: "Edit scan" }));
+    expect(
+      screen.getByRole("dialog", { name: "Edit Scan" }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent(/^\/dashboard$/);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("link"));
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      "/dashboard/scans/test-scan-1",
+    );
   });
 });
