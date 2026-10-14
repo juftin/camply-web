@@ -33,7 +33,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.3.6 Implement the `camply.notifications.send_pushover_notification` task.
 - [x] T1.3.7 Integrate `Sentry` for background task error tracking.
 - [x] T1.3.8 **Testing**: Write integration tests for the Celery task lifecycle and de-duplication logic.
-- [x] T1.3.9 Configure heartbeat search polling interval to default to 5 minutes (300s) and support customization via `CAMPLY_HEARTBEAT_INTERVAL` / `CAMPLY_SEARCH_INTERVAL`.
+- [x] T1.3.9 Configure heartbeat search polling interval to default to 5 minutes (300s) and support customization via `CAMPLY_HEARTBEAT_INTERVAL`.
 
 ### 1.4 API & Frontend Foundation
 
