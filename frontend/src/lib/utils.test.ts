@@ -1,5 +1,15 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { toTitleCase, formatRelativeTime } from "./utils";
+import {
+  toTitleCase,
+  formatRelativeTime,
+  parseIsoDate,
+  toIsoDateString,
+  getTodayString,
+  addDays,
+  daysBetween,
+  formatDisplayDate,
+  getUpcomingFriday,
+} from "./utils";
 
 describe("toTitleCase", () => {
   it("title-cases an all-uppercase string", () => {
@@ -117,5 +127,53 @@ describe("formatRelativeTime", () => {
     expect(formatRelativeTime("2025-06-15T12:05:00Z")).toBe("in 5m");
     expect(formatRelativeTime("2025-06-15T14:00:00Z")).toBe("in 2h");
     expect(formatRelativeTime("2025-06-18T12:00:00Z")).toBe("in 3d");
+  });
+});
+
+describe("date helpers", () => {
+  it("parseIsoDate and toIsoDateString roundtrip correctly", () => {
+    const iso = "2026-10-15";
+    const d = parseIsoDate(iso);
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(9); // 0-indexed month (October)
+    expect(d.getDate()).toBe(15);
+    expect(toIsoDateString(d)).toBe(iso);
+  });
+
+  it("getTodayString returns a valid YYYY-MM-DD string", () => {
+    expect(getTodayString()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("addDays correctly increments and decrements dates across month and year boundaries", () => {
+    expect(addDays("2026-10-15", 3)).toBe("2026-10-18");
+    expect(addDays("2026-10-31", 1)).toBe("2026-11-01");
+    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+    expect(addDays("2026-01-01", -1)).toBe("2025-12-31");
+    expect(addDays("2028-02-28", 1)).toBe("2028-02-29"); // Leap year
+    expect(addDays("2028-02-29", 1)).toBe("2028-03-01");
+  });
+
+  it("daysBetween computes absolute night count between dates", () => {
+    expect(daysBetween("2026-10-15", "2026-10-18")).toBe(3);
+    expect(daysBetween("2026-10-15", "2026-10-15")).toBe(0);
+    expect(daysBetween("2026-10-18", "2026-10-15")).toBe(0);
+  });
+
+  it("formatDisplayDate formats date for humans with and without weekday", () => {
+    const formattedWithDay = formatDisplayDate("2026-10-15", true);
+    expect(formattedWithDay).toContain("Oct 15, 2026");
+    expect(formattedWithDay).toContain("Thu");
+
+    const formattedWithoutDay = formatDisplayDate("2026-10-15", false);
+    expect(formattedWithoutDay).toBe("Oct 15, 2026");
+
+    expect(formatDisplayDate("")).toBe("");
+  });
+
+  it("getUpcomingFriday calculates the correct next Friday", () => {
+    // 2026-10-13 is Tuesday (day 2) -> upcoming Friday is 2026-10-16
+    expect(getUpcomingFriday("2026-10-13")).toBe("2026-10-16");
+    // 2026-10-16 is Friday -> next upcoming Friday is 2026-10-23
+    expect(getUpcomingFriday("2026-10-16")).toBe("2026-10-23");
   });
 });
