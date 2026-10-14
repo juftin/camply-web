@@ -577,6 +577,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/operations/sync-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Providers
+         * @description Trigger a background task to synchronize metadata from all providers.
+         *
+         *     Parameters
+         *     ----------
+         *     admin : CurrentUser
+         *         The authenticated administrator initiating synchronization.
+         *
+         *     Returns
+         *     -------
+         *     AdminSyncProvidersResponse
+         *         Information about the dispatched background task.
+         */
+        post: operations["sync_providers_api_admin_operations_sync_providers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/trends": {
         parameters: {
             query?: never;
@@ -952,6 +982,18 @@ export interface components {
         AdminScanUpdateRequest: {
             /** Is Active */
             is_active: boolean;
+        };
+        /**
+         * AdminSyncProvidersResponse
+         * @description Response returned when triggering provider metadata synchronization.
+         */
+        AdminSyncProvidersResponse: {
+            /** Task Id */
+            task_id: string;
+            /** Status */
+            status: string;
+            /** Message */
+            message: string;
         };
         /**
          * AdminTargetDetailResponse
@@ -2761,6 +2803,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_providers_api_admin_operations_sync_providers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSyncProvidersResponse"];
                 };
             };
         };

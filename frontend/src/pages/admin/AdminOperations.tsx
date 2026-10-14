@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Database,
   ExternalLink,
   Layers,
   Loader2,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import { useAdminLocation } from "@/hooks/useAdminLocation";
 import { AdminNav } from "@/components/AdminNav";
+import { AdminFeedback } from "@/components/admin/AdminFeedback";
 import { AdminTrendsPanel } from "@/components/admin/AdminTrendsPanel";
 import { taskLabel } from "@/components/admin/labels";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +29,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useAdminOperations, useAdminOperationsTasks } from "@/hooks/useAdmin";
+import {
+  useAdminOperations,
+  useAdminOperationsTasks,
+  useSyncAdminProviders,
+} from "@/hooks/useAdmin";
+import { getApiErrorMessage } from "@/lib/api";
 import type { AdminTaskTelemetryItem } from "@/lib/structs";
 
 export function AdminOperations() {
@@ -64,6 +71,27 @@ export function AdminOperations() {
     provider: providerFilter === "all" ? undefined : providerFilter,
     search: searchQuery.trim() || undefined,
   });
+
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+  const [syncFeedbackError, setSyncFeedbackError] = useState(false);
+  const syncMutation = useSyncAdminProviders();
+
+  const handleSyncProviders = async () => {
+    setSyncFeedback(null);
+    setSyncFeedbackError(false);
+    try {
+      const res = await syncMutation.mutateAsync();
+      setSyncFeedback(
+        res.message || "Provider catalog sync initiated successfully.",
+      );
+      setSyncFeedbackError(false);
+      refetchOps();
+      refetchTasks();
+    } catch (err) {
+      setSyncFeedback(getApiErrorMessage(err));
+      setSyncFeedbackError(true);
+    }
+  };
 
   const handleRefresh = () => {
     refetchOps();
@@ -140,11 +168,26 @@ export function AdminOperations() {
         <div>
           <h1 className="text-3xl font-bold">System Operations</h1>
           <p className="text-muted-foreground mt-1">
-            Read-only worker status, queued tasks, scheduling activity, and
-            recent task results. Data refreshes every 15 seconds.
+            Worker status, queued tasks, scheduling activity, recent task
+            results, and provider catalog synchronization. Data refreshes every
+            15 seconds.
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            onClick={handleSyncProviders}
+            disabled={syncMutation.isPending}
+            className="flex items-center gap-2"
+            title="Sync metadata from all providers"
+          >
+            {syncMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Database className="h-4 w-4" />
+            )}
+            {syncMutation.isPending ? "Syncing Providers…" : "Sync Providers"}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -161,6 +204,8 @@ export function AdminOperations() {
       </div>
 
       <AdminNav />
+
+      <AdminFeedback message={syncFeedback} error={syncFeedbackError} />
 
       {/* Freshness and connection indicator */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/40 rounded-lg border text-sm mb-6">

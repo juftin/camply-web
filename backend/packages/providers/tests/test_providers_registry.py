@@ -55,3 +55,40 @@ class TestProviderCLI:
         assert populate_database is not None
         assert callable(populate_database)
         assert populate_database.name == "populate-database"
+
+    def test_cli_help_includes_all(self) -> None:
+        """The CLI help output should include the 'all' option."""
+        from click.testing import CliRunner
+
+        from providers.cli import populate_database
+
+        runner = CliRunner()
+        result = runner.invoke(populate_database, ["--help"])
+        assert result.exit_code == 0
+        assert "all" in result.output
+
+    def test_cli_populate_all_providers(self, monkeypatch: object) -> None:
+        """Running with --provider-id all should populate all registered providers."""
+        from unittest.mock import AsyncMock, patch
+
+        from click.testing import CliRunner
+
+        from providers.cli import populate_database
+
+        runner = CliRunner()
+        mock_instances = {}
+        for pid in PROVIDERS:
+            inst = AsyncMock()
+            inst.populate_database = AsyncMock()
+            inst.async_client.aclose = AsyncMock()
+            mock_instances[pid] = inst
+
+        with patch.dict(
+            "providers.cli.PROVIDERS",
+            {pid: (lambda p=pid: mock_instances[p]) for pid in PROVIDERS},
+        ):
+            result = runner.invoke(populate_database, ["--provider-id", "all"])
+            assert result.exit_code == 0
+            for inst in mock_instances.values():
+                inst.populate_database.assert_awaited_once()
+                inst.async_client.aclose.assert_awaited_once()

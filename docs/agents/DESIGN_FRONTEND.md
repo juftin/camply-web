@@ -71,7 +71,7 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 - **User Management (`/admin/users`, `/admin/users/:id`)**: Searchable user table, per-user scanning suspension toggle, scan list, and audit trail. Suspended users are clearly badged.
 - **Scan Management (`/admin/scans`, `/admin/scans/:id`)**: System-wide scan table with status filter, active toggle, and links to target and owner details.
 - **Target Detail (`/admin/targets/:id`)**: Shared target inspection displaying provider details, date ranges, and list of all subscribing user scans.
-- **Operations & Health (`/admin/operations`)**: Worker status cards, queue depth, discovery run metadata, recent task execution stream (Valkey telemetry, auto-refreshed every 15s) with task detail dialog, and worker/API/provider performance trend graphs.
+- **Operations & Health (`/admin/operations`)**: Worker status cards, queue depth, discovery run metadata, manual provider catalog sync button, recent task execution stream (Valkey telemetry, auto-refreshed every 15s) with task detail dialog, and worker/API/provider performance trend graphs.
 - **Audit Log (`/admin/audit`)**: Immutable log of administrative actions with timestamps, admin email, action type, target ID, and metadata inspector.
 
 ---

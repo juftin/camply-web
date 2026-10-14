@@ -25,6 +25,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
     listAdminOperationsTasks: vi.fn(),
     getAdminOperationsTask: vi.fn(),
     getAdminTrends: vi.fn(),
+    syncAdminProviders: vi.fn(),
   };
 });
 
@@ -228,6 +229,103 @@ describe("AdminOperations", () => {
         screen.getByText("Operations inspection unavailable"),
       ).toBeInTheDocument();
       expect(screen.getByText("Broker connection timeout")).toBeInTheDocument();
+    });
+  });
+
+  it("triggers provider sync and displays success feedback when Sync Providers button is clicked", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(api.getAdminOperations).mockResolvedValue({
+      inspection_available: true,
+      telemetry_available: true,
+      stale: false,
+      workers: [],
+      queue_depth: 0,
+      active_tasks_total: 0,
+      reserved_tasks_total: 0,
+      scheduled_tasks_total: 0,
+      last_discovery: null,
+      broker_connected: true,
+      snapshot_at: "2026-10-09T01:05:00Z",
+    });
+
+    vi.mocked(api.listAdminOperationsTasks).mockResolvedValue({
+      available: true,
+      tasks: [],
+      total: 0,
+    });
+
+    vi.mocked(api.syncAdminProviders).mockResolvedValue({
+      task_id: "task-sync-123",
+      status: "queued",
+      message: "Metadata sync initiated for all providers.",
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <AdminOperations />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const syncButton = await screen.findByRole("button", {
+      name: /Sync Providers/i,
+    });
+    expect(syncButton).toBeInTheDocument();
+
+    await user.click(syncButton);
+
+    await waitFor(() => {
+      expect(api.syncAdminProviders).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByText("Metadata sync initiated for all providers."),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("displays error feedback when provider sync fails", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(api.getAdminOperations).mockResolvedValue({
+      inspection_available: true,
+      telemetry_available: true,
+      stale: false,
+      workers: [],
+      queue_depth: 0,
+      active_tasks_total: 0,
+      reserved_tasks_total: 0,
+      scheduled_tasks_total: 0,
+      last_discovery: null,
+      broker_connected: true,
+      snapshot_at: "2026-10-09T01:05:00Z",
+    });
+
+    vi.mocked(api.listAdminOperationsTasks).mockResolvedValue({
+      available: true,
+      tasks: [],
+      total: 0,
+    });
+
+    vi.mocked(api.syncAdminProviders).mockRejectedValue(
+      new Error("Broker unreachable"),
+    );
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <AdminOperations />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const syncButton = await screen.findByRole("button", {
+      name: /Sync Providers/i,
+    });
+    await user.click(syncButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Broker unreachable")).toBeInTheDocument();
     });
   });
 });

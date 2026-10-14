@@ -25,6 +25,7 @@ import type {
   AdminOperationsResponse,
   AdminOperationsTasksResponse,
   AdminOperationsTaskDetail,
+  AdminSyncProvidersResponse,
   AdminTrendsResponse,
 } from "@/lib/structs.ts";
 
@@ -386,6 +387,13 @@ export async function getAdminOperationsTask(
 ): Promise<AdminOperationsTaskDetail> {
   const response = await api.get<AdminOperationsTaskDetail>(
     `/admin/operations/tasks/${taskId}`,
+  );
+  return response.data;
+}
+
+export async function syncAdminProviders(): Promise<AdminSyncProvidersResponse> {
+  const response = await api.post<AdminSyncProvidersResponse>(
+    "/admin/operations/sync-providers",
   );
   return response.data;
 }

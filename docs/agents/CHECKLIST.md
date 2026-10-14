@@ -138,6 +138,7 @@ Implementation specification and tasks: [Admin UI plan](../../specs/002-admin-ui
 - [x] Preserve unknown monitoring values, distinct task attempts and retry outcomes; enforce history retention and add live admin smoke verification in CI.
 - [x] Clarify admin scan settings and eligibility, shared-target scan counts, chart units/time zones/legends, and percentile explanations; verify readable charts and tables.
 - [x] Update architecture documentation and pass implementation quality gates.
+- [x] Add provider metadata synchronization trigger to the Admin Operations UI and CLI (`--provider-id all`).
 
 ### 3.1 Migration
 

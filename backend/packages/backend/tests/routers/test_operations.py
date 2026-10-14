@@ -68,6 +68,10 @@ class TestOperationsAuthorization:
         r3 = test_client.get("/api/admin/operations/tasks/any-id")
         assert r3.status_code == 403
 
+        r4 = test_client.post("/api/admin/operations/sync-providers")
+        assert r4.status_code == 403
+        assert r4.json()["detail"]["error"] == "ERR_ADMIN_REQUIRED"
+
     def test_absence_of_mutation_routes(
         self, test_client: TestClient, admin_user: CurrentUser
     ) -> None:
@@ -351,3 +355,61 @@ def test_idle_worker_reports_measured_zero() -> None:
         available, _, active, reserved, scheduled = _inspect_celery_sync()
     assert available
     assert active == reserved == scheduled == 0
+
+
+class TestSyncProviders:
+    """Tests for the POST /api/admin/operations/sync-providers endpoint."""
+
+    def test_sync_providers_non_admin_forbidden(
+        self, test_client: TestClient, non_admin_user: CurrentUser
+    ) -> None:
+        """Non-admin user cannot trigger provider sync."""
+        response = test_client.post("/api/admin/operations/sync-providers")
+        assert response.status_code == 403
+        assert response.json()["detail"]["error"] == "ERR_ADMIN_REQUIRED"
+
+    def test_sync_providers_success(
+        self, test_client: TestClient, admin_user: CurrentUser
+    ) -> None:
+        """Admin user can trigger provider catalog sync successfully."""
+        with patch(
+            "backend.routers.admin.trigger_provider_sync",
+            return_value="mock-task-id-12345",
+        ) as mock_sync:
+            response = test_client.post("/api/admin/operations/sync-providers")
+            assert response.status_code == 200
+            data = response.json()
+            assert data["task_id"] == "mock-task-id-12345"
+            assert data["status"] == "queued"
+            assert "initiated" in data["message"].lower()
+            mock_sync.assert_awaited_once()
+
+    def test_sync_providers_broker_failure(
+        self, test_client: TestClient, admin_user: CurrentUser
+    ) -> None:
+        """Broker unreachable returns 503."""
+        with patch(
+            "backend.routers.admin.trigger_provider_sync",
+            side_effect=Exception("Connection refused to Valkey"),
+        ):
+            response = test_client.post("/api/admin/operations/sync-providers")
+            assert response.status_code == 503
+            assert "unreachable" in response.json()["detail"].lower()
+
+
+def test_dispatch_sync_all_providers() -> None:
+    """Verify dispatch_sync_all_providers calls send_task on Celery app."""
+    from backend.services.operations import dispatch_sync_all_providers
+
+    with patch("backend.services.operations.Celery") as mock_celery_cls:
+        mock_app = MagicMock()
+        mock_task = MagicMock()
+        mock_task.id = "task-sync-999"
+        mock_app.send_task.return_value = mock_task
+        mock_celery_cls.return_value = mock_app
+
+        task_id = dispatch_sync_all_providers()
+        assert task_id == "task-sync-999"
+        mock_app.send_task.assert_called_once_with(
+            "camply.catalog.sync_all_providers", queue="celery"
+        )

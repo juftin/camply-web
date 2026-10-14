@@ -493,3 +493,30 @@ async def get_task_detail(task_id: str) -> Optional[AdminOperationsTaskDetail]:
     Fetch single task execution detail by ID.
     """
     return await asyncio.to_thread(_get_task_detail_sync, task_id=task_id)
+
+
+def dispatch_sync_all_providers() -> str:
+    """
+    Dispatch the camply.catalog.sync_all_providers Celery task.
+
+    Returns
+    -------
+    str
+        The Celery task ID of the dispatched task.
+    """
+    app = Celery("camply_backend", broker=backend_config.valkey_url)
+    app.conf.broker_connection_timeout = 2.0
+    task = app.send_task("camply.catalog.sync_all_providers", queue="celery")
+    return str(task.id)
+
+
+async def trigger_provider_sync() -> str:
+    """
+    Asynchronously trigger the sync_all_providers background task.
+
+    Returns
+    -------
+    str
+        The dispatched task ID.
+    """
+    return await asyncio.to_thread(dispatch_sync_all_providers)
