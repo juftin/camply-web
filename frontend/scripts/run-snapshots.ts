@@ -540,6 +540,30 @@ const SCENARIOS: Scenario[] = [
       await page.waitForTimeout(300);
     },
   },
+  {
+    name: "search-desktop-light",
+    route: "/search?q=yosemite",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description:
+      "Search and discovery page with filters, cards, and sorting (Desktop, Light)",
+  },
+  {
+    name: "search-desktop-dark",
+    route: "/search?q=yosemite",
+    viewport: { width: 1280, height: 800 },
+    theme: "dark",
+    description:
+      "Search and discovery page with filters, cards, and sorting (Desktop, Dark)",
+  },
+  {
+    name: "search-mobile-light",
+    route: "/search?q=yosemite",
+    viewport: { width: 390, height: 844 },
+    theme: "light",
+    description:
+      "Search and discovery page mobile stacked layout (Mobile, Light)",
+  },
 ];
 
 /**
@@ -636,28 +660,78 @@ const MOCK_CAMPGROUNDS = [
   },
 ];
 
-const MOCK_SEARCH_RESULTS = [
+const MOCK_SEARCH_ITEMS = [
   {
-    id: "campground-232447",
+    id: "Camp/1/2991/232447",
     entity_type: "Campground",
     provider_id: 1,
-    provider_name: "Recreation.gov",
+    provider_name: "recreation_dot_gov",
     recreation_area_id: "2991",
     recreation_area_name: "Yosemite National Park",
     campground_id: "232447",
     campground_name: "Upper Pines Campground",
+    city: "Yosemite Valley",
+    state: "CA",
+    country: "USA",
+    latitude: 37.739,
+    longitude: -119.566,
+    reservable: true,
+    campsite_types: ["STANDARD NONELECTRIC", "RV NONELECTRIC"],
+    has_electric: true,
+    has_water: true,
+    has_sewer: false,
+    pets_allowed: true,
+    ada_accessible: true,
+    max_rv_length: 35,
   },
   {
-    id: "recarea-2991",
+    id: "RecArea/1/2991",
     entity_type: "RecreationArea",
     provider_id: 1,
-    provider_name: "Recreation.gov",
+    provider_name: "recreation_dot_gov",
     recreation_area_id: "2991",
     recreation_area_name: "Yosemite National Park",
     campground_id: null,
     campground_name: null,
+    city: "Yosemite Valley",
+    state: "CA",
+    country: "USA",
+    latitude: 37.74,
+    longitude: -119.57,
+    reservable: true,
+    campsite_types: [],
+    has_electric: false,
+    has_water: false,
+    has_sewer: false,
+    pets_allowed: true,
+    ada_accessible: true,
+    max_rv_length: 0,
+  },
+  {
+    id: "Camp/1/2991/232450",
+    entity_type: "Campground",
+    provider_id: 1,
+    provider_name: "recreation_dot_gov",
+    recreation_area_id: "2991",
+    recreation_area_name: "Yosemite National Park",
+    campground_id: "232450",
+    campground_name: "Camp 4 Walk-In",
+    city: "Yosemite Valley",
+    state: "CA",
+    country: "USA",
+    latitude: 37.742,
+    longitude: -119.601,
+    reservable: true,
+    campsite_types: ["TENT ONLY"],
+    has_electric: false,
+    has_water: true,
+    has_sewer: false,
+    pets_allowed: false,
+    ada_accessible: false,
+    max_rv_length: 0,
   },
 ];
+const MOCK_SEARCH_RESULTS = MOCK_SEARCH_ITEMS;
 
 /**
  * Check if local server is listening on port.
@@ -812,11 +886,30 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
     });
   });
 
-  await page.route("**/api/search**", (route) => {
+  await page.route("**/api/search/explore*", (route) => {
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(MOCK_SEARCH_RESULTS),
+      body: JSON.stringify({
+        items: MOCK_SEARCH_ITEMS,
+        total: MOCK_SEARCH_ITEMS.length,
+        page: 1,
+        page_size: 20,
+        total_pages: 1,
+        facets: {
+          providers: { recreation_dot_gov: 2 },
+          states: { CA: 2 },
+          entity_types: { Campground: 2 },
+        },
+      }),
+    });
+  });
+
+  await page.route("**/api/search*", (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(MOCK_SEARCH_ITEMS),
     });
   });
 

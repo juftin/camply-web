@@ -101,6 +101,13 @@ export function ScanForm({
   const [providerId, setProviderId] = useState<number>(
     scan?.provider_id ?? preselectedProviderId ?? 0,
   );
+
+  useEffect(() => {
+    if (preselectedCampground) {
+      setCampground(preselectedCampground);
+      setProviderId(preselectedProviderId ?? preselectedCampground.provider_id);
+    }
+  }, [preselectedCampground, preselectedProviderId, open]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -208,6 +215,23 @@ export function ScanForm({
     } else {
       setValue("preferred_types", [...current, type]);
     }
+  };
+
+  const applyWeekendPreset = (weeksAhead: number = 0) => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    let daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+    if (daysUntilFriday === 0 && weeksAhead === 0) {
+      daysUntilFriday = 7;
+    }
+    const friday = new Date(now);
+    friday.setDate(now.getDate() + daysUntilFriday + weeksAhead * 7);
+    const sunday = new Date(friday);
+    sunday.setDate(friday.getDate() + 2);
+
+    const fmt = (d: Date) => d.toISOString().split("T")[0];
+    setValue("start_date", fmt(friday), { shouldValidate: true });
+    setValue("end_date", fmt(sunday), { shouldValidate: true });
   };
 
   // ---- Submit ----
@@ -347,6 +371,31 @@ export function ScanForm({
                 )}
               </div>
             )}
+          </div>
+
+          {/* ---- Quick Presets ---- */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs text-muted-foreground font-medium">
+              Quick Dates:
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs px-2.5"
+              onClick={() => applyWeekendPreset(0)}
+            >
+              Next Weekend
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs px-2.5"
+              onClick={() => applyWeekendPreset(1)}
+            >
+              In 2 Weeks
+            </Button>
           </div>
 
           {/* ---- Date range ---- */}

@@ -92,7 +92,24 @@ export function SearchBar({
     }
   };
 
+  const handleViewAll = () => {
+    if (searchQuery.trim()) {
+      setIsDropdownOpen(false);
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      if (selectedIndex >= 0 && selectedIndex < searchResults.length) {
+        handleSearchResultSelect(searchResults[selectedIndex]);
+      } else if (searchQuery.trim()) {
+        handleViewAll();
+      }
+      return;
+    }
+
     if (!isDropdownOpen || searchResults.length === 0) return;
 
     switch (event.key) {
@@ -107,12 +124,6 @@ export function SearchBar({
         setSelectedIndex((prev) =>
           prev > 0 ? prev - 1 : searchResults.length - 1,
         );
-        break;
-      case "Enter":
-        event.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < searchResults.length) {
-          handleSearchResultSelect(searchResults[selectedIndex]);
-        }
         break;
       case "Escape":
         event.preventDefault();
@@ -153,6 +164,7 @@ export function SearchBar({
           query={debouncedQuery}
           isOpen={isDropdownOpen}
           onSelect={handleSearchResultSelect}
+          onViewAll={handleViewAll}
           isFetching={isFetching}
           selectedIndex={selectedIndex}
         />

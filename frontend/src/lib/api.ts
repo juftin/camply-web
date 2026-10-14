@@ -27,6 +27,7 @@ import type {
   AdminOperationsTaskDetail,
   AdminSyncProvidersResponse,
   AdminTrendsResponse,
+  SearchExploreResponse,
 } from "@/lib/structs.ts";
 
 // ---------------------------------------------------------------------------
@@ -113,6 +114,51 @@ export async function searchCampgrounds(
 
   const response = await api.get<SearchResult[]>("/search", {
     params: { query: query.trim(), limit },
+  });
+  return response.data;
+}
+
+export interface SearchExploreParams {
+  query?: string;
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  providerId?: number;
+  entityType?: string;
+  state?: string;
+  hasElectric?: boolean;
+  petsAllowed?: boolean;
+  minRvLength?: number;
+  lat?: number;
+  lng?: number;
+  radiusMiles?: number;
+}
+
+export async function searchExplore(
+  params: SearchExploreParams = {},
+): Promise<SearchExploreResponse> {
+  const queryParams: Record<string, string | number | boolean> = {};
+  if (params.query?.trim()) queryParams.q = params.query.trim();
+  if (params.page !== undefined) queryParams.page = params.page;
+  if (params.pageSize !== undefined) queryParams.page_size = params.pageSize;
+  if (params.sortBy) queryParams.sort_by = params.sortBy;
+  if (params.providerId !== undefined)
+    queryParams.provider_id = params.providerId;
+  if (params.entityType) queryParams.entity_type = params.entityType;
+  if (params.state) queryParams.state = params.state;
+  if (params.hasElectric !== undefined)
+    queryParams.has_electric = params.hasElectric;
+  if (params.petsAllowed !== undefined)
+    queryParams.pets_allowed = params.petsAllowed;
+  if (params.minRvLength !== undefined)
+    queryParams.min_rv_length = params.minRvLength;
+  if (params.lat !== undefined) queryParams.lat = params.lat;
+  if (params.lng !== undefined) queryParams.lng = params.lng;
+  if (params.radiusMiles !== undefined)
+    queryParams.radius_miles = params.radiusMiles;
+
+  const response = await api.get<SearchExploreResponse>("/search/explore", {
+    params: queryParams,
   });
   return response.data;
 }

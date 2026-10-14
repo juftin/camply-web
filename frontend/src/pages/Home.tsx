@@ -62,25 +62,25 @@ export function Home() {
 
           <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
             <Link
-              to="/providers"
+              to="/search?q=National+Park"
               className="flex items-center gap-1 hover:text-foreground transition-colors"
             >
               <MapPin className="h-4 w-4" />
               National Parks
             </Link>
             <Link
-              to="/providers"
+              to="/search?q=State+Park"
               className="flex items-center gap-1 hover:text-foreground transition-colors"
             >
               <MapPin className="h-4 w-4" />
               State Parks
             </Link>
             <Link
-              to="/providers"
+              to="/search"
               className="flex items-center gap-1 hover:text-foreground transition-colors"
             >
               <MapPin className="h-4 w-4" />
-              Recreation Areas
+              All Campgrounds
             </Link>
           </div>
 

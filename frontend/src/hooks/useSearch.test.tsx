@@ -2,12 +2,13 @@ import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useSearch } from "./useSearch";
+import { useSearch, useSearchExplore } from "./useSearch";
 import * as api from "@/lib/api";
-import type { SearchResult } from "@/lib/structs";
+import type { SearchExploreResponse, SearchResult } from "@/lib/structs";
 
 vi.mock("@/lib/api", () => ({
   searchCampgrounds: vi.fn(),
+  searchExplore: vi.fn(),
 }));
 
 function createWrapper() {
@@ -100,6 +101,50 @@ describe("useSearch", () => {
 
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
+    });
+  });
+});
+
+describe("useSearchExplore", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const mockExploreResponse: SearchExploreResponse = {
+    items: [mockSearchResult],
+    total: 1,
+    page: 1,
+    page_size: 20,
+    total_pages: 1,
+    facets: {
+      providers: { "Recreation.gov": 1 },
+      states: { CA: 1 },
+      entity_types: { Campground: 1 },
+    },
+  };
+
+  it("fetches exploration results with filters", async () => {
+    vi.mocked(api.searchExplore).mockResolvedValue(mockExploreResponse);
+
+    const { result } = renderHook(
+      () =>
+        useSearchExplore({
+          query: "Yosemite",
+          state: "CA",
+          hasElectric: true,
+        }),
+      {
+        wrapper: createWrapper(),
+      },
+    );
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual(mockExploreResponse);
+    });
+    expect(api.searchExplore).toHaveBeenCalledWith({
+      query: "Yosemite",
+      state: "CA",
+      hasElectric: true,
     });
   });
 });

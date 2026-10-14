@@ -152,7 +152,7 @@ Implementation specification and tasks: [Admin UI plan](../../specs/002-admin-ui
 
 ### 3.2 Advanced Search
 
-- [ ] T3.2.1 Implement electric hookup and ADA accessibility filters.
+- [x] T3.2.1 Implement electric hookup and ADA accessibility filters, multi-criteria search, facets, and pagination (`/api/search/explore`, `SearchPage`).
 - [ ] T3.2.2 Implement equipment length (RV/Trailer) validation in poller.
 - [ ] T3.2.3 Implement minimum stay requirement (X nights) in poller logic.
 
