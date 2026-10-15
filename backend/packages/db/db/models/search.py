@@ -29,6 +29,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql.elements import ColumnElement
 
 from db.models.base import Base
+from db.search_bounds import Bounds, valid_coordinates, viewport_filter
 
 MILES_PER_LATITUDE_DEGREE: float = 69.0
 """Approximate miles per degree of latitude for bounding box calculation."""
@@ -553,6 +554,7 @@ class Search(Base):
         sort_by: str = "relevance",
         dialect_name: str | None = None,
         include_metadata: bool = True,
+        bounds: Bounds | None = None,
     ) -> tuple[list[Self], int, dict[str, Any]]:
         """
         Execute composable multi-criteria search with total count and facet aggregations.
@@ -592,6 +594,9 @@ class Search(Base):
         include_metadata : bool
             Compute totals and facets; disable for autocomplete requests.
 
+        bounds : Bounds | None
+            Optional visible extent; excludes places without valid coordinates.
+
         Returns
         -------
         tuple[list[Self], int, dict[str, Any]]
@@ -612,6 +617,9 @@ class Search(Base):
             radius_miles=radius_miles,
             dialect_name=dialect_name,
         )
+
+        if bounds is not None:
+            filters.extend([valid_coordinates(cls), viewport_filter(cls, bounds)])
 
         total_count = 0
         facets: dict[str, Any] = {}

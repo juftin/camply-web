@@ -96,7 +96,7 @@ The frontend uses Vite 8 (Rolldown), Vitest 5, Oxlint, Oxfmt, and native TypeScr
 
 ### UI Snapshots & Visual Regression
 
-- Run visual snapshots & compare against baselines: `task snapshot`
+- Run visual snapshots & compare against baselines: `task snapshot` (set `CAMPLY_SNAPSHOT_PORT=5197` to isolate a worktree from another dev server)
 - Update visual snapshot baselines: `task snapshot:update`
 - Verify snapshots match baselines (CI regression check): `task snapshot:check`
 - View visual report: `frontend/snapshots/REPORT.md` (markdown) or `frontend/snapshots/report.html` (interactive)

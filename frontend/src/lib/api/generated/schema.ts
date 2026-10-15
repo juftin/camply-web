@@ -2308,6 +2308,10 @@ export interface operations {
                 lat?: number | null;
                 lng?: number | null;
                 radius_miles?: number | null;
+                west?: number | null;
+                south?: number | null;
+                east?: number | null;
+                north?: number | null;
             };
             header?: never;
             path?: never;

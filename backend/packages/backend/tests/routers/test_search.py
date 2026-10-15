@@ -149,3 +149,23 @@ class TestSearchMap:
                 ).status_code
                 == 422
             )
+
+
+class TestExploreViewport:
+    """Validate optional list extents with the same rules as map requests."""
+
+    def test_optional_bounds(self, test_client: TestClient) -> None:
+        """Accept complete dateline bounds, rejecting partial or invalid extents."""
+        valid = {"west": 179, "south": -1, "east": -179, "north": 1}
+        assert test_client.get("/api/search/explore", params=valid).status_code == 200
+        invalid: tuple[dict[str, int | str], ...] = (
+            {"west": 0},
+            {**valid, "north": -2},
+            {**valid, "west": 181},
+            {**valid, "south": "nan"},
+            {**valid, "east": 179},
+        )
+        for bounds in invalid:
+            assert (
+                test_client.get("/api/search/explore", params=bounds).status_code == 422
+            )

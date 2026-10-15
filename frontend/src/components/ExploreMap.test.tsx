@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ExploreMap } from "./ExploreMap";
@@ -13,13 +13,19 @@ vi.mock("./MapComponent", () => ({
   MapComponent: ({
     pins,
     onMove,
+    bounds,
     camera,
   }: {
     pins: MapPin[];
+    bounds?: GeoBounds;
     camera?: MapCamera | null;
-    onMove: (bounds: GeoBounds, camera: MapCamera) => void;
+    onMove: (bounds: GeoBounds, camera: MapCamera, initial?: boolean) => void;
   }) => (
-    <div data-testid="map-canvas" data-camera={JSON.stringify(camera)}>
+    <div
+      data-testid="map-canvas"
+      data-camera={JSON.stringify(camera)}
+      data-bounds={JSON.stringify(bounds)}
+    >
       <button
         onClick={() =>
           onMove(
@@ -29,6 +35,17 @@ vi.mock("./MapComponent", () => ({
         }
       >
         Move map
+      </button>
+      <button
+        onClick={() =>
+          onMove(
+            { west: -106, east: -104, south: 34, north: 36 },
+            { lat: 35, lng: -105, zoom: 9 },
+            true,
+          )
+        }
+      >
+        Resize map
       </button>
       {pins.map((p) => (
         <button key={p.id} onClick={p.onSelect}>
@@ -110,6 +127,51 @@ const open = () =>
     </MemoryRouter>,
   );
 describe("Explore map discovery", () => {
+  it("uses the initial regional extent instead of fitting the global catalog", () => {
+    const bounds = { west: -106, east: -104, south: 34, north: 36 };
+    render(
+      <MemoryRouter>
+        <ExploreMap
+          params={{}}
+          saved={null}
+          onSave={() => {}}
+          initialBounds={bounds}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId("map-canvas")).toHaveAttribute(
+      "data-bounds",
+      JSON.stringify(bounds),
+    );
+  });
+  it("debounces movement into list bounds without changing the map context", () => {
+    vi.useFakeTimers();
+    try {
+      const onViewport = vi.fn();
+      render(
+        <MemoryRouter>
+          <ExploreMap
+            params={{ page: 3 }}
+            saved={null}
+            onSave={() => {}}
+            onViewport={onViewport}
+          />
+        </MemoryRouter>,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Move map" }));
+      fireEvent.click(screen.getByRole("button", { name: "Resize map" }));
+      expect(onViewport).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(150);
+      });
+      expect(onViewport).toHaveBeenCalledWith(
+        { west: -106, east: -104, south: 34, north: 36 },
+        true,
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it("saves the latest camera immediately so collapsing cannot discard a recent pan", () => {
     const onSave = vi.fn();
     render(
@@ -120,6 +182,7 @@ describe("Explore map discovery", () => {
     fireEvent.click(screen.getByRole("button", { name: "Move map" }));
     expect(onSave).toHaveBeenCalledWith({
       context: "{}",
+      moved: true,
       bounds: { west: -106, east: -104, south: 34, north: 36 },
       camera: { lat: 35, lng: -105, zoom: 9 },
     });

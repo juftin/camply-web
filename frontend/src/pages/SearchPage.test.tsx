@@ -3,6 +3,7 @@ import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { SearchPage } from "./SearchPage";
+import { mapQueryParams, type SearchExploreParams } from "@/lib/api";
 import type { SavedMapView } from "@/components/ExploreMap";
 import * as searchHook from "@/hooks/useSearch";
 import type { SearchExploreResponse } from "@/lib/structs";
@@ -16,17 +17,29 @@ vi.mock("@/components/ScanForm", () => ({
 vi.mock("@/components/ExploreMap", () => ({
   ExploreMap: ({
     saved,
+    params,
     onSave,
+    onViewport,
   }: {
     saved: SavedMapView | null;
+    params: SearchExploreParams;
     onSave: (view: SavedMapView) => void;
+    onViewport: (bounds: SavedMapView["bounds"], resetPage: boolean) => void;
   }) => (
     <div data-testid="explore-map" data-camera={JSON.stringify(saved?.camera)}>
       Map results
       <button
         onClick={() =>
+          onViewport({ west: -106, east: -104, south: 34, north: 36 }, true)
+        }
+      >
+        Zoom map
+      </button>
+      <button
+        onClick={() =>
           onSave({
-            context: "{}",
+            context: JSON.stringify(mapQueryParams(params)),
+            moved: true,
             camera: { lat: 35, lng: -105, zoom: 9 },
             bounds: { west: -106, east: -104, south: 34, north: 36 },
           })
@@ -113,6 +126,10 @@ function renderSearchPage(initialEntries = ["/search?q=Upper"]) {
 describe("SearchPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(searchHook, "useIpLocation").mockReturnValue({
+      data: null,
+      isPending: false,
+    } as ReturnType<typeof searchHook.useIpLocation>);
   });
 
   it("renders search page title and campgrounds list", () => {
@@ -162,7 +179,7 @@ describe("SearchPage", () => {
     },
   );
 
-  it("collapses only the map and restores its camera without changing search or page", () => {
+  it("collapses only the map and preserves its latest area and camera", () => {
     vi.spyOn(searchHook, "useSearchExplore").mockReturnValue({
       data: { ...mockExploreData, total: 60, total_pages: 3 },
       isLoading: false,
@@ -180,7 +197,7 @@ describe("SearchPage", () => {
     expect(screen.getByRole("link", { name: "Upper Pines" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Monitor" })).toBeVisible();
     expect(screen.getByTestId("location")).toHaveTextContent(
-      "?q=Upper&page=2&state=CA",
+      "?q=Upper&state=CA",
     );
     const show = screen.getByRole("button", { name: "Show map" });
     expect(show).toHaveAttribute("aria-expanded", "false");
@@ -192,7 +209,7 @@ describe("SearchPage", () => {
       "data-camera",
       JSON.stringify({ lat: 35, lng: -105, zoom: 9 }),
     );
-    expect(screen.getByTestId("location")).toHaveTextContent("page=3");
+    expect(screen.getByTestId("location")).toHaveTextContent("page=2");
   });
 
   it("keeps both representations through pagination and filter history", () => {
@@ -254,12 +271,111 @@ describe("SearchPage", () => {
 describe("live Explore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(searchHook, "useIpLocation").mockReturnValue({
+      data: null,
+      isPending: false,
+    } as ReturnType<typeof searchHook.useIpLocation>);
     vi.spyOn(searchHook, "useSearchExplore").mockReturnValue({
       data: mockExploreData,
       isLoading: false,
       isFetching: false,
       error: null,
     } as unknown as ReturnType<typeof searchHook.useSearchExplore>);
+  });
+
+  it("filters and resets the full list on zoom while preserving bounds for sort and pagination", () => {
+    vi.mocked(searchHook.useSearchExplore).mockReturnValue({
+      data: { ...mockExploreData, total_pages: 3 },
+      isLoading: false,
+      isFetching: false,
+    } as ReturnType<typeof searchHook.useSearchExplore>);
+    renderSearchPage(["/search?q=Upper&page=3"]);
+    fireEvent.click(screen.getByRole("button", { name: "Zoom map" }));
+    const bounds = { west: -106, east: -104, south: 34, north: 36 };
+    expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+      expect.objectContaining({ page: 1, bounds }),
+      true,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+      expect.objectContaining({ page: 2, bounds }),
+      true,
+    );
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "name_asc" },
+    });
+    expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sortBy: "name_asc", bounds }),
+      true,
+    );
+    fireEvent.click(screen.getByRole("switch", { name: "Electric Hookups" }));
+    expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+      expect.objectContaining({ hasElectric: true, bounds: undefined }),
+      true,
+    );
+  });
+
+  it("starts unfiltered visits with the IP region, but leaves explicit searches alone", () => {
+    vi.mocked(searchHook.useIpLocation).mockReturnValue({
+      data: { lat: 35, lng: -105 },
+      isPending: false,
+    } as ReturnType<typeof searchHook.useIpLocation>);
+    renderSearchPage(["/search"]);
+    expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        bounds: { west: -108, east: -102, south: 33, north: 37 },
+      }),
+      true,
+    );
+  });
+
+  it("falls back to broad discovery when the IP lookup fails", () => {
+    renderSearchPage(["/search"]);
+    expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+      expect.objectContaining({ bounds: undefined }),
+      true,
+    );
+    expect(screen.getByTestId("explore-map")).toBeVisible();
+  });
+
+  it("abandons pending location initialization when the visitor starts a search", () => {
+    const lookup = vi
+      .mocked(searchHook.useIpLocation)
+      .mockReturnValue({ data: undefined, isPending: true } as ReturnType<
+        typeof searchHook.useIpLocation
+      >);
+    renderSearchPage(["/search"]);
+    expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+      expect.anything(),
+      false,
+    );
+    expect(screen.queryByTestId("explore-map")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "Pines" },
+    });
+    lookup.mockReturnValue({
+      data: { lat: 35, lng: -105 },
+      isPending: false,
+    } as ReturnType<typeof searchHook.useIpLocation>);
+    fireEvent.click(screen.getByRole("button", { name: /^Search$/ }));
+    expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: "Pines", bounds: undefined }),
+      true,
+    );
+  });
+
+  it("skips IP initialization on explicit search links", () => {
+    renderSearchPage(["/search?q=Upper&state=CA&page=2"]);
+    expect(searchHook.useIpLocation).toHaveBeenLastCalledWith(false);
+    expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: "Upper",
+        state: "CA",
+        page: 2,
+        bounds: undefined,
+      }),
+      true,
+    );
   });
 
   it("searches after typing without submitting and resets the page", async () => {
@@ -271,12 +387,14 @@ describe("live Explore", () => {
       });
       expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
         expect.objectContaining({ query: "Upper", page: 3 }),
+        true,
       );
       await act(async () => {
         vi.advanceTimersByTime(300);
       });
       expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
         expect.objectContaining({ query: "Pines", page: 1 }),
+        true,
       );
     } finally {
       vi.useRealTimers();
@@ -291,6 +409,7 @@ describe("live Explore", () => {
     fireEvent.click(screen.getByRole("switch", { name: "Electric Hookups" }));
     expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: "Pines", hasElectric: true, page: 1 }),
+      true,
     );
   });
 
@@ -314,6 +433,7 @@ describe("live Explore", () => {
           hasElectric: undefined,
           page: 1,
         }),
+        true,
       );
     } finally {
       vi.useRealTimers();
@@ -336,6 +456,7 @@ it("synchronizes the input with browser back and forward navigation", () => {
   expect(input).toHaveValue("Upper");
   expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
     expect.objectContaining({ query: "Upper" }),
+    true,
   );
   fireEvent.click(screen.getByRole("button", { name: "Go forward" }));
   expect(input).toHaveValue("Pines");

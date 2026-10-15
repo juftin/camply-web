@@ -6,12 +6,17 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import Integer, and_, case, cast, func, or_, select, true
+from sqlalchemy import Integer, case, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.elements import ColumnElement
 
 from db.models import Search
 from db.models.search import build_search_filters
+from db.search_bounds import (
+    Bounds,
+    normalized_longitude,
+    valid_coordinates,
+    viewport_filter,
+)
 
 MAX_LATITUDE = 90
 """Maximum valid geographic latitude."""
@@ -30,16 +35,6 @@ MAX_CELL_DIGITS = 7
 
 MAX_MAP_FEATURES = 512
 """Maximum cells transferred for a viewport, established before aggregation."""
-
-
-@dataclass(frozen=True)
-class Bounds:
-    """Geographic bounds; west greater than east crosses the antimeridian."""
-
-    west: float
-    south: float
-    east: float
-    north: float
 
 
 @dataclass
@@ -81,34 +76,9 @@ class MemberPage:
     next_cursor: str | None
 
 
-def _longitude() -> Any:
-    """Canonicalize the two representations of the dateline for comparisons."""
-    return case((Search.longitude == MAX_LONGITUDE, -180.0), else_=Search.longitude)
-
-
 async def _filters(session: AsyncSession, filters: dict[str, Any]) -> list[Any]:
     """Reuse the exact list search membership predicates without ranking."""
     return (await build_search_filters(cls=Search, session=session, **filters))[0]
-
-
-def _valid() -> Any:
-    """Exclude missing/nonfinite/out-of-range coordinates while accepting zero."""
-    return and_(Search.latitude.between(-90, 90), Search.longitude.between(-180, 180))
-
-
-def _viewport(bounds: Bounds) -> Any:
-    """Apply inclusive map-only bounds, including either dateline spelling."""
-    lon = _longitude()
-    longitude_filter: ColumnElement[bool]
-    if bounds.west == -MAX_LONGITUDE and bounds.east == MAX_LONGITUDE:
-        longitude_filter = true()
-    elif bounds.west > bounds.east:
-        longitude_filter = or_(lon >= bounds.west, lon <= bounds.east)
-    else:
-        longitude_filter = lon.between(bounds.west, bounds.east)
-        if bounds.east == MAX_LONGITUDE:
-            longitude_filter = or_(longitude_filter, lon == -MAX_LONGITUDE)
-    return and_(Search.latitude.between(bounds.south, bounds.north), longitude_filter)
 
 
 def _floor(value: Any) -> Any:
@@ -120,7 +90,7 @@ def _floor(value: Any) -> Any:
 def _grid(level: int) -> tuple[Any, Any]:
     """Assign half-open cells with explicit dateline and north-pole ownership."""
     width = 360.0 / 2**level
-    return _floor((_longitude() + 180) / width), case(
+    return _floor((normalized_longitude(Search) + 180) / width), case(
         (Search.latitude == MAX_LATITUDE, 2 ** (level - 1) - 1),
         else_=_floor((Search.latitude + 90) / width),
     )
@@ -182,7 +152,7 @@ async def map_summary(session: AsyncSession, *, filters: dict[str, Any]) -> MapS
         )
         or 0
     )
-    valid_filters = [*predicates, _valid()]
+    valid_filters = [*predicates, valid_coordinates(Search)]
     count, south, north = (
         await session.execute(
             select(
@@ -195,7 +165,7 @@ async def map_summary(session: AsyncSession, *, filters: dict[str, Any]) -> MapS
             total=total, mappable_total=0, unmappable_total=total, bounds=None
         )
     longitudes = (
-        select(_longitude().label("lng"))
+        select(normalized_longitude(Search).label("lng"))
         .where(*valid_filters)
         .distinct()
         .cte("map_longitudes")
@@ -240,13 +210,17 @@ async def map_features(
                 func.count().label("n"),
                 func.min(Search.id).label("first_id"),
                 func.avg(Search.latitude).label("lat"),
-                func.avg(_longitude()).label("lng"),
+                func.avg(normalized_longitude(Search)).label("lng"),
                 func.min(Search.latitude).label("south"),
                 func.max(Search.latitude).label("north"),
-                func.min(_longitude()).label("west"),
-                func.max(_longitude()).label("east"),
+                func.min(normalized_longitude(Search)).label("west"),
+                func.max(normalized_longitude(Search)).label("east"),
             )
-            .where(*await _filters(session, filters), _valid(), _viewport(bounds))
+            .where(
+                *await _filters(session, filters),
+                valid_coordinates(Search),
+                viewport_filter(Search, bounds),
+            )
             .group_by(x, y)
             .order_by(y, x)
         )
@@ -299,8 +273,8 @@ async def map_members(
     x, y = _grid(level)
     predicates = [
         *await _filters(session, filters),
-        _valid(),
-        _viewport(bounds),
+        valid_coordinates(Search),
+        viewport_filter(Search, bounds),
         x == column,
         y == row,
     ]

@@ -15,7 +15,7 @@ repos:
       - id: check-docstring-first
         # This token-based hook mistakes valid module attribute docstrings for
         # duplicate module docstrings. Syntax checks still cover these modules.
-        exclude: ^backend/packages/(db/db/(models/search|search_maps)|backend/backend/routers/search)\.py$
+        exclude: ^backend/packages/(db/db/(models/search|search_maps|search_bounds)|backend/backend/routers/search)\.py$
       - id: check-merge-conflict
       - id: mixed-line-ending
 

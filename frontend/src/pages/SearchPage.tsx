@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import {
   Search,
@@ -25,10 +25,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ExploreMap, type SavedMapView } from "@/components/ExploreMap";
-import { toCampground, detailUrl } from "@/lib/maps";
+import {
+  toCampground,
+  detailUrl,
+  regionalBounds,
+  type GeoBounds,
+} from "@/lib/maps";
 import { mapQueryParams } from "@/lib/api";
 import { ScanForm } from "@/components/ScanForm";
-import { useSearchExplore } from "@/hooks/useSearch";
+import { useSearchExplore, useIpLocation } from "@/hooks/useSearch";
 import { toTitleCase } from "@/lib/utils";
 
 const POPULAR_STATES = ["CA", "CO", "WA", "OR", "UT", "AZ", "TX", "FL"];
@@ -49,6 +54,7 @@ export function SearchPage() {
   const page =
     Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
+  const [mapReset, setMapReset] = useState(0);
   const [isMapOpen, setIsMapOpen] = useState(true);
   const [savedMap, setSavedMap] = useState<SavedMapView | null>(null);
 
@@ -71,8 +77,61 @@ export function SearchPage() {
     [query, state, hasElectric, petsAllowed, minRvLength, sortBy, page],
   );
 
-  const { data, isLoading, isFetching, isPlaceholderData, error, refetch } =
-    useSearchExplore(exploreParams);
+  const context = JSON.stringify(mapQueryParams(exploreParams));
+  const [listViewport, setListViewport] = useState<{
+    context: string;
+    bounds: GeoBounds;
+  } | null>(null);
+  const [initialBounds, setInitialBounds] = useState<GeoBounds>();
+  const initialSearch = useRef(searchParams.toString());
+  const [initializingLocation, setInitializingLocation] = useState(
+    () => ![...searchParams.keys()].some((key) => key !== "view"),
+  );
+  const canInitialize =
+    initializingLocation &&
+    searchParams.toString() === initialSearch.current &&
+    !searchInput;
+  const location = useIpLocation(canInitialize);
+  const locating = canInitialize && location.isPending;
+  useEffect(() => {
+    if (!canInitialize || location.isPending) return;
+    if (location.data) {
+      const bounds = regionalBounds(location.data.lat, location.data.lng);
+      setInitialBounds(bounds);
+      setListViewport({ context, bounds });
+    }
+    setInitializingLocation(false);
+  }, [canInitialize, location.isPending, location.data, context]);
+  const bounds =
+    listViewport?.context === context ? listViewport.bounds : undefined;
+  const {
+    data,
+    isLoading: loadingResults,
+    isFetching,
+    isPlaceholderData,
+    error,
+    refetch,
+  } = useSearchExplore({ ...exploreParams, bounds }, !canInitialize);
+  const isLoading = loadingResults || locating;
+  const onViewport = (bounds: GeoBounds, resetPage: boolean) => {
+    if (!resetPage && listViewport?.context !== context) return;
+    if (
+      listViewport?.context === context &&
+      JSON.stringify(listViewport.bounds) === JSON.stringify(bounds)
+    )
+      return;
+    setListViewport({ context, bounds });
+    if (!resetPage) return;
+    setSearchParams(
+      (current) => {
+        if (!current.has("page")) return current;
+        const next = new URLSearchParams(current);
+        next.delete("page");
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   useEffect(() => {
     setSearchInput(query);
@@ -97,6 +156,13 @@ export function SearchPage() {
 
   // Filters commit the current input immediately, including pending typing.
   const updateParams = (updates: Record<string, string | null>) => {
+    setInitializingLocation(false);
+    if (!("page" in updates) && !("sort" in updates)) {
+      setListViewport(null);
+      setInitialBounds(undefined);
+      setSavedMap(null);
+      setMapReset((value) => value + 1);
+    }
     setSearchParams((current) => {
       const nextParams = new URLSearchParams(current);
       if (!("page" in updates)) {
@@ -121,6 +187,11 @@ export function SearchPage() {
   };
 
   const handleClearFilters = () => {
+    setInitializingLocation(false);
+    setListViewport(null);
+    setInitialBounds(undefined);
+    setSavedMap(null);
+    setMapReset((value) => value + 1);
     setSearchInput("");
     setSearchParams(new URLSearchParams());
   };
@@ -160,7 +231,10 @@ export function SearchPage() {
               aria-label="Search campgrounds"
               placeholder="Search by campground name, park, or city..."
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
+              onChange={(e) => {
+                setInitializingLocation(false);
+                setSearchInput(e.target.value);
+              }}
               className="pl-11 h-12 text-base"
             />
           </div>
@@ -357,6 +431,7 @@ export function SearchPage() {
                       {total}
                     </span>{" "}
                     {total === 1 ? "campground" : "campgrounds"}
+                    {bounds && <span> in map area</span>}
                     {query && <span> for "{query}"</span>}
                     {state && <span> in {state.toUpperCase()}</span>}
                   </>
@@ -380,7 +455,15 @@ export function SearchPage() {
                 size="sm"
                 aria-expanded={isMapOpen}
                 aria-controls="explore-map-content"
-                onClick={() => setIsMapOpen((open) => !open)}
+                onClick={() => {
+                  if (
+                    isMapOpen &&
+                    savedMap?.context === context &&
+                    savedMap.moved
+                  )
+                    onViewport(savedMap.bounds, true);
+                  setIsMapOpen((open) => !open);
+                }}
                 className="gap-2"
               >
                 <MapPin className="h-4 w-4" />
@@ -392,15 +475,26 @@ export function SearchPage() {
                 )}
               </Button>
               <div id="explore-map-content" hidden={!isMapOpen}>
-                {isMapOpen && (
+                {isMapOpen && !canInitialize && (
                   <ExploreMap
-                    key={JSON.stringify(mapQueryParams(exploreParams))}
+                    key={`${context}:${mapReset}`}
                     params={exploreParams}
                     saved={savedMap}
                     onSave={setSavedMap}
+                    onViewport={onViewport}
+                    initialBounds={
+                      listViewport?.context === context
+                        ? initialBounds
+                        : undefined
+                    }
                   />
                 )}
               </div>
+              {bounds && (
+                <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+                  Clear map area and filters
+                </Button>
+              )}
             </div>
             <section aria-label="Search results" className="min-w-0 space-y-4">
               {/* Results List */}

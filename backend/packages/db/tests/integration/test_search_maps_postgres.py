@@ -15,7 +15,7 @@ import pytest
 from sqlalchemy import Table, text
 from sqlalchemy.engine import URL, Connection
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from db.models import Base, Search
 from db.search_maps import Bounds, map_features, map_members, map_summary
@@ -29,6 +29,21 @@ pytestmark = pytest.mark.skipif(
 def _create_catalog(connection: Connection) -> None:
     """Create the unchanged catalog schema without unrelated account tables."""
     Base.metadata.create_all(bind=connection, tables=[cast(Table, Search.__table__)])
+
+
+async def _verify_viewport(session: AsyncSession) -> None:
+    """Keep list counts, pages and facets consistent with real PostgreSQL map queries."""
+    bounds = Bounds(west=-3, east=3, south=-2, north=2)
+    rows, total, facets = await Search.search(
+        session=session, bounds=bounds, limit=20, offset=20, has_electric=True
+    )
+    visible = await map_features(
+        session, bounds=bounds, zoom=8, filters={"has_electric": True}
+    )
+    assert len(rows) == 20
+    assert total == sum(cell.count for cell in visible.cells)
+    assert 65 <= total < 2500
+    assert facets["states"] == {"CA": total}
 
 
 async def _verify(port: int, password: str) -> None:
@@ -117,6 +132,7 @@ async def _verify(port: int, password: str) -> None:
                 assert map_total == total
                 if filters.get("term"):
                     assert total == 5000
+            await _verify_viewport(session)
             plan = (
                 await session.execute(
                     text(

@@ -79,6 +79,28 @@ const sdk = vi.hoisted(() => {
       markers.push(marker);
       return marker;
     }),
+    Popup: vi.fn(
+      class {
+        content!: HTMLElement;
+        map?: TestMap;
+        setDOMContent(content: HTMLElement) {
+          this.content = content;
+          return this;
+        }
+        setLngLat() {
+          return this;
+        }
+        addTo(map: TestMap) {
+          this.map = map;
+          (map.options.container as HTMLElement).appendChild(this.content);
+          return this;
+        }
+        remove() {
+          this.content.remove();
+          return this;
+        }
+      },
+    ),
     setWorkerUrl: vi.fn(),
     NavigationControl: vi.fn(class {}),
     AttributionControl: vi.fn(class {}),
@@ -97,6 +119,79 @@ afterEach(() => {
 });
 
 describe("MapLibre shared maps", () => {
+  it("distinguishes initialization and resize from user navigation and group fitting", () => {
+    const onMove = vi.fn();
+    const bounds = { west: -2, east: 2, south: -2, north: 2 };
+    const { rerender } = render(
+      <MapComponent bounds={bounds} fitKey="search" onMove={onMove} />,
+    );
+    expect(onMove).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.anything(),
+      true,
+    );
+    act(() => sdk.maps[0].fire("moveend"));
+    expect(onMove).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.anything(),
+      true,
+    );
+    act(() =>
+      sdk.maps[0].fire("moveend", { originalEvent: new MouseEvent("mouseup") }),
+    );
+    expect(onMove).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.anything(),
+      false,
+    );
+    rerender(<MapComponent bounds={bounds} fitKey="group" onMove={onMove} />);
+    expect(onMove).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.anything(),
+      false,
+    );
+  });
+  it("shows safe place information on hover and focus and cleans up popups", () => {
+    const onSelect = vi.fn();
+    const { unmount } = render(
+      <MapComponent
+        pins={[
+          {
+            id: "hover",
+            lat: 0,
+            lng: 0,
+            label: "<b>Camp name</b>",
+            description: "Provider · Campground · CA",
+            onSelect,
+          },
+        ]}
+      />,
+    );
+    const marker = screen.getByRole("button", { name: "<b>Camp name</b>" });
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    fireEvent.mouseEnter(marker);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("<b>Camp name</b>");
+    expect(screen.getByRole("tooltip").querySelector("b")).toBeNull();
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "Provider · Campground · CA",
+    );
+    expect(onSelect).not.toHaveBeenCalled();
+    fireEvent.mouseLeave(marker);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    fireEvent.focus(marker);
+    expect(screen.getByRole("tooltip")).toBeInTheDocument();
+    fireEvent.keyDown(marker, { key: "Escape" });
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    fireEvent.blur(marker);
+    fireEvent.focus(marker);
+    fireEvent.blur(marker);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    fireEvent.mouseEnter(marker);
+    unmount();
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    fireEvent.mouseEnter(marker);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
   it("renders valid zero locations with a keyless raster style and safe attribution/requests", () => {
     render(
       <MapComponent
@@ -241,11 +336,15 @@ describe("MapLibre shared maps", () => {
     const map = sdk.maps[0];
     expect(map.options).toMatchObject({ center: [-105, 35], zoom: 9 });
     expect(map.fitBounds).not.toHaveBeenCalled();
-    expect(onMove).toHaveBeenCalledWith(expect.anything(), {
-      lat: 35,
-      lng: -105,
-      zoom: 9,
-    });
+    expect(onMove).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        lat: 35,
+        lng: -105,
+        zoom: 9,
+      },
+      true,
+    );
   });
   it("ignores late movement after collapse removes the map", () => {
     const onMove = vi.fn();

@@ -16,6 +16,7 @@ export interface MapPin {
   lat: number;
   lng: number;
   label: string;
+  description?: string;
   type?: "campground" | "recreation-area";
   count?: number;
   onSelect?: () => void;
@@ -145,3 +146,11 @@ export const detailUrl = (item: SearchResult | MapSearchResult): string =>
   item.entity_type === "Campground" && item.campground_id
     ? `/campground/${item.provider_id}/${encodeURIComponent(item.campground_id)}`
     : `/rec-area/${item.provider_id}/${encodeURIComponent(item.recreation_area_id || "")}`;
+
+/** Start nearby discovery with a broad regional area around approximate coordinates. */
+export const regionalBounds = (lat: number, lng: number): GeoBounds => ({
+  west: normalizeLongitude(lng - 3),
+  east: normalizeLongitude(lng + 3),
+  south: Math.max(-90, lat - 2),
+  north: Math.min(90, lat + 2),
+});

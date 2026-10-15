@@ -1,4 +1,5 @@
 import axios, { AxiosError } from "axios";
+import { validCoordinates, type GeoBounds } from "./maps";
 import type {
   SearchResult,
   RecreationArea,
@@ -123,7 +124,32 @@ export async function searchCampgrounds(
   return response.data;
 }
 
+/** Resolve only approximate public coordinates without application credentials. */
+export async function locateByIp(
+  signal?: AbortSignal,
+): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const response = await axios.get<{
+      latitude?: number;
+      longitude?: number;
+      error?: boolean;
+    }>("https://ipapi.co/json/", {
+      signal,
+      timeout: 2500,
+      withCredentials: false,
+      withXSRFToken: false,
+    });
+    const { latitude, longitude, error } = response.data;
+    return !error && validCoordinates(latitude, longitude)
+      ? { lat: latitude!, lng: longitude! }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface SearchExploreParams {
+  bounds?: GeoBounds;
   query?: string;
   page?: number;
   pageSize?: number;
@@ -162,11 +188,12 @@ export function exploreQueryParams(
   if (params.radiusMiles !== undefined)
     queryParams.radius_miles = params.radiusMiles;
 
+  if (params.bounds) Object.assign(queryParams, params.bounds);
   return queryParams;
 }
 
 export function mapQueryParams(params: SearchExploreParams = {}) {
-  const result = exploreQueryParams(params);
+  const result = exploreQueryParams({ ...params, bounds: undefined });
   delete result.page;
   delete result.page_size;
   delete result.sort_by;
