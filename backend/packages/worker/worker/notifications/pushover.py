@@ -53,14 +53,30 @@ class PushoverProvider(BaseNotificationProvider):
             user_config: Must contain "user_key" (the Pushover user token).
             payload: The notification content.
         """
+        await self._send_alert(user_config, payload, require_acceptance=False)
+
+    async def send_accepted(self, user_key: str, payload: NotificationDTO) -> bool:
+        """Require explicit upstream acceptance before acknowledging durable delivery."""
+        return await self._send_alert(
+            {"user_key": user_key}, payload, require_acceptance=True
+        )
+
+    async def _send_alert(
+        self,
+        user_config: dict[str, Any],
+        payload: NotificationDTO,
+        *,
+        require_acceptance: bool,
+    ) -> bool:
+        """Share request construction while preserving legacy delivery behavior."""
         user_key = str(user_config.get("user_key", ""))
         if not user_key:
             logger.warning("No user_key in Pushover config, skipping")
-            return
+            return False
 
         if not self.config.app_token:
             logger.error("PUSHOVER_APP_TOKEN not configured, cannot send")
-            return
+            return False
 
         message_data = {
             "token": self.config.app_token,
@@ -78,9 +94,11 @@ class PushoverProvider(BaseNotificationProvider):
                 url=self.config.api_url, json=message_data, timeout=10.0
             )
             response.raise_for_status()
+            if require_acceptance and response.json().get("status") != 1:
+                return False
 
         logger.info(
             "Pushover notification sent",
-            user_key=user_key[:4] + "...",
             title=payload.title,
         )
+        return True

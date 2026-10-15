@@ -1,6 +1,6 @@
 # Implementation plan: optional standalone runtime
 
-**Branch**: `rare-mole` | **Date**: 2026-10-13 | **Status**: Ready for implementation review
+**Branch**: `rare-mole` | **Date**: 2026-10-13 | **Status**: Implemented and locally verified
 **Spec**: [spec.md](spec.md) | **Research**: [research.md](research.md)
 **Data**: [data-model.md](data-model.md) | **Contracts**: [contracts/](contracts/)
 **Validation**: [quickstart.md](quickstart.md) | **Tasks**: [tasks.md](tasks.md)
@@ -272,7 +272,7 @@ in standalone, honest disabled/error states, and unchanged distributed smoke tes
 5. Document both modes and add CI coverage → verify all quality gates plus existing
    distributed admin smoke coverage.
 
-Proposed new root tasks (not implemented yet):
+Implemented root tasks:
 
 | Task                      | Purpose                                                                        |
 | ------------------------- | ------------------------------------------------------------------------------ |
@@ -301,9 +301,8 @@ supported; the optional host runtime adds a deployment choice. Reusing the worke
 package avoids another package or duplicated scanner. The outbox is justified by
 alert recovery after process shutdown, not general-purpose job scheduling.
 
-Update configuration, developer guide, roadmap, poller/data/notification/API
-blueprints, README, and the global checklist when implementation lands. This
-planning change records future work and does not mark functionality complete.
+Configuration, developer guide, roadmap, poller/data/notification/API blueprints,
+README, and the global checklist are updated. See [quickstart verification](quickstart.md#verification-evidence-2026-10-14) for completed checks and the pre-existing repository-wide hook limitation.
 
 Technical references supporting the design:
 
@@ -313,3 +312,7 @@ Technical references supporting the design:
   the single-writer limit, and local shared-memory constraints.
 - [Alembic batch migrations](https://alembic.sqlalchemy.org/en/latest/batch.html)
   documents table reconstruction for SQLite schema changes.
+
+## Review resolutions (2026-10-14)
+
+Package Alembic resources in the db wheel and resolve them through installed resources (T011–T013). Standalone requires explicit accepted delivery outcomes and classified skip/retry/permanent failure rather than treating no-op returns as success (T016/T020). Expiry uses a UTC calendar-day cutoff, clips expired/out-of-range nights, and reapplies minimum stay before delivery (T016/T020/T025). See the runtime contract and data model for precise rules.

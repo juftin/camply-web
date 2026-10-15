@@ -5,9 +5,12 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: process.env.GITHUB_REPOSITORY
-    ? `/${process.env.GITHUB_REPOSITORY.split("/")[1]}/`
-    : "/",
+  base:
+    process.env.CAMPLY_STANDALONE_BUILD === "1"
+      ? "/"
+      : process.env.GITHUB_REPOSITORY
+        ? `/${process.env.GITHUB_REPOSITORY.split("/")[1]}/`
+        : "/",
   publicDir: "public",
   build: {
     // Preserve Vite 6's browser support when upgrading the bundler.

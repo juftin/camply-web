@@ -54,6 +54,17 @@ The campsite-details migration is required before starting the updated API/worke
 
 ---
 
+## Runtime selection
+
+| Variable              | Description                                                    | Default                    |
+| --------------------- | -------------------------------------------------------------- | -------------------------- |
+| `CAMPLY_RUNTIME_MODE` | `distributed` or `standalone`; independent of auth/environment | `distributed`              |
+| `CAMPLY_FRONTEND_DIR` | Absolute directory containing a built UI; standalone only      | Installed `backend/static` |
+
+`task standalone:run` selects standalone, validates file-backed SQLite and assets, migrates, and binds to loopback; use `-- --host <address> --port <port>` to override the listener. `CAMPLY_DB_HOST` is the SQLite file path; the default comes from `platformdirs.user_data_dir("camply")`, including on macOS. `:memory:` and PostgreSQL are rejected by the standalone launcher. `WEB_CONCURRENCY`, `GUNICORN_WORKERS`, and `UVICORN_WORKERS` must be unset or `1`, and `GUNICORN_RELOAD` must be disabled. Never run multiple standalone instances against the same file.
+
+Standalone uses the existing positive `CAMPLY_HEARTBEAT_INTERVAL` (300 seconds) and `CAMPLY_TARGET_COOLDOWN` (55 seconds). No broker or Prometheus URL is queried; distributed settings continue to apply in distributed mode. Local admin history retains up to 1,000 attempts for 24 hours and clears on restart. Pending delivery is stored separately in SQLite. Set `PUSHOVER_APP_TOKEN` and the current user's Pushover key for delivery. Missing credentials skip alerts rather than reporting success. Runtime selection does not enable login or invitation checks; configure authentication explicitly as below.
+
 ## 🔒 Authentication (Toggleable)
 
 The instance owner chooses `CAMPLY_AUTH_MODE`. `CAMPLY_ENVIRONMENT` does not select or override authentication. HTTP Basic authentication is never used; `basic` and the old `local` auth mode are rejected.

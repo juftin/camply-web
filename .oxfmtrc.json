@@ -4,6 +4,7 @@
   "sortPackageJson": false,
   "ignorePatterns": [
     "cli/**",
+    "**/*.toml",
     "**/node_modules/**",
     "**/dist/**",
     "**/*.tsbuildinfo",

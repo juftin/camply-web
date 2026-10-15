@@ -3,6 +3,7 @@ Backend Application Configuration via pydantic-settings.
 """
 
 from enum import Enum
+from pathlib import Path
 from typing import ClassVar, Optional
 
 from pydantic import Field, model_validator
@@ -15,6 +16,13 @@ class AuthMode(str, Enum):
     NONE = "none"
     SESSION = "session"
     AUTH0 = "auth0"
+
+
+class RuntimeMode(str, Enum):
+    """Select a distributed deployment or one self-contained Python process."""
+
+    DISTRIBUTED = "distributed"
+    STANDALONE = "standalone"
 
 
 class BackendConfig(BaseSettings):
@@ -31,6 +39,10 @@ class BackendConfig(BaseSettings):
     # Deployment environment
     environment: str = "local"
     debug: bool = True
+    runtime_mode: RuntimeMode = RuntimeMode.DISTRIBUTED
+    """Execution mode, independent of authentication and environment."""
+    frontend_dir: Optional[Path] = None
+    """Built asset override; otherwise use assets bundled with the backend."""
 
     # Authentication
     auth_mode: AuthMode = AuthMode.NONE
@@ -65,11 +77,13 @@ class BackendConfig(BaseSettings):
     # Worker timing mirrors (heartbeat & cooldown)
     heartbeat_interval: int = Field(
         default=300,
+        gt=0,
         description="Interval in seconds for periodic campsite availability discovery (defaults to 300s = 5m).",
     )
     """Heartbeat interval in seconds for target discovery and availability searching."""
     target_cooldown: int = Field(
         default=55,
+        gt=0,
         description="How stale a target must be before re-checking in seconds.",
     )
     """Minimum seconds elapsed before a previously checked target is re-scanned."""

@@ -4,18 +4,16 @@ version = "0.1.0"
 description = "A full-stack application to help you find campsites at sold-out campgrounds"
 license = "PolyForm-Noncommercial-1.0.0"
 requires-python = ">=3.9,<4.0"
-dependencies = [
-  "backend",
-  "db",
-  "providers",
-  "worker"
-]
+dependencies = ["backend", "db", "providers", "worker"]
+
+[project.optional-dependencies]
+distributed = ["backend[distributed]", "db[postgres]", "worker[distributed]"]
 
 [tool.uv.sources]
-backend = { workspace = true }
-db = { workspace = true }
 providers = { workspace = true }
+backend = { workspace = true }
 worker = { workspace = true }
+db = { workspace = true }
 
 [tool.uv.workspace]
 members = ["packages/*"]
@@ -58,6 +56,8 @@ known-first-party = ["backend", "db", "providers", "worker"]
 # FastAPI routers use Query/Depends in argument defaults
 "**/routers/*" = ["B008"]
 # Scanner task orchestrates many steps (lock, DB, provider, diff, fan-out)
+"**/worker/engine/scanner.py" = ["C901", "PLR0912", "PLR0915"]
+"**/worker/engine/notifications.py" = ["PLR0911"]
 "**/worker/tasks/scanner.py" = ["C901", "PLR0911", "PLR0912", "PLR0915"]
 # Trends service orchestrates Prometheus queries across 4 groups
 "**/services/trends.py" = ["C901", "PLR0912", "PLR0915"]

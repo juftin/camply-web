@@ -2,6 +2,14 @@
 
 This document defines the database architecture for the `camply` platform, reconciling the legacy CLI data structures with the existing `backend` FastAPI models.
 
+## Standalone storage
+
+Both runtimes share SQLAlchemy models and the complete Alembic revision graph. PostgreSQL remains the distributed deployment database; standalone requires file-backed SQLite. `db.migrate.upgrade_database()` locates installed migration resources independently of the current directory and runs before HTTP starts. SQLite connections enable foreign keys, WAL, and a 1,000 ms busy timeout. Engine/session resources are shared within the standalone lifespan; provider and delivery HTTP calls do not hold write transactions.
+
+`notification_outbox` stores UUID detection/delivery identities, nullable user/scan/target references with `ON DELETE SET NULL`, a credential-free JSON payload, lifecycle state, attempt count (0–4), due/created/finished UTC timestamps, and an allowlisted error category. A unique detection/scan/campsite constraint avoids duplicate intents within a detection; due/finished indexes support delivery and pruning. Results and intents commit atomically. Closing/reopening availability creates a new detection. Terminal records expire after 24 hours; pending records survive restart. See the [field contract](../../specs/007-standalone-runtime/data-model.md).
+
+Backups must use SQLite online backup or copy the database while the app is stopped, including a consistent WAL state. The migration tests cover existing populated state, portable UUID/JSON/date values, FK-safe deletion, bounded contention, and restore. `task backend:migration:test` separately exercises the PostgreSQL chain in a disposable database.
+
 ## 🎯 Hierarchy Overview
 
 The system models campsite data in a four-tier hierarchy. To handle overlapping IDs across different booking services, **Composite Primary Keys** (`id` + `provider_id`) are used for all provider-sourced entities.

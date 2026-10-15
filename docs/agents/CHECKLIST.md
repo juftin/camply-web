@@ -198,7 +198,7 @@ Feature specification: [Open-Source Maps & Explore Map View](../../specs/007-ope
 - [x] T4.2.1 Add separate release/publish workflows with CI-gated Gitmoji semantic releases using the shared cookiecutter infrastructure and the existing App through `APP_ID`/`APP_PRIVATE_KEY`, synchronized application build versions, full-version/major-alias GHCR images, latest images for successful main builds, Git major aliases via semantic-release-major-tag, workspace sdists attached to releases, publication regression checks, and [release operations documentation](RELEASES.md); see the [release plan](../../specs/009-release-ci/plan.md).
 
 - [x] T4.2.2 Complete the pre-implementation Spec-Kit specification, clarification review, research, design/contracts, tasking, and consistency analysis for optional Python-served frontend assets, SQLite, and background work without Celery, Redis/Valkey, or Prometheus; see [standalone runtime plan](../../specs/007-standalone-runtime/plan.md).
-- [ ] T4.2.3 Implement and verify the standalone runtime, minimal dependency installation, notification recovery, Python-served frontend, and service-free browser smoke tests while preserving the distributed stack.
+- [x] T4.2.3 Implement and verify the standalone runtime, minimal dependency installation, notification recovery, Python-served frontend, and service-free browser smoke tests while preserving the distributed stack.
 - [ ] T4.1.4 Finalize production `docker-compose.yml`.
 - [ ] T4.1.5 Create Kubernetes manifests for API and Worker scaling.
 - [ ] T4.1.6 Complete a full mobile-responsive audit of the UI.

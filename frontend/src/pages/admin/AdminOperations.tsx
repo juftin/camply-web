@@ -72,6 +72,8 @@ export function AdminOperations() {
     search: searchQuery.trim() || undefined,
   });
 
+  const standalone = opsData?.runtime_mode === "standalone";
+
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
   const [syncFeedbackError, setSyncFeedbackError] = useState(false);
   const syncMutation = useSyncAdminProviders();
@@ -207,16 +209,34 @@ export function AdminOperations() {
 
       <AdminFeedback message={syncFeedback} error={syncFeedbackError} />
 
+      {standalone && (
+        <p className="mb-4 text-sm text-muted-foreground">
+          Historical trends are disabled in standalone mode. Recent history
+          keeps up to 1,000 attempts for 24 hours; history clears on restart.
+          Pending alerts remain saved.
+        </p>
+      )}
+
       {/* Freshness and connection indicator */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/40 rounded-lg border text-sm mb-6">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <span className="font-medium text-muted-foreground">
-              Task Queue:
+              {standalone ? "Scheduler:" : "Task Queue:"}
             </span>
             {!opsData ? (
               <Badge variant="outline">
                 {isOpsLoading ? "Checking…" : "Unknown"}
+              </Badge>
+            ) : standalone ? (
+              <Badge
+                variant={
+                  opsData.scheduler_status === "running"
+                    ? "outline"
+                    : "destructive"
+                }
+              >
+                {opsData.scheduler_status}
               </Badge>
             ) : opsData.broker_connected ? (
               <Badge className="bg-emerald-600 text-white flex items-center gap-1">
@@ -321,33 +341,35 @@ export function AdminOperations() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Reserved Tasks
-            </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {isOpsLoading ? (
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            ) : (
-              <div className="text-2xl font-bold">
-                {!opsData
-                  ? "Unavailable"
-                  : (opsData.reserved_tasks_total ?? "Unknown")}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">
-              Picked up by workers; waiting to run
-            </p>
-          </CardContent>
-        </Card>
+        {!standalone && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Reserved Tasks
+              </CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {isOpsLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              ) : (
+                <div className="text-2xl font-bold">
+                  {!opsData
+                    ? "Unavailable"
+                    : (opsData.reserved_tasks_total ?? "Unknown")}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                Picked up by workers; waiting to run
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Worker Nodes
+              {standalone ? "Application Process" : "Worker Nodes"}
             </CardTitle>
             <Server className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -360,7 +382,9 @@ export function AdminOperations() {
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              {opsData?.scheduled_tasks_total ?? "Unknown"} scheduled tasks
+              {standalone
+                ? "One local process"
+                : `${opsData?.scheduled_tasks_total ?? "Unknown"} scheduled tasks`}
             </p>
           </CardContent>
         </Card>
@@ -441,8 +465,9 @@ export function AdminOperations() {
             ) : (
               <div className="overflow-x-auto">
                 <p className="text-xs text-muted-foreground mb-3">
-                  Running tasks are executing. Reserved tasks wait to run.
-                  Scheduled tasks wait for a future start time.
+                  {standalone
+                    ? "Background work runs in the application process."
+                    : "Running tasks are executing. Reserved tasks wait to run. Scheduled tasks wait for a future start time."}
                 </p>
                 <table className="w-full min-w-[500px] text-sm">
                   <thead>
@@ -450,8 +475,12 @@ export function AdminOperations() {
                       <th className="pb-2">Worker Node</th>
                       <th className="pb-2">Status</th>
                       <th className="pb-2 text-right">Running</th>
-                      <th className="pb-2 text-right">Reserved</th>
-                      <th className="pb-2 text-right">Scheduled</th>
+                      {!standalone && (
+                        <th className="pb-2 text-right">Reserved</th>
+                      )}
+                      {!standalone && (
+                        <th className="pb-2 text-right">Scheduled</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -474,12 +503,16 @@ export function AdminOperations() {
                         <td className="py-2.5 text-right font-medium">
                           {worker.active_tasks ?? "Unknown"}
                         </td>
-                        <td className="py-2.5 text-right text-muted-foreground">
-                          {worker.reserved_tasks ?? "Unknown"}
-                        </td>
-                        <td className="py-2.5 text-right text-muted-foreground">
-                          {worker.scheduled_tasks ?? "Unknown"}
-                        </td>
+                        {!standalone && (
+                          <td className="py-2.5 text-right text-muted-foreground">
+                            {worker.reserved_tasks ?? "Unknown"}
+                          </td>
+                        )}
+                        {!standalone && (
+                          <td className="py-2.5 text-right text-muted-foreground">
+                            {worker.scheduled_tasks ?? "Unknown"}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -491,63 +524,65 @@ export function AdminOperations() {
       </div>
 
       {/* Operational Trends Section (Worker, API, Provider) */}
-      <div className="mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary" />
-              System Performance Trends
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Review task results, API traffic, and booking provider
-              availability checks over time.
-            </p>
+      {opsData && opsData.capabilities?.historical_trends !== false && (
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" />
+                System Performance Trends
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Review task results, API traffic, and booking provider
+                availability checks over time.
+              </p>
+            </div>
+            <div className="flex items-center space-x-1 border rounded-md p-1 bg-muted/40">
+              {(
+                [
+                  { id: "worker", label: "Workers" },
+                  { id: "api", label: "API" },
+                  { id: "provider", label: "Booking Providers" },
+                ] as const
+              ).map((t) => (
+                <Button
+                  key={t.id}
+                  size="sm"
+                  variant={activeTrendsTab === t.id ? "default" : "ghost"}
+                  className="h-7 text-xs px-3"
+                  onClick={() => update({ tab: t.id }, false)}
+                >
+                  {t.label}
+                </Button>
+              ))}
+            </div>
           </div>
-          <div className="flex items-center space-x-1 border rounded-md p-1 bg-muted/40">
-            {(
-              [
-                { id: "worker", label: "Workers" },
-                { id: "api", label: "API" },
-                { id: "provider", label: "Booking Providers" },
-              ] as const
-            ).map((t) => (
-              <Button
-                key={t.id}
-                size="sm"
-                variant={activeTrendsTab === t.id ? "default" : "ghost"}
-                className="h-7 text-xs px-3"
-                onClick={() => update({ tab: t.id }, false)}
-              >
-                {t.label}
-              </Button>
-            ))}
-          </div>
+
+          {activeTrendsTab === "worker" && (
+            <AdminTrendsPanel
+              group="worker"
+              title="Worker and Task Trends"
+              description="Task volume, completion results, execution time, and shared-target scheduling."
+            />
+          )}
+
+          {activeTrendsTab === "api" && (
+            <AdminTrendsPanel
+              group="api"
+              title="API Traffic and Response Times"
+              description="Requests per second by API route, response status, and how long requests take."
+            />
+          )}
+
+          {activeTrendsTab === "provider" && (
+            <AdminTrendsPanel
+              group="provider"
+              title="Booking Provider Trends"
+              description="Availability checks and errors reported when contacting booking providers."
+            />
+          )}
         </div>
-
-        {activeTrendsTab === "worker" && (
-          <AdminTrendsPanel
-            group="worker"
-            title="Worker and Task Trends"
-            description="Task volume, completion results, execution time, and shared-target scheduling."
-          />
-        )}
-
-        {activeTrendsTab === "api" && (
-          <AdminTrendsPanel
-            group="api"
-            title="API Traffic and Response Times"
-            description="Requests per second by API route, response status, and how long requests take."
-          />
-        )}
-
-        {activeTrendsTab === "provider" && (
-          <AdminTrendsPanel
-            group="provider"
-            title="Booking Provider Trends"
-            description="Availability checks and errors reported when contacting booking providers."
-          />
-        )}
-      </div>
+      )}
 
       {/* Recent Task Executions Section */}
       <Card>

@@ -51,3 +51,9 @@ Successful checks replace results, set `last_checked_at`, and insert matching in
 Lifespan-owned memory, not SQL tables. RuntimeState tracks scheduler health, last discovery, running/pending work, and one coalesced catalog job. JobAttempt uses existing allowlisted telemetry fields: stable job ID, distinct event ID, one-based attempt, timing/outcome, and provider/target context.
 
 Retain at most 1,000 completed attempts from the last 24 hours; prune by count/age and clear on restart. Reconstruct pending alerts from the outbox; rediscover targets and recreate catalog schedules. No credentials, raw alert payloads, or full exception strings appear in history.
+
+## Delivery acceptance and date cutoff
+
+Standalone validates both application and current user notification credentials before sending. Missing credentials are skipped; malformed payloads and permanent upstream rejections are failed. Timeouts, transport errors, HTTP 429, and HTTP 5xx retry within the existing budget. Only an explicit accepted upstream response records sent; a silent/no-op adapter return is never proof of delivery.
+
+Use the current UTC calendar date as the initial expiry cutoff. Before dispatch, remove nights before today and outside the current target start-inclusive/end-exclusive range, then reapply all filters including consecutive minimum stay. Keep today and future nights; an empty or insufficient remaining stay is skipped. Update the delivered dates to the retained nights. This is an explicit UTC policy, not provider-local timezone support.

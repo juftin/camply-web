@@ -3,16 +3,13 @@ Heartbeat: Periodic task to discover targets needing checks.
 """
 
 import asyncio
-import datetime
 
 import structlog
-from sqlalchemy import select
 
 from db.config import db
-from db.eligibility import eligible_scan_condition
-from db.models import UniqueTarget, User, UserScan
 from worker.celery_app import celery_app
 from worker.config import worker_config
+from worker.engine.discovery import due_targets
 from worker.metrics import TARGETS_DISCOVERED_TOTAL, TARGETS_ENQUEUED_TOTAL
 from worker.telemetry import record_discovery_completion
 
@@ -54,52 +51,31 @@ async def _discover_targets_async() -> dict:
     """
     Async implementation of target discovery.
     """
-    from datetime import timezone
-
-    now = datetime.datetime.now(tz=timezone.utc)
-    cooldown_threshold = now - datetime.timedelta(seconds=worker_config.target_cooldown)
-
-    async with db.get_session() as session:
-        # Find targets with eligible user scans that need checking
-        stmt = (
-            select(UniqueTarget)
-            .join(UserScan, UserScan.target_id == UniqueTarget.id)
-            .join(User, User.id == UserScan.user_id)
-            .where(
-                eligible_scan_condition(),
-                (
-                    (UniqueTarget.last_checked_at.is_(None))
-                    | (UniqueTarget.last_checked_at < cooldown_threshold)
-                ),
-            )
-            .distinct()
+    targets = await due_targets(
+        sessions=db.get_session, cooldown=worker_config.target_cooldown
+    )
+    enqueued = 0
+    for target in targets:
+        celery_app.send_task(
+            name="camply.search.check_campsite_availability",
+            kwargs={"target_id": str(target.id)},
+            queue="celery",
         )
+        enqueued += 1
 
-        result = await session.execute(stmt)
-        targets = result.scalars().all()
+    logger.info(
+        "Heartbeat: discovered targets",
+        total=len(targets),
+        enqueued=enqueued,
+    )
 
-        enqueued = 0
-        for target in targets:
-            celery_app.send_task(
-                name="camply.search.check_campsite_availability",
-                kwargs={"target_id": str(target.id)},
-                queue="celery",
-            )
-            enqueued += 1
+    TARGETS_DISCOVERED_TOTAL.inc(len(targets))
+    TARGETS_ENQUEUED_TOTAL.inc(enqueued)
 
-        logger.info(
-            "Heartbeat: discovered targets",
-            total=len(targets),
-            enqueued=enqueued,
-        )
-
-        TARGETS_DISCOVERED_TOTAL.inc(len(targets))
-        TARGETS_ENQUEUED_TOTAL.inc(enqueued)
-
-        return {
-            "status": "success",
-            "provider_name": "All Providers",
-            "search_name": "Active Target Discovery",
-            "discovered": len(targets),
-            "enqueued": enqueued,
-        }
+    return {
+        "status": "success",
+        "provider_name": "All Providers",
+        "search_name": "Active Target Discovery",
+        "discovered": len(targets),
+        "enqueued": enqueued,
+    }

@@ -1,6 +1,6 @@
 # Admin API contract additions
 
-Keep existing routes, authorization/CSRF, pagination, and generated OpenAPI types. These are planned changes only.
+Keep existing routes, authorization/CSRF, pagination, and generated OpenAPI types. These changes are implemented and covered by local and distributed regression checks.
 
 ## GET /api/admin/operations
 

@@ -7,8 +7,6 @@ dependencies = [
   "db",
   "providers",
   # Broker / Task Queue
-  "celery[redis]>=5.4,<6",
-  "redis>=5,<9",
   # HTTP (for Pushover notifications)
   "httpx>=0.28.0,<0.29.0",
   # Config
@@ -17,8 +15,14 @@ dependencies = [
   # Logging
   "structlog>=24,<27",
   # Monitoring
-  "sentry-sdk>=2,<3",
-  "prometheus-client>=0.21,<1"
+  "sentry-sdk>=2,<3"
+]
+
+[project.optional-dependencies]
+distributed = [
+  "celery[redis]>=5.4,<6",
+  "prometheus-client>=0.21,<1",
+  "redis>=5,<9"
 ]
 
 [dependency-groups]

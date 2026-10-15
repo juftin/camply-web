@@ -28,6 +28,21 @@ jobs:
       - uses: ./.github/actions/setup-backend
       - uses: ./.github/actions/setup-frontend
       - run: task release:test
+  standalone-smoke:
+    name: Standalone Install and Browser Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: ./.github/actions/setup-backend
+      - uses: ./.github/actions/setup-frontend
+      - run: task frontend:browser:install
+      - run: task standalone:test
+      - uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        if: always()
+        with:
+          name: standalone-smoke
+          path: tmp/standalone-smoke*.png
 
   # ── Backend ──────────────────────────────────────────────────────────────
 
@@ -139,6 +154,7 @@ jobs:
       - uses: ./.github/actions/setup-backend
       - uses: ./.github/actions/setup-frontend
       - run: task frontend:browser:install
+      - run: task backend:migration:test
       - run: task admin:smoke
 
   ui-snapshots:

@@ -2,27 +2,32 @@
 name = "backend"
 version = "0.1.0"
 license = "PolyForm-Noncommercial-1.0.0"
-authors = [
-  { name = "Justin Flannery", email = "justin.flannery@juftin.com" }
-]
+authors = [{ name = "Justin Flannery", email = "justin.flannery@juftin.com" }]
 requires-python = ">=3.9,<4.0"
 dependencies = [
   "pydantic>=2,<3",
   "pydantic-settings>=2,<3",
   "orjson>=3,<4",
   "fastapi>=0.115.12",
-  "gunicorn>=23.0.0",
   "importlib-metadata>=6.5.0; python_version < '3.10'",
-  "uvicorn-worker>=0.3.0",
   "uvicorn[standard]>=0.34.0",
   "sentry-sdk>=2,<3",
   "structlog>=24,<27",
   "httpx>=0.28.0,<0.29.0",
   "pyjwt>=2,<3",
   "cryptography>=42,<51",
-  "prometheus-client>=0.21,<1",
+  "db",
+  "providers",
+  "worker"
+]
+
+[project.optional-dependencies]
+distributed = [
   "celery[redis]>=5.4,<6",
-  "redis>=5,<9"
+  "gunicorn>=23.0.0",
+  "prometheus-client>=0.21,<1",
+  "redis>=5,<9",
+  "uvicorn-worker>=0.3.0"
 ]
 
 [dependency-groups]
@@ -44,14 +49,16 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["backend"]
+artifacts = ["backend/static/**"]
 
 [tool.pytest.ini_options]
 addopts = "-v --cov=camply_backend --cov-report=term-missing"
 asyncio_default_fixture_loop_scope = "module"
 
 [tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:"
-]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+
+[tool.uv.sources]
+db = { workspace = true }
+providers = { workspace = true }
+worker = { workspace = true }

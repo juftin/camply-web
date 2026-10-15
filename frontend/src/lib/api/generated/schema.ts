@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Metrics Endpoint
-         * @description Prometheus metrics endpoint — unauthenticated, not under /api.
+         * @description Export real monitoring instruments only in distributed mode.
          */
         get: operations["metrics_endpoint_metrics_get"];
         put?: never;
@@ -815,7 +815,16 @@ export interface components {
             scheduled_tasks_total: number | null;
             last_discovery?: components["schemas"]["AdminDiscoveryMetadata"] | null;
             /** Broker Connected */
-            broker_connected: boolean;
+            broker_connected: boolean | null;
+            /**
+             * Runtime Mode
+             * @default distributed
+             * @enum {string}
+             */
+            runtime_mode: "standalone" | "distributed";
+            capabilities?: components["schemas"]["RuntimeCapabilities"];
+            /** Scheduler Status */
+            scheduler_status?: ("running" | "stopping" | "failed") | null;
             /**
              * Snapshot At
              * Format: date-time
@@ -1599,6 +1608,27 @@ export interface components {
             enabled: boolean;
             /** Url */
             readonly url: string;
+        };
+        /**
+         * RuntimeCapabilities
+         * @description Monitoring features supported by the selected execution runtime.
+         */
+        RuntimeCapabilities: {
+            /**
+             * Broker
+             * @default true
+             */
+            broker: boolean;
+            /**
+             * Historical Trends
+             * @default true
+             */
+            historical_trends: boolean;
+            /**
+             * Persistent Job History
+             * @default true
+             */
+            persistent_job_history: boolean;
         };
         /**
          * ScanCreateRequest

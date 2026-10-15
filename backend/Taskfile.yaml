@@ -107,6 +107,11 @@ tasks:
       - uv run -- alembic upgrade head {{.CLI_ARGS}}
     deps: [sync]
 
+  migration:test:
+    desc: Verify PostgreSQL upgrades in a disposable Docker container
+    cmds:
+      - CAMPLY_POSTGRES_SMOKE=1 task test -- -c pyproject.toml packages/db/tests/test_postgres_migrations.py
+
   ########################
   # WORKER
   ########################
@@ -140,4 +145,4 @@ tasks:
     desc: Install Project Dependencies
     internal: true
     cmds:
-      - uv sync --all-packages
+      - uv sync --all-packages --extra distributed

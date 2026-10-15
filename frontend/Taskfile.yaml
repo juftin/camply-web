@@ -26,6 +26,15 @@ tasks:
       - pnpm run build
     deps: [install]
 
+  build:standalone:
+    desc: Build assets for root hosting by the Python application
+    env:
+      CAMPLY_STANDALONE_BUILD: "1"
+      VITE_API_URL: /api
+    cmds:
+      - pnpm run build
+    deps: [install]
+
   lint:
     desc: Lint Frontend Code
     cmds:

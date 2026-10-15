@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.9, <4.0"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -261,30 +261,37 @@ name = "backend"
 version = "0.1.0"
 source = { editable = "packages/backend" }
 dependencies = [
-    { name = "celery", extra = ["redis"] },
     { name = "cryptography", version = "47.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version <= '3.9'" },
     { name = "cryptography", version = "50.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version > '3.9'" },
+    { name = "db" },
     { name = "fastapi", version = "0.128.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "fastapi", version = "0.162.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "gunicorn", version = "23.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "gunicorn", version = "26.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "httpx" },
     { name = "importlib-metadata", marker = "python_full_version < '3.10'" },
     { name = "orjson", version = "3.11.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "orjson", version = "3.13.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "prometheus-client" },
+    { name = "providers" },
     { name = "pydantic", version = "2.13.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pydantic", version = "2.14.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pydantic-settings", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pydantic-settings", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
     { name = "pydantic-settings", version = "2.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pyjwt" },
-    { name = "redis" },
     { name = "sentry-sdk" },
     { name = "structlog", version = "25.5.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "structlog", version = "26.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "uvicorn", version = "0.39.0", source = { registry = "https://pypi.org/simple" }, extra = ["standard"], marker = "python_full_version < '3.10'" },
     { name = "uvicorn", version = "0.54.0", source = { registry = "https://pypi.org/simple" }, extra = ["standard"], marker = "python_full_version >= '3.10'" },
+    { name = "worker" },
+]
+
+[package.optional-dependencies]
+distributed = [
+    { name = "celery", extra = ["redis"] },
+    { name = "gunicorn", version = "23.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "gunicorn", version = "26.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "prometheus-client" },
+    { name = "redis" },
     { name = "uvicorn-worker" },
 ]
 
@@ -308,23 +315,27 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "celery", extras = ["redis"], specifier = ">=5.4,<6" },
+    { name = "celery", extras = ["redis"], marker = "extra == 'distributed'", specifier = ">=5.4,<6" },
     { name = "cryptography", specifier = ">=42,<51" },
+    { name = "db", editable = "packages/db" },
     { name = "fastapi", specifier = ">=0.115.12" },
-    { name = "gunicorn", specifier = ">=23.0.0" },
+    { name = "gunicorn", marker = "extra == 'distributed'", specifier = ">=23.0.0" },
     { name = "httpx", specifier = ">=0.28.0,<0.29.0" },
     { name = "importlib-metadata", marker = "python_full_version < '3.10'", specifier = ">=6.5.0" },
     { name = "orjson", specifier = ">=3,<4" },
-    { name = "prometheus-client", specifier = ">=0.21,<1" },
+    { name = "prometheus-client", marker = "extra == 'distributed'", specifier = ">=0.21,<1" },
+    { name = "providers", editable = "packages/providers" },
     { name = "pydantic", specifier = ">=2,<3" },
     { name = "pydantic-settings", specifier = ">=2,<3" },
     { name = "pyjwt", specifier = ">=2,<3" },
-    { name = "redis", specifier = ">=5,<9" },
+    { name = "redis", marker = "extra == 'distributed'", specifier = ">=5,<9" },
     { name = "sentry-sdk", specifier = ">=2,<3" },
     { name = "structlog", specifier = ">=24,<27" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.0" },
-    { name = "uvicorn-worker", specifier = ">=0.3.0" },
+    { name = "uvicorn-worker", marker = "extra == 'distributed'", specifier = ">=0.3.0" },
+    { name = "worker", editable = "packages/worker" },
 ]
+provides-extras = ["distributed"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -388,6 +399,13 @@ dependencies = [
     { name = "worker" },
 ]
 
+[package.optional-dependencies]
+distributed = [
+    { name = "backend", extra = ["distributed"] },
+    { name = "db", extra = ["postgres"] },
+    { name = "worker", extra = ["distributed"] },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "httpx" },
@@ -396,10 +414,14 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "backend", editable = "packages/backend" },
+    { name = "backend", extras = ["distributed"], marker = "extra == 'distributed'", editable = "packages/backend" },
     { name = "db", editable = "packages/db" },
+    { name = "db", extras = ["postgres"], marker = "extra == 'distributed'", editable = "packages/db" },
     { name = "providers", editable = "packages/providers" },
     { name = "worker", editable = "packages/worker" },
+    { name = "worker", extras = ["distributed"], marker = "extra == 'distributed'", editable = "packages/worker" },
 ]
+provides-extras = ["distributed"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "httpx", specifier = ">=0.28.1" }]
@@ -1280,13 +1302,17 @@ dependencies = [
     { name = "platformdirs", version = "4.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "platformdirs", version = "4.12.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
     { name = "platformdirs", version = "4.13.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "psycopg", version = "3.2.13", source = { registry = "https://pypi.org/simple" }, extra = ["binary"], marker = "python_full_version < '3.10'" },
-    { name = "psycopg", version = "3.3.6", source = { registry = "https://pypi.org/simple" }, extra = ["binary"], marker = "python_full_version >= '3.10'" },
     { name = "pydantic-settings", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pydantic-settings", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
     { name = "pydantic-settings", version = "2.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "sqlalchemy", version = "2.0.55", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "python_full_version < '3.11'" },
     { name = "sqlalchemy", version = "2.1.6", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "python_full_version >= '3.11'" },
+]
+
+[package.optional-dependencies]
+postgres = [
+    { name = "psycopg", version = "3.2.13", source = { registry = "https://pypi.org/simple" }, extra = ["binary"], marker = "python_full_version < '3.10'" },
+    { name = "psycopg", version = "3.3.6", source = { registry = "https://pypi.org/simple" }, extra = ["binary"], marker = "python_full_version >= '3.10'" },
 ]
 
 [package.dev-dependencies]
@@ -1306,10 +1332,11 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.21.0,<0.23.0" },
     { name = "alembic", specifier = ">=1,<2" },
     { name = "platformdirs", specifier = ">=4,<5" },
-    { name = "psycopg", extras = ["binary"], specifier = ">=3,<4" },
+    { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = ">=3,<4" },
     { name = "pydantic-settings", specifier = ">=2,<3" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2,<3" },
 ]
+provides-extras = ["postgres"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -5228,20 +5255,24 @@ name = "worker"
 version = "0.1.0"
 source = { editable = "packages/worker" }
 dependencies = [
-    { name = "celery", extra = ["redis"] },
     { name = "db" },
     { name = "httpx" },
-    { name = "prometheus-client" },
     { name = "providers" },
     { name = "pydantic", version = "2.13.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pydantic", version = "2.14.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pydantic-settings", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pydantic-settings", version = "2.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
     { name = "pydantic-settings", version = "2.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "redis" },
     { name = "sentry-sdk" },
     { name = "structlog", version = "25.5.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "structlog", version = "26.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+]
+
+[package.optional-dependencies]
+distributed = [
+    { name = "celery", extra = ["redis"] },
+    { name = "prometheus-client" },
+    { name = "redis" },
 ]
 
 [package.dev-dependencies]
@@ -5259,17 +5290,18 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "celery", extras = ["redis"], specifier = ">=5.4,<6" },
+    { name = "celery", extras = ["redis"], marker = "extra == 'distributed'", specifier = ">=5.4,<6" },
     { name = "db", editable = "packages/db" },
     { name = "httpx", specifier = ">=0.28.0,<0.29.0" },
-    { name = "prometheus-client", specifier = ">=0.21,<1" },
+    { name = "prometheus-client", marker = "extra == 'distributed'", specifier = ">=0.21,<1" },
     { name = "providers", editable = "packages/providers" },
     { name = "pydantic", specifier = ">=2,<3" },
     { name = "pydantic-settings", specifier = ">=2,<3" },
-    { name = "redis", specifier = ">=5,<9" },
+    { name = "redis", marker = "extra == 'distributed'", specifier = ">=5,<9" },
     { name = "sentry-sdk", specifier = ">=2,<3" },
     { name = "structlog", specifier = ">=24,<27" },
 ]
+provides-extras = ["distributed"]
 
 [package.metadata.requires-dev]
 dev = [

@@ -2,8 +2,8 @@
 
 **Feature Branch**: `rare-mole`
 **Created**: 2026-10-13
-**Status**: Ready for implementation review; implementation not started
-**Input**: Optionally run camply with Python and TypeScript, served entirely by Python, using SQLite without PostgreSQL, Prometheus, Celery, or Redis/Valkey. Complete Spec-Kit planning and stop before implementation.
+**Status**: Implemented and locally verified
+**Input**: Optionally run camply with Python and TypeScript, served entirely by Python, using SQLite without PostgreSQL, Prometheus, Celery, or Redis/Valkey. Complete Spec-Kit planning, then implement following the explicit implementation request and requirements-review approval.
 
 ## User Scenarios & Testing
 
@@ -116,4 +116,4 @@ Administrators understand runtime health and manage users/scans without intentio
 
 ### Session 2026-10-13
 
-No critical ambiguity requires a new question. Scope follows the earlier draft and the request to stop before implementation. Build-time tools, process limits, monitoring omissions, and delivery guarantees are explicit assumptions; storage/interface mechanics are resolved in design. No user answer or approval is invented.
+No critical ambiguity requires a new question. Scope follows the earlier draft, the explicit implementation request, and the approved requirements-review recommendations. Build-time tools, process limits, monitoring omissions, and delivery guarantees are explicit assumptions; storage/interface mechanics are resolved in design. No user answer or approval is invented.

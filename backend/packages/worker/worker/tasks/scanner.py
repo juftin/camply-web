@@ -3,22 +3,18 @@ Scanner: check_target_availability Celery task.
 """
 
 import asyncio
-import datetime
-import uuid as uuid_mod
 from typing import Any, Optional
 
 import structlog
-from sqlalchemy import delete, func, select
 
-from db.availability import matches_scan_filters, matching_available_dates
 from db.config import db
-from db.eligibility import eligible_scan_condition
-from db.models import Campground, ScanResult, UniqueTarget, User, UserScan
+from db.models import UserScan
 from providers import PROVIDERS
-from providers.dto import CampsiteDTO
-from providers.utils import normalize_name
 from worker.celery_app import celery_app
 from worker.config import worker_config
+from worker.engine.scanner import _longest_consecutive as _longest_consecutive
+from worker.engine.scanner import _matches_scan_filters as _matches_scan_filters
+from worker.engine.scanner import check_target
 from worker.locks import ValkeyLock
 from worker.metrics import (
     CAMPGROUND_API_ERRORS_TOTAL,
@@ -33,20 +29,27 @@ from worker.notifications.base import NotificationDTO
 logger = structlog.getLogger(__name__)
 
 
-def _matches_scan_filters(campsite: CampsiteDTO, scan: UserScan) -> bool:
-    """
-    Check whether a campsite matches a user's scan filters.
+def _record_provider_result(provider_id: int, success: bool) -> None:
+    """Retain distributed check/error instrumentation outside the common engine."""
+    TARGETS_CHECKED_TOTAL.inc()
+    UNIQUE_TARGETS_CHECKED.inc()
+    PROVIDER_CHECKS_TOTAL.labels(
+        provider=str(provider_id), status="success" if success else "error"
+    ).inc()
+    if not success:
+        CAMPGROUND_API_ERRORS_TOTAL.labels(provider=str(provider_id)).inc()
 
-    Filters applied:
-      - min_stay_length: consecutive nights available >= scan.min_stay_length
-      - preferred_types: if set, campsite_type must be in the list
-      - require_electric: if True, campsite must have electric hookup
-    """
-    return matches_scan_filters(
-        [night.isoformat() for night in campsite.available_dates],
-        campsite_type=campsite.campsite_type.value,
-        is_electric=campsite.is_electric,
-        scan=scan,
+
+def _dispatch_notification(scan: UserScan, opening: NotificationDTO) -> None:
+    """Send the existing Celery notification contract after result commit."""
+    celery_app.send_task(
+        name="camply.notifications.send_pushover_notification",
+        kwargs={
+            "user_id": str(scan.user_id),
+            "notification": opening.model_dump(mode="json"),
+            "scan_id": str(scan.id),
+        },
+        queue="celery",
     )
 
 
@@ -76,7 +79,6 @@ def check_target_availability(self: Any, target_id: str) -> Optional[dict]:
 
 
 async def _check_target_availability_async(self: Any, target_id: str) -> Optional[dict]:
-    target_uuid = uuid_mod.UUID(target_id)
     lock_key = f"lock:target:{target_id}"
     lock = ValkeyLock(valkey_url=worker_config.valkey_url)
 
@@ -98,295 +100,16 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
     LOCK_CONTENTION_TOTAL.labels(outcome="acquired").inc()
 
     try:
-        async with db.get_session() as session:
-            # Load target
-            stmt = select(UniqueTarget).where(UniqueTarget.id == target_uuid)
-            result = await session.execute(stmt)
-            target = result.scalar_one_or_none()
-
-            if target is None:
-                logger.warning("Target not found", target_id=target_id)
-                return {"status": "error", "reason": "target_not_found"}
-
-            # Load campground for name/booking URL
-            cg_stmt = select(Campground).where(
-                Campground.id == target.campground_id,
-                Campground.provider_id == target.provider_id,
-            )
-            cg_result = await session.execute(cg_stmt)
-            campground = cg_result.scalar_one_or_none()
-
-            if campground is None:
-                logger.warning(
-                    "Campground not found",
-                    campground_id=target.campground_id,
-                )
-                return {"status": "error", "reason": "campground_not_found"}
-
-            # Check for eligible subscribers before provider call
-            sub_stmt = (
-                select(func.count(UserScan.id))
-                .join(User, User.id == UserScan.user_id)
-                .where(
-                    UserScan.target_id == target_uuid,
-                    eligible_scan_condition(),
-                )
-            )
-            sub_res = await session.execute(sub_stmt)
-            eligible_count = sub_res.scalar() or 0
-            if eligible_count == 0:
-                logger.info(
-                    "No eligible subscribers for target, skipping",
-                    target_id=target_id,
-                )
-                return {
-                    "status": "skipped",
-                    "reason": "no_eligible_subscribers",
-                    "provider_id": target.provider_id,
-                    "provider_name": "Recreation.gov"
-                    if target.provider_id == 1
-                    else f"Provider {target.provider_id}",
-                    "search_name": normalize_name(campground.name),
-                    "search_dates": f"{target.start_date.isoformat()} → {target.end_date.isoformat()}",
-                }
-
-            # Resolve provider class
-            provider_cls = PROVIDERS.get(target.provider_id)
-            if provider_cls is None:
-                logger.error(
-                    "Unknown provider",
-                    provider_id=target.provider_id,
-                )
-                return {"status": "error", "reason": "unknown_provider"}
-
-            # Record checked target execution
-            try:
-                TARGETS_CHECKED_TOTAL.inc()
-                UNIQUE_TARGETS_CHECKED.inc()
-            except Exception:
-                pass
-
-            # Instantiate provider and call find_availabilities
-            provider = provider_cls()
-            try:
-                availabilities: list[CampsiteDTO] = await provider.find_availabilities(
-                    park_id=target.campground_id,
-                    start_date=target.start_date,
-                    end_date=target.end_date,
-                )
-                PROVIDER_CHECKS_TOTAL.labels(
-                    provider=str(target.provider_id), status="success"
-                ).inc()
-            except Exception:
-                try:
-                    PROVIDER_CHECKS_TOTAL.labels(
-                        provider=str(target.provider_id), status="error"
-                    ).inc()
-                    CAMPGROUND_API_ERRORS_TOTAL.labels(
-                        provider=str(target.provider_id)
-                    ).inc()
-                except Exception:
-                    pass
-                raise
-            finally:
-                try:
-                    await provider.async_client.aclose()
-                except Exception:
-                    pass
-
-            # Apply the same date window as user-facing results before diffing or alerts.
-            first_night = max(
-                target.start_date,
-                datetime.datetime.now(tz=datetime.timezone.utc).date(),
-            )
-            current_availabilities: list[CampsiteDTO] = []
-            for campsite in availabilities:
-                dates = [
-                    night
-                    for night in campsite.available_dates
-                    if first_night <= night < target.end_date
-                ]
-                if dates:
-                    current_availabilities.append(
-                        campsite.model_copy(update={"available_dates": dates})
-                    )
-            availabilities = current_availabilities
-
-            # Build a campsite lookup dict for O(1) access during fan-out
-            campsite_by_id: dict[str, CampsiteDTO] = {
-                c.campsite_id: c for c in availabilities
-            }
-
-            # Load previous scan results for diffing
-            prev_stmt = select(ScanResult).where(ScanResult.target_id == target_uuid)
-            prev_result = await session.execute(prev_stmt)
-            previous_results = prev_result.scalars().all()
-
-            # Build a set of previously seen (campsite_id, date) pairs
-            previously_seen: set[tuple[str, str]] = set()
-            for sr in previous_results:
-                for date_str in sr.available_dates:
-                    previously_seen.add((sr.campsite_id, date_str))
-
-            # Identify new openings and build scan results
-            new_openings: list[NotificationDTO] = []
-            new_results_to_store: list[ScanResult] = []
-
-            booking_url = provider_cls.get_campground_url(
-                campground_id=target.campground_id,
-                rec_area_id=campground.recreation_area_id,
-            )
-
-            for campsite in availabilities:
-                is_new = False
-                for available_date in campsite.available_dates:
-                    key = (campsite.campsite_id, available_date.isoformat())
-                    if key not in previously_seen:
-                        is_new = True
-                        break
-
-                if is_new:
-                    new_openings.append(
-                        NotificationDTO(
-                            title=f"Campsite Available: {normalize_name(campground.name)}",
-                            message=(
-                                f"{campsite.campsite_name} "
-                                f"({campsite.campsite_type.value}) "
-                                f"is available at {normalize_name(campground.name)}"
-                            ),
-                            booking_url=booking_url,
-                            park_name=normalize_name(campground.name),  # type: ignore[arg-type]
-                            campsite_name=campsite.campsite_name,
-                            start_date=target.start_date,
-                            end_date=target.end_date,
-                            metadata={
-                                "campsite_id": campsite.campsite_id,
-                                "campsite_type": campsite.campsite_type.value,
-                                "is_electric": campsite.is_electric,
-                                "is_accessible": campsite.is_accessible,
-                                "available_dates": [
-                                    d.isoformat() for d in campsite.available_dates
-                                ],
-                            },
-                        )
-                    )
-
-                new_results_to_store.append(
-                    ScanResult(
-                        target_id=target_uuid,
-                        campsite_id=campsite.campsite_id,
-                        campsite_name=campsite.campsite_name,
-                        campsite_type=campsite.campsite_type.value,
-                        is_electric=campsite.is_electric,
-                        is_accessible=campsite.is_accessible,
-                        available_dates=[
-                            d.isoformat() for d in campsite.available_dates
-                        ],
-                    )
-                )
-
-            # Replace previous scan results for this target
-            await session.execute(
-                delete(ScanResult).where(ScanResult.target_id == target_uuid)
-            )
-            session.add_all(new_results_to_store)
-            SCAN_RESULTS_STORED_TOTAL.inc(len(new_results_to_store))
-
-            # Update last_checked_at
-            target.last_checked_at = datetime.datetime.now(tz=datetime.timezone.utc)
-            session.add(target)
-
-            await session.commit()
-
-            # Fan-out: find matching UserScans and enqueue notifications
-            notifications_sent = 0
-            if new_openings:
-                us_stmt = (
-                    select(UserScan)
-                    .join(User, User.id == UserScan.user_id)
-                    .where(
-                        UserScan.target_id == target_uuid,
-                        eligible_scan_condition(),
-                    )
-                )
-                us_result = await session.execute(us_stmt)
-                active_scans = us_result.scalars().all()
-
-                for scan in active_scans:
-                    matching_openings: list[NotificationDTO] = []
-                    for opening in new_openings:
-                        campsite_id = opening.metadata["campsite_id"]
-                        matching_campsite = campsite_by_id.get(campsite_id)
-                        if matching_campsite is None:
-                            continue
-                        if _matches_scan_filters(matching_campsite, scan):
-                            matching_nights = matching_available_dates(
-                                opening.metadata["available_dates"],
-                                min_stay_length=scan.min_stay_length or 1,
-                            )
-                            if any(
-                                (campsite_id, night) not in previously_seen
-                                for night in matching_nights
-                            ):
-                                matching_openings.append(opening)
-                    if not matching_openings:
-                        continue
-                    if worker_config.notification_mode == "summary":
-                        count = len(matching_openings)
-                        park_name = matching_openings[0].park_name
-                        matching_openings = [
-                            NotificationDTO(
-                                title=f"{count} new campsite{'s' if count != 1 else ''}: {park_name}",
-                                message=(
-                                    f"{count} campsite{'s' if count != 1 else ''} with new availability "
-                                    f"matching your scan at {park_name}.\n"
-                                    f"{target.start_date.isoformat()} to {target.end_date.isoformat()}.\n"
-                                    "View available stays and booking options in Camply."
-                                ),
-                                booking_url=(
-                                    f"{str(worker_config.app_url).rstrip('/')}/dashboard/scans/{scan.id}#results"
-                                ),
-                                url_title="View campsites",
-                                park_name=park_name,
-                                campsite_name="",
-                                start_date=target.start_date,
-                                end_date=target.end_date,
-                                metadata={"new_campsite_count": count},
-                            )
-                        ]
-                    for notification in matching_openings:
-                        celery_app.send_task(
-                            name="camply.notifications.send_pushover_notification",
-                            kwargs={
-                                "user_id": str(scan.user_id),
-                                "notification": notification.model_dump(mode="json"),
-                                "scan_id": str(scan.id),
-                            },
-                            queue="celery",
-                        )
-                        notifications_sent += 1
-
-                logger.info(
-                    "New openings detected and fanned out",
-                    target_id=target_id,
-                    new_openings=len(new_openings),
-                    notifications_sent=notifications_sent,
-                )
-
-            UNIQUE_TARGETS_CHECKED.inc()
-
-            return {
-                "status": "success",
-                "provider_id": target.provider_id,
-                "provider_name": "Recreation.gov"
-                if target.provider_id == 1
-                else f"Provider {target.provider_id}",
-                "search_name": normalize_name(campground.name),
-                "search_dates": f"{target.start_date.isoformat()} → {target.end_date.isoformat()}",
-                "availabilities_found": len(availabilities),
-                "new_openings": len(new_openings),
-                "notifications_sent": notifications_sent,
-            }
+        result = await check_target(
+            target_id,
+            sessions=db.get_session,
+            registry=PROVIDERS,
+            dispatch=_dispatch_notification,
+            on_provider_result=_record_provider_result,
+        )
+        if result["status"] == "success":
+            SCAN_RESULTS_STORED_TOTAL.inc(result["availabilities_found"])
+        return result
 
     except Exception as exc:
         logger.error(
