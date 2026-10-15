@@ -197,6 +197,34 @@ describe("Community pages feature flag", () => {
       screen.getAllByRole("link", { name: "GitHub repository" }).length,
     ).toBeGreaterThan(0);
   });
+
+  it(`${enabled ? "shows hosted-service details" : "describes configured app behavior"} on How It Works`, async () => {
+    renderApp(localConfig, "/how-it-works");
+    expect(
+      await screen.findAllByRole("heading", {
+        name: enabled ? "We Monitor 24/7" : "Check Availability",
+      }),
+    ).toHaveLength(enabled ? 1 : 2);
+
+    if (enabled) {
+      expect(screen.getByText("Reliable Infrastructure")).toBeVisible();
+      expect(screen.getByText("Checks every 2-5 minutes")).toBeVisible();
+    } else {
+      expect(screen.getByText("What the App Does")).toBeVisible();
+      expect(
+        screen.getAllByText("Checks on the configured schedule"),
+      ).toHaveLength(2);
+      expect(
+        screen.getAllByText(/review matching availability in your dashboard/i),
+      ).toHaveLength(2);
+      expect(
+        screen.queryByText(/redundancy and failover systems/i),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/checks every 2-5 minutes, 24\/7/i),
+      ).not.toBeInTheDocument();
+    }
+  });
 });
 
 describe("Application authentication", () => {
