@@ -150,6 +150,12 @@ These variables are primarily used in `docker-compose.yaml`.
 | `BACKEND_VERSION`   | Docker image tag for backend  | `local`  |
 | `FRONTEND_VERSION`  | Docker image tag for frontend | `local`  |
 
+## Optional Community Pages (Public Frontend Build Setting)
+
+Ethos (`/ethos`) and Contribute (`/contribute`) are disabled by default. Set `VITE_ENABLE_COMMUNITY_PAGES=true` in the frontend build environment to enable both pages and their desktop/mobile navigation, Contact card, and FAQ link. Only the exact value `true` enables them; unset, `false`, and other values keep them disabled. Direct visits to disabled pages redirect to the home page.
+
+For local development, run `VITE_ENABLE_COMMUNITY_PAGES=true task frontend:dev`. For static hosting (including Cloudflare Pages), set the variable in the build environment and rebuild. Docker accepts the same build argument, and Compose forwards it with a default of `false`. A root backend `.env` is not automatically a Vite environment file. The visual snapshot runner enables the pages to retain their visual coverage; application tests cover both settings.
+
 ## Maps (Public Frontend Build Settings)
 
 All maps use MapLibre GL JS and default to keyless OpenStreetMap raster tiles. No Google Maps account or key is needed. These public Vite values are embedded in the frontend bundle; never put secrets in them. Set them in the frontend build environment (or Compose build arguments) and rebuild after a change. A root backend `.env` is not automatically a Vite environment file.
