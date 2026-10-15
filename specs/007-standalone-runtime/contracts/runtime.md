@@ -1,6 +1,6 @@
 # Runtime and launch contract
 
-Proposed interfaces for implementation; standalone commands are not available yet.
+Implemented interfaces for the optional standalone runtime.
 
 ## Configuration
 
@@ -38,3 +38,7 @@ Core dependencies: backend → worker/db/providers; worker → db/providers; pro
 ## Common engine boundary
 
 Typed async functions receive explicit sessions/configuration and return typed results or classified failures. No broker, decorators, locks, or metrics imports. Standalone persists intents with results; Celery adapters dispatch existing tasks. Adapters own locking/retry/operational recording.
+
+## Installed migration resources
+
+The db wheel must contain the complete Alembic environment and revision graph as package resources. The launcher resolves them independently of the checkout/current directory and builds Alembic configuration programmatically, without development-only post-write hooks. Installed-artifact tests must upgrade both empty and populated databases using only installed wheels.

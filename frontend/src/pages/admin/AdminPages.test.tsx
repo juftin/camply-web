@@ -31,6 +31,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
   return {
     ...actual,
     getAdminOverview: vi.fn(),
+    getAdminOperations: vi.fn(),
     listAdminUsers: vi.fn(),
     listAdminScans: vi.fn(),
     listAdminAudit: vi.fn(),
@@ -89,6 +90,19 @@ beforeEach(() => {
     defaultOptions: { queries: { retry: false } },
   });
   vi.clearAllMocks();
+  vi.mocked(api.getAdminOperations).mockResolvedValue({
+    runtime_mode: "distributed",
+    inspection_available: true,
+    telemetry_available: true,
+    stale: false,
+    workers: [],
+    queue_depth: 0,
+    active_tasks_total: 0,
+    reserved_tasks_total: 0,
+    scheduled_tasks_total: 0,
+    broker_connected: true,
+    snapshot_at: "2026-10-14T00:00:00Z",
+  });
   vi.mocked(api.getAdminTrends).mockResolvedValue({
     group: "usage",
     range: "24h",

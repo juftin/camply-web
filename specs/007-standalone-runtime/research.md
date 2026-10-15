@@ -1,6 +1,6 @@
 # Research: optional standalone runtime
 
-**Date**: 2026-10-13 | **Status**: Design research complete; runtime not implemented
+**Date**: 2026-10-13 | **Status**: Design research complete; implementation verified
 
 ## R1. Shared engine and minimal dependencies
 
@@ -50,6 +50,6 @@
 
 **Alternatives considered**: SQLite time-series storage recreates excluded infrastructure; hiding all operations removes useful health/sync controls.
 
-## Implementation verification still required
+## Implementation verification
 
-Full SQLite revision chain with foreign keys, core-only installation/imports, parsing responsiveness, installed assets, pending delivery recovery, and distributed adapter parity. These are scheduled checks, not completed runtime results.
+Full SQLite revision chain with foreign keys, core-only installation/imports, parsing responsiveness, installed assets, pending delivery recovery, and distributed adapter parity. These checks are complete; see [verification evidence](quickstart.md#verification-evidence-2026-10-14).

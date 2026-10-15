@@ -20,6 +20,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  standalone-smoke:
+    name: Standalone Install and Browser Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0
+      - uses: ./.github/actions/setup-backend
+      - uses: ./.github/actions/setup-frontend
+      - run: task frontend:browser:install
+      - run: task standalone:test
+      - uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        if: always()
+        with:
+          name: standalone-smoke
+          path: tmp/standalone-smoke*.png
+
   # ── Backend ──────────────────────────────────────────────────────────────
 
   backend-checks:
@@ -103,6 +119,7 @@ jobs:
       - uses: ./.github/actions/setup-backend
       - uses: ./.github/actions/setup-frontend
       - run: task frontend:browser:install
+      - run: task backend:migration:test
       - run: task admin:smoke
 
   ui-snapshots:

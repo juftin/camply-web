@@ -3,12 +3,15 @@ Shared test fixtures for worker tests.
 """
 
 import datetime
+from collections.abc import AsyncGenerator
+from pathlib import Path
 from typing import Generator
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from db.config import DatabaseConfig
 from db.models import (
     Base,
     Campground,
@@ -118,3 +121,38 @@ def scan_result_fixture(session: Session, target: UniqueTarget) -> ScanResult:
     session.add(sr)
     session.commit()
     return sr
+
+
+@pytest.fixture
+async def local_data(
+    tmp_path: Path,
+) -> AsyncGenerator[tuple[DatabaseConfig, UniqueTarget, UserScan], None]:
+    """Seed synthetic linked records with real SQLite foreign-key enforcement."""
+    database = DatabaseConfig(HOST=str(tmp_path / "state.db"))
+    database.open()
+    engine = database.get_session_maker().kw["bind"]
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    today = datetime.datetime.now(datetime.timezone.utc).date()
+    async with database.get_session() as session:
+        session.add(Provider(id=1, name="Synthetic", url="https://example.test"))
+        await session.flush()
+        session.add(Campground(id="park", provider_id=1, name="Synthetic park"))
+        user = User(
+            email="synthetic@example.test", pushover_token="synthetic", is_invited=True
+        )
+        session.add(user)
+        await session.flush()
+        target = UniqueTarget(
+            provider_id=1,
+            campground_id="park",
+            start_date=today - datetime.timedelta(days=1),
+            end_date=today + datetime.timedelta(days=3),
+        )
+        session.add(target)
+        await session.flush()
+        scan = UserScan(user_id=user.id, target_id=target.id, min_stay_length=2)
+        session.add(scan)
+        await session.commit()
+    yield database, target, scan
+    await database.close()

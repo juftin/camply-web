@@ -1,6 +1,6 @@
 # Quickstart validation: standalone runtime
 
-**Status**: Future validation guide. These commands become available only after [tasks.md](tasks.md) is implemented.
+**Status**: Implemented. Local verification evidence is recorded below.
 
 ## Prerequisites
 
@@ -43,7 +43,7 @@ Test fresh and populated upgrades with foreign keys enabled, portable UUID/JSON/
 
 Install core workspace wheels from `backend/dist` and their core dependencies into a clean environment. From outside the checkout, run `CAMPLY_RUNTIME_MODE=standalone python -m backend.standalone`. Verify packaged assets, deep links/login, and dependency inventory excluding Celery/Redis/Prometheus client/psycopg. No Node/Vite process runs. `task standalone:test` automates this scenario.
 
-## Future implementation gates
+## Implementation gates
 
 ```bash
 task standalone:test
@@ -55,4 +55,18 @@ task api:check
 task pre-commit -- --all-files
 ```
 
-Separately run `task admin:smoke` with Docker for distributed regression and applicable snapshots for changed admin states. These are future implementation acceptance results, not claimed by this planning PR.
+Separately run `task admin:smoke` with Docker for distributed regression and applicable snapshots for changed admin states. These are implementation acceptance gates.
+
+## Verification evidence (2026-10-14)
+
+- `task test`: 558 Python tests and 235 frontend tests passed; the three opt-in integration checks run separately.
+- `task check`, `task lint`, and `task api:check`: passed.
+- `task snapshot:check`: all 51 existing desktop/mobile/light/dark baselines match.
+- `task backend:migration:test`: PostgreSQL prior-head → current-head → repeat upgrade passed in a disposable container. SQLite fresh/populated upgrades, FK enforcement, UUID/JSON/date round trips, online backup/restore, and WAL contention checks passed.
+- `task admin:smoke`: real distributed Celery/Valkey/Prometheus/API/Chromium regression passed.
+- `task standalone:test`: a clean installation of the four wheels outside the checkout passed dependency/import audits excluding Celery, Redis, Prometheus client, and psycopg; packaged migrations/assets, two subscribers sharing one check, saved state and pending-delivery restart recovery, real local upstream HTTP, responsive health during a held provider request, session login/CSRF, deep-link reload, and Chromium desktop/mobile checks passed. Screenshots are generated in `tmp/standalone-smoke*.png` and uploaded by CI.
+- The distributed backend Docker image built successfully with explicit distributed extras.
+
+Unit tests additionally cover coalesced refreshes, provider failure isolation, 60/120/240-second target backoff, bounded/expired local history, current subscription eligibility and UTC minimum-stay rechecks, atomic rollback when intent insertion fails, delivery failure classification, four-attempt exhaustion, interrupted-send recovery, and terminal retention. Synthetic upstreams and temporary databases avoid real bookings or notifications.
+
+The repository-wide pre-commit run exposes the existing duplicate module docstring in untouched `backend/packages/db/db/models/search.py`. Hooks are also run on every PR file. TOML formatting is owned by the existing pretty-format-toml hook; Oxfmt excludes TOML to avoid conflicting trailing-comma rewrites introduced when editing dependency extras.

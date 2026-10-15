@@ -14,11 +14,14 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
 
-import redis
 import structlog
-from celery import Celery
 
-from backend.config import backend_config
+from backend.config import RuntimeMode, backend_config
+
+if backend_config.runtime_mode == RuntimeMode.DISTRIBUTED:
+    import redis
+    from celery import Celery
+
 from backend.schemas import (
     AdminDiscoveryMetadata,
     AdminOperationsResponse,
@@ -174,6 +177,10 @@ async def get_operations_overview() -> AdminOperationsResponse:
     """
     Return the current operations overview snapshot, cached for 10 seconds.
     """
+    if backend_config.runtime_mode == RuntimeMode.STANDALONE:
+        from backend.services import local_operations
+
+        return await local_operations.get_operations_overview()
     global _cached_overview, _cached_overview_time
 
     now_mono = time.monotonic()
@@ -442,6 +449,17 @@ async def get_recent_tasks(
     """
     Fetch bounded recent task executions with optional filters.
     """
+    if backend_config.runtime_mode == RuntimeMode.STANDALONE:
+        from backend.services import local_operations
+
+        return await local_operations.get_recent_tasks(
+            limit=limit,
+            offset=offset,
+            task_name=task_name,
+            outcome=outcome,
+            provider=provider,
+            search=search,
+        )
     return await asyncio.to_thread(
         _get_recent_tasks_sync,
         limit=limit,
@@ -492,6 +510,10 @@ async def get_task_detail(task_id: str) -> Optional[AdminOperationsTaskDetail]:
     """
     Fetch single task execution detail by ID.
     """
+    if backend_config.runtime_mode == RuntimeMode.STANDALONE:
+        from backend.services import local_operations
+
+        return await local_operations.get_task_detail(task_id)
     return await asyncio.to_thread(_get_task_detail_sync, task_id=task_id)
 
 
@@ -519,4 +541,8 @@ async def trigger_provider_sync() -> str:
     str
         The dispatched task ID.
     """
+    if backend_config.runtime_mode == RuntimeMode.STANDALONE:
+        from backend.services import local_operations
+
+        return await local_operations.trigger_provider_sync()
     return await asyncio.to_thread(dispatch_sync_all_providers)

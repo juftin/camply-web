@@ -445,6 +445,14 @@ class AdminDiscoveryMetadata(BaseModel):
     status: str
 
 
+class RuntimeCapabilities(BaseModel):
+    """Monitoring features supported by the selected execution runtime."""
+
+    broker: bool = True
+    historical_trends: bool = True
+    persistent_job_history: bool = True
+
+
 class AdminOperationsResponse(BaseModel):
     """Overview of worker execution nodes, queue depth, and discovery status."""
 
@@ -454,7 +462,10 @@ class AdminOperationsResponse(BaseModel):
     reserved_tasks_total: int | None
     scheduled_tasks_total: int | None
     last_discovery: Optional[AdminDiscoveryMetadata] = None
-    broker_connected: bool
+    broker_connected: bool | None
+    runtime_mode: Literal["standalone", "distributed"] = "distributed"
+    capabilities: RuntimeCapabilities = Field(default_factory=RuntimeCapabilities)
+    scheduler_status: Literal["running", "stopping", "failed"] | None = None
     snapshot_at: UtcDateTime
     inspection_available: bool = True
     telemetry_available: bool = True

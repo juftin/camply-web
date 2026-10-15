@@ -10,8 +10,8 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 
 - **Backend**: FastAPI (Python 3.12, `uv` workspace) using **Pydantic v2**.
 - **Frontend**: React (TypeScript, Vite, Tailwind CSS + **Shadcn/UI**).
-- **Database**: PostgreSQL (SQLAlchemy + Alembic).
-- **Worker**: Smart **De-duplicated Poller** (Celery + Valkey) for high-frequency scanning without API pressure.
+- **Database**: PostgreSQL for distributed deployment or file-backed SQLite for optional standalone (SQLAlchemy + Alembic).
+- **Worker**: Shared async de-duplicated poller with Celery + Valkey adapters or bounded local loops in standalone.
 - **Auth**: Multi-user **Auth0** integration with optional **invite-only access** (`CAMPLY_INVITE_ONLY`). The owner selects `none` (automatic shared-account login), `session` (in-app password login), or `auth0`, independently of the environment. HTTP Basic authentication is unsupported.
 - **Licensing**: Transition to a **Non-Commercial License** (e.g., Polyform Non-Commercial or AGPL with restrictions) to prevent unauthorized paid hosting/monetization.
 - **Notifications**: Initial support for **Pushover** (extensible to Email/Discord).
@@ -114,3 +114,7 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 6. [x] **Auth0 Integration**: Wire up JWT validation, API audience, and profile pages.
 7. [ ] **Invitation Workflow**: Implement approval/revocation and notification delivery.
 8. [ ] **Provider Parity**: Port remaining providers (usedirect, xanterra)."}]}
+
+## Standalone runtime delivery
+
+Optional standalone now serves built React assets and the API from one Python process with SQLite, local polling/catalog refresh, and durable notification recovery. The distributed runtime remains the default. See the [implementation tasks](../../specs/007-standalone-runtime/tasks.md), [developer workflow](DEVELOPER_GUIDE.md#standalone-runtime), and [runtime constraints](CONFIGURATION.md#runtime-selection).

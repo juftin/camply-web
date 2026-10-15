@@ -15,6 +15,7 @@ from db.models import Base
 
 config: Config = context.config
 target_metadata = Base.metadata
+database = config.attributes.get("database_config", db)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,7 +28,7 @@ def run_migrations_offline() -> None:
     Run migrations in 'offline' mode.
     """
     context.configure(
-        url=db.url,
+        url=database.url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -52,9 +53,12 @@ async def run_migrations_online_async() -> None:
     """
     Run migrations in 'online' mode (Async).
     """
-    engine: AsyncEngine = db.create_async_engine()
-    async with engine.connect() as connection:
-        await connection.run_sync(do_migrations)
+    engine: AsyncEngine = database.create_async_engine()
+    try:
+        async with engine.connect() as connection:
+            await connection.run_sync(do_migrations)
+    finally:
+        await engine.dispose()
 
 
 def run_migrations_online() -> None:

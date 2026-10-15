@@ -2,6 +2,14 @@
 
 This document explains the technical implementation and reasoning behind the core scanning engine of `camply`.
 
+## Optional local execution
+
+`worker/engine/` contains shared asynchronous discovery, scanning/filtering, catalog, and notification functions. Distributed Celery adapters keep locks, retries, and metrics; `worker/runtime.py` runs the same engine in the API lifespan for standalone. Discovery begins immediately, pages 100 targets, honors subscriber eligibility and cooldown, and excludes queued/running/deferred targets. One scan consumer retries exceptions after 60/120/240 seconds, then records a failure and waits for the next heartbeat cycle. Separate consumers handle catalog work and durable delivery without creating one task per target.
+
+Manual catalog sync coalesces under one job ID; daily refresh runs at midnight UTC. Each provider has an independent outcome, and later providers run after a failure. Recreation.gov archive parsing is offloaded from the event loop. Existing provider commit boundaries are preserved. Shutdown stops discovery, allows up to five seconds to drain scan/catalog queues, then cancels and reaps remaining loops. Any unexpectedly terminated supervised loop makes readiness unhealthy.
+
+Standalone result replacement, successful-check time, and matching notification intents commit in one transaction. The delivery consumer revalidates current subscriptions, credentials, dates, and filters before sending; see [notification recovery](DESIGN_NOTIFICATIONS.md#standalone-delivery). Local queues/history are bounded; only pending delivery and application state persist. This runtime supports one process, one host, and a writable local SQLite file. Distributed scheduling and deployment remain available for larger instances.
+
 ## 🎯 The Problem: API Bans & Inefficiency
 
 In a multi-user system, multiple users often want to watch the same popular campgrounds (e.g., Lower Pines in Yosemite) for the same dates.

@@ -1058,6 +1058,11 @@ async def sync_providers(
         Information about the dispatched background task.
     """
     try:
+        already_running = False
+        if backend_config.runtime_mode == "standalone":
+            from backend.services.local_operations import get_runner
+
+            already_running = get_runner().catalog_job is not None
         task_id = await trigger_provider_sync()
         logger.info(
             "Admin triggered provider metadata sync",
@@ -1066,14 +1071,20 @@ async def sync_providers(
         )
         return AdminSyncProvidersResponse(
             task_id=task_id,
-            status="queued",
-            message="Metadata sync initiated for all providers.",
+            status="running" if already_running else "queued",
+            message="Metadata sync is already running."
+            if already_running
+            else "Metadata sync initiated for all providers.",
         )
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.exception("Failed to dispatch provider catalog sync", exc_info=exc)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Failed to dispatch provider sync task. Worker broker may be unreachable.",
+            detail="Local provider sync is unavailable."
+            if backend_config.runtime_mode == "standalone"
+            else "Failed to dispatch provider sync task. Worker broker may be unreachable.",
         ) from exc
 
 

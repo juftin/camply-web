@@ -1,3 +1,9 @@
 .venv
 dist
 .coverage
+
+.git/
+__pycache__/
+*.pyc
+*.log
+.env*

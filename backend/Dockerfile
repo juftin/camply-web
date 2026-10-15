@@ -25,12 +25,12 @@ COPY packages/worker/pyproject.toml /app/packages/worker/pyproject.toml
 RUN --mount=from=ghcr.io/astral-sh/uv:latest,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --no-dev --no-install-project
+    uv sync --no-dev --extra distributed --no-install-workspace
 
 COPY packages/ /app/packages/
 RUN --mount=from=ghcr.io/astral-sh/uv:latest,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev
+    uv sync --no-dev --extra distributed
 
 ENV PATH="/app/.venv/bin:${PATH}"
 

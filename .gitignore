@@ -86,3 +86,6 @@ backend/clients/
 # Snapshot Transient Runs
 frontend/snapshots/current/
 frontend/snapshots/diffs/
+
+# Bundled frontend build assets
+backend/packages/backend/backend/static/
