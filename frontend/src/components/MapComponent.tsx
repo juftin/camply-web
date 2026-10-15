@@ -177,7 +177,12 @@ const MapCanvas = ({
         if (!b) return;
         const camera = { lat: c.lat, lng: c.lng, zoom: instance.getZoom() };
         const initialMovement =
-          !event?.originalEvent && lastFit.current === initialFitKey.current;
+          !event?.originalEvent &&
+          (!initial.current ||
+            (camera.lat === initial.current.lat &&
+              camera.lng === initial.current.lng &&
+              camera.zoom === initial.current.zoom &&
+              lastFit.current === initialFitKey.current));
         initial.current = camera;
         initialFitKey.current = lastFit.current;
         movement.current?.(
@@ -196,6 +201,7 @@ const MapCanvas = ({
         setError("The map graphics context was lost. Please retry the map.");
       instance.on("load", loaded);
       instance.on("webglcontextlost", contextLost);
+      instance.on("move", emit);
       instance.on("moveend", emit);
       instance.on("error", failure);
       const observer = new ResizeObserver(() => instance?.resize());
@@ -209,6 +215,7 @@ const MapCanvas = ({
         observer.disconnect();
         instance?.off("load", loaded);
         instance?.off("webglcontextlost", contextLost);
+        instance?.off("move", emit);
         instance?.off("moveend", emit);
         instance?.off("error", failure);
         instance?.remove();

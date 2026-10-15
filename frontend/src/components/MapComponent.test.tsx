@@ -151,6 +151,33 @@ describe("MapLibre shared maps", () => {
       false,
     );
   });
+  it("reports camera changes during movement even when DOM event metadata is absent", () => {
+    const onMove = vi.fn();
+    render(
+      <MapComponent
+        bounds={{ west: -2, east: 2, south: -2, north: 2 }}
+        fitKey="search"
+        onMove={onMove}
+      />,
+    );
+    const map = sdk.maps[0];
+    onMove.mockClear();
+    map.zoom += 1;
+    act(() => map.fire("move"));
+    expect(onMove).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ zoom: map.zoom }),
+      false,
+    );
+    onMove.mockClear();
+    map.center = { lat: 1, lng: 1 };
+    act(() => map.fire("moveend"));
+    expect(onMove).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ lat: 1, lng: 1 }),
+      false,
+    );
+  });
   it("shows safe place information on hover and focus and cleans up popups", () => {
     const onSelect = vi.fn();
     const { unmount } = render(

@@ -279,6 +279,41 @@ try {
     after_pan: panData.total,
     after_zoom: zoomData.total,
   };
+  await page.waitForTimeout(400);
+  const liveTotals: number[] = [];
+  const recordLiveResults = async (
+    response: import("@playwright/test").Response,
+  ) => {
+    const url = new URL(response.url());
+    if (
+      url.pathname === "/api/search/explore" &&
+      url.searchParams.has("west") &&
+      response.ok()
+    ) {
+      liveTotals.push((await response.json()).total);
+    }
+  };
+  page.on("response", recordLiveResults);
+  await page.mouse.move(box.x + box.width * 0.35, box.y + box.height * 0.35);
+  await page.mouse.down();
+  try {
+    for (let step = 1; step <= 8; step++) {
+      await page.mouse.move(
+        box.x + box.width * 0.35 + step * 12,
+        box.y + box.height * 0.35,
+      );
+      await page.waitForTimeout(100);
+    }
+    await expect.poll(() => liveTotals.length).toBeGreaterThanOrEqual(2);
+    await expect(
+      page.getByRole("status").filter({ hasText: /Found.*in map area/ }),
+    ).toContainText(`Found ${liveTotals.at(-1)} campgrounds`);
+    report.live_drag_totals = liveTotals;
+  } finally {
+    await page.mouse.up();
+    page.off("response", recordLiveResults);
+  }
+
   for (const width of [375, 1440])
     for (const colorScheme of ["light", "dark"] as const) {
       await page.setViewportSize({ width, height: 1000 });

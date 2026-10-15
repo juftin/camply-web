@@ -75,6 +75,10 @@ export const ExploreMap = ({
   const returnFocus = useRef<HTMLElement | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pendingMovement = useRef(false);
+  const latestViewport = useRef<{
+    bounds: GeoBounds;
+    camera: MapCamera;
+  } | null>(null);
   useEffect(() => () => clearTimeout(timer.current), []);
   useEffect(() => {
     if (selected) panel.current?.focus();
@@ -218,14 +222,17 @@ export const ExploreMap = ({
           className="h-[55vh] lg:h-[65vh] rounded-lg border"
           onMove={(bounds, camera, initial) => {
             pendingMovement.current ||= !initial;
+            latestViewport.current = { bounds, camera };
             onSave({ context, bounds, camera, moved: pendingMovement.current });
-            clearTimeout(timer.current);
+            if (timer.current !== undefined) return;
             timer.current = setTimeout(() => {
-              onViewport?.(bounds, pendingMovement.current);
+              timer.current = undefined;
+              const latest = latestViewport.current!;
+              onViewport?.(latest.bounds, pendingMovement.current);
               pendingMovement.current = false;
               setViewport({
-                bounds,
-                zoom: Math.max(0, Math.min(19, Math.round(camera.zoom))),
+                bounds: latest.bounds,
+                zoom: Math.max(0, Math.min(19, Math.round(latest.camera.zoom))),
               });
             }, 150);
           }}

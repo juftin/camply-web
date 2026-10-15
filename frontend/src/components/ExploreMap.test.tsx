@@ -172,6 +172,31 @@ describe("Explore map discovery", () => {
       vi.useRealTimers();
     }
   });
+  it("refreshes the list throughout continuous movement without waiting for a pause", () => {
+    vi.useFakeTimers();
+    try {
+      const onViewport = vi.fn();
+      render(
+        <MemoryRouter>
+          <ExploreMap
+            params={{}}
+            saved={null}
+            onSave={() => {}}
+            onViewport={onViewport}
+          />
+        </MemoryRouter>,
+      );
+      for (let index = 0; index < 5; index++) {
+        fireEvent.click(screen.getByRole("button", { name: "Move map" }));
+        act(() => {
+          vi.advanceTimersByTime(100);
+        });
+      }
+      expect(onViewport.mock.calls.length).toBeGreaterThanOrEqual(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it("saves the latest camera immediately so collapsing cannot discard a recent pan", () => {
     const onSave = vi.fn();
     render(
