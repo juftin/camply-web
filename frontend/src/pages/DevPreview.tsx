@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { CamplyLogo } from "@/components/CamplyLogo";
 import type { ScanResponse } from "@/lib/structs";
 
 /**
@@ -122,6 +123,26 @@ export function DevPreview(): React.ReactElement {
           <ThemeToggle />
         </div>
       </div>
+
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold tracking-tight">Branding</h2>
+        <div className="grid gap-6 sm:grid-cols-3">
+          {(["horizontal", "stacked", "icon"] as const).map((variant) => (
+            <div
+              key={variant}
+              className="flex flex-col items-center justify-center gap-4 rounded-lg border bg-card p-6"
+            >
+              <CamplyLogo
+                variant={variant}
+                height={variant === "horizontal" ? 48 : 96}
+              />
+              <span className="text-sm text-muted-foreground capitalize">
+                {variant}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Section 1: Dashboard Stat Cards */}
       <section className="space-y-4">

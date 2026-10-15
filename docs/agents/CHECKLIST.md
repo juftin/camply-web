@@ -54,6 +54,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.4.15 Refine DatePicker component and date range synchronization (anchor check-out to check-in, popover calendar, quick duration presets).
 - [x] T1.4.16 Add scan editing from dashboard cards and detail pages, safely relink de-duplicated targets, and fix delete navigation, pending state, and failure feedback. Cover form lifecycle, ownership, duplicate validation, and shared-target isolation; see [scan editing plan](../../specs/006-scan-editing/plan.md).
 - [x] T1.4.17 Gate Ethos and Contribute behind `VITE_ENABLE_COMMUNITY_PAGES`, disabled by default; hide related navigation and links, redirect disabled routes home, and document frontend/Docker configuration with regression coverage.
+- [x] T1.4.18 Replace placeholder branding with the original camply artwork: horizontal and stacked logos with the title, tent-and-trees artwork without the title, light/dark variants, branded favicons, and the Recreation.gov provider logo. Add the supplied portrait to Meet Justin and preview all logo variations in the design system catalog; see the [branding plan](../../specs/008-branding/plan.md).
 
 ### 1.5 Governance & Licensing
 

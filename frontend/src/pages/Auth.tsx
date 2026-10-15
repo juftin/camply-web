@@ -1,5 +1,5 @@
 import * as React from "react";
-import { TentTree } from "lucide-react";
+import { CamplyLogo } from "@/components/CamplyLogo";
 import { AxiosError } from "axios";
 import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
@@ -55,8 +55,7 @@ function Auth0Content() {
         <div className="w-full max-w-md">
           <div className="text-center mb-6">
             <Link to="/" className="inline-flex items-center space-x-2">
-              <TentTree className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold">camply</span>
+              <CamplyLogo variant="stacked" height={128} />
             </Link>
             <p className="text-muted-foreground mt-1 text-sm">
               Never miss your perfect campsite
@@ -174,8 +173,7 @@ function SessionContent() {
         <div className="w-full max-w-md">
           <div className="text-center mb-6">
             <Link to="/" className="inline-flex items-center space-x-2">
-              <TentTree className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold">camply</span>
+              <CamplyLogo variant="stacked" height={128} />
             </Link>
             <p className="text-muted-foreground mt-1 text-sm">
               Never miss your perfect campsite

@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
-import { Mountain, Heart, Compass, ArrowRight, User } from "lucide-react";
+import { Mountain, Heart, Compass, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -172,7 +172,14 @@ export function Ethos() {
           <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800">
             <CardContent className="p-8">
               <div className="text-center mb-8">
-                <User className="h-16 w-16 text-primary mx-auto mb-4" />
+                <img
+                  src={`${import.meta.env.BASE_URL}branding/justin-flannery.png`}
+                  alt="Justin Flannery"
+                  width={128}
+                  height={128}
+                  loading="lazy"
+                  className="h-32 w-32 rounded-full object-contain mx-auto mb-4"
+                />
                 <h3 className="text-2xl font-semibold mb-2">Meet Justin</h3>
               </div>
 
