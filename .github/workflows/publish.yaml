@@ -19,8 +19,12 @@ jobs:
         with:
           files: ./docker-compose.yaml
           push: true
-          targets: backend
+          targets: |
+            backend
+            frontend
           set: |
             *.cache-from=type=gha,scope=backend
+            frontend.args.CAMPLY_API_URL=
         env:
           BACKEND_VERSION: latest
+          FRONTEND_VERSION: latest
