@@ -5,6 +5,7 @@ camply-backend FastAPI Application
 import structlog
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import ORJSONResponse, Response
 
 from backend.__about__ import __application__, __version__
@@ -60,6 +61,7 @@ app = FastAPI(
     default_response_class=ORJSONResponse,
 )
 
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=backend_config.cors_origins,

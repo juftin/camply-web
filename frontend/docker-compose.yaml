@@ -9,7 +9,7 @@ services:
         - VITE_MAP_ATTRIBUTION_TEXT=${VITE_MAP_ATTRIBUTION_TEXT:-}
         - VITE_MAP_ATTRIBUTION_URL=${VITE_MAP_ATTRIBUTION_URL:-}
         - VITE_MAP_MAX_NATIVE_ZOOM=${VITE_MAP_MAX_NATIVE_ZOOM:-19}
-    image: juftin/camply-frontend:${FRONTEND_VERSION:-local}
+    image: ghcr.io/juftin/camply-frontend:${FRONTEND_VERSION:-local}
     ports:
       - "${FRONTEND_PORT:-80}:8080"
     healthcheck:
