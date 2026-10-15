@@ -305,9 +305,14 @@ try {
       await page.waitForTimeout(100);
     }
     await expect.poll(() => liveTotals.length).toBeGreaterThanOrEqual(2);
-    await expect(
-      page.getByRole("status").filter({ hasText: /Found.*in map area/ }),
-    ).toContainText(`Found ${liveTotals.at(-1)} campgrounds`);
+    await expect
+      .poll(async () => {
+        const statuses = await page.getByRole("status").allTextContents();
+        return statuses.some((status) =>
+          status.includes(`Found ${liveTotals.at(-1)} campgrounds`),
+        );
+      })
+      .toBe(true);
     report.live_drag_totals = liveTotals;
   } finally {
     await page.mouse.up();
