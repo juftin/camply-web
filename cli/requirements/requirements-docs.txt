@@ -225,5 +225,5 @@ urllib3==2.1.0
     # via
     #   -c requirements.txt
     #   requests
-watchdog==3.0.0
+watchdog==6.0.0
     # via mkdocs
