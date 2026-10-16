@@ -220,5 +220,5 @@ vcrpy==4.3.1
     # via pytest-vcr
 wrapt==1.15.0
     # via vcrpy
-yarl==1.9.2
+yarl==1.25.1
     # via vcrpy
