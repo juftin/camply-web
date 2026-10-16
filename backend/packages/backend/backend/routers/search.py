@@ -115,9 +115,26 @@ async def search(
     return [_row_to_result(row) for row in search_rows]
 
 
+def _explore_bounds(
+    west: float | None = Query(default=None, ge=-180, le=180, allow_inf_nan=False),
+    south: float | None = Query(default=None, ge=-90, le=90, allow_inf_nan=False),
+    east: float | None = Query(default=None, ge=-180, le=180, allow_inf_nan=False),
+    north: float | None = Query(default=None, ge=-90, le=90, allow_inf_nan=False),
+) -> Bounds | None:
+    """Allow unbounded discovery or a complete, validated map viewport."""
+    if all(value is None for value in (west, south, east, north)):
+        return None
+    if west is None or south is None or east is None or north is None:
+        raise HTTPException(
+            status_code=422, detail="All four viewport bounds are required"
+        )
+    return _map_bounds(west=west, south=south, east=east, north=north)
+
+
 @search_router.get("/search/explore")
 async def search_explore(
     session: SessionDep,
+    bounds: Annotated[Bounds | None, Depends(_explore_bounds)],
     query: str = Query(default="", max_length=200),
     q: str | None = Query(default=None, max_length=200),
     page: int = Query(default=1, ge=1),
@@ -159,6 +176,7 @@ async def search_explore(
         limit=page_size,
         offset=offset,
         sort_by=sort_by,
+        bounds=bounds,
     )
     SEARCH_DURATION_SECONDS.observe(time.monotonic() - start)
 

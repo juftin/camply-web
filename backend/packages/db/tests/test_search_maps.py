@@ -164,3 +164,26 @@ async def test_grid_cap_at_every_zoom(map_session: AsyncSession, zoom: int) -> N
     )
     assert len(page.cells) <= 512
     assert sum(cell.count for cell in page.cells) == 133
+
+
+@pytest.mark.asyncio
+async def test_explore_filters_items_counts_facets_and_pages_by_viewport(
+    map_session: AsyncSession,
+) -> None:
+    """Viewport filtering covers the full catalog before counts and pagination."""
+    bounds = Bounds(west=-1, south=-1, east=1, north=1)
+    rows, total, facets = await Search.search(
+        session=map_session, bounds=bounds, limit=20, offset=20, has_electric=True
+    )
+    assert len(rows) == 20
+    assert total == 65
+    assert facets["states"] == {"CA": 65}
+    assert all(row.latitude == 0 and row.longitude == 0 for row in rows)
+    dateline = Bounds(west=178, south=0, east=-178, north=3)
+    rows, total, _ = await Search.search(session=map_session, bounds=dateline)
+    assert {row.id for row in rows} == {"west", "east"}
+    assert total == 2
+    rows, total, _ = await Search.search(
+        session=map_session, bounds=Bounds(west=-180, south=-90, east=180, north=90)
+    )
+    assert total == 133

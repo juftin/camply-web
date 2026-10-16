@@ -2,6 +2,7 @@ import {
   Component,
   type ReactNode,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -9,6 +10,7 @@ import {
 import {
   Map as LibreMap,
   Marker,
+  Popup,
   NavigationControl,
   AttributionControl,
   type MapEventType,
@@ -50,7 +52,7 @@ interface MapComponentProps {
   fitKey?: string;
   fitMaxZoom?: number;
   camera?: MapCamera | null;
-  onMove?: (bounds: GeoBounds, camera: MapCamera) => void;
+  onMove?: (bounds: GeoBounds, camera: MapCamera, initial?: boolean) => void;
 }
 
 const MapCanvas = ({
@@ -68,6 +70,7 @@ const MapCanvas = ({
   camera,
   onMove,
 }: MapComponentProps) => {
+  const tooltipId = useId();
   const container = useRef<HTMLDivElement>(null);
   const movement = useRef(onMove);
   movement.current = onMove;
@@ -167,17 +170,25 @@ const MapCanvas = ({
         new AttributionControl({ compact: false }),
         "bottom-right",
       );
-      const emit = () => {
+      const emit = (event?: MapEventType["moveend"]) => {
         if (!instance || lastFit.current === null) return;
         const b = instance.getBounds(),
           c = instance.getCenter();
         if (!b) return;
         const camera = { lat: c.lat, lng: c.lng, zoom: instance.getZoom() };
+        const initialMovement =
+          !event?.originalEvent &&
+          (!initial.current ||
+            (camera.lat === initial.current.lat &&
+              camera.lng === initial.current.lng &&
+              camera.zoom === initial.current.zoom &&
+              lastFit.current === initialFitKey.current));
         initial.current = camera;
         initialFitKey.current = lastFit.current;
         movement.current?.(
           viewportBounds(b.getWest(), b.getSouth(), b.getEast(), b.getNorth()),
           camera,
+          initialMovement,
         );
       };
       const failure = (event: MapEventType["error"]) => {
@@ -190,6 +201,7 @@ const MapCanvas = ({
         setError("The map graphics context was lost. Please retry the map.");
       instance.on("load", loaded);
       instance.on("webglcontextlost", contextLost);
+      instance.on("move", emit);
       instance.on("moveend", emit);
       instance.on("error", failure);
       const observer = new ResizeObserver(() => instance?.resize());
@@ -203,6 +215,7 @@ const MapCanvas = ({
         observer.disconnect();
         instance?.off("load", loaded);
         instance?.off("webglcontextlost", contextLost);
+        instance?.off("move", emit);
         instance?.off("moveend", emit);
         instance?.off("error", failure);
         instance?.remove();
@@ -240,10 +253,12 @@ const MapCanvas = ({
         pin.onSelect ? "button" : "div",
       );
       element.className = "camply-map-marker";
-      element.title = pin.label;
       element.setAttribute("aria-label", pin.label);
       if (element instanceof HTMLButtonElement) element.type = "button";
-      else element.setAttribute("role", "img");
+      else {
+        element.setAttribute("role", "img");
+        element.tabIndex = 0;
+      }
       const icon = document.createElement("span");
       icon.className = `camply-map-pin ${pin.count ? "camply-map-group" : pin.type === "campground" ? "camply-map-camp" : "camply-map-area"}`;
       icon.textContent = pin.count
@@ -253,6 +268,64 @@ const MapCanvas = ({
           : "▲";
       icon.setAttribute("aria-hidden", "true");
       element.appendChild(icon);
+      const content = document.createElement("div");
+      content.setAttribute("role", "tooltip");
+      content.id = `${tooltipId}-${markers.length}`;
+      const name = document.createElement("strong");
+      name.textContent = pin.label;
+      content.appendChild(name);
+      if (pin.description) {
+        const details = document.createElement("p");
+        details.textContent = pin.description;
+        content.appendChild(details);
+      }
+      const popup = new Popup({
+        closeButton: false,
+        closeOnClick: false,
+        focusAfterOpen: false,
+        offset: 22,
+        maxWidth: "min(240px, calc(50vw - 40px))",
+        className: "camply-map-tooltip",
+      }).setDOMContent(content);
+      let hovered = false;
+      let focused = false;
+      const hidePopup = () => {
+        popup.remove();
+        element.removeAttribute("aria-describedby");
+      };
+      const showPopup = () => {
+        element.setAttribute("aria-describedby", content.id);
+        popup
+          .setLngLat([
+            nearestLongitude(pin.lng, map.getCenter().lng),
+            displayLatitude(pin.lat),
+          ])
+          .addTo(map);
+      };
+      const enter = () => {
+        hovered = true;
+        showPopup();
+      };
+      const leave = () => {
+        hovered = false;
+        if (!focused) hidePopup();
+      };
+      const focus = () => {
+        focused = true;
+        showPopup();
+      };
+      const blur = () => {
+        focused = false;
+        if (!hovered) hidePopup();
+      };
+      const dismiss = (event: KeyboardEvent) => {
+        if (event.key === "Escape") hidePopup();
+      };
+      element.addEventListener("mouseenter", enter);
+      element.addEventListener("mouseleave", leave);
+      element.addEventListener("focus", focus);
+      element.addEventListener("blur", blur);
+      element.addEventListener("keydown", dismiss);
       const activate = (event: MouseEvent) => {
         event.stopPropagation();
         pin.onSelect?.();
@@ -281,6 +354,12 @@ const MapCanvas = ({
         dispose: () => {
           element.removeEventListener("click", activate);
           element.removeEventListener("keydown", keyboard);
+          element.removeEventListener("mouseenter", enter);
+          element.removeEventListener("mouseleave", leave);
+          element.removeEventListener("focus", focus);
+          element.removeEventListener("blur", blur);
+          element.removeEventListener("keydown", dismiss);
+          hidePopup();
           marker.remove();
         },
       });
@@ -297,7 +376,7 @@ const MapCanvas = ({
       map.off("moveend", reposition);
       markers.forEach(({ dispose }) => dispose());
     };
-  }, [map, locations]);
+  }, [map, locations, tooltipId]);
 
   useEffect(() => {
     if (!map || !target || lastFit.current === key) return;

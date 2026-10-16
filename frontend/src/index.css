@@ -100,3 +100,35 @@
   border: 0;
   background: transparent;
 }
+
+.camply-map-tooltip {
+  pointer-events: none;
+}
+.camply-map-tooltip .maplibregl-popup-content {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+.camply-map-tooltip p {
+  margin-top: 0.25rem;
+  color: hsl(var(--muted-foreground));
+}
+.camply-map-tooltip[class*="maplibregl-popup-anchor-bottom"]
+  .maplibregl-popup-tip {
+  border-top-color: hsl(var(--card));
+}
+.camply-map-tooltip[class*="maplibregl-popup-anchor-top"]
+  .maplibregl-popup-tip {
+  border-bottom-color: hsl(var(--card));
+}
+
+.camply-map-tooltip.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: hsl(var(--card));
+}
+.camply-map-tooltip.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: hsl(var(--card));
+}

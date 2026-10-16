@@ -3,6 +3,7 @@ import { AxiosError, type AxiosInstance } from "axios";
 
 // We'll mock axios.create to return a controlled instance
 const mockGet = vi.fn();
+const mockLocationGet = vi.hoisted(() => vi.fn());
 const mockPost = vi.fn();
 const mockUseFn = vi.fn();
 const mockAxiosInstance = {
@@ -23,15 +24,53 @@ vi.mock("axios", async (importOriginal) => ({
   ...(await importOriginal<typeof import("axios")>()),
   default: {
     create: vi.fn(() => mockAxiosInstance),
+    get: mockLocationGet,
   },
 }));
 
 describe("API Client", () => {
+  it("uses an isolated bounded IP request and returns only valid coordinates", async () => {
+    const { locateByIp } = await import("./api");
+    const signal = new AbortController().signal;
+    mockLocationGet.mockResolvedValue({ data: { latitude: 0, longitude: 0 } });
+    expect(await locateByIp(signal)).toEqual({ lat: 0, lng: 0 });
+    expect(mockLocationGet).toHaveBeenCalledWith("https://ipapi.co/json/", {
+      signal,
+      timeout: 2500,
+      withCredentials: false,
+      withXSRFToken: false,
+    });
+    for (const data of [
+      { latitude: 91, longitude: 0 },
+      { latitude: null, longitude: null },
+      { latitude: 0, longitude: 0, error: true },
+    ]) {
+      mockLocationGet.mockResolvedValue({ data });
+      expect(await locateByIp()).toBeNull();
+    }
+    mockLocationGet.mockRejectedValue(new Error("Timed out"));
+    expect(await locateByIp()).toBeNull();
+  });
+
+  it("sends list bounds while keeping map context independent of that viewport", async () => {
+    const { searchExplore, mapQueryParams } = await import("./api");
+    mockGet.mockResolvedValue({ data: {} });
+    const bounds = { west: 179, east: -179, south: -1, north: 1 };
+    await searchExplore({ query: "Pines", bounds, page: 2 });
+    expect(mockGet).toHaveBeenCalledWith("/search/explore", {
+      params: { q: "Pines", page: 2, ...bounds },
+      signal: undefined,
+    });
+    expect(mapQueryParams({ query: "Pines", bounds, page: 2 })).toEqual({
+      q: "Pines",
+    });
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("creates an axios instance with correct config", async () => {
+    vi.resetModules();
     const axiosMod = await import("axios");
     // Dynamic import triggers axios.create in the module
     await import("@/lib/api");

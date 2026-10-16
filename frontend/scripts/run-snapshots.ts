@@ -27,7 +27,7 @@ const DIFFS_DIR = path.resolve(SNAPSHOTS_DIR, "diffs");
 const REPORT_MD_PATH = path.resolve(SNAPSHOTS_DIR, "REPORT.md");
 const REPORT_HTML_PATH = path.resolve(SNAPSHOTS_DIR, "report.html");
 
-const PORT = 5173;
+const PORT = Number(process.env.CAMPLY_SNAPSHOT_PORT || "5173");
 const BASE_URL = `http://localhost:${PORT}`;
 
 /**
@@ -612,13 +612,42 @@ for (const [name, width, theme] of [
   });
 }
 SCENARIOS.push({
+  name: "map-hover-desktop-light",
+  route: "/search?q=yosemite",
+  viewport: { width: 1440, height: 1000 },
+  theme: "light",
+  description: "Map marker hover shows place information",
+  action: async (page) => {
+    await page.locator(".camply-map-marker").first().hover();
+    await page.getByRole("tooltip").waitFor();
+  },
+});
+SCENARIOS.push({
+  name: "map-focus-mobile-dark",
+  route: "/search?q=yosemite",
+  viewport: { width: 375, height: 1000 },
+  theme: "dark",
+  description:
+    "Map marker keyboard focus shows place information in dark theme",
+  action: async (page) => {
+    await page.locator(".camply-map-marker").first().focus();
+    await page.getByRole("tooltip").waitFor();
+    const visible = await page.getByRole("tooltip").evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return bounds.left >= 0 && bounds.right <= window.innerWidth;
+    });
+    if (!visible)
+      throw new Error("Marker tooltip extends beyond the mobile viewport");
+  },
+});
+SCENARIOS.push({
   name: "map-selected-desktop-light",
   route: "/search?q=yosemite",
   viewport: { width: 1440, height: 1000 },
   theme: "light",
   description: "Explore overlapping-place picker with details and monitoring",
   action: async (page) => {
-    await page.locator('.camply-map-marker[title="3 places"]').click();
+    await page.locator('.camply-map-marker[aria-label="3 places"]').click();
     await page
       .getByRole("button", { name: "View places", exact: true })
       .click();
@@ -1048,16 +1077,26 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
           viewport,
           grid_level: 12,
           represented_total: 3,
-          features: [
-            {
-              kind: "group",
-              cell_id: "12:0:0",
-              count: 3,
-              latitude: 37.74,
-              longitude: -119.58,
-              bounds,
-            },
-          ],
+          features:
+            scenario.name.startsWith("map-hover") ||
+            scenario.name.startsWith("map-focus")
+              ? [
+                  {
+                    kind: "location",
+                    cell_id: "12:0:0",
+                    item: MOCK_SEARCH_ITEMS[0],
+                  },
+                ]
+              : [
+                  {
+                    kind: "group",
+                    cell_id: "12:0:0",
+                    count: 3,
+                    latitude: 37.74,
+                    longitude: -119.58,
+                    bounds,
+                  },
+                ],
         }),
       });
     },

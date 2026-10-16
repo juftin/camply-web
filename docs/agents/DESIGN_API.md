@@ -42,6 +42,7 @@ Session cookies include a credential version derived by HMAC from the current sa
 ### 1. Search & Metadata (Public/Auth-Light)
 
 - **`GET /api/search?query=<term>`**: Full-text search for campgrounds and recreation areas (uses the `Search` FTS table).
+- **`GET /api/search/explore`**: Paginated search with totals and facets. Optional `west`, `south`, `east`, and `north` filter the full matching set before pagination and aggregation. Supply all four finite bounds or none; longitude is within [-180, 180], latitude within [-90, 90], south < north, and west ≠ east. West > east crosses the antimeridian. Viewport filtering excludes missing/invalid coordinates and accepts zero; unbounded search retains unmappable places.
 - **`GET /api/providers`**: List supported providers and their scanning capabilities.
 - **`GET /api/provider/{id}`**: Get a single provider by ID.
 - **`GET /api/campground/{provider}/{id}`**: Get a single campground.

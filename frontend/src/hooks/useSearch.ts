@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
+  locateByIp,
   searchCampgrounds,
   searchExplore,
   mapQueryParams,
@@ -83,5 +84,17 @@ export function useMapMembers(
     enabled: selection !== null,
     staleTime: 120000,
     retry: 1,
+  });
+}
+
+/** Cache an approximate IP location for this visit and gracefully fall back. */
+export function useIpLocation(enabled: boolean) {
+  return useQuery({
+    queryKey: ["ip-location"],
+    queryFn: ({ signal }) => locateByIp(signal),
+    enabled,
+    staleTime: Infinity,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 }

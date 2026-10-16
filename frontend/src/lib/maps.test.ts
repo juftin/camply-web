@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   basemapConfig,
+  regionalBounds,
   validCoordinates,
   normalizeLongitude,
   viewportBounds,
@@ -9,6 +10,21 @@ import {
 } from "./maps";
 
 describe("map geometry and configuration", () => {
+  it("keeps IP regional bounds valid across the dateline and near the poles", () => {
+    expect(regionalBounds(0, 179)).toEqual({
+      west: 176,
+      east: -178,
+      south: -2,
+      north: 2,
+    });
+    expect(regionalBounds(89, 0)).toEqual({
+      west: -3,
+      east: 3,
+      south: 87,
+      north: 90,
+    });
+  });
+
   it("accepts zero and poles while rejecting missing, nonfinite and invalid coordinates", () => {
     expect(validCoordinates(0, 0)).toBe(true);
     expect(validCoordinates(90, 180)).toBe(true);

@@ -96,7 +96,7 @@ The frontend uses Vite 8 (Rolldown), Vitest 5, Oxlint, Oxfmt, and native TypeScr
 
 ### UI Snapshots & Visual Regression
 
-- Run visual snapshots & compare against baselines: `task snapshot`
+- Run visual snapshots & compare against baselines: `task snapshot` (set `CAMPLY_SNAPSHOT_PORT=5197` to isolate a worktree from another dev server)
 - Update visual snapshot baselines: `task snapshot:update`
 - Verify snapshots match baselines (CI regression check): `task snapshot:check`
 - View visual report: `frontend/snapshots/REPORT.md` (markdown) or `frontend/snapshots/report.html` (interactive)
@@ -134,5 +134,7 @@ Run `task search:smoke` with Docker running. It starts a test-owned PostgreSQL 1
 `task maps:verify` runs real map-query checks against a disposable PostgreSQL container, then serves a temporary synthetic SQLite application to Chromium. Install the browser first with `task frontend:browser:install`. Docker is required; live checks fail explicitly when unavailable and ordinary `task test` skips their opt-in entrypoints. No operator database or secret file is used.
 
 The 5,000-place fixture proves all-pages discovery, bounded groups/member pagination, provider identity, view/history behavior, and map-failure recovery. It records timings, query plans, and browser screenshots under `frontend/tmp/maps-*`. Tile requests are intercepted locally so automation does not load public OSM tiles. `task snapshot` additionally covers maps at 375px/1440px in both themes and selected/error states. Inspect intended visual changes before `task snapshot:update`, then run `task snapshot:check`.
+
+Frontend previews use their configured backend; publishing a frontend preview does not deploy the Python API. Map/list filtering requires both sides from the mapping interaction feature. Check `/api/openapi.json` for Explore's `west`, `south`, `east`, and `north` inputs, then compare `/api/search/explore` with and without a small viewport. An older API silently ignores unknown parameters and returns the full catalog, even when the frontend says “in map area.” Rebuild and restart the backend as well as the frontend before testing this feature.
 
 Mapping setup needs no key by default. Public build-time overrides and production tile-source options are in [CONFIGURATION.md](CONFIGURATION.md). Changing source settings requires a frontend rebuild, including for Docker/static hosting.

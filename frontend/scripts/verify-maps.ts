@@ -125,8 +125,14 @@ try {
   await expect(
     page.getByRole("link", { name: "© OpenStreetMap contributors" }),
   ).toBeVisible();
-  const group = page.locator('.camply-map-marker[title$="places"]').first();
+  const group = page
+    .locator('.camply-map-marker[aria-label$="places"]')
+    .first();
   const selected = performance.now();
+  await group.hover();
+  await expect(page.getByRole("tooltip")).toContainText(
+    "Zoom in or select this group",
+  );
   await group.focus();
   await page.keyboard.press("Enter");
   await expect(
@@ -212,6 +218,25 @@ try {
     largest_member_page: largestPage,
   };
 
+  await page.route("https://ipapi.co/json/", async (route) => {
+    const headers = route.request().headers();
+    expect(headers.authorization).toBeUndefined();
+    expect(headers.cookie).toBeUndefined();
+    await route.fulfill({ json: { latitude: 0, longitude: 0 } });
+  });
+  const regionalResults = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === "/api/search/explore" && url.searchParams.has("west")
+    );
+  });
+  await page.goto(`${origin}search`);
+  const regionalData = await (await regionalResults).json();
+  expect(regionalData.total).toBeGreaterThanOrEqual(130);
+  expect(regionalData.total).toBeLessThan(5000);
+  await expectStackedResults(page);
+  report.ip_initial_total = regionalData.total;
+
   await page.goto(`${origin}search?q=Synthetic&page=2&sort=name_desc`);
   await expectStackedResults(page);
   await page.locator("select").selectOption("name_asc");
@@ -221,10 +246,15 @@ try {
   await expect(page.locator("select")).toHaveValue("name_desc");
   await expectStackedResults(page);
   await page.locator(".camply-map-marker").first().waitFor();
-  const originalUrl = page.url();
   const canvas = page.getByLabel("Interactive campground map");
   const box = (await canvas.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const panResults = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === "/api/search/explore" && url.searchParams.has("west")
+    );
+  });
   await page.mouse.down();
   await page.mouse.move(
     box.x + box.width / 2 + 80,
@@ -232,7 +262,63 @@ try {
     { steps: 6 },
   );
   await page.mouse.up();
-  expect(page.url()).toBe(originalUrl);
+  await expect
+    .poll(() => new URL(page.url()).searchParams.has("page"))
+    .toBe(false);
+  const panData = await (await panResults).json();
+  const zoomResults = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === "/api/search/explore" && url.searchParams.has("west")
+    );
+  });
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  const zoomData = await (await zoomResults).json();
+  expect(zoomData.total).toBeLessThan(panData.total);
+  report.viewport_filtering = {
+    after_pan: panData.total,
+    after_zoom: zoomData.total,
+  };
+  await page.waitForTimeout(400);
+  const liveTotals: number[] = [];
+  const recordLiveResults = async (
+    response: import("@playwright/test").Response,
+  ) => {
+    const url = new URL(response.url());
+    if (
+      url.pathname === "/api/search/explore" &&
+      url.searchParams.has("west") &&
+      response.ok()
+    ) {
+      liveTotals.push((await response.json()).total);
+    }
+  };
+  page.on("response", recordLiveResults);
+  await page.mouse.move(box.x + box.width * 0.35, box.y + box.height * 0.35);
+  await page.mouse.down();
+  try {
+    for (let step = 1; step <= 8; step++) {
+      await page.mouse.move(
+        box.x + box.width * 0.35 + step * 12,
+        box.y + box.height * 0.35,
+      );
+      await page.waitForTimeout(100);
+    }
+    await expect.poll(() => liveTotals.length).toBeGreaterThanOrEqual(2);
+    await expect
+      .poll(async () => {
+        const statuses = await page.getByRole("status").allTextContents();
+        return statuses.some((status) =>
+          status.includes(`Found ${liveTotals.at(-1)} campgrounds`),
+        );
+      })
+      .toBe(true);
+    report.live_drag_totals = liveTotals;
+  } finally {
+    await page.mouse.up();
+    page.off("response", recordLiveResults);
+  }
+
   for (const width of [375, 1440])
     for (const colorScheme of ["light", "dark"] as const) {
       await page.setViewportSize({ width, height: 1000 });
@@ -302,7 +388,10 @@ try {
   ).toBeVisible();
   await page.unroute(viewportRoute);
   await page.getByRole("button", { name: "Retry map locations" }).click();
-  await page.locator('.camply-map-marker[title$="places"]').first().click();
+  await page
+    .locator('.camply-map-marker[aria-label$="places"]')
+    .first()
+    .click();
   await page.route("**/api/search/map/members*", (route) =>
     route.fulfill({ status: 503, body: "Unavailable" }),
   );
@@ -364,7 +453,10 @@ try {
   await expectStackedResults(touchPage);
   await touchPage.locator(".camply-map-marker").first().waitFor();
   expect(new URL(touchPage.url()).searchParams.get("page")).toBe("2");
-  await touchPage.locator('.camply-map-marker[title$="places"]').first().tap();
+  await touchPage
+    .locator('.camply-map-marker[aria-label$="places"]')
+    .first()
+    .tap();
   await touchPage
     .getByRole("button", { name: "View places", exact: true })
     .tap();
@@ -490,7 +582,7 @@ try {
         staticPage.getByRole("link", { name: "Synthetic map credit" }),
       ).toHaveAttribute("href", "https://example.test/license");
       await staticPage
-        .locator('.camply-map-marker[title$="places"]')
+        .locator('.camply-map-marker[aria-label$="places"]')
         .first()
         .click();
       await staticPage
@@ -569,7 +661,8 @@ try {
     "group keysets",
     "collapsible map above list at every width without a view selector",
     "history restoration",
-    "pan does not mutate filters",
+    "IP region initializes the list without application credentials",
+    "pan and zoom filter the full list and reset pagination",
     "375px/1440px light/dark stacked map/list with no overflow",
     "summary failure/retry keeps list usable",
     "both detail map surfaces",

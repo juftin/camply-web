@@ -23,6 +23,7 @@ export interface SavedMapView {
   context: string;
   camera: MapCamera;
   bounds: GeoBounds;
+  moved?: boolean;
 }
 type Selection =
   | { kind: "location"; item: MapSearchResult }
@@ -31,9 +32,18 @@ interface Props {
   params: SearchExploreParams;
   saved: SavedMapView | null;
   onSave: (view: SavedMapView) => void;
+  onViewport?: (bounds: GeoBounds, resetPage: boolean) => void;
+  initialBounds?: GeoBounds;
 }
 
-export const ExploreMap = ({ params, saved, onSave }: Props) => {
+export const ExploreMap = ({
+  params,
+  saved,
+  onSave,
+  onViewport,
+  initialBounds,
+}: Props) => {
+  const initialExtent = useRef(initialBounds);
   const context = JSON.stringify(mapQueryParams(params));
   const restored = useRef(saved?.context === context ? saved : null);
   const summary = useMapSummary(params);
@@ -64,6 +74,11 @@ export const ExploreMap = ({ params, saved, onSave }: Props) => {
   const panel = useRef<HTMLDivElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const pendingMovement = useRef(false);
+  const latestViewport = useRef<{
+    bounds: GeoBounds;
+    camera: MapCamera;
+  } | null>(null);
   useEffect(() => () => clearTimeout(timer.current), []);
   useEffect(() => {
     if (selected) panel.current?.focus();
@@ -99,6 +114,17 @@ export const ExploreMap = ({ params, saved, onSave }: Props) => {
                   feature.item.recreation_area_name ||
                   "Place",
               ),
+              description: [
+                feature.item.provider_name,
+                feature.item.entity_type === "Campground"
+                  ? "Campground"
+                  : "Recreation Area",
+                feature.item.city,
+                feature.item.state,
+                feature.item.country,
+              ]
+                .filter(Boolean)
+                .join(" · "),
               type:
                 feature.item.entity_type === "Campground"
                   ? "campground"
@@ -111,6 +137,8 @@ export const ExploreMap = ({ params, saved, onSave }: Props) => {
               lng: feature.longitude,
               label: `${feature.count} places`,
               count: feature.count,
+              description:
+                "Zoom in or select this group to explore its places.",
               onSelect: () =>
                 select({
                   kind: "group",
@@ -169,8 +197,10 @@ export const ExploreMap = ({ params, saved, onSave }: Props) => {
           {summary.data.unmappable_total} matching{" "}
           {summary.data.unmappable_total === 1 ? "place" : "places"} cannot be
           mapped;{" "}
-          {summary.data.unmappable_total === 1 ? "it remains" : "they remain"}{" "}
-          in the list.
+          {summary.data.unmappable_total === 1
+            ? "it is available"
+            : "they are available"}{" "}
+          when the map area filter is cleared.
         </p>
       )}
       {summary.data?.mappable_total === 0 ? (
@@ -180,18 +210,29 @@ export const ExploreMap = ({ params, saved, onSave }: Props) => {
       ) : (
         <MapComponent
           pins={pins}
-          bounds={groupFit?.bounds ?? summary.data?.bounds ?? null}
+          bounds={
+            groupFit?.bounds ??
+            initialExtent.current ??
+            summary.data?.bounds ??
+            null
+          }
           fitKey={groupFit?.key ?? context}
           fitMaxZoom={groupFit ? 19 : 12}
           camera={restored.current?.camera}
           className="h-[55vh] lg:h-[65vh] rounded-lg border"
-          onMove={(bounds, camera) => {
-            onSave({ context, bounds, camera });
-            clearTimeout(timer.current);
+          onMove={(bounds, camera, initial) => {
+            pendingMovement.current ||= !initial;
+            latestViewport.current = { bounds, camera };
+            onSave({ context, bounds, camera, moved: pendingMovement.current });
+            if (timer.current !== undefined) return;
             timer.current = setTimeout(() => {
+              timer.current = undefined;
+              const latest = latestViewport.current!;
+              onViewport?.(latest.bounds, pendingMovement.current);
+              pendingMovement.current = false;
               setViewport({
-                bounds,
-                zoom: Math.max(0, Math.min(19, Math.round(camera.zoom))),
+                bounds: latest.bounds,
+                zoom: Math.max(0, Math.min(19, Math.round(latest.camera.zoom))),
               });
             }, 150);
           }}
