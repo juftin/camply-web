@@ -143,7 +143,7 @@ pandas==2.1.4
     #   hatch.envs.docs
 pathspec==0.12.1
     # via mkdocs
-platformdirs==4.1.0
+platformdirs==4.13.3
     # via
     #   mkdocs
     #   mkdocstrings
