@@ -266,10 +266,13 @@ try {
     .poll(() => new URL(page.url()).searchParams.has("page"))
     .toBe(false);
   const panData = await (await panResults).json();
-  const zoomResults = page.waitForResponse((response) => {
+  const zoomResults = page.waitForResponse(async (response) => {
     const url = new URL(response.url());
     return (
-      url.pathname === "/api/search/explore" && url.searchParams.has("west")
+      response.ok() &&
+      url.pathname === "/api/search/explore" &&
+      url.searchParams.has("west") &&
+      (await response.json()).total < panData.total
     );
   });
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();

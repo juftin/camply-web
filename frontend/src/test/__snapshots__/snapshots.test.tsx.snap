@@ -482,26 +482,38 @@ exports[`UI Component DOM Snapshots > AdminPagination > matches snapshot for las
 </DocumentFragment>
 `;
 
-exports[`UI Component DOM Snapshots > CamplyLogo > matches snapshot for PNG variant 1`] = `
+exports[`UI Component DOM Snapshots > CamplyLogo > matches snapshot for horizontal variant 1`] = `
 <DocumentFragment>
   <img
-    alt="camply logo"
-    class="custom-class"
-    height="48"
-    src="/camply-logo.png"
-    width="48"
+    alt="camply"
+    class="block shrink-0 object-contain"
+    height="40"
+    src="/branding/camply-horizontal.svg"
+    width="135"
   />
 </DocumentFragment>
 `;
 
-exports[`UI Component DOM Snapshots > CamplyLogo > matches snapshot for SVG variant 1`] = `
+exports[`UI Component DOM Snapshots > CamplyLogo > matches snapshot for icon-only variant 1`] = `
 <DocumentFragment>
   <img
-    alt="camply logo"
-    class=""
-    height="40"
-    src="/camply-logo.svg"
-    width="40"
+    alt="camply"
+    class="block shrink-0 object-contain"
+    height="48"
+    src="/branding/camply-icon.svg"
+    width="81"
+  />
+</DocumentFragment>
+`;
+
+exports[`UI Component DOM Snapshots > CamplyLogo > matches snapshot for stacked variant 1`] = `
+<DocumentFragment>
+  <img
+    alt="camply"
+    class="block shrink-0 object-contain custom-class"
+    height="128"
+    src="/branding/camply-stacked.svg"
+    width="161"
   />
 </DocumentFragment>
 `;
@@ -722,6 +734,67 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
         </button>
       </div>
     </div>
+    <section
+      class="space-y-4"
+    >
+      <h2
+        class="text-xl font-semibold tracking-tight"
+      >
+        Branding
+      </h2>
+      <div
+        class="grid gap-6 sm:grid-cols-3"
+      >
+        <div
+          class="flex flex-col items-center justify-center gap-4 rounded-lg border bg-card p-6"
+        >
+          <img
+            alt="camply"
+            class="block shrink-0 object-contain"
+            height="48"
+            src="/branding/camply-horizontal.svg"
+            width="162"
+          />
+          <span
+            class="text-sm text-muted-foreground capitalize"
+          >
+            horizontal
+          </span>
+        </div>
+        <div
+          class="flex flex-col items-center justify-center gap-4 rounded-lg border bg-card p-6"
+        >
+          <img
+            alt="camply"
+            class="block shrink-0 object-contain"
+            height="96"
+            src="/branding/camply-stacked.svg"
+            width="120"
+          />
+          <span
+            class="text-sm text-muted-foreground capitalize"
+          >
+            stacked
+          </span>
+        </div>
+        <div
+          class="flex flex-col items-center justify-center gap-4 rounded-lg border bg-card p-6"
+        >
+          <img
+            alt="camply"
+            class="block shrink-0 object-contain"
+            height="96"
+            src="/branding/camply-icon.svg"
+            width="162"
+          />
+          <span
+            class="text-sm text-muted-foreground capitalize"
+          >
+            icon
+          </span>
+        </div>
+      </div>
+    </section>
     <section
       class="space-y-4"
     >
@@ -1971,55 +2044,20 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
       class="container mx-auto px-4 py-4 flex items-center justify-between"
     >
       <div
-        class="flex items-center space-x-2 h-8"
+        class="flex items-center h-10"
       >
         <a
-          class="flex items-center space-x-2"
+          aria-label="camply home"
           data-discover="true"
           href="/"
         >
-          <svg
-            aria-hidden="true"
-            class="lucide lucide-tent-tree h-8 w-8 text-primary"
-            fill="none"
-            height="24"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-            width="24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <circle
-              cx="4"
-              cy="4"
-              r="2"
-            />
-            <path
-              d="m14 5 3-3 3 3"
-            />
-            <path
-              d="m14 10 3-3 3 3"
-            />
-            <path
-              d="M17 14V2"
-            />
-            <path
-              d="M17 14H7l-5 8h20Z"
-            />
-            <path
-              d="M8 14v8"
-            />
-            <path
-              d="m9 14 5 8"
-            />
-          </svg>
-          <span
-            class="text-2xl font-bold"
-          >
-            camply
-          </span>
+          <img
+            alt="camply"
+            class="block shrink-0 object-contain"
+            height="40"
+            src="/branding/camply-horizontal.svg"
+            width="135"
+          />
         </a>
       </div>
       <nav
@@ -2258,55 +2296,20 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
       class="container mx-auto px-4 py-4 flex items-center justify-between"
     >
       <div
-        class="flex items-center space-x-2 h-8"
+        class="flex items-center h-10"
       >
         <a
-          class="flex items-center space-x-2"
+          aria-label="camply home"
           data-discover="true"
           href="/"
         >
-          <svg
-            aria-hidden="true"
-            class="lucide lucide-tent-tree h-8 w-8 text-primary"
-            fill="none"
-            height="24"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-            width="24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <circle
-              cx="4"
-              cy="4"
-              r="2"
-            />
-            <path
-              d="m14 5 3-3 3 3"
-            />
-            <path
-              d="m14 10 3-3 3 3"
-            />
-            <path
-              d="M17 14V2"
-            />
-            <path
-              d="M17 14H7l-5 8h20Z"
-            />
-            <path
-              d="M8 14v8"
-            />
-            <path
-              d="m9 14 5 8"
-            />
-          </svg>
-          <span
-            class="text-2xl font-bold"
-          >
-            camply
-          </span>
+          <img
+            alt="camply"
+            class="block shrink-0 object-contain"
+            height="40"
+            src="/branding/camply-horizontal.svg"
+            width="135"
+          />
         </a>
       </div>
       <nav
@@ -2523,55 +2526,20 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for unauthentica
       class="container mx-auto px-4 py-4 flex items-center justify-between"
     >
       <div
-        class="flex items-center space-x-2 h-8"
+        class="flex items-center h-10"
       >
         <a
-          class="flex items-center space-x-2"
+          aria-label="camply home"
           data-discover="true"
           href="/"
         >
-          <svg
-            aria-hidden="true"
-            class="lucide lucide-tent-tree h-8 w-8 text-primary"
-            fill="none"
-            height="24"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-            width="24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <circle
-              cx="4"
-              cy="4"
-              r="2"
-            />
-            <path
-              d="m14 5 3-3 3 3"
-            />
-            <path
-              d="m14 10 3-3 3 3"
-            />
-            <path
-              d="M17 14V2"
-            />
-            <path
-              d="M17 14H7l-5 8h20Z"
-            />
-            <path
-              d="M8 14v8"
-            />
-            <path
-              d="m9 14 5 8"
-            />
-          </svg>
-          <span
-            class="text-2xl font-bold"
-          >
-            camply
-          </span>
+          <img
+            alt="camply"
+            class="block shrink-0 object-contain"
+            height="40"
+            src="/branding/camply-horizontal.svg"
+            width="135"
+          />
         </a>
       </div>
       <nav
@@ -2724,7 +2692,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot without logo 1`]
       class="container mx-auto px-4 py-4 flex items-center justify-center relative"
     >
       <div
-        class="flex items-center space-x-2 h-8"
+        class="flex items-center h-10"
       />
       <nav
         class="hidden md:flex space-x-6"

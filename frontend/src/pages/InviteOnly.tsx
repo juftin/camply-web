@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { TentTree, Mail, CheckCircle, ArrowLeft, Loader2 } from "lucide-react";
+import { Mail, CheckCircle, ArrowLeft, Loader2 } from "lucide-react";
+import { CamplyLogo } from "@/components/CamplyLogo";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,8 +52,7 @@ export function InviteOnly() {
       <div className="w-full max-w-md text-center">
         <div className="mb-6">
           <div className="inline-flex items-center space-x-2">
-            <TentTree className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">camply</span>
+            <CamplyLogo variant="stacked" height={128} />
           </div>
         </div>
 

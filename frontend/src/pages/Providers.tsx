@@ -34,6 +34,7 @@ const providers: Provider[] = [
     description:
       "The official federal recreation portal for reserving campsites at National Parks, National Forests, and other federal recreation areas.",
     website: "https://recreation.gov",
+    logo: `${import.meta.env.BASE_URL}branding/recreation-gov.png`,
     features: [
       "National Parks",
       "National Forests",
@@ -269,6 +270,15 @@ export function Providers() {
                   </div>
                 )}
                 <CardHeader>
+                  {provider.logo && (
+                    <img
+                      src={provider.logo}
+                      alt={`${provider.name} logo`}
+                      width={185}
+                      height={24}
+                      className="max-w-full object-contain self-start rounded bg-white p-2 box-content"
+                    />
+                  )}
                   <CardTitle className="flex items-center justify-between">
                     {provider.name}
                     <a
@@ -342,6 +352,15 @@ export function Providers() {
           {providers.map((provider) => (
             <Card key={provider.name}>
               <CardHeader>
+                {provider.logo && (
+                  <img
+                    src={provider.logo}
+                    alt={`${provider.name} logo`}
+                    width={185}
+                    height={24}
+                    className="max-w-full object-contain self-start rounded bg-white p-2 box-content"
+                  />
+                )}
                 <CardTitle className="flex items-center justify-between">
                   {provider.name}
                   <a

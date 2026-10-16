@@ -178,20 +178,20 @@ describe("UI Component DOM Snapshots", () => {
   });
 
   describe("CamplyLogo", () => {
-    it("matches snapshot for SVG variant", () => {
-      const { asFragment } = render(<CamplyLogo width={40} height={40} />);
+    it("matches snapshot for horizontal variant", () => {
+      const { asFragment } = render(<CamplyLogo height={40} />);
       expect(asFragment()).toMatchSnapshot();
     });
 
-    it("matches snapshot for PNG variant", () => {
+    it("matches snapshot for stacked variant", () => {
       const { asFragment } = render(
-        <CamplyLogo
-          variant="png"
-          width={48}
-          height={48}
-          className="custom-class"
-        />,
+        <CamplyLogo variant="stacked" height={128} className="custom-class" />,
       );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it("matches snapshot for icon-only variant", () => {
+      const { asFragment } = render(<CamplyLogo variant="icon" height={48} />);
       expect(asFragment()).toMatchSnapshot();
     });
   });

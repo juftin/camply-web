@@ -1,10 +1,11 @@
 import * as React from "react";
-import { Menu, X, TentTree, LayoutDashboard, User, Shield } from "lucide-react";
+import { Menu, X, LayoutDashboard, User, Shield } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/hooks/useAuth";
 import { communityPagesEnabled } from "@/lib/features";
+import { CamplyLogo } from "@/components/CamplyLogo";
 
 interface HeaderProps {
   showLogo?: boolean;
@@ -77,11 +78,10 @@ export function Header({ showLogo = true }: HeaderProps) {
         <div
           className={`container mx-auto px-4 py-4 flex items-center ${showLogo ? "justify-between" : "justify-center relative"}`}
         >
-          <div className="flex items-center space-x-2 h-8">
+          <div className="flex items-center h-10">
             {showLogo && (
-              <Link to="/" className="flex items-center space-x-2">
-                <TentTree className="h-8 w-8 text-primary" />
-                <span className="text-2xl font-bold">camply</span>
+              <Link to="/" aria-label="camply home">
+                <CamplyLogo />
               </Link>
             )}
           </div>

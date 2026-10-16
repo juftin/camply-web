@@ -10,6 +10,7 @@ import {
 import { Link } from "react-router-dom";
 import { DismissibleBanner } from "@/components/DismissibleBanner";
 import { SearchBar } from "@/components/SearchBar";
+import { CamplyLogo } from "@/components/CamplyLogo";
 
 export function Home() {
   const { accountPath } = useAuth();
@@ -41,6 +42,7 @@ export function Home() {
       {/* Hero Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto text-center">
+          <CamplyLogo variant="icon" height={96} className="mx-auto mb-8" />
           <h1 className="text-5xl font-bold mb-6">
             Find Campsites at
             <span className="text-primary"> Sold-Out</span> Campgrounds

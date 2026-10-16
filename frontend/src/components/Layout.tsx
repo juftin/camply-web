@@ -1,7 +1,8 @@
 import * as React from "react";
-import { Github, TentTree } from "lucide-react";
+import { Github } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { CamplyLogo } from "@/components/CamplyLogo";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,10 +20,9 @@ export function Layout({ children }: LayoutProps) {
       <footer className="py-12 px-4 border-t">
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <TentTree className="h-6 w-6 text-primary" />
-              <span className="text-lg font-semibold">camply</span>
-            </div>
+            <Link to="/" aria-label="camply home" className="mb-4 md:mb-0">
+              <CamplyLogo height={32} />
+            </Link>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-sm text-muted-foreground">
               <Link to="/faq" className="hover:text-foreground">
                 FAQ

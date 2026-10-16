@@ -54,6 +54,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.4.15 Refine DatePicker component and date range synchronization (anchor check-out to check-in, popover calendar, quick duration presets).
 - [x] T1.4.16 Add scan editing from dashboard cards and detail pages, safely relink de-duplicated targets, and fix delete navigation, pending state, and failure feedback. Cover form lifecycle, ownership, duplicate validation, and shared-target isolation; see [scan editing plan](../../specs/006-scan-editing/plan.md).
 - [x] T1.4.17 Gate Ethos and Contribute behind `VITE_ENABLE_COMMUNITY_PAGES`, disabled by default; hide related navigation and links, redirect disabled routes home, and document frontend/Docker configuration with regression coverage.
+- [x] T1.4.18 Replace placeholder branding with the original camply artwork: horizontal and stacked logos with the title, tent-and-trees artwork without the title, light/dark variants, branded favicons, and the Recreation.gov provider logo. Add the supplied portrait to Meet Justin and preview all logo variations in the design system catalog; see the [branding plan](../../specs/008-branding/plan.md).
 
 ### 1.5 Governance & Licensing
 
@@ -172,6 +173,7 @@ Feature specification: [Open-Source Maps & Explore Map View](../../specs/007-ope
 - [x] T3.3.5 Remove the redundant matching-locations/in-view count above Explore's map and refresh visual coverage.
 - [x] T3.3.7 Link Explore map zoom/pan to paginated list bounds, initialize unfiltered visits from approximate IP location with fallback, and show hover/focus marker information; see [interaction plan](../../specs/008-map-list-interaction/plan.md).
 - [x] T3.3.8 Refresh Explore list results during continuous map movement, including camera events without DOM metadata; verify with an unreleased browser drag.
+- [x] T3.3.9 Wait for a narrowed Explore response when verifying animated zooms, allowing intermediate camera responses while still requiring fewer matching results.
 - [ ] T3.3.6 Configure production tile hosting or caching (e.g. MapTiler, Stadia Maps, Cloudflare reverse proxy cache, or self-hosted PMTiles) via `VITE_MAP_*` build variables to adhere to OpenStreetMap's public tile usage policy for high-traffic releases.
 
 ---

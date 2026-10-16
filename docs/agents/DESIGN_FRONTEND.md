@@ -28,6 +28,12 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
   - `switch.tsx` — Scan active/paused toggle
 - **Icons**: `lucide-react` for all UI icons.
 
+### Branding
+
+`CamplyLogo` uses the original [camply SVG](https://github.com/juftin/camply/blob/main/docs/_static/camply.svg) artwork. Its `variant` selects `horizontal` (default, title alongside the tent), `stacked` (title underneath), or `icon` (tent and trees only, with the title removed from the SVG). Set `height` to size it; the width preserves the artwork's proportions. The component follows the selected app theme and supports deployments under a URL prefix.
+
+The self-contained SVGs in `frontend/public/branding/` use outlined lettering so they do not require fonts. Each layout has a light and dark version; dark artwork uses evergreen trees, the original orange tent, and an off-white title. The original PNG is available as `camply.png`; the supplied Recreation.gov logo is used on the Providers page with a white background for legibility in either theme. The favicon uses the artwork without the title. All three camply variations can be reviewed at `/dev/preview` using the theme toggle.
+
 ---
 
 ## 🛤️ User Journey Map (Implemented)
