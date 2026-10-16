@@ -34,7 +34,7 @@ click==8.1.7
     #   trogon
 fake-useragent==1.4.0
     # via hatch.envs.default
-idna==3.6
+idna==3.20
     # via requests
 linkify-it-py==2.0.2
     # via markdown-it-py
