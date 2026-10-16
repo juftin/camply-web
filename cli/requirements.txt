@@ -55,7 +55,7 @@ oauthlib==3.2.2
     # via requests-oauthlib
 pandas==2.1.4
     # via hatch.envs.default
-pydantic==1.10.13
+pydantic==1.10.26
     # via hatch.envs.default
 pygments==2.17.2
     # via rich

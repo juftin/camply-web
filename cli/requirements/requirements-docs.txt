@@ -147,7 +147,7 @@ platformdirs==4.1.0
     # via
     #   mkdocs
     #   mkdocstrings
-pydantic==1.10.13
+pydantic==1.10.26
     # via
     #   -c requirements.txt
     #   hatch.envs.docs
