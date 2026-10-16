@@ -61,7 +61,7 @@ pygments==2.17.2
     # via rich
 pyjwt==2.8.0
     # via twilio
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
     # via pandas
 python-dotenv==1.0.0
     # via hatch.envs.default

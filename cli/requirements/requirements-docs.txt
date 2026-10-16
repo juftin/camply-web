@@ -162,7 +162,7 @@ pymdown-extensions==10.7
     #   markdown-exec
     #   mkdocs-material
     #   mkdocstrings
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
     # via
     #   -c requirements.txt
     #   ghp-import
