@@ -65,7 +65,7 @@ idna==3.6
     #   yarl
 iniconfig==2.0.0
     # via pytest
-linkify-it-py==2.0.2
+linkify-it-py==2.2.0
     # via
     #   -c requirements.txt
     #   markdown-it-py
