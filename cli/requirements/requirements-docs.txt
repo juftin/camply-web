@@ -213,7 +213,7 @@ tenacity==8.2.3
     # via
     #   -c requirements.txt
     #   hatch.envs.docs
-typing-extensions==4.9.0
+typing-extensions==4.16.0
     # via
     #   -c requirements.txt
     #   pydantic

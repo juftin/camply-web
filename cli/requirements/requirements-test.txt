@@ -199,7 +199,7 @@ twilio==7.17.0
     # via
     #   -c requirements.txt
     #   hatch.envs.test
-typing-extensions==4.9.0
+typing-extensions==4.16.0
     # via
     #   -c requirements.txt
     #   pydantic
