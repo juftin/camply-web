@@ -22,7 +22,7 @@ dependencies = [
   "cryptography>=42,<44",
   "prometheus-client>=0.21,<1",
   "celery[redis]>=5.4,<6",
-  "redis>=5,<6"
+  "redis>=8,<9"
 ]
 
 [dependency-groups]
