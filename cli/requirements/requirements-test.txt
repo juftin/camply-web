@@ -183,7 +183,7 @@ six==1.16.0
     #   -c requirements.txt
     #   python-dateutil
     #   vcrpy
-tenacity==8.2.3
+tenacity==8.5.0
     # via
     #   -c requirements.txt
     #   hatch.envs.test

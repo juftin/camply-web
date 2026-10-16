@@ -27,7 +27,7 @@ dependencies = [
   "requests~=2.31.0",
   "rich~=13.3.2",
   "rich-click~=1.6.1",
-  "tenacity~=8.2.2"
+  "tenacity~=8.5.0"
 ]
 description = "camply, the campsite finder 🏕"
 dynamic = ["version"]
