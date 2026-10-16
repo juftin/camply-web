@@ -78,7 +78,7 @@ markdown==3.5.1
     #   mkdocs-material
     #   mkdocstrings
     #   pymdown-extensions
-markdown-callouts==0.3.0
+markdown-callouts==0.4.0
     # via hatch.envs.docs
 markdown-exec==1.8.0
     # via hatch.envs.docs
