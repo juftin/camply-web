@@ -52,7 +52,7 @@ coverage==7.2.7
     #   pytest-cov
 execnet==1.9.0
     # via pytest-xdist
-fake-useragent==1.4.0
+fake-useragent==2.2.0
     # via
     #   -c requirements.txt
     #   hatch.envs.test
