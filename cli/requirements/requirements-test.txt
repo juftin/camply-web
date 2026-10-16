@@ -105,7 +105,7 @@ pandas==2.1.4
     #   hatch.envs.test
 pluggy==1.0.0
     # via pytest
-pydantic==1.10.13
+pydantic==2.14.1
     # via
     #   -c requirements.txt
     #   hatch.envs.test
