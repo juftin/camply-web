@@ -155,8 +155,12 @@ tasks:
     env:
       RELEASE_VERSION: "{{.RELEASE_VERSION}}"
 
+  dist:
+    desc: Build Backend Workspace Source Distributions
+    cmd: uv build --project backend --all-packages --sdist --out-dir "{{.ROOT_DIR}}/dist" --clear
+
   release:test:
-    desc: Verify Release Versioning and Docker Publication Plans Without Pushing
+    desc: Verify Release Versions, Source Distributions, and Docker Publication Plans
     cmd: node --test tests/release.test.mjs
 
   version:

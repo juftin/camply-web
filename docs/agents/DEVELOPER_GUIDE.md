@@ -75,7 +75,7 @@ If you change a FastAPI router:
 
 ### 4. Releases
 
-Pushes to `main` run the complete CI suite before publishing backend/frontend images to GHCR. `latest` tracks successful `main` builds; Gitmoji-driven releases also publish full-version tags and moving major aliases such as `v1`. See [release operations](RELEASES.md) for version rules, repository permissions, local verification, and failure recovery.
+Pushes to `main` run the complete CI suite before publishing backend/frontend images to GHCR. `latest` tracks successful `main` builds; Gitmoji-driven releases also publish full-version tags, moving Docker/Git major aliases such as `v1`, and Python workspace sdists as GitHub release assets. Use `task dist` to build the sdists locally. See [release operations](RELEASES.md) for version rules, repository permissions, local verification, and failure recovery.
 
 ---
 

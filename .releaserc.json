@@ -5,17 +5,19 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "task release:prepare RELEASE_VERSION=${nextRelease.version} && task publish RELEASE_VERSION=${nextRelease.version}"
+        "prepareCmd": "task release:prepare RELEASE_VERSION=${nextRelease.version} && task dist && task publish RELEASE_VERSION=${nextRelease.version}"
       }
     ],
     [
       "@semantic-release/github",
       {
+        "assets": ["dist/*.tar.gz"],
         "successComment": false,
         "failComment": false,
         "failTitle": false,
         "releasedLabels": false
       }
-    ]
+    ],
+    "semantic-release-major-tag"
   ]
 }
