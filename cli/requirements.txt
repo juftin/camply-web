@@ -105,7 +105,7 @@ typing-extensions==4.9.0
     # via
     #   pydantic
     #   textual
-tzdata==2023.4
+tzdata==2026.5
     # via pandas
 uc-micro-py==1.0.2
     # via linkify-it-py
