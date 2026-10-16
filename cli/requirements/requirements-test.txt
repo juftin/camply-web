@@ -157,7 +157,7 @@ ratelimit==2.2.1
     # via
     #   -c requirements.txt
     #   hatch.envs.test
-requests==2.31.0
+requests==2.34.2
     # via
     #   -c requirements.txt
     #   hatch.envs.test

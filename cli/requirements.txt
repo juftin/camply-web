@@ -76,7 +76,7 @@ pyyaml==6.0.1
     #   apprise
 ratelimit==2.2.1
     # via hatch.envs.default
-requests==2.31.0
+requests==2.34.2
     # via
     #   hatch.envs.default
     #   apprise
