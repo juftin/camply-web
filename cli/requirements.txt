@@ -93,7 +93,7 @@ rich-click==1.6.1
     # via hatch.envs.default
 six==1.16.0
     # via python-dateutil
-tenacity==8.2.3
+tenacity==9.2.1
     # via hatch.envs.default
 textual==0.47.1
     # via trogon
