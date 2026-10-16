@@ -126,7 +126,7 @@ pytest==7.3.1
     #   pytest-xdist
 pytest-cov==4.0.0
     # via hatch.envs.test
-pytest-mock==3.10.0
+pytest-mock==3.16.0
     # via hatch.envs.test
 pytest-vcr==1.0.2
     # via hatch.envs.test
