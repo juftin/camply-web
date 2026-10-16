@@ -188,6 +188,8 @@ Feature specification: [Open-Source Maps & Explore Map View](../../specs/007-ope
 
 ### 4.2 Deployment
 
+- [x] T4.2.1 Add CI-gated Gitmoji semantic releases using the shared cookiecutter infrastructure, synchronized application build versions, full-version/major-alias GHCR images, latest images for successful main builds, Git major aliases via semantic-release-major-tag, workspace sdists attached to releases, publication regression checks, and [release operations documentation](RELEASES.md); see the [release plan](../../specs/009-release-ci/plan.md).
+
 - [ ] T4.1.4 Finalize production `docker-compose.yml`.
 - [ ] T4.1.5 Create Kubernetes manifests for API and Worker scaling.
 - [ ] T4.1.6 Complete a full mobile-responsive audit of the UI.

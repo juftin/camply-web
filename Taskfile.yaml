@@ -20,6 +20,7 @@ tasks:
   test:
     desc: Run All Tests (Backend + Frontend)
     cmds:
+      - task: release:test
       - task: backend:test
       - task: frontend:test
 
@@ -102,12 +103,65 @@ tasks:
       - task: frontend:build
 
   publish:
-    desc: Publish the Project Artifacts
+    desc: Publish Versioned Backend and Frontend Images to GHCR
     cmds:
-      - echo "Publishing Project Artifacts..."
-    deps: [build]
+      - task: publish:images
+        vars:
+          RELEASE_VERSION: "{{.RELEASE_VERSION}}"
+          IMAGE_VERSION: "{{.RELEASE_VERSION}}"
+          CLI_ARGS: "{{.CLI_ARGS}}"
     requires:
-      vars: [CI]
+      vars: [RELEASE_VERSION]
+    preconditions:
+      - sh: echo "$RELEASE_VERSION" | LC_ALL=C grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+        msg: RELEASE_VERSION must be a stable semantic version (for example 1.2.3).
+    env:
+      RELEASE_VERSION: "{{.RELEASE_VERSION}}"
+
+  publish:latest:
+    desc: Publish Latest Backend and Frontend Images from a Successful Main Build
+    cmds:
+      - task: publish:images
+        vars:
+          RELEASE_VERSION: latest
+          IMAGE_VERSION: "sha-{{.GITHUB_SHA}}"
+          CLI_ARGS: "{{.CLI_ARGS}}"
+    requires:
+      vars: [GITHUB_SHA]
+    preconditions:
+      - sh: test -n "$GITHUB_SHA"
+        msg: GITHUB_SHA is required to identify the main build.
+    env:
+      GITHUB_SHA: "{{.GITHUB_SHA}}"
+
+  release:prepare:
+    desc: Stamp Release Versions in Backend and Frontend Build Metadata
+    cmds:
+      - |
+        for package in camply-backend backend db providers worker; do
+          env -u UV_LOCKED uv version --project backend --package "$package" --frozen "$RELEASE_VERSION" || exit
+        done
+      - env -u UV_LOCKED uv lock --project backend
+      - |
+        node --input-type=module -e '
+          import { readFileSync, writeFileSync } from "node:fs";
+          const path = "frontend/package.json";
+          const metadata = JSON.parse(readFileSync(path, "utf8"));
+          metadata.version = process.env.RELEASE_VERSION;
+          writeFileSync(path, JSON.stringify(metadata, null, 2) + "\n");
+        '
+    requires:
+      vars: [RELEASE_VERSION]
+    env:
+      RELEASE_VERSION: "{{.RELEASE_VERSION}}"
+
+  dist:
+    desc: Build Backend Workspace Source Distributions
+    cmd: uv build --project backend --all-packages --sdist --out-dir "{{.ROOT_DIR}}/dist" --clear
+
+  release:test:
+    desc: Verify Release Versions, Source Distributions, and Docker Publication Plans
+    cmd: node --test tests/release.test.mjs
 
   version:
     desc: Get/Set Project Versions
@@ -177,6 +231,24 @@ tasks:
   # INTERNAL TASKS
   ########################
 
+  publish:images:
+    internal: true
+    cmd: >-
+      RELEASE_VERSION='{{.RELEASE_VERSION}}'
+      docker buildx bake --file docker-compose.yaml --file docker-bake.release.hcl --push
+      --set '*.labels.org.opencontainers.image.version={{.IMAGE_VERSION}}'
+      --set '*.labels.org.opencontainers.image.revision={{.GITHUB_SHA | default "local"}}'
+      --set '*.labels.org.opencontainers.image.source=https://github.com/juftin/camply-web'
+      --set 'backend.cache-from=type=gha,scope=backend'
+      --set 'backend.cache-to=type=gha,mode=max,scope=backend'
+      --set 'frontend.cache-from=type=gha,scope=frontend'
+      --set 'frontend.cache-to=type=gha,mode=max,scope=frontend'
+      --set 'frontend.args.CAMPLY_API_URL='
+      {{.CLI_ARGS}}
+      backend frontend
+    preconditions:
+      - sh: test "$CI" = true
+        msg: Publishing requires CI=true and an authenticated GHCR session.
   pre-commit-install:
     desc: Install Pre-Commit Hooks
     internal: true
