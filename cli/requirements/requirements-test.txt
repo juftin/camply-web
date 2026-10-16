@@ -56,7 +56,7 @@ fake-useragent==1.4.0
     # via
     #   -c requirements.txt
     #   hatch.envs.test
-freezegun==1.2.2
+freezegun==1.5.5
     # via hatch.envs.test
 idna==3.6
     # via
