@@ -57,7 +57,7 @@ fake-useragent==1.4.0
     #   hatch.envs.docs
 ghp-import==2.1.0
     # via mkdocs
-griffe==0.38.1
+griffe==0.49.0
     # via mkdocstrings-python
 idna==3.6
     # via
