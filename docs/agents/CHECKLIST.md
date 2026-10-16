@@ -145,6 +145,7 @@ Implementation specification and tasks: [Admin UI plan](../../specs/002-admin-ui
 
 ### 3.1 Migration
 
+- [x] Remove the deprecated `cli/` application after migrating provider functionality to `backend/packages/providers`.
 - [ ] T3.1.1 Migrate `usedirect` (California State Parks, etc.).
 - [x] T3.1.1a Implement ReserveCalifornia on the current Tyler RDR API: async scans, metadata/search ingestion, seed migration, modern booking links, and synthetic HTTP/database regressions. Source models now share the UseDirect package.
 - [x] T3.1.1b Extract the async UseDirect ABC and implement verified Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory variations with independent metadata sync, stable seeds, booking routes, and provider-isolation regressions.
