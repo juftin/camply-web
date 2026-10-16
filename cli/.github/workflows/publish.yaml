@@ -18,11 +18,11 @@ jobs:
             id-token: write
         steps:
             - name: Check out the repository
-              uses: actions/checkout@v4
+              uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
               with:
                   fetch-depth: 2
             - name: Set up Python
-              uses: actions/setup-python@v5
+              uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
               with:
                   python-version: "3.11"
             - name: Install Hatch
@@ -34,7 +34,7 @@ jobs:
               run: |
                   hatch build
             - name: Publish package on PyPI
-              uses: pypa/gh-action-pypi-publish@release/v1
+              uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
 
     docker-hub-publish:
         name: docker-hub
@@ -42,11 +42,11 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Check out the repository
-              uses: actions/checkout@v4
+              uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
               with:
                   fetch-depth: 2
             - name: Set up Python
-              uses: actions/setup-python@v5
+              uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
               with:
                   python-version: "3.11"
             - name: Install Hatch
@@ -55,11 +55,11 @@ jobs:
                   python -m pip install -q hatch pre-commit
                   hatch --version
             - name: Set up QEMU
-              uses: docker/setup-qemu-action@v3
+              uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
             - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v3
+              uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
             - name: Login to DockerHub
-              uses: docker/login-action@v2
+              uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2
               with:
                   username: ${{ secrets.DOCKER_USERNAME }}
                   password: ${{ secrets.DOCKER_TOKEN }}
@@ -71,7 +71,7 @@ jobs:
                   echo PACKAGE_NAME=${PACKAGE_NAME} >> $GITHUB_ENV
             - name: Docker Image Building and Publishing
               id: docker_build
-              uses: docker/build-push-action@v5
+              uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
               with:
                   push: true
                   tags: juftin/${{ env.PACKAGE_NAME }}:latest,juftin/${{ env.PACKAGE_NAME }}:${{ env.PACKAGE_VERSION }}
