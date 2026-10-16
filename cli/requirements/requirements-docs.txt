@@ -151,7 +151,7 @@ pydantic==1.10.13
     # via
     #   -c requirements.txt
     #   hatch.envs.docs
-pygments==2.17.2
+pygments==2.21.0
     # via
     #   -c requirements.txt
     #   mkdocs-material
