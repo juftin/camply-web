@@ -191,7 +191,7 @@ textual==0.47.1
     # via
     #   -c requirements.txt
     #   trogon
-trogon==0.4.0
+trogon==0.6.0
     # via
     #   -c requirements.txt
     #   hatch.envs.test

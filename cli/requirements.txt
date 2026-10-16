@@ -97,7 +97,7 @@ tenacity==8.2.3
     # via hatch.envs.default
 textual==0.47.1
     # via trogon
-trogon==0.4.0
+trogon==0.6.0
     # via hatch.envs.default
 twilio==7.17.0
     # via hatch.envs.default

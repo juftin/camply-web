@@ -47,7 +47,7 @@ apprise = [
   "apprise~=1.3.0"
 ]
 tui = [
-  "trogon~=0.4.0"
+  "trogon~=0.6.0"
 ]
 twilio = [
   "twilio~=7.17.0"
