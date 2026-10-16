@@ -183,7 +183,7 @@ pyyaml==6.0.1
     #   mkdocs
     #   pymdown-extensions
     #   pyyaml-env-tag
-pyyaml-env-tag==0.1
+pyyaml-env-tag==1.1
     # via mkdocs
 ratelimit==2.2.1
     # via
