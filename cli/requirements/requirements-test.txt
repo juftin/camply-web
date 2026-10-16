@@ -178,7 +178,7 @@ rich-click==1.6.1
     # via
     #   -c requirements.txt
     #   hatch.envs.test
-six==1.16.0
+six==1.17.0
     # via
     #   -c requirements.txt
     #   python-dateutil
