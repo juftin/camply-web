@@ -49,7 +49,7 @@ mdit-py-plugins==0.4.0
     # via markdown-it-py
 mdurl==0.1.2
     # via markdown-it-py
-numpy==1.26.3
+numpy==2.5.4
     # via pandas
 oauthlib==3.2.2
     # via requests-oauthlib

@@ -89,7 +89,7 @@ mdurl==0.1.2
     #   markdown-it-py
 multidict==6.0.4
     # via yarl
-numpy==1.26.3
+numpy==2.5.4
     # via
     #   -c requirements.txt
     #   pandas
