@@ -91,7 +91,7 @@ rich==13.3.5
     #   textual
 rich-click==1.6.1
     # via hatch.envs.default
-six==1.16.0
+six==1.17.0
     # via python-dateutil
 tenacity==8.2.3
     # via hatch.envs.default
