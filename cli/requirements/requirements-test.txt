@@ -50,7 +50,7 @@ coverage==7.2.7
     # via
     #   coverage
     #   pytest-cov
-execnet==1.9.0
+execnet==2.1.2
     # via pytest-xdist
 fake-useragent==1.4.0
     # via
