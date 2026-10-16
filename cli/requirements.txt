@@ -32,7 +32,7 @@ click==8.1.7
     #   apprise
     #   rich-click
     #   trogon
-fake-useragent==1.4.0
+fake-useragent==1.5.1
     # via hatch.envs.default
 idna==3.6
     # via requests
