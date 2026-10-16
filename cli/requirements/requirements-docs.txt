@@ -39,7 +39,7 @@ charset-normalizer==3.3.2
     # via
     #   -c requirements.txt
     #   requests
-click==8.1.7
+click==8.5.0
     # via
     #   -c requirements.txt
     #   hatch.envs.docs
