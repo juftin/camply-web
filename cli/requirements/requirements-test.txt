@@ -63,7 +63,7 @@ idna==3.6
     #   -c requirements.txt
     #   requests
     #   yarl
-iniconfig==2.0.0
+iniconfig==2.3.1
     # via pytest
 linkify-it-py==2.0.2
     # via
