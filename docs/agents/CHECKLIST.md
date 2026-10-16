@@ -183,7 +183,7 @@ Feature specification: [Open-Source Maps & Explore Map View](../../specs/007-ope
 
 ### 4.1 Stability
 
-- [ ] T4.1.1 Implement proxy rotation logic for provider requests.
+- [ ] T4.1.1 Implement proxy rotation logic for provider requests; see [VPN and proxy rotation plan](../../specs/008-vpn-proxy-rotation/plan.md) and [architecture blueprint](DESIGN_VPN_ROTATION.md).
 - [x] T4.1.2 Implement backoff/retry strategy for provider API failures.
 - [x] T4.1.3 Setup Prometheus-backed native Admin UI monitoring for scan success metrics (Grafana replaced).
 
