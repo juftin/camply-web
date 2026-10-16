@@ -7,7 +7,7 @@
 
 mypy==1.8.0
     # via hatch.envs.lint
-mypy-extensions==1.0.0
+mypy-extensions==1.1.0
     # via mypy
 ruff==0.1.11
     # via hatch.envs.lint
