@@ -107,7 +107,7 @@ typing-extensions==4.9.0
     #   textual
 tzdata==2023.4
     # via pandas
-uc-micro-py==1.0.2
+uc-micro-py==2.0.0
     # via linkify-it-py
 urllib3==2.1.0
     # via requests
