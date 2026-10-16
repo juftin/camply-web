@@ -46,7 +46,7 @@ click==8.1.7
     #   apprise
     #   rich-click
     #   trogon
-coverage==7.2.7
+coverage==7.16.2
     # via
     #   coverage
     #   pytest-cov
