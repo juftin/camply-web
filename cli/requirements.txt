@@ -84,7 +84,7 @@ requests==2.31.0
     #   twilio
 requests-oauthlib==1.3.1
     # via apprise
-rich==13.3.5
+rich==13.9.4
     # via
     #   hatch.envs.default
     #   rich-click
