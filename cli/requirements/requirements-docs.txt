@@ -31,7 +31,7 @@
 
 babel==2.14.0
     # via mkdocs-material
-certifi==2023.11.17
+certifi==2026.7.22
     # via
     #   -c requirements.txt
     #   requests
