@@ -79,7 +79,7 @@ markdown-it-py==2.2.0
     #   mdit-py-plugins
     #   rich
     #   textual
-mdit-py-plugins==0.4.0
+mdit-py-plugins==0.6.1
     # via
     #   -c requirements.txt
     #   markdown-it-py
