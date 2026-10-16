@@ -216,7 +216,7 @@ urllib3==2.1.0
     # via
     #   -c requirements.txt
     #   requests
-vcrpy==4.3.1
+vcrpy==8.3.0
     # via pytest-vcr
 wrapt==1.15.0
     # via vcrpy
