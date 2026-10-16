@@ -35,7 +35,7 @@ certifi==2023.11.17
     #   -c requirements.txt
     #   apprise
     #   requests
-charset-normalizer==3.3.2
+charset-normalizer==3.5.2
     # via
     #   -c requirements.txt
     #   requests
