@@ -189,7 +189,7 @@ ratelimit==2.2.1
     # via
     #   -c requirements.txt
     #   hatch.envs.docs
-regex==2023.12.25
+regex==2026.9.29
     # via mkdocs-material
 requests==2.31.0
     # via
