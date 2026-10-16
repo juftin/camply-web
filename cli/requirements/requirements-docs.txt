@@ -127,7 +127,7 @@ mkdocstrings==0.24.0
     # via
     #   hatch.envs.docs
     #   mkdocstrings-python
-mkdocstrings-python==1.7.5
+mkdocstrings-python==2.0.9
     # via hatch.envs.docs
 numpy==1.26.3
     # via
