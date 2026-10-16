@@ -53,7 +53,7 @@ numpy==1.26.3
     # via pandas
 oauthlib==3.2.2
     # via requests-oauthlib
-pandas==2.1.4
+pandas==2.3.3
     # via hatch.envs.default
 pydantic==1.10.13
     # via hatch.envs.default
