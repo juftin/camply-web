@@ -26,7 +26,7 @@ dependencies = [
   "ratelimit~=2.2.1",
   "requests~=2.31.0",
   "rich~=13.3.2",
-  "rich-click~=1.6.1",
+  "rich-click~=1.9.9",
   "tenacity~=8.2.2"
 ]
 description = "camply, the campsite finder 🏕"

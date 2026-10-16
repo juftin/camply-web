@@ -201,7 +201,7 @@ rich==13.3.5
     #   -c requirements.txt
     #   hatch.envs.docs
     #   rich-click
-rich-click==1.6.1
+rich-click==1.9.9
     # via
     #   -c requirements.txt
     #   hatch.envs.docs

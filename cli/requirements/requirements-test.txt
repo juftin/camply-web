@@ -174,7 +174,7 @@ rich==13.3.5
     #   hatch.envs.test
     #   rich-click
     #   textual
-rich-click==1.6.1
+rich-click==1.9.9
     # via
     #   -c requirements.txt
     #   hatch.envs.test

@@ -89,7 +89,7 @@ rich==13.3.5
     #   hatch.envs.default
     #   rich-click
     #   textual
-rich-click==1.6.1
+rich-click==1.9.9
     # via hatch.envs.default
 six==1.16.0
     # via python-dateutil
