@@ -164,6 +164,7 @@ async def map_summary(session: AsyncSession, *, filters: dict[str, Any]) -> MapS
         return MapSummary(
             total=total, mappable_total=0, unmappable_total=total, bounds=None
         )
+    assert south is not None and north is not None
     longitudes = (
         select(normalized_longitude(Search).label("lng"))
         .where(*valid_filters)
@@ -176,21 +177,20 @@ async def map_summary(session: AsyncSession, *, filters: dict[str, Any]) -> MapS
         func.min(longitudes.c.lng).over().label("first_lng"),
     ).cte("map_gaps")
     following = func.coalesce(gaps.c.next_lng, gaps.c.first_lng + 360)
-    east, west = (
+    gap_row: tuple[Any, Any] = (
         await session.execute(
             select(gaps.c.lng, following)
             .order_by((following - gaps.c.lng).desc(), gaps.c.lng)
             .limit(1)
         )
     ).one()
-    west = (float(west) + 180) % 360 - 180
+    east = float(gap_row[0])
+    west = (float(gap_row[1]) + 180) % 360 - 180
     return MapSummary(
         total=total,
         mappable_total=int(count),
         unmappable_total=total - int(count),
-        bounds=Bounds(
-            west=west, east=float(east), south=float(south), north=float(north)
-        ),
+        bounds=Bounds(west=west, east=east, south=float(south), north=float(north)),
     )
 
 

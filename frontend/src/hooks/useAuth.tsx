@@ -209,7 +209,7 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
     setAccessTokenProvider(async () => {
       if (!isAuthenticated) return null;
       try {
-        return await getAccessTokenSilently();
+        return (await getAccessTokenSilently()) ?? null;
       } catch {
         return null;
       }
