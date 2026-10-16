@@ -117,7 +117,7 @@ pyjwt==2.8.0
     # via
     #   -c requirements.txt
     #   twilio
-pytest==7.3.1
+pytest==7.4.4
     # via
     #   hatch.envs.test
     #   pytest-cov
