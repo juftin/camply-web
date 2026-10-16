@@ -86,7 +86,7 @@ markdown-it-py==2.2.0
     # via
     #   -c requirements.txt
     #   rich
-markupsafe==2.1.3
+markupsafe==3.0.4
     # via
     #   jinja2
     #   mkdocs
