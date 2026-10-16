@@ -69,7 +69,7 @@ linkify-it-py==2.0.2
     # via
     #   -c requirements.txt
     #   markdown-it-py
-markdown==3.5.1
+markdown==3.11.1
     # via
     #   -c requirements.txt
     #   apprise
