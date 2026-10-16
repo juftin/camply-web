@@ -176,7 +176,7 @@ pytz==2023.3.post1
     #   -c requirements.txt
     #   hatch.envs.docs
     #   pandas
-pyyaml==6.0.1
+pyyaml==6.0.3
     # via
     #   -c requirements.txt
     #   hatch.envs.docs
