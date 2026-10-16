@@ -109,5 +109,5 @@ tzdata==2023.4
     # via pandas
 uc-micro-py==1.0.2
     # via linkify-it-py
-urllib3==2.1.0
+urllib3==2.8.0
     # via requests
