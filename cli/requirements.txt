@@ -40,7 +40,7 @@ linkify-it-py==2.0.2
     # via markdown-it-py
 markdown==3.5.1
     # via apprise
-markdown-it-py==2.2.0
+markdown-it-py==4.2.0
     # via
     #   mdit-py-plugins
     #   rich

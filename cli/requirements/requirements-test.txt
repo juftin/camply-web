@@ -73,7 +73,7 @@ markdown==3.5.1
     # via
     #   -c requirements.txt
     #   apprise
-markdown-it-py==2.2.0
+markdown-it-py==4.2.0
     # via
     #   -c requirements.txt
     #   mdit-py-plugins
