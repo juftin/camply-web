@@ -87,7 +87,7 @@ mdurl==0.1.2
     # via
     #   -c requirements.txt
     #   markdown-it-py
-multidict==6.0.4
+multidict==7.1.0
     # via yarl
 numpy==1.26.3
     # via
