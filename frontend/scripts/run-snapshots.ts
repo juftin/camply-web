@@ -888,6 +888,8 @@ async function ensureServerRunning(): Promise<ChildProcess | null> {
       env: {
         ...process.env,
         GITHUB_REPOSITORY: "",
+        // Keep visual coverage of the optional community pages and navigation.
+        VITE_ENABLE_COMMUNITY_PAGES: "true",
       },
     },
   );

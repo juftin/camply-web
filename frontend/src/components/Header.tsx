@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/hooks/useAuth";
+import { communityPagesEnabled } from "@/lib/features";
 
 interface HeaderProps {
   showLogo?: boolean;
@@ -109,22 +110,26 @@ export function Header({ showLogo = true }: HeaderProps) {
             >
               How It Works
             </Link>
-            <Link
-              to="/ethos"
-              className={`text-muted-foreground hover:text-foreground ${
-                location.pathname === "/ethos" ? "text-foreground" : ""
-              }`}
-            >
-              Ethos
-            </Link>
-            <Link
-              to="/contribute"
-              className={`text-muted-foreground hover:text-foreground ${
-                location.pathname === "/contribute" ? "text-foreground" : ""
-              }`}
-            >
-              Contribute
-            </Link>
+            {communityPagesEnabled && (
+              <>
+                <Link
+                  to="/ethos"
+                  className={`text-muted-foreground hover:text-foreground ${
+                    location.pathname === "/ethos" ? "text-foreground" : ""
+                  }`}
+                >
+                  Ethos
+                </Link>
+                <Link
+                  to="/contribute"
+                  className={`text-muted-foreground hover:text-foreground ${
+                    location.pathname === "/contribute" ? "text-foreground" : ""
+                  }`}
+                >
+                  Contribute
+                </Link>
+              </>
+            )}
           </nav>
 
           <button
@@ -219,24 +224,28 @@ export function Header({ showLogo = true }: HeaderProps) {
             >
               How It Works
             </Link>
-            <Link
-              to="/ethos"
-              className={`block text-muted-foreground hover:text-foreground ${
-                location.pathname === "/ethos" ? "text-foreground" : ""
-              }`}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Ethos
-            </Link>
-            <Link
-              to="/contribute"
-              className={`block text-muted-foreground hover:text-foreground ${
-                location.pathname === "/contribute" ? "text-foreground" : ""
-              }`}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Contribute
-            </Link>
+            {communityPagesEnabled && (
+              <>
+                <Link
+                  to="/ethos"
+                  className={`block text-muted-foreground hover:text-foreground ${
+                    location.pathname === "/ethos" ? "text-foreground" : ""
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Ethos
+                </Link>
+                <Link
+                  to="/contribute"
+                  className={`block text-muted-foreground hover:text-foreground ${
+                    location.pathname === "/contribute" ? "text-foreground" : ""
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Contribute
+                </Link>
+              </>
+            )}
             <div className="pt-4 border-t space-y-3">
               <div className="flex items-center justify-between">
                 <ThemeToggle />

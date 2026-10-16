@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { communityPagesEnabled } from "@/lib/features";
 
 interface FAQItem {
   id: string;
@@ -59,13 +60,17 @@ const faqs: FAQItem[] = [
       <>
         You can contribute by reporting bugs, suggesting features, submitting
         code, spreading the word, or making financial contributions. Visit our{" "}
-        <Link
-          to="/contribute"
-          className="text-primary hover:text-primary/80 underline"
-        >
-          Contribute page
-        </Link>{" "}
-        or{" "}
+        {communityPagesEnabled && (
+          <>
+            <Link
+              to="/contribute"
+              className="text-primary hover:text-primary/80 underline"
+            >
+              Contribute page
+            </Link>{" "}
+            or{" "}
+          </>
+        )}
         <a
           href="https://github.com/juftin/camply"
           target="_blank"

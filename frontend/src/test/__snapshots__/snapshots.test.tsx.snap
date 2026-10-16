@@ -2046,20 +2046,6 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         >
           How It Works
         </a>
-        <a
-          class="text-muted-foreground hover:text-foreground "
-          data-discover="true"
-          href="/ethos"
-        >
-          Ethos
-        </a>
-        <a
-          class="text-muted-foreground hover:text-foreground "
-          data-discover="true"
-          href="/contribute"
-        >
-          Contribute
-        </a>
       </nav>
       <button
         aria-label="Toggle mobile menu"
@@ -2347,20 +2333,6 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         >
           How It Works
         </a>
-        <a
-          class="text-muted-foreground hover:text-foreground "
-          data-discover="true"
-          href="/ethos"
-        >
-          Ethos
-        </a>
-        <a
-          class="text-muted-foreground hover:text-foreground "
-          data-discover="true"
-          href="/contribute"
-        >
-          Contribute
-        </a>
       </nav>
       <button
         aria-label="Toggle mobile menu"
@@ -2626,20 +2598,6 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for unauthentica
         >
           How It Works
         </a>
-        <a
-          class="text-muted-foreground hover:text-foreground "
-          data-discover="true"
-          href="/ethos"
-        >
-          Ethos
-        </a>
-        <a
-          class="text-muted-foreground hover:text-foreground "
-          data-discover="true"
-          href="/contribute"
-        >
-          Contribute
-        </a>
       </nav>
       <button
         aria-label="Toggle mobile menu"
@@ -2791,20 +2749,6 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot without logo 1`]
           href="/how-it-works"
         >
           How It Works
-        </a>
-        <a
-          class="text-muted-foreground hover:text-foreground "
-          data-discover="true"
-          href="/ethos"
-        >
-          Ethos
-        </a>
-        <a
-          class="text-muted-foreground hover:text-foreground "
-          data-discover="true"
-          href="/contribute"
-        >
-          Contribute
         </a>
       </nav>
       <button

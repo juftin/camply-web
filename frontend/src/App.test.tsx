@@ -131,6 +131,102 @@ beforeEach(() => {
   window.scrollTo = vi.fn();
 });
 
+describe("Community pages feature flag", () => {
+  const enabled = import.meta.env.VITE_ENABLE_COMMUNITY_PAGES === "true";
+
+  it(`${enabled ? "shows" : "hides"} desktop and mobile navigation`, async () => {
+    renderApp();
+    await screen.findByRole("link", { name: "Explore" });
+    for (const name of ["Ethos", "Contribute"]) {
+      expect(screen.queryAllByRole("link", { name })).toHaveLength(
+        enabled ? 1 : 0,
+      );
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Toggle mobile menu" }));
+    for (const name of ["Ethos", "Contribute"]) {
+      const links = screen.queryAllByRole("link", { name });
+      expect(links).toHaveLength(enabled ? 2 : 0);
+      for (const link of links) {
+        expect(link).toHaveAttribute("href", appPath(`/${name.toLowerCase()}`));
+      }
+    }
+  });
+
+  it.each([
+    ["/ethos", "Making the Great Outdoors Accessible to All"],
+    ["/contribute", "Contribute to camply"],
+  ])(
+    `${enabled ? "serves" : "redirects"} direct visits to %s`,
+    async (path, heading) => {
+      renderApp(localConfig, path);
+      await screen.findByRole("link", { name: "Explore" });
+      if (enabled) {
+        expect(
+          await screen.findByRole("heading", { name: heading }),
+        ).toBeVisible();
+        expect(window.location.pathname).toBe(appPath(path));
+      } else {
+        await waitFor(() =>
+          expect(window.location.pathname).toBe(appPath("/")),
+        );
+        expect(
+          screen.queryByRole("heading", { name: heading }),
+        ).not.toBeInTheDocument();
+      }
+    },
+  );
+
+  it(`${enabled ? "shows" : "hides"} the Contact contribution card`, async () => {
+    renderApp(localConfig, "/contact");
+    await screen.findByRole("heading", { name: "Quick Links" });
+    expect(screen.queryAllByRole("link", { name: "Contribute" })).toHaveLength(
+      enabled ? 2 : 0,
+    );
+    expect(
+      screen.queryAllByRole("heading", { name: "Contribute" }),
+    ).toHaveLength(enabled ? 1 : 0);
+  });
+
+  it(`${enabled ? "shows" : "hides"} the FAQ contribution link`, async () => {
+    renderApp(localConfig, "/faq");
+    fireEvent.click(await screen.findByText("How can I contribute to camply?"));
+    expect(
+      screen.queryAllByRole("link", { name: "Contribute page" }),
+    ).toHaveLength(enabled ? 1 : 0);
+    expect(
+      screen.getAllByRole("link", { name: "GitHub repository" }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it(`${enabled ? "shows hosted-service details" : "describes configured app behavior"} on How It Works`, async () => {
+    renderApp(localConfig, "/how-it-works");
+    expect(
+      await screen.findAllByRole("heading", {
+        name: enabled ? "We Monitor 24/7" : "Check Availability",
+      }),
+    ).toHaveLength(enabled ? 1 : 2);
+
+    if (enabled) {
+      expect(screen.getByText("Reliable Infrastructure")).toBeVisible();
+      expect(screen.getByText("Checks every 2-5 minutes")).toBeVisible();
+    } else {
+      expect(screen.getByText("What the App Does")).toBeVisible();
+      expect(
+        screen.getAllByText("Checks on the configured schedule"),
+      ).toHaveLength(2);
+      expect(
+        screen.getAllByText(/review matching availability in your dashboard/i),
+      ).toHaveLength(2);
+      expect(
+        screen.queryByText(/redundancy and failover systems/i),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/checks every 2-5 minutes, 24\/7/i),
+      ).not.toBeInTheDocument();
+    }
+  });
+});
+
 describe("Application authentication", () => {
   it("hides login and signup on desktop and mobile during local auto-login", async () => {
     vi.mocked(getMe).mockResolvedValue({ ...user, is_invited: true });

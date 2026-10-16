@@ -19,6 +19,7 @@ import {
   Tent,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { communityPagesEnabled } from "@/lib/features";
 import {
   Card,
   CardContent,
@@ -41,9 +42,9 @@ export function HowItWorks() {
           <span className="text-primary"> Works</span>
         </h1>
         <p className="text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
-          From search to reservation, here's exactly how camply monitors
-          campsite availability and gets you notified the moment your perfect
-          spot becomes available.
+          {communityPagesEnabled
+            ? "From search to reservation, here's exactly how camply monitors campsite availability and gets you notified the moment your perfect spot becomes available."
+            : "Search campgrounds, save a scan for the dates and campsite you want, and review matching availability in your dashboard. Complete reservations with the campground's booking provider."}
         </p>
       </div>
 
@@ -53,7 +54,9 @@ export function HowItWorks() {
           <CardHeader className="text-center">
             <CardTitle className="text-3xl mb-4">The Simple Process</CardTitle>
             <CardDescription className="text-lg">
-              Four easy steps to never miss a campsite again
+              {communityPagesEnabled
+                ? "Four easy steps to never miss a campsite again"
+                : "Four steps from campground search to booking"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -83,9 +86,13 @@ export function HowItWorks() {
                   3
                 </div>
                 <RefreshCw className="h-8 w-8 text-primary mx-auto mb-2" />
-                <h3 className="font-semibold mb-2">Monitor</h3>
+                <h3 className="font-semibold mb-2">
+                  {communityPagesEnabled ? "Monitor" : "Check Availability"}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  We check availability every few minutes
+                  {communityPagesEnabled
+                    ? "We check availability every few minutes"
+                    : "Checks on the configured schedule"}
                 </p>
               </div>
               <div className="text-center">
@@ -93,9 +100,13 @@ export function HowItWorks() {
                   4
                 </div>
                 <Bell className="h-8 w-8 text-primary mx-auto mb-2" />
-                <h3 className="font-semibold mb-2">Get Notified</h3>
+                <h3 className="font-semibold mb-2">
+                  {communityPagesEnabled ? "Get Notified" : "Review Results"}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  Instant alerts when spots open up
+                  {communityPagesEnabled
+                    ? "Instant alerts when spots open up"
+                    : "Review matching availability and booking links"}
                 </p>
               </div>
             </div>
@@ -124,10 +135,9 @@ export function HowItWorks() {
                     </h3>
                   </div>
                   <p className="text-muted-foreground mb-4">
-                    Start by searching for your desired campground using our
-                    search tool. You can search by name, location, or browse our
-                    supported providers including National Parks, State Parks,
-                    and Recreation Areas.
+                    {communityPagesEnabled
+                      ? "Start by searching for your desired campground using our search tool. You can search by name, location, or browse our supported providers including National Parks, State Parks, and Recreation Areas."
+                      : "Search campgrounds by name or location, or browse the providers available in this instance. Choose a campground to view its details and available booking information."}
                   </p>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
@@ -168,7 +178,9 @@ export function HowItWorks() {
                 <div className="bg-muted/30 rounded-lg p-6 text-center order-2 md:order-1">
                   <Settings className="h-16 w-16 text-primary mx-auto mb-4" />
                   <p className="text-sm text-muted-foreground">
-                    Notification preferences and monitoring settings
+                    {communityPagesEnabled
+                      ? "Notification preferences and monitoring settings"
+                      : "Campsite preferences and scan settings"}
                   </p>
                 </div>
                 <div className="order-1 md:order-2">
@@ -181,25 +193,35 @@ export function HowItWorks() {
                     </h3>
                   </div>
                   <p className="text-muted-foreground mb-4">
-                    Configure how and when you want to be notified. Choose your
-                    notification methods, set specific campsite preferences, and
-                    customize monitoring frequency to match your needs.
+                    {communityPagesEnabled
+                      ? "Configure how and when you want to be notified. Choose your notification methods, set specific campsite preferences, and customize monitoring frequency to match your needs."
+                      : "Choose the dates, site types, and other preferences for the campsite you want. Save them as a scan so you can review its status and matching availability from your dashboard."}
                   </p>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-primary" />
-                      <span className="text-sm">Email notifications</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Smartphone className="h-4 w-4 text-primary" />
-                      <span className="text-sm">SMS alerts (coming soon)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Bell className="h-4 w-4 text-primary" />
                       <span className="text-sm">
-                        Push notifications (coming soon)
+                        {communityPagesEnabled
+                          ? "Email notifications"
+                          : "Review scan status in your dashboard"}
                       </span>
                     </div>
+                    {communityPagesEnabled && (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="h-4 w-4 text-primary" />
+                          <span className="text-sm">
+                            SMS alerts (coming soon)
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Bell className="h-4 w-4 text-primary" />
+                          <span className="text-sm">
+                            Push notifications (coming soon)
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -217,29 +239,40 @@ export function HowItWorks() {
                     <div className="bg-primary text-primary-foreground rounded-full w-10 h-10 flex items-center justify-center text-lg font-bold">
                       3
                     </div>
-                    <h3 className="text-2xl font-semibold">We Monitor 24/7</h3>
+                    <h3 className="text-2xl font-semibold">
+                      {communityPagesEnabled
+                        ? "We Monitor 24/7"
+                        : "Check Availability"}
+                    </h3>
                   </div>
                   <p className="text-muted-foreground mb-4">
-                    Once you've set up your alerts, camply takes over. Our
-                    system automatically checks campsite availability every few
-                    minutes, around the clock, so you don't have to constantly
-                    refresh booking websites.
+                    {communityPagesEnabled
+                      ? "Once you've set up your alerts, camply takes over. Our system automatically checks campsite availability every few minutes, around the clock, so you don't have to constantly refresh booking websites."
+                      : "The app checks availability for saved scans using the schedule configured for this instance. Check each scan's status and matching results in your dashboard."}
                   </p>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-primary" />
-                      <span className="text-sm">Checks every 2-5 minutes</span>
+                      <span className="text-sm">
+                        {communityPagesEnabled
+                          ? "Checks every 2-5 minutes"
+                          : "Checks on the configured schedule"}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4 text-primary" />
                       <span className="text-sm">
-                        Reliable, automated monitoring
+                        {communityPagesEnabled
+                          ? "Reliable, automated monitoring"
+                          : "Scan status and results in your dashboard"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-primary" />
                       <span className="text-sm">
-                        Instant detection of new availability
+                        {communityPagesEnabled
+                          ? "Instant detection of new availability"
+                          : "Matching availability from the provider"}
                       </span>
                     </div>
                   </div>
@@ -247,7 +280,9 @@ export function HowItWorks() {
                 <div className="bg-muted/30 rounded-lg p-6 text-center">
                   <RefreshCw className="h-16 w-16 text-primary mx-auto mb-4" />
                   <p className="text-sm text-muted-foreground">
-                    Continuous monitoring dashboard showing real-time status
+                    {communityPagesEnabled
+                      ? "Continuous monitoring dashboard showing real-time status"
+                      : "Scan status and matching campsite availability"}
                   </p>
                 </div>
               </div>
@@ -263,7 +298,9 @@ export function HowItWorks() {
                 <div className="bg-muted/30 rounded-lg p-6 text-center order-2 md:order-1">
                   <Bell className="h-16 w-16 text-primary mx-auto mb-4" />
                   <p className="text-sm text-muted-foreground">
-                    Instant notification with booking link and campsite details
+                    {communityPagesEnabled
+                      ? "Instant notification with booking link and campsite details"
+                      : "Matching availability with campsite details and booking link"}
                   </p>
                 </div>
                 <div className="order-1 md:order-2">
@@ -272,19 +309,24 @@ export function HowItWorks() {
                       4
                     </div>
                     <h3 className="text-2xl font-semibold">
-                      Get Instant Alerts
+                      {communityPagesEnabled
+                        ? "Get Instant Alerts"
+                        : "Review Results"}
                     </h3>
                   </div>
                   <p className="text-muted-foreground mb-4">
-                    The moment a campsite becomes available, you'll receive an
-                    instant notification with all the details you need to book
-                    quickly. Each alert includes a direct link to the official
-                    booking site.
+                    {communityPagesEnabled
+                      ? "The moment a campsite becomes available, you'll receive an instant notification with all the details you need to book quickly. Each alert includes a direct link to the official booking site."
+                      : "When a scan finds matching availability, review the campsite details and follow its booking link to the provider's reservation site."}
                   </p>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-primary" />
-                      <span className="text-sm">Instant notifications</span>
+                      <span className="text-sm">
+                        {communityPagesEnabled
+                          ? "Instant notifications"
+                          : "Availability shown in your dashboard"}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-primary" />
@@ -307,19 +349,23 @@ export function HowItWorks() {
       {/* Behind the Scenes */}
       <section className="mb-16">
         <h2 className="text-3xl font-bold text-center mb-12">
-          Behind the Scenes
+          {communityPagesEnabled ? "Behind the Scenes" : "What the App Does"}
         </h2>
         <div className="grid md:grid-cols-3 gap-8">
           <Card>
             <CardHeader className="text-center">
               <RefreshCw className="h-12 w-12 text-primary mx-auto mb-4" />
-              <CardTitle>Smart Monitoring</CardTitle>
+              <CardTitle>
+                {communityPagesEnabled
+                  ? "Smart Monitoring"
+                  : "Availability Checks"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-muted-foreground">
-                Our system intelligently schedules checks based on campground
-                patterns, peak times, and cancellation trends to catch
-                availability the moment it appears.
+                {communityPagesEnabled
+                  ? "Our system intelligently schedules checks based on campground patterns, peak times, and cancellation trends to catch availability the moment it appears."
+                  : "The app checks availability for saved scans according to the schedule configured for this instance."}
               </p>
             </CardContent>
           </Card>
@@ -327,13 +373,17 @@ export function HowItWorks() {
           <Card>
             <CardHeader className="text-center">
               <Shield className="h-12 w-12 text-primary mx-auto mb-4" />
-              <CardTitle>Reliable Infrastructure</CardTitle>
+              <CardTitle>
+                {communityPagesEnabled
+                  ? "Reliable Infrastructure"
+                  : "Scan Results"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-muted-foreground">
-                Built on robust infrastructure with redundancy and failover
-                systems to ensure we never miss an availability opening, even
-                during high-traffic periods.
+                {communityPagesEnabled
+                  ? "Built on robust infrastructure with redundancy and failover systems to ensure we never miss an availability opening, even during high-traffic periods."
+                  : "Your dashboard shows each scan's status and any matching campsites returned by its booking provider."}
               </p>
             </CardContent>
           </Card>
@@ -341,13 +391,15 @@ export function HowItWorks() {
           <Card>
             <CardHeader className="text-center">
               <Zap className="h-12 w-12 text-primary mx-auto mb-4" />
-              <CardTitle>Lightning Fast</CardTitle>
+              <CardTitle>
+                {communityPagesEnabled ? "Lightning Fast" : "Booking Links"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-muted-foreground">
-                Notifications are sent within seconds of detecting availability.
-                Our optimized delivery system ensures you get notified before
-                anyone manually checking websites.
+                {communityPagesEnabled
+                  ? "Notifications are sent within seconds of detecting availability. Our optimized delivery system ensures you get notified before anyone manually checking websites."
+                  : "When results include availability, use the booking link to open the provider's reservation page and complete your booking there."}
               </p>
             </CardContent>
           </Card>
@@ -364,14 +416,16 @@ export function HowItWorks() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-primary" />
-                How often do you check for availability?
+                {communityPagesEnabled
+                  ? "How often do you check for availability?"
+                  : "How often does this instance check for availability?"}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                We check campsite availability every 2-5 minutes, 24/7. The
-                exact frequency depends on the campground and how close your
-                dates are, with more frequent checks closer to arrival dates.
+                {communityPagesEnabled
+                  ? "We check campsite availability every 2-5 minutes, 24/7. The exact frequency depends on the campground and how close your dates are, with more frequent checks closer to arrival dates."
+                  : "Scans run on the schedule configured for this instance. Check your scan dashboard for the latest status and results."}
               </p>
             </CardContent>
           </Card>
@@ -385,10 +439,9 @@ export function HowItWorks() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                No, camply only monitors and notifies. When we find
-                availability, we send you a direct link to the official booking
-                site (like Recreation.gov or ReserveAmerica) where you complete
-                your reservation.
+                {communityPagesEnabled
+                  ? "No, camply only monitors and notifies. When we find availability, we send you a direct link to the official booking site (like Recreation.gov or ReserveAmerica) where you complete your reservation."
+                  : "No. Camply shows scan results and links to the provider's reservation page. Complete your booking on the provider's website."}
               </p>
             </CardContent>
           </Card>
@@ -397,15 +450,16 @@ export function HowItWorks() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-primary" />
-                How fast do I need to book after getting notified?
+                {communityPagesEnabled
+                  ? "How fast do I need to book after getting notified?"
+                  : "How quickly should I book after availability is found?"}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Popular campsites can book up within minutes, so we recommend
-                booking immediately after receiving a notification. Our
-                notifications give you a significant head start over manual
-                checking.
+                {communityPagesEnabled
+                  ? "Popular campsites can book up within minutes, so we recommend booking immediately after receiving a notification. Our notifications give you a significant head start over manual checking."
+                  : "Availability can change at any time. Camply does not reserve a site, so complete your booking with the provider to secure it."}
               </p>
             </CardContent>
           </Card>
@@ -439,13 +493,14 @@ export function HowItWorks() {
             <TentTree className="h-16 w-16 text-primary mx-auto mb-6" />
             <h2 className="text-3xl font-bold mb-6">Ready to Get Started?</h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-              Set up your first campsite alert in minutes and never miss your
-              perfect camping spot again.
+              {communityPagesEnabled
+                ? "Set up your first campsite alert in minutes and never miss your perfect camping spot again."
+                : "Search for a campground, save a scan with your dates and preferences, and review matching availability in your dashboard."}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" asChild>
                 <Link to={accountPath}>
-                  Start Monitoring
+                  {communityPagesEnabled ? "Start Monitoring" : "Create a Scan"}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Link>
               </Button>

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
+import { communityPagesEnabled } from "@/lib/features";
 import {
   Mail,
   MessageSquare,
@@ -237,7 +238,9 @@ export function Contact() {
       {/* Quick Links */}
       <section>
         <h2 className="text-3xl font-bold text-center mb-8">Quick Links</h2>
-        <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div
+          className={`grid ${communityPagesEnabled ? "md:grid-cols-3" : "md:grid-cols-2"} gap-6 max-w-4xl mx-auto`}
+        >
           <Card>
             <CardHeader className="text-center">
               <HelpCircle className="h-12 w-12 text-primary mx-auto mb-4" />
@@ -266,18 +269,20 @@ export function Contact() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="text-center">
-              <Heart className="h-12 w-12 text-primary mx-auto mb-4" />
-              <CardTitle className="text-lg">Contribute</CardTitle>
-              <CardDescription>Support the camply project</CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button variant="outline" className="w-full" asChild>
-                <Link to="/contribute">Contribute</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          {communityPagesEnabled && (
+            <Card>
+              <CardHeader className="text-center">
+                <Heart className="h-12 w-12 text-primary mx-auto mb-4" />
+                <CardTitle className="text-lg">Contribute</CardTitle>
+                <CardDescription>Support the camply project</CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to="/contribute">Contribute</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </section>
     </div>

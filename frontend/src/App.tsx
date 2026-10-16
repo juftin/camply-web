@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { Auth0Provider } from "@auth0/auth0-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
@@ -31,6 +36,7 @@ import { AdminOperations } from "@/pages/admin/AdminOperations";
 import { AdminAudit } from "@/pages/admin/AdminAudit";
 import { AuthProvider, AuthConfigContext } from "@/hooks/useAuth";
 import { fetchAuthConfig, type AuthConfig } from "@/lib/api";
+import { communityPagesEnabled } from "@/lib/features";
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -48,9 +54,27 @@ function AppRoutes() {
                 <Route path="/" element={<Home />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/providers" element={<Providers />} />
-                <Route path="/ethos" element={<Ethos />} />
+                <Route
+                  path="/ethos"
+                  element={
+                    communityPagesEnabled ? (
+                      <Ethos />
+                    ) : (
+                      <Navigate to="/" replace />
+                    )
+                  }
+                />
                 <Route path="/how-it-works" element={<HowItWorks />} />
-                <Route path="/contribute" element={<Contribute />} />
+                <Route
+                  path="/contribute"
+                  element={
+                    communityPagesEnabled ? (
+                      <Contribute />
+                    ) : (
+                      <Navigate to="/" replace />
+                    )
+                  }
+                />
                 <Route path="/faq" element={<FAQ />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<TermsOfService />} />
