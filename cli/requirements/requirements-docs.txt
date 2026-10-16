@@ -156,7 +156,7 @@ pygments==2.17.2
     #   -c requirements.txt
     #   mkdocs-material
     #   rich
-pymdown-extensions==10.7
+pymdown-extensions==12.3
     # via
     #   hatch.envs.docs
     #   markdown-exec
