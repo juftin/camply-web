@@ -99,7 +99,7 @@ oauthlib==3.2.2
     #   requests-oauthlib
 packaging==23.1
     # via pytest
-pandas==2.1.4
+pandas==3.0.6
     # via
     #   -c requirements.txt
     #   hatch.envs.test
