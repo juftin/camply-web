@@ -218,7 +218,7 @@ urllib3==2.1.0
     #   requests
 vcrpy==4.3.1
     # via pytest-vcr
-wrapt==1.15.0
+wrapt==1.17.3
     # via vcrpy
 yarl==1.9.2
     # via vcrpy
