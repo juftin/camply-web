@@ -73,6 +73,10 @@ If you change a FastAPI router:
 1.  Verify the backend types: `task backend:check`.
 2.  Update the frontend SDK: `task frontend:codegen`.
 
+### 4. Releases
+
+Pushes to `main` run the complete CI suite before publishing backend/frontend images to GHCR. `latest` tracks successful `main` builds; Gitmoji-driven releases also publish full-version tags and moving major aliases such as `v1`. See [release operations](RELEASES.md) for version rules, repository permissions, local verification, and failure recovery.
+
 ---
 
 ## 🧪 Testing Discipline

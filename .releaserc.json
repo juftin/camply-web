@@ -1,0 +1,21 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    "semantic-release-gitmoji",
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "task release:prepare RELEASE_VERSION=${nextRelease.version} && task publish RELEASE_VERSION=${nextRelease.version}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "successComment": false,
+        "failComment": false,
+        "failTitle": false,
+        "releasedLabels": false
+      }
+    ]
+  ]
+}
