@@ -44,7 +44,7 @@ all = [
   "trogon~=0.4.0"
 ]
 apprise = [
-  "apprise~=1.3.0"
+  "apprise~=1.13.1"
 ]
 tui = [
   "trogon~=0.4.0"
