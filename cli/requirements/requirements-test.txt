@@ -93,7 +93,7 @@ numpy==1.26.3
     # via
     #   -c requirements.txt
     #   pandas
-oauthlib==3.2.2
+oauthlib==3.3.1
     # via
     #   -c requirements.txt
     #   requests-oauthlib

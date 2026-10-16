@@ -51,7 +51,7 @@ mdurl==0.1.2
     # via markdown-it-py
 numpy==1.26.3
     # via pandas
-oauthlib==3.2.2
+oauthlib==3.3.1
     # via requests-oauthlib
 pandas==2.1.4
     # via hatch.envs.default
