@@ -4,11 +4,12 @@ exclude: cli/.*
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
         exclude: \.snap$
       - id: end-of-file-fixer
+        exclude: mkdocs.yaml
       - id: check-yaml
         exclude: mkdocs.yaml
       - id: check-ast
@@ -20,7 +21,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.14.0
+    rev: v2.16.0
     hooks:
       - id: pretty-format-toml
         args: [--autofix, --no-sort]

@@ -6,7 +6,7 @@ import structlog
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import ORJSONResponse, Response
+from fastapi.responses import Response
 
 from backend.__about__ import __application__, __version__
 from backend.config import backend_config
@@ -58,7 +58,6 @@ app = FastAPI(
     docs_url="/api/docs",
     openapi_url="/api/openapi.json",
     redoc_url=None,
-    default_response_class=ORJSONResponse,
 )
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)

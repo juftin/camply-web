@@ -150,9 +150,11 @@ class UseDirectProvider(BaseProvider, ABC):
     async def populate_database(self) -> None:
         """Fetch metadata before opening a transaction and upsert provider rows."""
         places_response = await self._request("GET", "fd/places")
-        places = TypeAdapter(list[Place]).validate_python(places_response.json())
+        places: list[Place] = TypeAdapter(list[Place]).validate_python(
+            places_response.json()
+        )
         facilities_response = await self._request("GET", "fd/facilities")
-        facilities = TypeAdapter(list[Facility]).validate_python(
+        facilities: list[Facility] = TypeAdapter(list[Facility]).validate_python(
             facilities_response.json()
         )
         places_by_id = {p.PlaceId: p for p in places if p.Name and p.Name.strip()}

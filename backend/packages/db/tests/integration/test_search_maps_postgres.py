@@ -133,7 +133,7 @@ async def _verify(port: int, password: str) -> None:
                 if filters.get("term"):
                     assert total == 5000
             await _verify_viewport(session)
-            plan = (
+            plan: Any = (
                 await session.execute(
                     text(
                         "EXPLAIN (ANALYZE, FORMAT JSON) SELECT count(*) FROM search WHERE latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180"

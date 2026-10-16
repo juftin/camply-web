@@ -3,7 +3,7 @@ Extended tests for the Pushover notification provider.
 """
 
 import datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -46,7 +46,7 @@ class TestPushoverProvider:
             with patch("httpx.AsyncClient") as mock_client_cls:
                 mock_client = AsyncMock()
                 mock_response = AsyncMock()
-                mock_response.raise_for_status = AsyncMock()
+                mock_response.raise_for_status = MagicMock()
                 mock_client.post.return_value = mock_response
                 mock_client_cls.return_value.__aenter__.return_value = mock_client
 
