@@ -18,6 +18,8 @@ class NotificationDTO(BaseModel):
     title: str
     message: str
     booking_url: str
+    url_title: str = "Book Now"
+    """Action label; defaults preserve previously queued direct notifications."""
     park_name: str
     campsite_name: str
     start_date: date

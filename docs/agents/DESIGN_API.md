@@ -136,7 +136,13 @@ class ScanResultItem(BaseModel):
     campsite_id: str
     campsite_name: str
     available_dates: list[str]
+    campsite_type: str | None
+    is_electric: bool | None
+    is_accessible: bool | None
+    booking_url: str
 ```
+
+User scan results and `found_count` apply the saved site preferences and minimum consecutive stay. Dates represent available nights in qualifying blocks; check-out is the day after the last night. Booking links are derived from the provider's campground URL without making a provider request. Legacy snapshots have an empty name and unknown attributes until refreshed. Admin shared-target views remain unfiltered.
 
 ---
 

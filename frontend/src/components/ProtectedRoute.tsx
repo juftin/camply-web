@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { InviteOnly } from "@/pages/InviteOnly";
 import { ChangePasswordRequired } from "@/components/ChangePasswordRequired";
@@ -12,6 +12,7 @@ export function ProtectedRoute({
   requireInvite?: boolean;
 }) {
   const { user, isReady, isLoading, error, inviteOnly, isInvited } = useAuth();
+  const location = useLocation();
   if (isLoading || !isReady) {
     return (
       <div role="status" className="p-8 text-center">
@@ -26,7 +27,13 @@ export function ProtectedRoute({
       </div>
     );
   }
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user)
+    return (
+      <Navigate
+        to={`/auth?returnTo=${encodeURIComponent(location.pathname + location.search + location.hash)}`}
+        replace
+      />
+    );
   if (user.must_change_password) return <ChangePasswordRequired />;
   if (requireInvite && inviteOnly && !isInvited) return <InviteOnly />;
   return <>{children}</>;

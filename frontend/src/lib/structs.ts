@@ -119,6 +119,10 @@ export interface ScanResultItem {
   campsite_id: string;
   campsite_name: string;
   available_dates: string[];
+  campsite_type?: string | null;
+  is_electric?: boolean | null;
+  is_accessible?: boolean | null;
+  booking_url?: string;
 }
 
 export interface ScanResponse {

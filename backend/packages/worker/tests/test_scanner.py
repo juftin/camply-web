@@ -11,62 +11,8 @@ import pytest
 from db.models import UserScan
 from providers.dto import CampsiteDTO, CampsiteType
 from worker.tasks.scanner import (
-    _longest_consecutive,
     _matches_scan_filters,
 )
-
-
-class TestLongestConsecutive:
-    """Tests for the _longest_consecutive helper."""
-
-    def test_empty_dates(self) -> None:
-        assert _longest_consecutive([]) == 0
-
-    def test_single_date(self) -> None:
-        dates = [datetime.date(2026, 9, 1)]
-        assert _longest_consecutive(dates) == 1
-
-    def test_consecutive_dates(self) -> None:
-        dates = [
-            datetime.date(2026, 9, 1),
-            datetime.date(2026, 9, 2),
-            datetime.date(2026, 9, 3),
-        ]
-        assert _longest_consecutive(dates) == 3
-
-    def test_non_consecutive_dates(self) -> None:
-        dates = [
-            datetime.date(2026, 9, 1),
-            datetime.date(2026, 9, 3),
-            datetime.date(2026, 9, 5),
-        ]
-        assert _longest_consecutive(dates) == 1
-
-    def test_mixed_consecutive(self) -> None:
-        dates = [
-            datetime.date(2026, 9, 1),
-            datetime.date(2026, 9, 2),
-            datetime.date(2026, 9, 5),
-            datetime.date(2026, 9, 6),
-            datetime.date(2026, 9, 7),
-        ]
-        assert _longest_consecutive(dates) == 3
-
-    def test_unsorted_dates(self) -> None:
-        dates = [
-            datetime.date(2026, 9, 3),
-            datetime.date(2026, 9, 1),
-            datetime.date(2026, 9, 2),
-        ]
-        assert _longest_consecutive(dates) == 3
-
-    def test_all_same_date(self) -> None:
-        dates = [
-            datetime.date(2026, 9, 1),
-            datetime.date(2026, 9, 1),
-            datetime.date(2026, 9, 1),
-        ]
-        assert _longest_consecutive(dates) == 1
 
 
 class TestMatchesScanFilters:

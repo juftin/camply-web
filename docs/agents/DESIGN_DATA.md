@@ -95,8 +95,14 @@ Stores individual site metadata. Populated during scans or full metadata syncs.
 - `id`: `UUID` (Primary Key)
 - `target_id`: `UUID` (Foreign Key -> `unique_targets.id`)
 - `campsite_id`: `String` (Foreign Key -> `campsites.id`)
+- `campsite_name`: `String` (Provider site label; empty for legacy snapshots)
+- `campsite_type`: `String | null` (Standardized type)
+- `is_electric`: `Boolean | null` (Unknown for legacy snapshots)
+- `is_accessible`: `Boolean | null` (Unknown for legacy snapshots)
 - `available_dates`: `Array[Date]`
 - `found_at`: `Timestamp`
+
+The scanner replaces the latest snapshot, including these attributes, after every successful provider check. User scan results, counts and alerts share saved-filter logic; unknown attributes cannot satisfy restrictive preferences. The additive campsite-details migration preserves existing dates and populates metadata on the next successful check.
 
 ---
 

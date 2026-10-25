@@ -37,6 +37,7 @@ from backend.schemas import (
     ScanResultItem,
     ScanUpdateRequest,
 )
+from db.availability import matching_scan_results
 from db.models import (
     Campground as CampgroundDB,
 )
@@ -49,6 +50,7 @@ from db.models import (
 from db.models import (
     UserScan as UserScanDB,
 )
+from providers import PROVIDERS
 
 logger = structlog.getLogger(__name__)
 
@@ -240,11 +242,7 @@ async def list_scans(
         )
 
         # Count unique campsite IDs found in the latest scan_results
-        found = (
-            len({r.campsite_id for r in (scan.target.scan_results or [])})
-            if scan.target.scan_results
-            else 0
-        )
+        found = len(matching_scan_results(scan))
 
         response_items.append(
             await _scan_to_response(
@@ -382,18 +380,30 @@ async def get_scan(
     )
 
     # Build result items
-    results_raw = scan.target.scan_results or []
-    seen: dict[str, list[str]] = {}
-    for sr in results_raw:
-        seen.setdefault(sr.campsite_id, []).extend(sr.available_dates or [])
-
+    provider_cls = PROVIDERS.get(scan.target.provider_id)
+    booking_url = (
+        provider_cls.get_campground_url(
+            campground_id=scan.target.campground_id,
+            rec_area_id=cg.recreation_area_id if cg else None,
+        )
+        if provider_cls
+        else ""
+    )
     result_items = [
         ScanResultItem(
-            campsite_id=campsite_id,
-            available_dates=sorted(set(available_dates)),
+            campsite_id=result.campsite_id,
+            campsite_name=result.campsite_name,
+            campsite_type=result.campsite_type,
+            is_electric=result.is_electric,
+            is_accessible=result.is_accessible,
+            booking_url=booking_url,
+            available_dates=dates,
         )
-        for campsite_id, available_dates in seen.items()
+        for result, dates in matching_scan_results(scan)
     ]
+    result_items.sort(
+        key=lambda result: (result.campsite_name.casefold(), result.campsite_id)
+    )
 
     return ScanDetailResponse(
         id=scan.id,
@@ -484,7 +494,7 @@ async def update_scan(
         scan,
         campground_name=cg.name if cg else "",
         rec_area_name=cg.recreation_area.name if cg and cg.recreation_area else "",
-        found_count=len({result.campsite_id for result in scan.target.scan_results}),
+        found_count=len(matching_scan_results(scan)),
     )
 
 
