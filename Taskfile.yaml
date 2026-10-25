@@ -77,6 +77,16 @@ tasks:
     cmds:
       - task: frontend:snapshot:check
 
+  snapshot:report:
+    desc: Generate a before/after gallery linked to saved screenshots
+    cmds:
+      - task: frontend:snapshot:report
+
+  snapshot:verify:
+    desc: Verify the screenshot gallery offline in Chromium
+    cmds:
+      - task: frontend:snapshot:verify
+
   lint:
     desc: Lint All Code (Backend + Frontend)
     cmds:

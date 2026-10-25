@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Camply Screenshot Comparison</title>
+    <style>
+      :root {
+        --image-background: repeating-conic-gradient(
+            #1e293b 0% 25%,
+            #273449 0% 50%
+          )
+          0 0 / 16px 16px;
+        color-scheme: dark;
+        font-family: system-ui, sans-serif;
+        background: #0b1120;
+        color: #e2e8f0;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      header,
+      main {
+        width: min(1200px, 100%);
+        margin: auto;
+        padding: 24px;
+      }
+      header {
+        padding-bottom: 12px;
+      }
+      h1 {
+        font-size: clamp(1.6rem, 4vw, 2.2rem);
+        margin: 0 0 12px;
+      }
+      p {
+        color: #a8b8cd;
+        line-height: 1.6;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+        background: #111d31;
+        border: 1px solid #455775;
+        border-radius: 6px;
+        padding: 9px;
+      }
+      input[type="range"] {
+        padding: 0;
+        accent-color: #34d399;
+      }
+      :focus-visible {
+        outline: 3px solid #34d399;
+        outline-offset: 3px;
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 0.875rem;
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 16px;
+      }
+      .search {
+        flex: 1;
+        min-width: min(240px, 100%);
+      }
+      #summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 16px 0;
+      }
+      #summary span,
+      .status {
+        font-size: 0.8rem;
+        border-radius: 6px;
+        padding: 6px 10px;
+        background: #162239;
+      }
+      #result-count {
+        margin-bottom: 0;
+      }
+      article {
+        border: 1px solid #334155;
+        border-radius: 12px;
+        margin-bottom: 24px;
+        background: #111a2c;
+        overflow: hidden;
+      }
+      .card-header {
+        padding: 20px;
+      }
+      .title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+      }
+      h2 {
+        font-size: 1rem;
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .description {
+        margin: 8px 0;
+        font-size: 0.875rem;
+      }
+      .metadata {
+        color: #a8b8cd;
+        font-size: 0.8rem;
+        margin: 0 0 16px;
+      }
+      .status {
+        flex-shrink: 0;
+      }
+      .modified {
+        color: #fbbf24;
+      }
+      .unchanged {
+        color: #6ee7b7;
+      }
+      .new {
+        color: #93c5fd;
+      }
+      .mode {
+        flex: 0 1 190px;
+      }
+      .slider-control {
+        flex: 1;
+        min-width: 180px;
+      }
+      .images {
+        overflow: auto;
+        max-height: 620px;
+        border-top: 1px solid #334155;
+        background: var(--image-background);
+      }
+      .pair {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 1px;
+      }
+      figure {
+        min-width: 0;
+        margin: 0;
+      }
+      figcaption {
+        padding: 10px 16px;
+        background: #162239;
+        font-size: 0.8rem;
+      }
+      img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .image-canvas,
+      .overlay {
+        aspect-ratio: var(--canvas-ratio);
+      }
+      .before,
+      .overlay-before {
+        width: var(--before-width);
+      }
+      .after,
+      .overlay-after {
+        width: var(--after-width);
+      }
+      .no-before {
+        padding: 24px;
+        background: #111a2c;
+      }
+      .overlay {
+        position: relative;
+      }
+      .after-layer {
+        background: var(--image-background);
+        position: absolute;
+        inset: 0;
+        clip-path: inset(0 0 0 var(--split, 50%));
+      }
+      .divider {
+        position: absolute;
+        inset: 0 auto 0 var(--split, 50%);
+        width: 2px;
+        background: #34d399;
+        pointer-events: none;
+      }
+      .overlay-label {
+        position: absolute;
+        top: 12px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        background: #0b1120e6;
+        color: #fff;
+      }
+      .before-label {
+        left: 12px;
+      }
+      .after-label {
+        right: 12px;
+      }
+      #empty {
+        padding: 32px;
+        text-align: center;
+        border: 1px dashed #455775;
+        border-radius: 12px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      @media (max-width: 600px) {
+        header,
+        main {
+          padding: 16px;
+        }
+        .pair {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .title-row {
+          flex-direction: column;
+        }
+        .images {
+          max-height: 520px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Camply Screenshot Comparison</h1>
+      <p>
+        Compare the baseline before a change with the latest capture. This file
+        reads screenshots from local files beside this report.
+      </p>
+      <div id="summary" aria-label="Snapshot summary"></div>
+      <div class="toolbar">
+        <label class="search"
+          >Search screenshots<input
+            id="search"
+            type="search"
+            placeholder="Name, description, viewport or theme"
+        /></label>
+        <label
+          >Status<select id="status" aria-label="Status">
+            <option value="ALL">All screenshots</option>
+            <option value="MODIFIED">Modified</option>
+            <option value="UNCHANGED">Unchanged</option>
+            <option value="NEW">New</option>
+          </select></label
+        >
+      </div>
+      <p id="result-count" role="status" aria-live="polite"></p>
+    </header>
+    <main>
+      <div id="gallery"></div>
+      <div id="empty" hidden>
+        <p>No screenshots match these filters.</p>
+        <button id="clear" type="button">Clear filters</button>
+      </div>
+    </main>
+    <template id="comparison-card">
+      <article>
+        <div class="card-header">
+          <div class="title-row">
+            <h2></h2>
+            <span class="status"></span>
+          </div>
+          <p class="description"></p>
+          <p class="metadata"></p>
+          <div class="toolbar">
+            <label class="mode"
+              >Comparison view<select>
+                <option value="pair">Side by side</option>
+                <option value="overlay">Reveal slider</option>
+                <option value="diff">Highlighted diff</option>
+              </select></label
+            >
+            <label class="slider-control" hidden
+              >Before / after position<input
+                type="range"
+                min="0"
+                max="100"
+                value="50"
+            /></label>
+          </div>
+        </div>
+        <div class="images">
+          <div class="pair">
+            <figure>
+              <figcaption>Before · baseline</figcaption>
+              <div class="image-canvas before-canvas">
+                <img class="before" loading="lazy" />
+              </div>
+              <p class="no-before" hidden>
+                No baseline existed for this screenshot.
+              </p>
+            </figure>
+            <figure>
+              <figcaption>After · current</figcaption>
+              <div class="image-canvas">
+                <img class="after" loading="lazy" />
+              </div>
+            </figure>
+          </div>
+          <div class="overlay" hidden>
+            <img class="overlay-before" loading="lazy" />
+            <div class="after-layer">
+              <img class="overlay-after" loading="lazy" />
+            </div>
+            <div class="divider"></div>
+            <span class="overlay-label before-label">Before</span
+            ><span class="overlay-label after-label">After</span>
+          </div>
+          <figure class="diff" hidden>
+            <figcaption>Highlighted diff · changed pixels in pink</figcaption>
+            <img loading="lazy" />
+          </figure>
+        </div>
+      </article>
+    </template>
+    <script id="snapshot-data" type="application/json">
+      __SNAPSHOT_DATA__
+    </script>
+    <script>
+      const snapshots = JSON.parse(
+        document.getElementById("snapshot-data").textContent,
+      );
+      const gallery = document.getElementById("gallery");
+      const search = document.getElementById("search");
+      const status = document.getElementById("status");
+      const cards = [];
+      const order = { MODIFIED: 0, NEW: 1, UNCHANGED: 2 };
+      const summary = document.getElementById("summary");
+      for (const [label, count] of [
+        ["Total", snapshots.length],
+        ...["MODIFIED", "UNCHANGED", "NEW"].map((value) => [
+          value,
+          snapshots.filter((snapshot) => snapshot.status === value).length,
+        ]),
+      ]) {
+        const badge = document.createElement("span");
+        badge.textContent = `${label}: ${count}`;
+        summary.append(badge);
+      }
+      for (const [index, snapshot] of snapshots
+        .sort((a, b) => order[a.status] - order[b.status])
+        .entries()) {
+        const card = document
+          .getElementById("comparison-card")
+          .content.firstElementChild.cloneNode(true);
+        const heading = card.querySelector("h2");
+        heading.id = `snapshot-${index}`;
+        heading.textContent = snapshot.name;
+        card.setAttribute("aria-labelledby", heading.id);
+        card.style.setProperty(
+          "--canvas-ratio",
+          `${snapshot.width} / ${snapshot.height}`,
+        );
+        card.style.setProperty(
+          "--before-width",
+          `${(snapshot.beforeWidth / snapshot.width) * 100}%`,
+        );
+        card.style.setProperty(
+          "--after-width",
+          `${(snapshot.afterWidth / snapshot.width) * 100}%`,
+        );
+        card.querySelector(".before-canvas").hidden = !snapshot.beforeImage;
+        card.querySelector(".description").textContent = snapshot.description;
+        card.querySelector(".metadata").textContent =
+          `${snapshot.viewport} · ${snapshot.theme} theme`;
+        const badge = card.querySelector(".status");
+        badge.textContent =
+          snapshot.status +
+          (snapshot.status === "MODIFIED"
+            ? ` · ${snapshot.diffPercentage.toFixed(2)}% changed`
+            : "");
+        badge.classList.add(snapshot.status.toLowerCase());
+        for (const [selector, source, label] of [
+          [".before, .overlay-before", snapshot.beforeImage, "Before"],
+          [".after, .overlay-after", snapshot.afterImage, "After"],
+          [".diff img", snapshot.diffImage, "Highlighted diff"],
+        ]) {
+          for (const image of card.querySelectorAll(selector)) {
+            image.alt = `${label}: ${snapshot.name}`;
+            if (source) image.src = source;
+            else image.hidden = true;
+          }
+        }
+        card.querySelector(".no-before").hidden = Boolean(snapshot.beforeImage);
+        const mode = card.querySelector(".mode select");
+        mode.setAttribute("aria-label", `Comparison view for ${snapshot.name}`);
+        mode.querySelector('[value="overlay"]').disabled =
+          !snapshot.beforeImage;
+        mode.querySelector('[value="diff"]').disabled = !snapshot.diffImage;
+        const slider = card.querySelector('[type="range"]');
+        slider.setAttribute(
+          "aria-label",
+          `Before / after position for ${snapshot.name}`,
+        );
+        mode.addEventListener("change", () => {
+          for (const value of ["pair", "overlay", "diff"])
+            card.querySelector(`.${value}`).hidden = mode.value !== value;
+          card.querySelector(".slider-control").hidden =
+            mode.value !== "overlay";
+        });
+        slider.addEventListener("input", () =>
+          card
+            .querySelector(".overlay")
+            .style.setProperty("--split", `${slider.value}%`),
+        );
+        gallery.append(card);
+        cards.push({ card, snapshot });
+      }
+      function filter() {
+        let count = 0;
+        const query = search.value.trim().toLowerCase();
+        for (const { card, snapshot } of cards) {
+          const matches =
+            (status.value === "ALL" || snapshot.status === status.value) &&
+            `${snapshot.name} ${snapshot.description} ${snapshot.viewport} ${snapshot.theme}`
+              .toLowerCase()
+              .includes(query);
+          card.hidden = !matches;
+          if (matches) count += 1;
+        }
+        document.getElementById("result-count").textContent =
+          `${count} of ${snapshots.length} screenshots`;
+        document.getElementById("empty").hidden = count > 0;
+      }
+      search.addEventListener("input", filter);
+      status.addEventListener("change", filter);
+      document.getElementById("clear").addEventListener("click", () => {
+        search.value = "";
+        status.value = "ALL";
+        filter();
+        search.focus();
+      });
+      filter();
+    </script>
+  </body>
+</html>

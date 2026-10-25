@@ -86,3 +86,5 @@ backend/clients/
 # Snapshot Transient Runs
 frontend/snapshots/current/
 frontend/snapshots/diffs/
+frontend/snapshots/before/
+frontend/snapshots/report.html

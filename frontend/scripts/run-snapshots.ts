@@ -13,9 +13,13 @@ import http from "http";
 import { fileURLToPath } from "url";
 import { spawn, type ChildProcess } from "child_process";
 import { chromium, type Browser, type Page } from "@playwright/test";
-import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 import { setupAdminSnapshotMocks } from "./admin-snapshot-mocks";
+import {
+  generateHtmlReport,
+  recordSnapshot,
+  type SnapshotResult,
+} from "./snapshot-report";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,22 +47,6 @@ interface Scenario {
   partialOperations?: boolean;
   missingMeasurements?: boolean;
   action?: (page: Page) => Promise<void>;
-}
-
-/**
- * Snapshot comparison outcome.
- */
-interface SnapshotResult {
-  name: string;
-  description: string;
-  viewport: string;
-  theme: "light" | "dark";
-  status: "UNCHANGED" | "MODIFIED" | "NEW";
-  diffPixels: number;
-  diffPercentage: number;
-  baselinePath: string | null;
-  currentPath: string;
-  diffPath: string | null;
 }
 
 /** Reveal a deterministic synthetic password for visual checks, then restore Web Crypto. */
@@ -1283,61 +1271,6 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
 }
 
 /**
- * Compare two PNG buffers using pixelmatch.
- *
- * Parameters
- * ----------
- * currentBuf : Buffer
- *     Current screenshot buffer.
- * baselineBuf : Buffer
- *     Baseline screenshot buffer.
- *
- * Returns
- * -------
- * { diffPixels: number, diffPercentage: number, diffPng: PNG | null }
- *     Comparison metrics and optional diff image.
- */
-function compareImages(
-  currentBuf: Buffer,
-  baselineBuf: Buffer,
-): { diffPixels: number; diffPercentage: number; diffPng: PNG | null } {
-  const currentImg = PNG.sync.read(currentBuf);
-  const baselineImg = PNG.sync.read(baselineBuf);
-
-  const width = Math.max(currentImg.width, baselineImg.width);
-  const height = Math.max(currentImg.height, baselineImg.height);
-
-  const diffPng = new PNG({ width, height });
-
-  // Normalize image sizes if necessary
-  const normalizedCurrent = normalizeImage(currentImg, width, height);
-  const normalizedBaseline = normalizeImage(baselineImg, width, height);
-
-  const totalPixels = width * height;
-  const diffPixels = pixelmatch(
-    normalizedCurrent.data,
-    normalizedBaseline.data,
-    diffPng.data,
-    width,
-    height,
-    { threshold: 0.1, alpha: 0.5, diffColor: [255, 0, 80] },
-  );
-
-  const diffPercentage = (diffPixels / totalPixels) * 100;
-  return { diffPixels, diffPercentage, diffPng };
-}
-
-/**
- * Helper to normalize image bounds by padding transparent pixels if dimensions differ.
- */
-function normalizeImage(src: PNG, width: number, height: number): PNG {
-  if (src.width === width && src.height === height) return src;
-  const target = new PNG({ width, height });
-  PNG.bitblt(src, target, 0, 0, src.width, src.height, 0, 0);
-  return target;
-}
-
-/**
  * Generate Markdown snapshot report with links, status, and agent instructions.
  *
  * Parameters
@@ -1413,153 +1346,47 @@ function generateMarkdownReport(results: SnapshotResult[]): string {
   return md;
 }
 
-/**
- * Generate self-contained HTML visual comparison report.
- *
- * Parameters
- * ----------
- * results : SnapshotResult[]
- *     Array of test outcomes.
- *
- * Returns
- * -------
- * string
- *     HTML document string.
- */
-function generateHtmlReport(results: SnapshotResult[]): string {
-  const modified = results.filter((r) => r.status === "MODIFIED").length;
-  const unchanged = results.filter((r) => r.status === "UNCHANGED").length;
+/** Save the Markdown index and HTML gallery pointing to local screenshots. */
+function writeReports(results: SnapshotResult[]): void {
+  for (const [file, contents] of [
+    [REPORT_MD_PATH, generateMarkdownReport(results)],
+    [REPORT_HTML_PATH, generateHtmlReport(results)],
+  ]) {
+    fs.writeFileSync(
+      file,
+      contents.replace(/[ \t]+$/gm, "").trimEnd() + "\n",
+      "utf-8",
+    );
+  }
+  console.log(`📄 Markdown Report: ${REPORT_MD_PATH}`);
+  console.log(`🌐 Local HTML Gallery: ${REPORT_HTML_PATH}`);
+}
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camply UI Snapshot Report</title>
-  <style>
-    :root {
-      --bg: #090d16;
-      --card-bg: #131a29;
-      --text: #f1f5f9;
-      --text-muted: #94a3b8;
-      --border: #1e293b;
-      --accent: #10b981;
-      --warn: #f59e0b;
-      --danger: #ef4444;
-    }
-    body {
-      margin: 0;
-      padding: 2rem;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-    .header {
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 1.5rem;
-      margin-bottom: 2rem;
-    }
-    .stats {
-      display: flex;
-      gap: 1.5rem;
-      margin-top: 1rem;
-    }
-    .stat-badge {
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.875rem;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-      gap: 1.5rem;
-    }
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-    .card-header {
-      padding: 1rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .card-title {
-      font-size: 0.95rem;
-      font-weight: 600;
-      font-family: monospace;
-    }
-    .card-body {
-      padding: 1rem;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    .img-container {
-      width: 100%;
-      background: #000;
-      border-radius: 6px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-    }
-    .img-container img {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-    .status-tag {
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    .status-unchanged { background: rgba(16, 185, 129, 0.2); color: var(--accent); }
-    .status-modified { background: rgba(245, 158, 11, 0.2); color: var(--warn); }
-    .status-new { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>🏕️ Camply UI Snapshot Gallery</h1>
-    <div class="stats">
-      <div class="stat-badge">Total Views: ${results.length}</div>
-      <div class="stat-badge" style="color: var(--accent)">✅ Unchanged: ${unchanged}</div>
-      <div class="stat-badge" style="color: var(--warn)">⚠️ Modified: ${modified}</div>
-    </div>
-  </div>
-  <div class="grid">
-    ${results
-      .map(
-        (r) => `
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">${r.name}</span>
-          <span class="status-tag status-${r.status.toLowerCase()}">${r.status} ${
-            r.status === "MODIFIED" ? `(${r.diffPercentage.toFixed(2)}%)` : ""
-          }</span>
-        </div>
-        <div class="card-body">
-          <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">${r.description}</p>
-          <div class="img-container">
-            <img src="${r.diffPath ? path.relative(SNAPSHOTS_DIR, r.diffPath) : path.relative(SNAPSHOTS_DIR, r.currentPath)}" alt="${r.name}" />
-          </div>
-        </div>
-      </div>
-    `,
-      )
-      .join("")}
-  </div>
-</body>
-</html>`;
+/** Rebuild reports from existing captures without running Vite or a browser. */
+function reportExistingScreenshots(): void {
+  const results = SCENARIOS.flatMap((scenario) => {
+    const currentPath = path.join(CURRENT_DIR, `${scenario.name}.png`);
+    if (!fs.existsSync(currentPath)) return [];
+    return [
+      recordSnapshot(
+        SNAPSHOTS_DIR,
+        {
+          name: scenario.name,
+          description: scenario.description,
+          viewport: `${scenario.viewport.width}x${scenario.viewport.height}`,
+          theme: scenario.theme,
+        },
+        fs.readFileSync(currentPath),
+        { createBaseline: false },
+      ),
+    ];
+  });
+  if (!results.length)
+    throw new Error("No saved captures found. Run task snapshot first.");
+  console.log(
+    `Comparing ${results.length} of ${SCENARIOS.length} saved screenshot views.`,
+  );
+  writeReports(results);
 }
 
 /**
@@ -1569,6 +1396,10 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const isUpdate = args.includes("--update");
   const isCheck = args.includes("--check");
+  if (args.includes("--report-only")) {
+    reportExistingScreenshots();
+    return;
+  }
 
   // Ensure directories exist
   [SNAPSHOTS_DIR, BASELINES_DIR, CURRENT_DIR, DIFFS_DIR].forEach((dir) => {
@@ -1604,105 +1435,38 @@ async function main(): Promise<void> {
       process.stdout.write(`  ⏳ Capturing [${scenario.name}]... `);
       await preparePage(page, scenario);
 
-      const currentPath = path.join(CURRENT_DIR, `${scenario.name}.png`);
-      const baselinePath = path.join(BASELINES_DIR, `${scenario.name}.png`);
-      const diffPath = path.join(DIFFS_DIR, `${scenario.name}-diff.png`);
-
       const screenshotBuf = await page.screenshot({ fullPage: true });
-      fs.writeFileSync(currentPath, screenshotBuf);
-
-      const baselineExists = fs.existsSync(baselinePath);
-
-      if (!baselineExists || isUpdate) {
-        fs.writeFileSync(baselinePath, screenshotBuf);
-        if (fs.existsSync(diffPath)) fs.unlinkSync(diffPath);
-
-        results.push({
+      const result = recordSnapshot(
+        SNAPSHOTS_DIR,
+        {
           name: scenario.name,
           description: scenario.description,
           viewport: `${scenario.viewport.width}x${scenario.viewport.height}`,
           theme: scenario.theme,
-          status: baselineExists && isUpdate ? "UNCHANGED" : "NEW",
-          diffPixels: 0,
-          diffPercentage: 0,
-          baselinePath,
-          currentPath,
-          diffPath: null,
-        });
-
-        console.log(
-          baselineExists && isUpdate ? "🔄 UPDATED" : "🆕 NEW BASELINE",
-        );
-      } else {
-        const baselineBuf = fs.readFileSync(baselinePath);
-        const { diffPixels, diffPercentage, diffPng } = compareImages(
-          screenshotBuf,
-          baselineBuf,
-        );
-
-        if (diffPercentage > 0.05 && diffPixels > 10) {
-          if (diffPng) {
-            fs.writeFileSync(diffPath, PNG.sync.write(diffPng));
-          }
-          results.push({
-            name: scenario.name,
-            description: scenario.description,
-            viewport: `${scenario.viewport.width}x${scenario.viewport.height}`,
-            theme: scenario.theme,
-            status: "MODIFIED",
-            diffPixels,
-            diffPercentage,
-            baselinePath,
-            currentPath,
-            diffPath,
-          });
-          console.log(`⚠️ MODIFIED (${diffPercentage.toFixed(2)}% diff)`);
-        } else {
-          if (fs.existsSync(diffPath)) fs.unlinkSync(diffPath);
-          results.push({
-            name: scenario.name,
-            description: scenario.description,
-            viewport: `${scenario.viewport.width}x${scenario.viewport.height}`,
-            theme: scenario.theme,
-            status: "UNCHANGED",
-            diffPixels: 0,
-            diffPercentage: 0,
-            baselinePath,
-            currentPath,
-            diffPath: null,
-          });
-          console.log("✅ MATCH");
-        }
-      }
+        },
+        screenshotBuf,
+        { update: isUpdate },
+      );
+      results.push(result);
+      console.log(
+        isUpdate
+          ? `🔄 UPDATED (${result.status.toLowerCase()})`
+          : result.status === "MODIFIED"
+            ? `⚠️ MODIFIED (${result.diffPercentage.toFixed(2)}% diff)`
+            : result.status === "NEW"
+              ? "🆕 NEW BASELINE"
+              : "✅ MATCH",
+      );
     }
 
-    // Write reports
-    const markdownReport = generateMarkdownReport(results);
-    fs.writeFileSync(
-      REPORT_MD_PATH,
-      markdownReport.replace(/[ \t]+$/gm, "").trimEnd() + "\n",
-      "utf-8",
-    );
-
-    const htmlReport = generateHtmlReport(results);
-    fs.writeFileSync(
-      REPORT_HTML_PATH,
-      htmlReport.replace(/[ \t]+$/gm, "").trimEnd() + "\n",
-      "utf-8",
-    );
-
-    console.log(
-      "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-    );
-    console.log("📋 Snapshot Execution Complete!");
-    console.log(`📄 Markdown Report: ${REPORT_MD_PATH}`);
-    console.log(`🌐 HTML Gallery:    ${REPORT_HTML_PATH}`);
-    console.log(
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
-    );
+    writeReports(results);
 
     const modifiedViews = results.filter((r) => r.status === "MODIFIED");
-    if (modifiedViews.length > 0) {
+    if (isUpdate) {
+      console.log(
+        `Accepted baselines. The HTML gallery preserves the comparison for ${modifiedViews.length} modified views.`,
+      );
+    } else if (modifiedViews.length > 0) {
       console.log(
         `⚠️  Detected ${modifiedViews.length} visually modified view(s):`,
       );
