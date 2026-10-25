@@ -10,7 +10,7 @@
     "lint": "oxlint src functions --report-unused-disable-directives --max-warnings 0 && oxfmt --check .",
     "fix": "oxlint src functions --fix && oxfmt .",
     "preview": "vite preview --config vite.config.ts",
-    "typecheck": "node node_modules/@typescript/native/bin/tsc --project tsconfig.json --noEmit",
+    "typecheck": "node node_modules/@typescript/native/bin/tsc --project tsconfig.json --noEmit && node node_modules/@typescript/native/bin/tsc --project tsconfig.snapshots.json --noEmit",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",

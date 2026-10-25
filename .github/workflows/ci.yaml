@@ -140,6 +140,7 @@ jobs:
       - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
       - uses: ./.github/actions/setup-frontend
       - run: task frontend:browser:install
+      - run: task snapshot:verify
       - run: task snapshot:check
         env:
           GITHUB_REPOSITORY: ""
@@ -153,6 +154,8 @@ jobs:
             frontend/snapshots/report.html
             frontend/snapshots/diffs/
             frontend/snapshots/current/
+            frontend/snapshots/before/
+            frontend/tmp/snapshot-gallery/
           if-no-files-found: ignore
 
   frontend-docker:

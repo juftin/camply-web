@@ -98,3 +98,15 @@ tasks:
     cmds:
       - pnpm run snapshot:check
     deps: [install]
+
+  snapshot:report:
+    desc: Generate a portable comparison gallery without capturing screenshots
+    cmds:
+      - pnpm exec tsx scripts/run-snapshots.ts --report-only
+    deps: [install]
+
+  snapshot:verify:
+    desc: Verify the local HTML gallery without a server or network
+    cmds:
+      - pnpm exec tsx scripts/verify-snapshot-gallery.ts
+    deps: [install]
