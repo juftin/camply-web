@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScanForm } from "@/components/ScanForm";
+import { FoundCampsites } from "@/components/FoundCampsites";
 import { useScanDetail } from "@/hooks/useScans";
 import {
   toTitleCase,
@@ -28,7 +29,13 @@ import {
 export function ScanDetail() {
   const { scanId } = useParams<{ scanId: string }>();
   const navigate = useNavigate();
-  const { data: scan, isLoading, error } = useScanDetail(scanId ?? null);
+  const {
+    data: scan,
+    isLoading,
+    error,
+    refetch,
+    isFetching,
+  } = useScanDetail(scanId ?? null);
 
   if (isLoading) {
     return (
@@ -40,7 +47,7 @@ export function ScanDetail() {
     );
   }
 
-  if (error || !scan) {
+  if (!scan) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card>
@@ -51,6 +58,13 @@ export function ScanDetail() {
             </p>
             <Button variant="outline" onClick={() => navigate("/dashboard")}>
               Back to Dashboard
+            </Button>
+            <Button
+              className="mt-3"
+              disabled={isFetching}
+              onClick={() => refetch()}
+            >
+              Try again
             </Button>
           </CardContent>
         </Card>
@@ -95,6 +109,20 @@ export function ScanDetail() {
       </div>
 
       <div className="grid gap-6">
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            Could not refresh availability. Showing the last loaded results.{" "}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isFetching}
+              onClick={() => refetch()}
+            >
+              Try again
+            </Button>
+          </p>
+        )}
+        <FoundCampsites key={scan.id} scan={scan} />
         {/* Overview */}
         <Card>
           <CardHeader>
@@ -166,49 +194,6 @@ export function ScanDetail() {
                 </Badge>
               )}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Results */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Results</CardTitle>
-            <CardDescription>
-              Campsites found matching your criteria
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {(scan.results ?? []).length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                No results yet. Check back soon — the scanner runs periodically.
-              </p>
-            ) : (
-              <div className="divide-y">
-                {(scan.results ?? []).map((result) => (
-                  <div
-                    key={result.campsite_id}
-                    className="py-3 first:pt-0 last:pb-0"
-                  >
-                    <p className="font-medium text-sm">
-                      {result.campsite_name || result.campsite_id}
-                    </p>
-                    {result.available_dates.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {result.available_dates.map((date) => (
-                          <Badge
-                            key={date}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {date}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>

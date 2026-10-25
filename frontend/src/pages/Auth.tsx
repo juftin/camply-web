@@ -17,22 +17,27 @@ import {
 import { Link, useSearchParams, useNavigate, Navigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
+import { authReturnTo } from "@/lib/authRedirect";
 function Auth0Content() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { loginWithRedirect } = useAuth0();
   const { isReady, user, signupEnabled } = useAuth();
   const isSignUp = signupEnabled && searchParams.get("mode") === "signup";
+  const returnTo = authReturnTo(searchParams.get("returnTo"));
 
-  // Redirect authenticated users to dashboard.
+  // Restore the destination from the notification after signing in.
   React.useEffect(() => {
     if (isReady && user) {
-      navigate("/dashboard", { replace: true });
+      navigate(returnTo, { replace: true });
     }
-  }, [isReady, user, navigate]);
+  }, [isReady, user, navigate, returnTo]);
 
   const handleLogin = () => {
     loginWithRedirect({
+      appState: {
+        returnTo: `${import.meta.env.BASE_URL.replace(/\/$/, "")}${returnTo}`,
+      },
       authorizationParams: {
         screen_hint: "login",
       },
@@ -41,6 +46,9 @@ function Auth0Content() {
 
   const handleSignUp = () => {
     loginWithRedirect({
+      appState: {
+        returnTo: `${import.meta.env.BASE_URL.replace(/\/$/, "")}${returnTo}`,
+      },
       authorizationParams: {
         screen_hint: "signup",
       },
@@ -89,7 +97,7 @@ function Auth0Content() {
                       : "Don't have an account?"}
                   </span>{" "}
                   <Link
-                    to={isSignUp ? "/auth" : "/auth?mode=signup"}
+                    to={`/auth?${new URLSearchParams({ ...(isSignUp ? {} : { mode: "signup" }), returnTo })}`}
                     className="text-primary hover:text-primary/80 font-medium"
                   >
                     {isSignUp ? "Sign in" : "Sign up"}
@@ -117,6 +125,8 @@ function Auth0Content() {
 
 function SessionContent() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = authReturnTo(searchParams.get("returnTo"));
   const queryClient = useQueryClient();
   const { isReady, user, isLoading } = useAuth();
   const [loginError, setLoginError] = React.useState<string | null>(null);
@@ -125,9 +135,9 @@ function SessionContent() {
   // Redirect if already logged in
   React.useEffect(() => {
     if (isReady && user) {
-      navigate("/dashboard", { replace: true });
+      navigate(returnTo, { replace: true });
     }
-  }, [isReady, user, navigate]);
+  }, [isReady, user, navigate, returnTo]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -143,7 +153,7 @@ function SessionContent() {
     try {
       const profile = await loginSession(username, password);
       queryClient.setQueryData(["me"], profile);
-      navigate("/dashboard", { replace: true });
+      navigate(returnTo, { replace: true });
     } catch (err) {
       const axiosError = err as AxiosError;
       if (axiosError?.response?.status === 401) {
@@ -229,8 +239,10 @@ function SessionContent() {
 
 export function Auth() {
   const { authMode, autoLogin } = useAuth();
+  const [searchParams] = useSearchParams();
 
-  if (autoLogin) return <Navigate to="/dashboard" replace />;
+  if (autoLogin)
+    return <Navigate to={authReturnTo(searchParams.get("returnTo"))} replace />;
 
   return authMode === "session" ? <SessionContent /> : <Auth0Content />;
 }
