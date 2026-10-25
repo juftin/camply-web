@@ -7,6 +7,11 @@
     <title>Camply Screenshot Comparison</title>
     <style>
       :root {
+        --image-background: repeating-conic-gradient(
+            #1e293b 0% 25%,
+            #273449 0% 50%
+          )
+          0 0 / 16px 16px;
         color-scheme: dark;
         font-family: system-ui, sans-serif;
         background: #0b1120;
@@ -138,8 +143,7 @@
         overflow: auto;
         max-height: 620px;
         border-top: 1px solid #334155;
-        background: repeating-conic-gradient(#1e293b 0% 25%, #273449 0% 50%) 0
-          0 / 16px 16px;
+        background: var(--image-background);
       }
       .pair {
         display: grid;
@@ -160,6 +164,18 @@
         width: 100%;
         height: auto;
       }
+      .image-canvas,
+      .overlay {
+        aspect-ratio: var(--canvas-ratio);
+      }
+      .before,
+      .overlay-before {
+        width: var(--before-width);
+      }
+      .after,
+      .overlay-after {
+        width: var(--after-width);
+      }
       .no-before {
         padding: 24px;
         background: #111a2c;
@@ -168,6 +184,7 @@
         position: relative;
       }
       .after-layer {
+        background: var(--image-background);
         position: absolute;
         inset: 0;
         clip-path: inset(0 0 0 var(--split, 50%));
@@ -224,7 +241,7 @@
       <h1>Camply Screenshot Comparison</h1>
       <p>
         Compare the baseline before a change with the latest capture. This file
-        includes every image and works offline.
+        reads screenshots from local files beside this report.
       </p>
       <div id="summary" aria-label="Snapshot summary"></div>
       <div class="toolbar">
@@ -282,14 +299,18 @@
           <div class="pair">
             <figure>
               <figcaption>Before · baseline</figcaption>
-              <img class="before" loading="lazy" />
+              <div class="image-canvas before-canvas">
+                <img class="before" loading="lazy" />
+              </div>
               <p class="no-before" hidden>
                 No baseline existed for this screenshot.
               </p>
             </figure>
             <figure>
               <figcaption>After · current</figcaption>
-              <img class="after" loading="lazy" />
+              <div class="image-canvas">
+                <img class="after" loading="lazy" />
+              </div>
             </figure>
           </div>
           <div class="overlay" hidden>
@@ -342,6 +363,19 @@
         heading.id = `snapshot-${index}`;
         heading.textContent = snapshot.name;
         card.setAttribute("aria-labelledby", heading.id);
+        card.style.setProperty(
+          "--canvas-ratio",
+          `${snapshot.width} / ${snapshot.height}`,
+        );
+        card.style.setProperty(
+          "--before-width",
+          `${(snapshot.beforeWidth / snapshot.width) * 100}%`,
+        );
+        card.style.setProperty(
+          "--after-width",
+          `${(snapshot.afterWidth / snapshot.width) * 100}%`,
+        );
+        card.querySelector(".before-canvas").hidden = !snapshot.beforeImage;
         card.querySelector(".description").textContent = snapshot.description;
         card.querySelector(".metadata").textContent =
           `${snapshot.viewport} · ${snapshot.theme} theme`;

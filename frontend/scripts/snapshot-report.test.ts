@@ -34,7 +34,7 @@ afterEach(() => {
     fs.rmSync(value, { recursive: true, force: true });
 });
 
-describe("portable screenshot reports", () => {
+describe("local screenshot reports", () => {
   it("retains the old baseline and comparison after accepting an update", () => {
     const root = directory();
     const before = image(0);
@@ -48,12 +48,15 @@ describe("portable screenshot reports", () => {
     );
     expect(fs.readFileSync(result.baselinePath!)).toEqual(before);
     expect(result.beforeImage).not.toBe(result.afterImage);
-    expect(result.diffImage).toMatch(/^data:image\/png;base64,/);
+    expect(result.diffImage).toBe("diffs/sample-diff.png");
     const html = generateHtmlReport([result]);
-    fs.rmSync(root, { recursive: true, force: true });
     expect(html).toContain(result.beforeImage!);
     expect(html).toContain(result.afterImage);
     expect(html).not.toContain(root);
+    expect(result.beforeImage).toBe("before/sample.png");
+    expect(result.afterImage).toBe("current/sample.png");
+    expect(html).not.toContain("data:image/");
+    expect(html).not.toContain(after.toString("base64"));
     expect(html).not.toMatch(/(?:src|href)="https?:/);
   });
 
@@ -90,10 +93,24 @@ describe("portable screenshot reports", () => {
     recordSnapshot(root, scenario, image(0, 20, 20));
     const result = recordSnapshot(root, scenario, image(255, 30, 40));
     expect(result.status).toBe("MODIFIED");
-    for (const value of [result.beforeImage!, result.afterImage]) {
-      const png = PNG.sync.read(Buffer.from(value.split(",")[1], "base64"));
-      expect([png.width, png.height]).toEqual([30, 40]);
-    }
+    expect([result.width, result.height]).toEqual([30, 40]);
+    expect([result.beforeWidth, result.afterWidth]).toEqual([20, 30]);
+    expect(
+      PNG.sync.read(fs.readFileSync(path.join(root, result.beforeImage!))),
+    ).toMatchObject({ width: 20, height: 20 });
+    expect(
+      PNG.sync.read(fs.readFileSync(path.join(root, result.afterImage))),
+    ).toMatchObject({ width: 30, height: 40 });
+  });
+
+  it("encodes local filenames without turning spaces or hashes into URL syntax", () => {
+    const root = directory();
+    const metadata = { ...scenario, name: "sample space#view" };
+    recordSnapshot(root, metadata, image(0));
+    const result = recordSnapshot(root, metadata, image(255));
+    expect(result.beforeImage).toBe("before/sample%20space%23view.png");
+    expect(result.afterImage).toBe("current/sample%20space%23view.png");
+    expect(result.diffImage).toBe("diffs/sample%20space%23view-diff.png");
   });
 
   it("escapes metadata so it cannot break out of the embedded JSON", () => {

@@ -78,7 +78,7 @@ tasks:
       - task: frontend:snapshot:check
 
   snapshot:report:
-    desc: Generate a standalone before/after gallery from saved screenshots
+    desc: Generate a before/after gallery linked to saved screenshots
     cmds:
       - task: frontend:snapshot:report
 

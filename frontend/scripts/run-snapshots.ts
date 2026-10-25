@@ -1312,7 +1312,7 @@ function generateMarkdownReport(results: SnapshotResult[]): string {
   return md;
 }
 
-/** Save the Markdown index and standalone HTML comparison gallery. */
+/** Save the Markdown index and HTML gallery pointing to local screenshots. */
 function writeReports(results: SnapshotResult[]): void {
   for (const [file, contents] of [
     [REPORT_MD_PATH, generateMarkdownReport(results)],
@@ -1325,7 +1325,7 @@ function writeReports(results: SnapshotResult[]): void {
     );
   }
   console.log(`📄 Markdown Report: ${REPORT_MD_PATH}`);
-  console.log(`🌐 Standalone HTML Gallery: ${REPORT_HTML_PATH}`);
+  console.log(`🌐 Local HTML Gallery: ${REPORT_HTML_PATH}`);
 }
 
 /** Rebuild reports from existing captures without running Vite or a browser. */

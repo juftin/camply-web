@@ -1,4 +1,4 @@
-/** Compare screenshot captures and export a portable, offline HTML gallery. */
+/** Compare screenshot captures and generate an HTML gallery of local PNG files. */
 import fs from "node:fs";
 import path from "node:path";
 import pixelmatch from "pixelmatch";
@@ -18,6 +18,10 @@ export interface SnapshotResult {
   beforeImage: string | null;
   afterImage: string;
   diffImage: string | null;
+  width: number;
+  height: number;
+  beforeWidth: number;
+  afterWidth: number;
 }
 
 type SnapshotMetadata = Pick<
@@ -33,9 +37,13 @@ function normalizeImage(source: PNG, width: number, height: number): PNG {
   return target;
 }
 
-/** Embed image bytes so a report never depends on the capture directory. */
-function imageUrl(buffer: Buffer): string {
-  return `data:image/png;base64,${buffer.toString("base64")}`;
+/** Link to an image beside the report, preserving special filename characters. */
+function imageUrl(snapshotsDir: string, imagePath: string): string {
+  return path
+    .relative(snapshotsDir, imagePath)
+    .split(path.sep)
+    .map(encodeURIComponent)
+    .join("/");
 }
 
 /** Preserve the before image before optionally accepting the current baseline. */
@@ -80,8 +88,12 @@ export function recordSnapshot(
     currentPath,
     diffPath: null,
     beforeImage: null,
-    afterImage: imageUrl(currentBuffer),
+    afterImage: imageUrl(snapshotsDir, currentPath),
     diffImage: null,
+    width: current.width,
+    height: current.height,
+    beforeWidth: 0,
+    afterWidth: current.width,
   };
   if (baselineBuffer) {
     fs.writeFileSync(beforePath, baselineBuffer);
@@ -104,8 +116,10 @@ export function recordSnapshot(
       },
     );
     const percentage = (pixels / (width * height)) * 100;
-    result.beforeImage = imageUrl(PNG.sync.write(before));
-    result.afterImage = imageUrl(PNG.sync.write(after));
+    result.beforeImage = imageUrl(snapshotsDir, beforePath);
+    result.width = width;
+    result.height = height;
+    result.beforeWidth = baseline.width;
     if (
       (percentage > 0.05 && pixels > 10) ||
       current.width !== baseline.width ||
@@ -117,7 +131,7 @@ export function recordSnapshot(
       result.diffPixels = pixels;
       result.diffPercentage = percentage;
       result.diffPath = diffPath;
-      result.diffImage = imageUrl(diffBuffer);
+      result.diffImage = imageUrl(snapshotsDir, diffPath);
     }
   } else {
     fs.rmSync(beforePath, { force: true });
@@ -129,7 +143,7 @@ export function recordSnapshot(
   return result;
 }
 
-/** Export one local HTML file with inline controls, styles, metadata and PNGs. */
+/** Generate a local HTML viewer with relative links to the comparison images. */
 export function generateHtmlReport(results: SnapshotResult[]): string {
   const template = fs.readFileSync(
     new URL("./snapshot-gallery.html", import.meta.url),
@@ -146,6 +160,10 @@ export function generateHtmlReport(results: SnapshotResult[]): string {
       beforeImage,
       afterImage,
       diffImage,
+      width,
+      height,
+      beforeWidth,
+      afterWidth,
     }) => ({
       name,
       description,
@@ -156,6 +174,10 @@ export function generateHtmlReport(results: SnapshotResult[]): string {
       beforeImage,
       afterImage,
       diffImage,
+      width,
+      height,
+      beforeWidth,
+      afterWidth,
     }),
   );
   const data = JSON.stringify(comparisons).replace(

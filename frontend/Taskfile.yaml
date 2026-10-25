@@ -100,7 +100,7 @@ tasks:
     deps: [install]
 
   snapshot:report:
-    desc: Generate a portable comparison gallery without capturing screenshots
+    desc: Generate a local comparison gallery without capturing screenshots
     cmds:
       - pnpm exec tsx scripts/run-snapshots.ts --report-only
     deps: [install]

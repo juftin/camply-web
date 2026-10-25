@@ -1,4 +1,4 @@
-/** Verify portable screenshot comparisons through file:// with synthetic captures. */
+/** Verify screenshot comparisons load local PNG files through file://. */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -33,6 +33,7 @@ async function main(): Promise<void> {
     page.setDefaultTimeout(10000);
     await page.setContent(samplePage(false));
     const before = await page.screenshot();
+    await page.setViewportSize({ width: 580, height: 400 });
     await page.setContent(samplePage(true));
     const after = await page.screenshot();
     const source = path.join(temporary, "source");
@@ -58,9 +59,13 @@ async function main(): Promise<void> {
     );
     const report = path.join(temporary, "export", "report.html");
     fs.mkdirSync(path.dirname(report));
-    fs.writeFileSync(report, generateHtmlReport([changed, unchanged, added]));
+    fs.writeFileSync(
+      path.join(source, "report.html"),
+      generateHtmlReport([changed, unchanged, added]),
+    );
+    fs.cpSync(source, path.dirname(report), { recursive: true });
     fs.rmSync(source, { recursive: true, force: true });
-    fs.copyFileSync(report, path.join(output, "report.html"));
+    fs.cpSync(path.dirname(report), output, { recursive: true });
 
     const networkRequests: string[] = [];
     const errors: string[] = [];
@@ -86,11 +91,27 @@ async function main(): Promise<void> {
       await page
         .locator("img[src]")
         .evaluateAll((images) =>
-          images.every((image) =>
-            image.getAttribute("src")?.startsWith("data:image/png;base64,"),
+          images.every(
+            (image) =>
+              /^(before|current|diffs)\//.test(
+                image.getAttribute("src") ?? "",
+              ) &&
+              image instanceof HTMLImageElement &&
+              image.src.startsWith("file:"),
           ),
         ),
       true,
+    );
+    await page.locator("img[src]").evaluateAll((images) =>
+      Promise.all(
+        images.map((image) => {
+          if (image instanceof HTMLImageElement) {
+            image.loading = "eager";
+            return image.decode();
+          }
+          return undefined;
+        }),
+      ),
     );
     const card = page.getByRole("article", {
       name: "campsite-results",
@@ -100,6 +121,16 @@ async function main(): Promise<void> {
       .locator(".pair img")
       .first()
       .evaluate((image) => (image as HTMLImageElement).decode());
+    await card
+      .locator(".pair .after")
+      .evaluate((image) => (image as HTMLImageElement).decode());
+    const beforeBounds = await card.locator(".pair .before").boundingBox();
+    const afterBounds = await card.locator(".pair .after").boundingBox();
+    assert.ok(beforeBounds && afterBounds);
+    assert.ok(
+      Math.abs(afterBounds.width / beforeBounds.width - 580 / 620) < 0.01,
+    );
+    assert.ok(Math.abs(beforeBounds.y - afterBounds.y) < 1);
     await page.getByLabel("Status", { exact: true }).selectOption("MODIFIED");
     await expect(page.getByRole("status")).toHaveText("1 of 3 screenshots");
     await page.screenshot({
