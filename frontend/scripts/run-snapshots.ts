@@ -513,6 +513,20 @@ const SCENARIOS: Scenario[] = [
     description:
       "Scan details view displaying found campsites and polling status (Desktop, Light)",
   },
+  ...(["light", "dark"] as const).map((theme) => ({
+    name: `scan-detail-mobile-${theme}`,
+    route: "/dashboard/scans/scan-mock-1",
+    viewport: { width: 375, height: 812 },
+    theme,
+    description: `Found campsites with consecutive stays and booking actions (Mobile, ${theme})`,
+  })),
+  {
+    name: "scan-detail-desktop-dark",
+    route: "/dashboard/scans/scan-mock-1",
+    viewport: { width: 1280, height: 800 },
+    theme: "dark",
+    description: "Found campsite list with booking actions (Desktop, Dark)",
+  },
   {
     name: "home-search-dropdown-desktop-light",
     route: "/",
@@ -963,16 +977,36 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
       contentType: "application/json",
       body: JSON.stringify({
         ...MOCK_SCANS[0],
+        found_count: 2,
+        start_date: "2026-11-15",
+        end_date: "2026-11-21",
+        last_checked_at: "2026-10-10T11:59:40Z",
+        preferred_types: [],
         results: [
           {
             campsite_id: "site-401",
             campsite_name: "Upper Pines Site 042",
-            available_dates: ["2026-07-15", "2026-07-16"],
+            campsite_type: "RV",
+            is_electric: true,
+            is_accessible: true,
+            booking_url:
+              "https://www.recreation.gov/camping/campgrounds/232447",
+            available_dates: [
+              "2026-11-15",
+              "2026-11-16",
+              "2026-11-19",
+              "2026-11-20",
+            ],
           },
           {
             campsite_id: "site-402",
             campsite_name: "Upper Pines Site 048",
-            available_dates: ["2026-07-17", "2026-07-18"],
+            campsite_type: "TENT",
+            is_electric: false,
+            is_accessible: false,
+            booking_url:
+              "https://www.recreation.gov/camping/campgrounds/232447",
+            available_dates: ["2026-11-17", "2026-11-18"],
           },
         ],
       }),

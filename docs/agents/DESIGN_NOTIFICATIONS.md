@@ -39,7 +39,8 @@ The data structure sent to the notification providers.
 
 - `title`: `String` (e.g., "Campsite Available: Yosemite")
 - `message`: `String` (Detailed description including dates and site info)
-- `booking_url`: `String` (Direct link to book)
+- `booking_url`: `String` (Camply scan-results link in summary mode; provider booking link in direct mode)
+- `url_title`: `String` (`View campsites` for summaries; defaults to `Book Now` for direct and previously queued payloads)
 - `park_name`: `String`
 - `campsite_name`: `String`
 - `start_date`: `Date`
@@ -56,16 +57,22 @@ The **Smart Poller** identifies a match between a `ScanResult` and a `UserScan`.
 
 ### 2. Dispatch
 
-The worker enqueues a Celery task: `send_notification_task(user_id, notification_dto)`.
+The worker defaults to **one summary per saved scan per check** containing new matching openings. It enqueues `camply.notifications.send_pushover_notification` with the user ID, serialized DTO and scan ID. The summary counts newly opened matching sites and links to `{CAMPLY_APP_URL}/dashboard/scans/{scan_id}#results`, preserving any frontend path prefix. Separate saved scans receive separate summaries.
+
+`CAMPLY_NOTIFICATION_MODE=direct` preserves individual site alerts with provider booking links for local deployments. `summary` is the default in every environment. Both modes apply the same site preferences and minimum consecutive stay as the API. Newly available nights outside qualifying stay blocks do not trigger alerts. Unchanged openings remain silent; openings can alert again after disappearing and returning.
+
+Snapshots retain campsite names, types and electric/accessibility attributes, so opening a summary requires no live provider request. The list represents the latest successful check, not a permanent history; availability may change before booking.
 
 ### 3. Delivery
 
 The `send_notification_task` does the following:
 
-1. Fetches the user's `pushover_token` or other configured provider keys from the DB.
+1. Fetches the user's `pushover_token` or other configured provider keys from the DB, revalidates scan ownership and active state, and skips suspended users.
 2. Selects the appropriate `BaseNotificationProvider`.
 3. Calls `provider.send_alert(user_config, notification_dto)`.
-4. Logs the delivery status in a `notification_history` table (Optional/Future).
+4. Records successful delivery in metrics. A `notification_history` table remains optional/future work.
+
+See the [implementation plan](../../specs/009-campsite-alerts/plan.md) and [configuration](CONFIGURATION.md) for deployment settings and migration requirements.
 
 ---
 

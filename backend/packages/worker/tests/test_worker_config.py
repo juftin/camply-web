@@ -3,8 +3,36 @@ Unit tests for WorkerConfig timing and interval settings.
 """
 
 import pytest
+from pydantic import ValidationError
 
 from worker.config import WorkerConfig
+
+
+def test_notification_defaults_and_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Default to summaries and allow operator-configured booking links."""
+    monkeypatch.delenv("CAMPLY_NOTIFICATION_MODE", raising=False)
+    assert WorkerConfig().notification_mode == "summary"
+    monkeypatch.setenv("CAMPLY_NOTIFICATION_MODE", "direct")
+    monkeypatch.setenv("CAMPLY_APP_URL", "https://camply.example/prefix/")
+    config = WorkerConfig()
+    assert config.notification_mode == "direct"
+    assert str(config.app_url) == "https://camply.example/prefix/"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "ftp://camply.example",
+        "/relative",
+        "https://camply.example?query=1",
+        "https://camply.example#hash",
+    ],
+)
+def test_invalid_app_url(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    """Reject non-HTTP URLs and query/fragment bases that would corrupt links."""
+    monkeypatch.setenv("CAMPLY_APP_URL", value)
+    with pytest.raises(ValidationError):
+        WorkerConfig()
 
 
 class TestWorkerConfigTiming:

@@ -27,7 +27,8 @@ class TestPushoverProvider:
     """Tests for PushoverProvider notification sending."""
 
     @pytest.mark.anyio
-    async def test_send_alert_success(self) -> None:
+    @pytest.mark.parametrize("url_title", ["Book Now", "View campsites"])
+    async def test_send_alert_success(self, url_title: str) -> None:
         """send_alert should POST to Pushover API and log success."""
         provider = PushoverProvider()
         user_config = {"user_key": "test_user_key_abc123"}
@@ -36,6 +37,7 @@ class TestPushoverProvider:
             title="Test Alert",
             message="A test notification",
             booking_url="https://example.com/book",
+            url_title=url_title,
             park_name="Test Park",
             campsite_name="Site 1",
             start_date=datetime.date(2026, 9, 1),
@@ -59,6 +61,8 @@ class TestPushoverProvider:
                 assert call_kwargs["json"]["token"] == "test_app_token"
                 assert call_kwargs["json"]["user"] == "test_user_key_abc123"
                 assert call_kwargs["json"]["title"] == "Test Alert"
+                assert call_kwargs["json"]["url_title"] == url_title
+                assert call_kwargs["json"]["url"] == payload.booking_url
 
     @pytest.mark.anyio
     async def test_send_alert_no_user_key_skips(self) -> None:

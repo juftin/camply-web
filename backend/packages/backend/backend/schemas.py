@@ -139,6 +139,10 @@ class ScanResultItem(BaseModel):
     campsite_id: str
     campsite_name: str = ""
     available_dates: list[str] = Field(default_factory=list)
+    campsite_type: str | None = None
+    is_electric: bool | None = None
+    is_accessible: bool | None = None
+    booking_url: str = ""
 
 
 class ScanResponse(BaseModel):

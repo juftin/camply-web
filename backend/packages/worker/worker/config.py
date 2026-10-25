@@ -2,9 +2,9 @@
 Worker Configuration via pydantic-settings
 """
 
-from typing import ClassVar, Optional
+from typing import ClassVar, Literal, Optional
 
-from pydantic import Field
+from pydantic import Field, HttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,6 +27,22 @@ class WorkerConfig(BaseSettings):
 
     # Deployment
     environment: str = "local"
+
+    notification_mode: Literal["summary", "direct"] = "summary"
+    """Summarize new matches per scan, or send individual provider booking links."""
+
+    app_url: HttpUrl = HttpUrl("https://camply.juftin.dev")
+    """Public frontend URL, including any deployment path prefix, for alerts."""
+
+    @field_validator("app_url")
+    @classmethod
+    def validate_app_url(cls, value: HttpUrl) -> HttpUrl:
+        """Require a base URL so scan paths can be appended without ambiguity."""
+        if value.query or value.fragment or value.username or value.password:
+            raise ValueError(
+                "app_url must not include credentials, a query, or a fragment"
+            )
+        return value
 
     # Heartbeat interval for target discovery (seconds)
     heartbeat_interval: int = Field(

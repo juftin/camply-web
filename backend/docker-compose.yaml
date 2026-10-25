@@ -113,6 +113,8 @@ services:
       PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
       CAMPLY_PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
       PUSHOVER_APP_TOKEN: ${PUSHOVER_APP_TOKEN:-}
+      CAMPLY_NOTIFICATION_MODE: ${CAMPLY_NOTIFICATION_MODE:-summary}
+      CAMPLY_APP_URL: ${CAMPLY_APP_URL:-http://localhost:5173}
       SKIP_MIGRATIONS: "1"
     restart: unless-stopped
 

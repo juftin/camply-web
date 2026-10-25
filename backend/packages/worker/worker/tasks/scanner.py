@@ -10,6 +10,7 @@ from typing import Any, Optional
 import structlog
 from sqlalchemy import delete, func, select
 
+from db.availability import matches_scan_filters, matching_available_dates
 from db.config import db
 from db.eligibility import eligible_scan_condition
 from db.models import Campground, ScanResult, UniqueTarget, User, UserScan
@@ -32,23 +33,6 @@ from worker.notifications.base import NotificationDTO
 logger = structlog.getLogger(__name__)
 
 
-def _longest_consecutive(dates: list[datetime.date]) -> int:
-    """Find the longest consecutive streak of dates."""
-    if not dates:
-        return 0
-    sorted_dates = sorted(dates)
-    longest = 1
-    current = 1
-    for i in range(1, len(sorted_dates)):
-        delta = (sorted_dates[i] - sorted_dates[i - 1]).days
-        if delta == 1:
-            current += 1
-            longest = max(longest, current)
-        else:
-            current = 1
-    return longest
-
-
 def _matches_scan_filters(campsite: CampsiteDTO, scan: UserScan) -> bool:
     """
     Check whether a campsite matches a user's scan filters.
@@ -58,22 +42,12 @@ def _matches_scan_filters(campsite: CampsiteDTO, scan: UserScan) -> bool:
       - preferred_types: if set, campsite_type must be in the list
       - require_electric: if True, campsite must have electric hookup
     """
-    # Minimum stay length: check for a consecutive block of N nights
-    if scan.min_stay_length and scan.min_stay_length > 1:
-        consec = _longest_consecutive(campsite.available_dates)
-        if consec < scan.min_stay_length:
-            return False
-
-    # Preferred campsite types
-    if scan.preferred_types:
-        if campsite.campsite_type.value not in scan.preferred_types:
-            return False
-
-    # Electric required
-    if scan.require_electric and not campsite.is_electric:
-        return False
-
-    return True
+    return matches_scan_filters(
+        [night.isoformat() for night in campsite.available_dates],
+        campsite_type=campsite.campsite_type.value,
+        is_electric=campsite.is_electric,
+        scan=scan,
+    )
 
 
 @celery_app.task(
@@ -283,6 +257,10 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                     ScanResult(
                         target_id=target_uuid,
                         campsite_id=campsite.campsite_id,
+                        campsite_name=campsite.campsite_name,
+                        campsite_type=campsite.campsite_type.value,
+                        is_electric=campsite.is_electric,
+                        is_accessible=campsite.is_accessible,
                         available_dates=[
                             d.isoformat() for d in campsite.available_dates
                         ],
@@ -317,22 +295,58 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                 active_scans = us_result.scalars().all()
 
                 for scan in active_scans:
+                    matching_openings: list[NotificationDTO] = []
                     for opening in new_openings:
                         campsite_id = opening.metadata["campsite_id"]
                         matching_campsite = campsite_by_id.get(campsite_id)
                         if matching_campsite is None:
                             continue
                         if _matches_scan_filters(matching_campsite, scan):
-                            celery_app.send_task(
-                                name="camply.notifications.send_pushover_notification",
-                                kwargs={
-                                    "user_id": str(scan.user_id),
-                                    "notification": opening.model_dump(mode="json"),
-                                    "scan_id": str(scan.id),
-                                },
-                                queue="celery",
+                            matching_nights = matching_available_dates(
+                                opening.metadata["available_dates"],
+                                min_stay_length=scan.min_stay_length or 1,
                             )
-                            notifications_sent += 1
+                            if any(
+                                (campsite_id, night) not in previously_seen
+                                for night in matching_nights
+                            ):
+                                matching_openings.append(opening)
+                    if not matching_openings:
+                        continue
+                    if worker_config.notification_mode == "summary":
+                        count = len(matching_openings)
+                        park_name = matching_openings[0].park_name
+                        matching_openings = [
+                            NotificationDTO(
+                                title=f"{count} new campsite{'s' if count != 1 else ''}: {park_name}",
+                                message=(
+                                    f"{count} campsite{'s' if count != 1 else ''} with new availability "
+                                    f"matching your scan at {park_name}.\n"
+                                    f"{target.start_date.isoformat()} to {target.end_date.isoformat()}.\n"
+                                    "View available stays and booking options in Camply."
+                                ),
+                                booking_url=(
+                                    f"{str(worker_config.app_url).rstrip('/')}/dashboard/scans/{scan.id}#results"
+                                ),
+                                url_title="View campsites",
+                                park_name=park_name,
+                                campsite_name="",
+                                start_date=target.start_date,
+                                end_date=target.end_date,
+                                metadata={"new_campsite_count": count},
+                            )
+                        ]
+                    for notification in matching_openings:
+                        celery_app.send_task(
+                            name="camply.notifications.send_pushover_notification",
+                            kwargs={
+                                "user_id": str(scan.user_id),
+                                "notification": notification.model_dump(mode="json"),
+                                "scan_id": str(scan.id),
+                            },
+                            queue="celery",
+                        )
+                        notifications_sent += 1
 
                 logger.info(
                     "New openings detected and fanned out",
