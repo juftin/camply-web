@@ -26,6 +26,8 @@ import {
   parseIsoDate,
 } from "@/lib/utils";
 
+const SITES_PER_PAGE = 5;
+
 /** A maximal consecutive opening, with an exclusive check-out date. */
 interface AvailableStay {
   start: string;
@@ -57,6 +59,142 @@ function stayDate(date: string, includeYear: boolean): string {
     ...(includeYear ? { year: "numeric" } : {}),
   });
 }
+
+/** Bound each date group's site list while retaining native expansion state. */
+const CampsiteDateGroup = ({
+  group,
+  expanded,
+}: {
+  group: AvailableStay & { sites: ScanResultItem[] };
+  expanded: boolean;
+}) => {
+  const [page, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(group.sites.length / SITES_PER_PAGE));
+  const currentPage = Math.min(page, pageCount - 1);
+  const sites = group.sites.slice(
+    currentPage * SITES_PER_PAGE,
+    (currentPage + 1) * SITES_PER_PAGE,
+  );
+  useEffect(() => {
+    setPage((previous) => Math.min(previous, pageCount - 1));
+  }, [pageCount]);
+  const includeYear = group.start.slice(0, 4) !== group.end.slice(0, 4);
+  return (
+    <details
+      key={`${group.start}/${group.end}`}
+      open={expanded}
+      aria-label={`${formatDisplayDate(group.start, false)} – ${formatDisplayDate(group.end, false)}`}
+      className="group border-t"
+    >
+      <summary className="flex cursor-pointer list-none items-start gap-2 bg-muted/40 px-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:items-center sm:gap-3 sm:px-6 [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          aria-hidden="true"
+          className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90 sm:mt-0"
+        />
+        <div className="grid min-w-0 grid-cols-[auto_auto_auto] items-start gap-x-1.5 text-xs sm:gap-x-2 sm:text-sm">
+          <div>
+            <time dateTime={group.start} className="font-semibold">
+              {stayDate(group.start, includeYear)}
+            </time>
+            <p className="mt-1 text-[10px] text-muted-foreground sm:text-xs">
+              Check-in
+            </p>
+          </div>
+          <span aria-hidden="true" className="text-muted-foreground">
+            →
+          </span>
+          <div>
+            <time dateTime={group.end} className="font-semibold">
+              {stayDate(group.end, includeYear)}
+            </time>
+            <p className="mt-1 text-[10px] text-muted-foreground sm:text-xs">
+              Check-out
+            </p>
+          </div>
+        </div>
+        <div className="ml-auto flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
+          <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+            {group.nights} night{group.nights !== 1 ? "s" : ""}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {group.sites.length} site
+            {group.sites.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+      </summary>
+      <ul className="divide-y pl-9 pr-4 sm:pl-12 sm:pr-6">
+        {sites.map((site) => {
+          const name = site.campsite_name || `Campsite ${site.campsite_id}`;
+          return (
+            <li
+              key={site.campsite_id}
+              className="flex items-center justify-between gap-2 py-2"
+            >
+              <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-6">
+                <h3 className="min-w-20 break-words text-sm font-semibold">
+                  {name}
+                </h3>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  {site.campsite_type && <span>{site.campsite_type}</span>}
+                  {site.is_electric && (
+                    <span className="inline-flex items-center gap-1">
+                      <Zap aria-hidden="true" className="h-3 w-3" />
+                      Electric hookup
+                    </span>
+                  )}
+                  {site.is_accessible && <span>Accessible</span>}
+                </div>
+              </div>
+              {site.booking_url && (
+                <a
+                  href={site.booking_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`View ${name} on provider website`}
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1 pl-2 text-xs font-medium text-primary hover:underline"
+                >
+                  View on provider
+                  <ExternalLink aria-hidden="true" className="h-3 w-3" />
+                </a>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      {pageCount > 1 && (
+        <nav
+          aria-label="Campsite pages"
+          className="flex flex-wrap items-center justify-between gap-2 px-4 pb-3 sm:px-6"
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label="Previous campsites"
+            disabled={currentPage === 0}
+            onClick={() => setPage(currentPage - 1)}
+          >
+            Previous
+          </Button>
+          <span role="status" className="text-xs text-muted-foreground">
+            {currentPage * SITES_PER_PAGE + 1}–
+            {Math.min((currentPage + 1) * SITES_PER_PAGE, group.sites.length)}{" "}
+            of {group.sites.length} sites
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label="Next campsites"
+            disabled={currentPage === pageCount - 1}
+            onClick={() => setPage(currentPage + 1)}
+          >
+            Next
+          </Button>
+        </nav>
+      )}
+    </details>
+  );
+};
 
 /** Browse matching campsites under their shared check-in/check-out ranges. */
 export const FoundCampsites = ({ scan }: { scan: ScanDetailResponse }) => {
@@ -122,6 +260,11 @@ export const FoundCampsites = ({ scan }: { scan: ScanDetailResponse }) => {
               ? `Last checked ${formatRelativeTime(scan.last_checked_at)}`
               : "Your scan is ready to check for openings."}
           </CardDescription>
+          {!scan.is_active && groups.size > 0 && (
+            <p className="text-sm text-muted-foreground">
+              This scan is paused; availability is not being refreshed.
+            </p>
+          )}
           {groups.size > 0 && (
             <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative w-full sm:max-w-xs">
@@ -179,109 +322,13 @@ export const FoundCampsites = ({ scan }: { scan: ScanDetailResponse }) => {
             </div>
           ) : (
             <>
-              {visible.map((group, index) => {
-                const includeYear =
-                  group.start.slice(0, 4) !== group.end.slice(0, 4);
-                return (
-                  <details
-                    key={`${group.start}/${group.end}`}
-                    open={normalizedQuery !== "" || index < 2}
-                    aria-label={`${formatDisplayDate(group.start, false)} – ${formatDisplayDate(group.end, false)}`}
-                    className="group border-t"
-                  >
-                    <summary className="flex cursor-pointer list-none items-start gap-2 bg-muted/40 px-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:items-center sm:gap-3 sm:px-6 [&::-webkit-details-marker]:hidden">
-                      <ChevronRight
-                        aria-hidden="true"
-                        className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90 sm:mt-0"
-                      />
-                      <div className="grid min-w-0 grid-cols-[auto_auto_auto] items-start gap-x-1.5 text-xs sm:gap-x-2 sm:text-sm">
-                        <div>
-                          <time
-                            dateTime={group.start}
-                            className="font-semibold"
-                          >
-                            {stayDate(group.start, includeYear)}
-                          </time>
-                          <p className="mt-1 text-[10px] text-muted-foreground sm:text-xs">
-                            Check-in
-                          </p>
-                        </div>
-                        <span
-                          aria-hidden="true"
-                          className="text-muted-foreground"
-                        >
-                          →
-                        </span>
-                        <div>
-                          <time dateTime={group.end} className="font-semibold">
-                            {stayDate(group.end, includeYear)}
-                          </time>
-                          <p className="mt-1 text-[10px] text-muted-foreground sm:text-xs">
-                            Check-out
-                          </p>
-                        </div>
-                      </div>
-                      <div className="ml-auto flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
-                        <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                          {group.nights} night{group.nights !== 1 ? "s" : ""}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {group.sites.length} site
-                          {group.sites.length !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                    </summary>
-                    <ul className="divide-y pl-9 pr-4 sm:pl-12 sm:pr-6">
-                      {group.sites.map((site) => {
-                        const name =
-                          site.campsite_name || `Campsite ${site.campsite_id}`;
-                        return (
-                          <li
-                            key={site.campsite_id}
-                            className="flex items-center justify-between gap-2 py-2"
-                          >
-                            <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-6">
-                              <h3 className="min-w-20 break-words text-sm font-semibold">
-                                {name}
-                              </h3>
-                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                                {site.campsite_type && (
-                                  <span>{site.campsite_type}</span>
-                                )}
-                                {site.is_electric && (
-                                  <span className="inline-flex items-center gap-1">
-                                    <Zap
-                                      aria-hidden="true"
-                                      className="h-3 w-3"
-                                    />
-                                    Electric hookup
-                                  </span>
-                                )}
-                                {site.is_accessible && <span>Accessible</span>}
-                              </div>
-                            </div>
-                            {site.booking_url && (
-                              <a
-                                href={site.booking_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label={`View ${name} on provider website`}
-                                className="inline-flex min-h-11 shrink-0 items-center gap-1 pl-2 text-xs font-medium text-primary hover:underline"
-                              >
-                                View on provider
-                                <ExternalLink
-                                  aria-hidden="true"
-                                  className="h-3 w-3"
-                                />
-                              </a>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </details>
-                );
-              })}
+              {visible.map((group, index) => (
+                <CampsiteDateGroup
+                  key={`${group.start}/${group.end}/${normalizedQuery}`}
+                  group={group}
+                  expanded={normalizedQuery !== "" || index < 2}
+                />
+              ))}
               {visible.length === 0 && (
                 <div className="px-6 py-8 text-center">
                   <p className="text-muted-foreground">

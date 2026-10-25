@@ -90,6 +90,20 @@ def test_results_match_saved_filters_and_counts(test_client: TestClient) -> None
                         campsite_id="legacy",
                         available_dates=["2027-07-01", "2027-07-02"],
                     ),
+                    ScanResult(
+                        target_id=scan.target_id,
+                        campsite_id="expired",
+                        campsite_type="RV",
+                        is_electric=True,
+                        available_dates=["2000-01-01", "2000-01-02"],
+                    ),
+                    ScanResult(
+                        target_id=scan.target_id,
+                        campsite_id="outside-range",
+                        campsite_type="RV",
+                        is_electric=True,
+                        available_dates=["2027-07-10", "2027-07-11"],
+                    ),
                 ]
             )
             await session.commit()

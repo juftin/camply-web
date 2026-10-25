@@ -46,6 +46,7 @@ interface Scenario {
   emptyScans?: boolean;
   partialOperations?: boolean;
   missingMeasurements?: boolean;
+  manyCampsites?: boolean;
   action?: (page: Page) => Promise<void>;
 }
 
@@ -266,6 +267,29 @@ const SCENARIOS: Scenario[] = [
     description:
       "Dashboard empty state when user has zero active scans (Desktop, Light)",
   },
+  ...(["desktop", "mobile"] as const).map((size) => ({
+    name: `dashboard-expanded-${size}-${size === "desktop" ? "light" : "dark"}`,
+    route: "/dashboard",
+    viewport:
+      size === "desktop"
+        ? { width: 1280, height: 800 }
+        : { width: 390, height: 844 },
+    theme: size === "desktop" ? ("light" as const) : ("dark" as const),
+    description: "Expanded campground group preserves scan links and controls",
+    action: async (page: Page) => {
+      await page.locator("details > summary").first().click();
+      await page
+        .getByRole("button", { name: "Edit scan", exact: true })
+        .first()
+        .waitFor();
+      if (
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > window.innerWidth,
+        )
+      )
+        throw new Error("Expanded campground group overflows the viewport");
+    },
+  })),
   {
     name: "scan-edit-dialog-desktop-light",
     route: "/dashboard",
@@ -273,6 +297,7 @@ const SCENARIOS: Scenario[] = [
     theme: "light",
     description: "Edit scan dialog prefilled with saved dates and filters",
     action: async (page: Page) => {
+      await page.locator("details > summary").first().click();
       await page
         .getByRole("button", { name: "Edit scan", exact: true })
         .first()
@@ -287,6 +312,7 @@ const SCENARIOS: Scenario[] = [
     theme: "dark",
     description: "Edit scan dialog fits a mobile viewport in dark mode",
     action: async (page: Page) => {
+      await page.locator("details > summary").first().click();
       await page
         .getByRole("button", { name: "Edit scan", exact: true })
         .first()
@@ -301,6 +327,7 @@ const SCENARIOS: Scenario[] = [
     theme: "light",
     description: "Delete failure stays in its confirmation dialog for retry",
     action: async (page: Page) => {
+      await page.locator("details > summary").first().click();
       await page.route("**/api/scans/scan-mock-1", (route) =>
         route.fulfill({
           status: 503,
@@ -528,6 +555,38 @@ const SCENARIOS: Scenario[] = [
     description:
       "Date-grouped campsites and full-campground provider link (Desktop, Dark)",
   },
+  ...(["desktop", "mobile"] as const).map((size) => ({
+    name: `scan-detail-paginated-${size}-${size === "desktop" ? "light" : "dark"}`,
+    route: "/dashboard/scans/scan-mock-1",
+    viewport:
+      size === "desktop"
+        ? { width: 1280, height: 800 }
+        : { width: 375, height: 812 },
+    theme: size === "desktop" ? ("light" as const) : ("dark" as const),
+    manyCampsites: true,
+    description: "Each date group stays bounded to five campsites per page",
+    action: async (page: Page) => {
+      const group = page.getByRole("group", {
+        name: "Nov 15, 2026 – Nov 17, 2026",
+      });
+      await group.getByRole("button", { name: "Next campsites" }).click();
+      await group.getByText("6–10 of 12 sites").waitFor();
+      if (
+        (await group
+          .getByRole("link", { name: /^View .* on provider website$/ })
+          .count()) !== 5
+      )
+        throw new Error("Campsite pagination must show five booking actions");
+      if (
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > window.innerWidth,
+        )
+      )
+        throw new Error("Campsite results overflow the viewport");
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForTimeout(200);
+    },
+  })),
   {
     name: "home-search-dropdown-desktop-light",
     route: "/",
@@ -978,7 +1037,7 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
       contentType: "application/json",
       body: JSON.stringify({
         ...MOCK_SCANS[0],
-        found_count: 3,
+        found_count: scenario.manyCampsites ? 13 : 3,
         start_date: "2026-11-15",
         end_date: "2026-11-21",
         last_checked_at: "2026-10-10T11:59:40Z",
@@ -1024,6 +1083,18 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
               "2026-11-20",
             ],
           },
+          ...(scenario.manyCampsites
+            ? Array.from({ length: 10 }, (_, index) => ({
+                campsite_id: `site-extra-${index}`,
+                campsite_name: `Upper Pines Site ${String(50 + index).padStart(3, "0")}`,
+                campsite_type: "TENT",
+                is_electric: false,
+                is_accessible: false,
+                booking_url:
+                  "https://www.recreation.gov/camping/campgrounds/232447",
+                available_dates: ["2026-11-15", "2026-11-16"],
+              }))
+            : []),
         ],
       }),
     });

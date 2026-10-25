@@ -156,9 +156,24 @@ async def test_grouped_openings_and_reappearance(
     await scanner._check_target_availability_async(MagicMock(), target_id)
     assert dispatch.call_count == (2 if mode == "summary" else 4)
     dispatch.reset_mock()
-    provider_mock.find_availabilities.return_value = []
-    await scanner._check_target_availability_async(MagicMock(), target_id)
+    async with maker() as session:
+        checked_at = (await session.scalars(select(UniqueTarget))).one().last_checked_at
+    provider_mock.find_availabilities.side_effect = RuntimeError("Provider unavailable")
+    failed = await scanner._check_target_availability_async(MagicMock(), target_id)
+    assert failed is not None and failed["status"] == "error"
     dispatch.assert_not_called()
+    async with maker() as session:
+        assert len((await session.scalars(select(ScanResult))).all()) == 3
+        assert (
+            await session.scalars(select(UniqueTarget))
+        ).one().last_checked_at == checked_at
+    provider_mock.find_availabilities.side_effect = None
+    provider_mock.find_availabilities.return_value = []
+    cleared = await scanner._check_target_availability_async(MagicMock(), target_id)
+    assert cleared is not None and cleared["status"] == "success"
+    dispatch.assert_not_called()
+    async with maker() as session:
+        assert (await session.scalars(select(ScanResult))).all() == []
     provider_mock.find_availabilities.return_value = sites
     await scanner._check_target_availability_async(MagicMock(), target_id)
     assert dispatch.call_count == (2 if mode == "summary" else 4)

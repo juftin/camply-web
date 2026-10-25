@@ -70,7 +70,7 @@ export function ScanCard({
 
   return (
     <Card
-      className={`transition-all hover:shadow-md ${!scan.is_active ? "opacity-60" : ""} ${isPastEnd ? "ring-1 ring-yellow-400/30" : ""}`}
+      className={`min-w-0 transition-all hover:shadow-md ${!scan.is_active ? "opacity-60" : ""} ${isPastEnd ? "ring-1 ring-yellow-400/30" : ""}`}
     >
       <Link
         to={`/dashboard/scans/${scan.id}`}
@@ -144,7 +144,10 @@ export function ScanCard({
               </Badge>
             )}
             {(scan.preferred_types ?? []).length > 0 && (
-              <Badge variant="secondary" className="text-[10px]">
+              <Badge
+                variant="secondary"
+                className="max-w-full whitespace-normal break-words text-[10px]"
+              >
                 {(scan.preferred_types ?? []).join(", ")}
               </Badge>
             )}
