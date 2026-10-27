@@ -12,10 +12,10 @@ Verification after integrating current `main`: `task fix`, `task lint`, `task ch
 
 ## Release/publish separation
 
-- [x] Reuse Renovate App credential names with a repository-scoped installation token.
+- [x] Use the existing App through `APP_ID` and `APP_PRIVATE_KEY` with a repository-scoped installation token.
 - [x] Limit release preparation to stamping versions and building sdists; emit a release-success marker.
 - [x] Publish from native stable-release events at the exact tag, with a reusable latest-only fallback for successful main builds without releases.
 - [x] Verify source selection, malformed-tag rejection, workflow syntax, and quality gates.
 - [x] Update release documentation, feature checklist, and PR description.
 
-After the workflow split, `task fix`, `task lint`, `task check`, `task test`, changed-file pre-commit hooks, and actionlint with ShellCheck pass. The two new release checks exercise exact release/main source selection, invalid refs/tags, and the success marker. Repository secret names currently show only `DOCKER_TOKEN`; the existing App must be installed on this repository and its credentials made available here before hosted release creation can succeed.
+After the workflow split, `task fix`, `task lint`, `task check`, `task test`, changed-file pre-commit hooks, and actionlint with ShellCheck pass. The two new release checks exercise exact release/main source selection, invalid refs/tags, and the success marker. Repository secret names confirm `APP_ID` and `APP_PRIVATE_KEY` are configured; the workflow references them directly. The App installation and its Contents/Workflows write permissions still need confirmation before hosted release creation.

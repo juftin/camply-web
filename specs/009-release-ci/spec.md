@@ -12,7 +12,7 @@ As a maintainer, merging a release-worthy Gitmoji commit to `main` should produc
 - Stamp all backend workspace packages, the backend lockfile, and frontend package metadata in the release workspace before building. Leave version changes uncommitted; Git tags identify releases.
 - Attach version-stamped sdists for all four installable backend workspace packages to each GitHub release. Build the distributions before creating the release; do not publish packages to PyPI.
 - Enable `semantic-release-major-tag` to advance matching Git major aliases such as `v1` after release success, in addition to the existing Docker aliases.
-- Separate release creation from image publishing: `release.yaml` creates the GitHub release with the existing Renovate GitHub App; `publish.yaml` handles native `release: published` events using the exact full-version tag. Reuse `RENOVATE_APP_ID`/`RENOVATE_APP_PRIVATE_KEY`, with `APP_ID`/`APP_PRIVATE_KEY` fallbacks. Use `GITHUB_TOKEN` only for GHCR publishing.
+- Separate release creation from image publishing: `release.yaml` creates the GitHub release with the existing Renovate GitHub App; `publish.yaml` handles native `release: published` events using the exact full-version tag. Use the repository's `APP_ID` and `APP_PRIVATE_KEY` secrets directly. Use `GITHUB_TOKEN` only for GHCR publishing.
 - Preserve the frontend's same-origin `/api` configuration and existing Docker build contexts.
 - Document setup, version rules, initial release behavior, verification, and failure recovery. Application hosting and PyPI publishing are outside this feature.
 
