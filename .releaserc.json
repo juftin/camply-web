@@ -5,7 +5,8 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "task release:prepare RELEASE_VERSION=${nextRelease.version} && task dist && task publish RELEASE_VERSION=${nextRelease.version}"
+        "prepareCmd": "task release:prepare RELEASE_VERSION=${nextRelease.version} && task dist",
+        "successCmd": "touch .release-published"
       }
     ],
     [

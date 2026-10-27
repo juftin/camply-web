@@ -253,3 +253,82 @@ test("publication requires CI and a stable release version", (t) => {
     assert.match(result.stderr, /CI|RELEASE_VERSION/);
   }
 });
+
+test("publisher selects the full release tag or exact main SHA and rejects other refs", () => {
+  const workflow = readFileSync(
+    join(root, ".github/workflows/publish.yaml"),
+    "utf8",
+  );
+  const script = workflow
+    .match(/script: \|\n((?: {12}.*\n)+)/)[1]
+    .replace(/^ {12}/gm, "");
+  const resolve = (context) => {
+    const outputs = {};
+    new Function("context", "core", script)(context, {
+      setOutput: (name, value) => (outputs[name] = value),
+    });
+    return outputs;
+  };
+  for (const version of ["1.2.3", "2.0.0", "0.1.0"]) {
+    assert.deepEqual(
+      resolve({
+        eventName: "release",
+        sha: "unrelated-main-head",
+        payload: { release: { tag_name: `v${version}` } },
+      }),
+      { ref: `refs/tags/v${version}`, version },
+    );
+  }
+  assert.deepEqual(
+    resolve({
+      eventName: "push",
+      ref: "refs/heads/main",
+      sha: "0123456789abcdef",
+    }),
+    { ref: "0123456789abcdef", version: "" },
+  );
+  for (const tag of [
+    "v1",
+    "1.2.3",
+    "v01.2.3",
+    "v1.2.3-beta.1",
+    "v1.2.3+build",
+    "v1.2.3\n",
+    "v1.2.3; touch unexpected-file",
+  ]) {
+    assert.throws(() =>
+      resolve({
+        eventName: "release",
+        payload: { release: { tag_name: tag } },
+      }),
+    );
+  }
+  for (const context of [
+    { eventName: "push", ref: "refs/heads/feature" },
+    { eventName: "pull_request", ref: "refs/heads/main" },
+  ]) {
+    assert.throws(() => resolve(context));
+  }
+});
+
+test("semantic release signals publication only after preparing source assets", (t) => {
+  const directory = fixture(t);
+  const config = JSON.parse(
+    readFileSync(join(root, ".releaserc.json"), "utf8"),
+  );
+  const [, exec] = config.plugins.find(
+    (plugin) => Array.isArray(plugin) && plugin[0] === "@semantic-release/exec",
+  );
+  assert.equal(
+    exec.prepareCmd,
+    "task release:prepare RELEASE_VERSION=${nextRelease.version} && task dist",
+  );
+  const marker = () => readdirSync(directory).includes(".release-published");
+  assert.equal(marker(), false);
+  const result = spawnSync("sh", ["-c", exec.successCmd], {
+    cwd: directory,
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(marker(), true);
+});
