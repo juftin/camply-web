@@ -73,6 +73,10 @@ If you change a FastAPI router:
 1.  Verify the backend types: `task backend:check`.
 2.  Update the frontend SDK: `task frontend:codegen`.
 
+### 4. Releases
+
+Pushes to `main` run the complete CI suite before the `release` workflow creates GitHub releases with the existing Renovate App. The separate `publish` workflow publishes backend/frontend images to GHCR from the released full-version tag, or from the successful main SHA when no release is needed. `latest` tracks successful `main` builds; Gitmoji-driven releases also publish full-version tags, moving Docker/Git major aliases such as `v1`, and Python workspace sdists as GitHub release assets. Use `task dist` to build the sdists locally. See [release operations](RELEASES.md) for version rules, repository permissions, local verification, and failure recovery.
+
 ---
 
 ## 🧪 Testing Discipline

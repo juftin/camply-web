@@ -1,35 +1,90 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
 name: publish
 
 on:
-  push:
-    branches:
-      - main
+  release:
+    types: [published]
+  workflow_call:
 
 permissions:
   contents: read
   packages: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: publish-images
+  cancel-in-progress: false
+
 jobs:
   publish:
+    name: Backend and Frontend Images
+    if: >-
+      github.repository == 'juftin/camply-web' &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'release' && !github.event.release.prerelease && !github.event.release.draft))
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
-      - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+      - name: Resolve publication source
+        id: source
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            if (context.eventName === 'release') {
+              const tag = context.payload.release.tag_name;
+              if (!/^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(tag)) {
+                throw new Error('Publishing requires a stable vMAJOR.MINOR.PATCH release tag');
+              }
+              core.setOutput('ref', `refs/tags/${tag}`);
+              core.setOutput('version', tag.slice(1));
+            } else if (context.eventName === 'push' && context.ref === 'refs/heads/main') {
+              core.setOutput('ref', context.sha);
+              core.setOutput('version', '');
+            } else {
+              throw new Error('Latest publication requires a successful main push');
+            }
+      - name: Checkout the exact publication source
+        uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          ref: ${{ steps.source.outputs.ref }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-backend
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: lts/*
+      - name: Stamp the released application version
+        if: steps.source.outputs.version != ''
+        run: task release:prepare
+        env:
+          RELEASE_VERSION: ${{ steps.source.outputs.version }}
+      - name: Record the checked-out source revision
+        id: revision
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Log in to GHCR
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
-      - uses: docker/bake-action@6614cfa25eff9a0b2b2697efb0b6159e7680d584 # v7.2.0
+      - name: Enable Docker build cache access for Task
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
-          files: ./docker-compose.yaml
-          push: true
-          targets: |
-            backend
-            frontend
-          set: |
-            *.cache-from=type=gha,scope=backend
-            frontend.args.CAMPLY_API_URL=
+          script: |
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
+            core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL);
+            core.exportVariable('ACTIONS_CACHE_SERVICE_V2', process.env.ACTIONS_CACHE_SERVICE_V2);
+      - name: Publish release images
+        if: steps.source.outputs.version != ''
+        run: task publish
         env:
-          BACKEND_VERSION: latest
-          FRONTEND_VERSION: latest
+          RELEASE_VERSION: ${{ steps.source.outputs.version }}
+          GITHUB_SHA: ${{ steps.revision.outputs.sha }}
+      - name: Publish latest for a main build without a release
+        if: steps.source.outputs.version == ''
+        run: task publish:latest
+        env:
+          GITHUB_SHA: ${{ steps.revision.outputs.sha }}

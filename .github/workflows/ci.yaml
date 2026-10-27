@@ -6,8 +6,7 @@ permissions:
   actions: write
 
 on:
-  push:
-    branches: [main]
+  workflow_call:
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -20,6 +19,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  release-checks:
+    name: Release Configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+      - uses: ./.github/actions/setup-backend
+      - uses: ./.github/actions/setup-frontend
+      - run: task release:test
+
   # ── Backend ──────────────────────────────────────────────────────────────
 
   backend-checks:
