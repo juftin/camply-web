@@ -8,3 +8,10 @@
 6. Run regression tests, Task quality gates, migration round-trip verification on a disposable database, and visual snapshots. Update architecture/configuration docs and checklist.
 
 Constitution check: preserve provider-verified snapshots, asynchronous delivery, Pydantic contracts, typed React/TanStack Query and package boundaries. Add behavior tests before implementation. No new dependencies or notification channels.
+
+## Grouped results refinement
+
+1. Preview desktop/mobile date sections with synthetic data before changing the results page (completed and reviewed).
+2. Add behavior tests for shared ranges, separated stays, minimum stays, unique counts, search, sorting, collapsing and campground/provider links; confirm they fail against the current site-card layout.
+3. Reuse the existing consecutive-night calculation, group by both endpoints, and render native details/summary sections with compact site rows. Preserve freshness, empty/error states and alert anchors. Read the full campground URL with TanStack Query from the existing campground endpoint; no backend contract changes or direct provider requests.
+4. Verify frontend tests, lint/types, and desktop/mobile light/dark screenshots of the actual page. Update the frontend blueprint and global checklist.
