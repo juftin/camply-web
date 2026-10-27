@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -228,6 +234,38 @@ describe("Community pages feature flag", () => {
 });
 
 describe("Application authentication", () => {
+  it("opens the notified scan when Auth0 completes while the router is mounted", async () => {
+    const { client } = renderApp(auth0Config, "/auth");
+    await screen.findByText("Sign in to your camply account");
+    const calls = vi.mocked(Auth0Provider).mock.calls;
+    const onRedirect = calls[calls.length - 1][0].onRedirectCallback!;
+    vi.mocked(getMe).mockResolvedValue({ ...user, is_invited: true });
+    act(() => {
+      auth0.isAuthenticated = true;
+      client.setQueryData(["me"], { ...user, is_invited: true });
+      onRedirect({ returnTo: appPath("/dashboard/scans/test#results") });
+    });
+    expect(await screen.findByText("Scan detail")).toBeInTheDocument();
+    expect(window.location.pathname + window.location.hash).toBe(
+      appPath("/dashboard/scans/test#results"),
+    );
+  });
+
+  it("passes the notification destination through Auth0 login", async () => {
+    const destination = "/dashboard/scans/test#results";
+    renderApp(auth0Config, destination);
+    await screen.findByText("Sign in to your camply account");
+    fireEvent.click(
+      screen
+        .getAllByRole("button", { name: "Sign In" })
+        .find((button) => button.classList.contains("w-full"))!,
+    );
+    expect(auth0.loginWithRedirect).toHaveBeenCalledWith({
+      appState: { returnTo: appPath(destination) },
+      authorizationParams: { screen_hint: "login" },
+    });
+  });
+
   it("hides login and signup on desktop and mobile during local auto-login", async () => {
     vi.mocked(getMe).mockResolvedValue({ ...user, is_invited: true });
     renderApp();
@@ -253,6 +291,7 @@ describe("Application authentication", () => {
       .find((button) => button.classList.contains("w-full"))!;
     fireEvent.click(button);
     expect(auth0.loginWithRedirect).toHaveBeenCalledWith({
+      appState: { returnTo: appPath("/dashboard") },
       authorizationParams: { screen_hint: "login" },
     });
     expect(screen.queryByLabelText("Username")).not.toBeInTheDocument();
@@ -266,6 +305,7 @@ describe("Application authentication", () => {
     });
     fireEvent.click(button);
     expect(auth0.loginWithRedirect).toHaveBeenCalledWith({
+      appState: { returnTo: appPath("/dashboard") },
       authorizationParams: { screen_hint: "signup" },
     });
     const calls = vi.mocked(Auth0Provider).mock.calls;
@@ -397,7 +437,7 @@ it("preserves a cookie session on refresh without retained credentials", async (
   expect(loginSession).not.toHaveBeenCalled();
 });
 
-it.each(["/dashboard", "/dashboard/scans/test"])(
+it.each(["/dashboard", "/dashboard/scans/test#results"])(
   "returns to sign-in and clears scan data when the session fails at %s",
   async (path) => {
     vi.mocked(getMe).mockResolvedValue({ ...user, is_invited: true });
@@ -424,6 +464,7 @@ it.each(["/dashboard", "/dashboard/scans/test"])(
     expect(logoutSession).not.toHaveBeenCalled();
 
     vi.mocked(listScans).mockResolvedValue({ scans: [], total: 0 });
+    vi.mocked(getScan).mockResolvedValue({ id: "test" } as never);
     fireEvent.change(screen.getByLabelText("Username"), {
       target: { value: "test-admin" },
     });
@@ -435,12 +476,24 @@ it.each(["/dashboard", "/dashboard/scans/test"])(
         .getAllByRole("button", { name: "Sign In" })
         .find((button) => button.getAttribute("type") === "submit")!,
     );
-    await screen.findByText("Scan dashboard");
+    await screen.findByText(
+      path === "/dashboard" ? "Scan dashboard" : "Scan detail",
+    );
     await waitFor(() =>
-      expect(client.getQueryData(["scans", "list", undefined])).toEqual({
-        scans: [],
-        total: 0,
-      }),
+      expect(window.location.pathname + window.location.hash).toBe(
+        appPath(path),
+      ),
+    );
+    await waitFor(() =>
+      expect(
+        client.getQueryData(
+          path === "/dashboard"
+            ? ["scans", "list", undefined]
+            : ["scans", "detail", "test"],
+        ),
+      ).toEqual(
+        path === "/dashboard" ? { scans: [], total: 0 } : { id: "test" },
+      ),
     );
     expect(
       client.getQueryData(["scans", "detail", "cached-scan"]),

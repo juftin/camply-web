@@ -4,7 +4,7 @@ Releases use the Gitmoji/semantic-release infrastructure from [cookiecutter-pyth
 
 ## Flow
 
-Every push to `main` starts `.github/workflows/release.yaml`. It calls the entire existing CI workflow, including lint, types, tests, OpenAPI drift, live smoke checks, visual snapshots, and Docker builds. After all checks succeed, `task publish:latest` publishes both images even when no semantic release is needed. The workflow then runs semantic-release. Publication runs only in `juftin/camply-web`; pull requests and manually dispatched CI runs only validate changes.
+Every push to `main` starts `.github/workflows/release.yaml`. It calls the entire existing CI workflow, including lint, types, tests, OpenAPI drift, live smoke checks, snapshot gallery verification, visual snapshots, and Docker builds. After all checks succeed, `task publish:latest` publishes both images even when no semantic release is needed. The workflow then runs semantic-release. Publication runs only in `juftin/camply-web`; pull requests and manually dispatched CI runs only validate changes.
 
 Release runs are serialized without cancelling an active run. GitHub may replace a pending run with a newer push; semantic-release considers all unreleased commits on `main`.
 
@@ -22,7 +22,7 @@ flowchart LR
 
 The preparation hook runs `task release:prepare RELEASE_VERSION=1.2.3`, `task dist`, and `task publish RELEASE_VERSION=1.2.3`. Preparation stamps the backend root and all four workspace packages, updates `backend/uv.lock`, and sets the frontend package version. Those changes exist only in the release runner; development version files remain unchanged in Git. The API's installed package metadata matches the image version. Tags identify the exact source commit.
 
-The GitHub release provides generated release notes and version-stamped Python source distributions: `backend-1.2.3.tar.gz`, `db-1.2.3.tar.gz`, `providers-1.2.3.tar.gz`, and `worker-1.2.3.tar.gz`. `task dist` clears stale build outputs and builds all four installable workspace packages into `dist/`; the virtual workspace root has no distribution. The GitHub plugin attaches `dist/*.tar.gz`. Source builds complete before image publication, so build failures prevent release creation. Packages are not uploaded to PyPI and the legacy CLI is not built. Application hosting, server rollouts, and database migrations remain separate operator tasks.
+The GitHub release provides generated release notes and version-stamped Python source distributions: `backend-1.2.3.tar.gz`, `db-1.2.3.tar.gz`, `providers-1.2.3.tar.gz`, and `worker-1.2.3.tar.gz`. `task dist` clears stale build outputs and builds all four installable workspace packages into `dist/`; the virtual workspace root has no distribution. The GitHub plugin attaches `dist/*.tar.gz`. Source builds complete before image publication, so build failures prevent release creation. Packages are not uploaded to PyPI. Application hosting, server rollouts, and database migrations remain separate operator tasks.
 
 ## Version rules
 

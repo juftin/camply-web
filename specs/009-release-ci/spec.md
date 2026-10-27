@@ -14,7 +14,7 @@ As a maintainer, merging a release-worthy Gitmoji commit to `main` should produc
 - Enable `semantic-release-major-tag` to advance matching Git major aliases such as `v1` after release success, in addition to the existing Docker aliases.
 - Use the repository's `GITHUB_TOKEN`; do not depend on a second workflow triggered by a bot-created release.
 - Preserve the frontend's same-origin `/api` configuration and existing Docker build contexts.
-- Document setup, version rules, initial release behavior, verification, and failure recovery. Application hosting and legacy CLI/PyPI publishing are outside this feature.
+- Document setup, version rules, initial release behavior, verification, and failure recovery. Application hosting and PyPI publishing are outside this feature.
 
 ## Acceptance scenarios
 

@@ -34,6 +34,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.3.7 Integrate `Sentry` for background task error tracking.
 - [x] T1.3.8 **Testing**: Write integration tests for the Celery task lifecycle and de-duplication logic.
 - [x] T1.3.9 Configure heartbeat search polling interval to default to 5 minutes (300s) and support customization via `CAMPLY_HEARTBEAT_INTERVAL`.
+- [x] T1.3.10 Default to one new-opening summary per saved scan/check linking to Camply results; support configurable individual booking-link alerts for local deployments and preserve unchanged-opening suppression. See [campsite alerts plan](../../specs/009-campsite-alerts/plan.md).
 
 ### 1.4 API & Frontend Foundation
 
@@ -48,12 +49,16 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.4.9 Implement the optional invite-only gate UI.
 - [x] T1.4.10 **Testing**: Write backend API tests (`pytest`) and frontend component tests (`vitest`). _(✅ 16 backend + 13 frontend tests passing)_
 - [x] T1.4.11 **UI Snapshots & Feedback Loop**: Implement automated UI snapshot capture across 40 viewports/routes/themes, visual diffing, and Markdown/HTML reporting (`task snapshot`, `task snapshot:update`, `task snapshot:check`). Automate visual snapshot CI gate with Playwright artifact reporting, enforce deterministic test clocks, and provide comprehensive Vitest component DOM snapshot coverage (31 component test variants).
+- [x] T1.4.11a Provide a local HTML comparison gallery linked to before/after PNG files, side-by-side, reveal-slider and diff views, search/status filters, pre-update baseline preservation, report-only regeneration and offline browser verification. See [snapshot gallery plan](../../specs/010-snapshot-gallery/plan.md).
 - [x] T1.4.12 Migrate frontend dependency management to pinned pnpm with an imported lockfile; update Task workflows, CI caching, Docker builds, scripts, formatting hooks, and setup documentation.
 - [x] T1.4.13 Migrate frontend tooling to Oxlint, Oxfmt, Vite 8, Vitest 5, and native TypeScript 7; align Node 24 across environments and preserve eager page imports.
 - [x] T1.4.14 Make plain `task` list available workflows without installing dependencies.
 - [x] T1.4.15 Refine DatePicker component and date range synchronization (anchor check-out to check-in, popover calendar, quick duration presets).
 - [x] T1.4.16 Add scan editing from dashboard cards and detail pages, safely relink de-duplicated targets, and fix delete navigation, pending state, and failure feedback. Cover form lifecycle, ownership, duplicate validation, and shared-target isolation; see [scan editing plan](../../specs/006-scan-editing/plan.md).
 - [x] T1.4.17 Gate Ethos and Contribute behind `VITE_ENABLE_COMMUNITY_PAGES`, disabled by default; hide related navigation and links, redirect disabled routes home, and document frontend/Docker configuration with regression coverage.
+- [x] T1.4.18 Replace placeholder branding with the original camply artwork: horizontal and stacked logos with the title, tent-and-trees artwork without the title, light/dark variants, branded favicons, and the Recreation.gov provider logo. Add the supplied portrait to Meet Justin and preview all logo variations in the design system catalog; see the [branding plan](../../specs/008-branding/plan.md).
+- [x] T1.4.19 Show searchable matching campsite details, consecutive available stays and booking actions; align API/dashboard counts with notification filters, persist provider site attributes, preserve notification destinations through login, and cover desktop/mobile themes. See [campsite alerts plan](../../specs/009-campsite-alerts/plan.md).
+- [x] T1.4.19a Group identical stay dates into collapsible sections with compact campsite rows, unique-site counts, search and date/stay-length sorting; surface scan context and a separate full-campground provider link. Verify grouping and navigation regressions plus desktop/mobile themes.
 
 ### 1.5 Governance & Licensing
 
@@ -144,6 +149,7 @@ Implementation specification and tasks: [Admin UI plan](../../specs/002-admin-ui
 
 ### 3.1 Migration
 
+- [x] Remove the deprecated `cli/` application after migrating provider functionality to `backend/packages/providers`.
 - [ ] T3.1.1 Migrate `usedirect` (California State Parks, etc.).
 - [x] T3.1.1a Implement ReserveCalifornia on the current Tyler RDR API: async scans, metadata/search ingestion, seed migration, modern booking links, and synthetic HTTP/database regressions. Source models now share the UseDirect package.
 - [x] T3.1.1b Extract the async UseDirect ABC and implement verified Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory variations with independent metadata sync, stable seeds, booking routes, and provider-isolation regressions.
@@ -172,6 +178,7 @@ Feature specification: [Open-Source Maps & Explore Map View](../../specs/007-ope
 - [x] T3.3.5 Remove the redundant matching-locations/in-view count above Explore's map and refresh visual coverage.
 - [x] T3.3.7 Link Explore map zoom/pan to paginated list bounds, initialize unfiltered visits from approximate IP location with fallback, and show hover/focus marker information; see [interaction plan](../../specs/008-map-list-interaction/plan.md).
 - [x] T3.3.8 Refresh Explore list results during continuous map movement, including camera events without DOM metadata; verify with an unreleased browser drag.
+- [x] T3.3.9 Wait for a narrowed Explore response when verifying animated zooms, allowing intermediate camera responses while still requiring fewer matching results.
 - [ ] T3.3.6 Configure production tile hosting or caching (e.g. MapTiler, Stadia Maps, Cloudflare reverse proxy cache, or self-hosted PMTiles) via `VITE_MAP_*` build variables to adhere to OpenStreetMap's public tile usage policy for high-traffic releases.
 
 ---

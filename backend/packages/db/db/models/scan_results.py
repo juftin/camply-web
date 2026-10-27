@@ -31,6 +31,16 @@ class ScanResult(Base):
         UUID(as_uuid=True), ForeignKey("unique_targets.id")
     )
     campsite_id: Mapped[str] = mapped_column(String(128))
+    campsite_name: Mapped[str] = mapped_column(
+        String(255), default="", server_default=""
+    )
+    """Provider-supplied site label, refreshed with each availability check."""
+    campsite_type: Mapped[str | None] = mapped_column(String(32))
+    """Standardized site type; unknown for snapshots predating site details."""
+    is_electric: Mapped[bool | None] = mapped_column()
+    """Electric hookup availability, or unknown for legacy snapshots."""
+    is_accessible: Mapped[bool | None] = mapped_column()
+    """Provider-reported accessibility, or unknown for legacy snapshots."""
     available_dates: Mapped[list[str]] = mapped_column(
         JSONB().with_variant(JSON(), "sqlite")
     )

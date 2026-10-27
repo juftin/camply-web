@@ -68,7 +68,7 @@ class PushoverProvider(BaseNotificationProvider):
             "title": payload.title,
             "message": payload.message,
             "url": payload.booking_url,
-            "url_title": "Book Now",
+            "url_title": payload.url_title,
             "priority": 1,  # High priority (bypasses quiet hours)
             "sound": "pushover",
         }

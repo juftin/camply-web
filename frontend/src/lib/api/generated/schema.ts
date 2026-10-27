@@ -1781,6 +1781,17 @@ export interface components {
             campsite_name: string;
             /** Available Dates */
             available_dates?: string[];
+            /** Campsite Type */
+            campsite_type?: string | null;
+            /** Is Electric */
+            is_electric?: boolean | null;
+            /** Is Accessible */
+            is_accessible?: boolean | null;
+            /**
+             * Booking Url
+             * @default
+             */
+            booking_url: string;
         };
         /**
          * ScanUpdateRequest
@@ -2042,6 +2053,10 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
     };
     responses: never;

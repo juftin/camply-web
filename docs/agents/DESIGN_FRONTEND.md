@@ -28,6 +28,12 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
   - `switch.tsx` — Scan active/paused toggle
 - **Icons**: `lucide-react` for all UI icons.
 
+### Branding
+
+`CamplyLogo` uses the original [camply SVG](https://github.com/juftin/camply/blob/main/docs/_static/camply.svg) artwork. Its `variant` selects `horizontal` (default, title alongside the tent), `stacked` (title underneath), or `icon` (tent and trees only, with the title removed from the SVG). Set `height` to size it; the width preserves the artwork's proportions. The component follows the selected app theme and supports deployments under a URL prefix.
+
+The self-contained SVGs in `frontend/public/branding/` use outlined lettering so they do not require fonts. Each layout has a light and dark version; dark artwork uses evergreen trees, the original orange tent, and an off-white title. The original PNG is available as `camply.png`; the supplied Recreation.gov logo is used on the Providers page with a white background for legibility in either theme. The favicon uses the artwork without the title. All three camply variations can be reviewed at `/dev/preview` using the theme toggle.
+
 ---
 
 ## 🛤️ User Journey Map (Implemented)
@@ -63,6 +69,7 @@ We use **Shadcn/UI** as the foundation, providing accessible, themeable componen
 - **Edit**: Each scan card and detail page offers an edit action. `ScanForm` opens with saved campground, dates, and filters, sends PATCH, and refreshes list/detail queries on success. Cancel discards changes; reopening loads current saved values. Failed saves preserve the form and show an error. Suspended users can edit existing scans.
 - **Delete**: Each scan card has an accessible delete button and confirmation dialog. Card controls sit outside the detail link. Confirmation awaits the request, disables repeat submissions while pending, and keeps failures visible in the dialog for retry; success refreshes the dashboard.
 - **Detail View**: Clicking through from the dashboard is routed to a dedicated detail view.
+- **Found campsites**: Results appear before the collapsible scan overview, grouped by identical check-in/check-out ranges with compact campsite rows. The first two date sections start expanded; native details/summary controls support keyboard toggling. Search reveals matching sites across all sections; counts show unique sites and date ranges, with soonest-check-in and longest-stay sorting. Each row shows its provider name/number, type, electric/accessibility attributes when known, and a provider action. Consecutive nights form maximal ranges with night counts; gaps remain separate and stays shorter than the saved minimum are omitted. The header shows scan dates, preferences and monitoring status, plus a separate “View campground on provider” link from the existing campground endpoint, available even when no sites match. Metadata failures do not block results. The latest-check timestamp and availability caveat identify the snapshot's freshness. Empty states distinguish waiting for a first check, no matches, and paused scans; refresh failures preserve loaded results with a retry action. API results and dashboard counts apply the same preferences as alerts. Notification links target `#results`, and session/Auth0 login preserves the destination, including deployments under a frontend path prefix.
 
 ### Explore (`/search`)
 

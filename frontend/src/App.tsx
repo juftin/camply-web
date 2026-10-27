@@ -37,6 +37,7 @@ import { AdminAudit } from "@/pages/admin/AdminAudit";
 import { AuthProvider, AuthConfigContext } from "@/hooks/useAuth";
 import { fetchAuthConfig, type AuthConfig } from "@/lib/api";
 import { communityPagesEnabled } from "@/lib/features";
+import { authReturnTo } from "@/lib/authRedirect";
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -246,6 +247,17 @@ function App() {
           audience: config.auth0_audience!,
         }}
         cacheLocation="localstorage"
+        onRedirectCallback={(appState) => {
+          const destination = authReturnTo(appState?.returnTo ?? null);
+          window.history.replaceState(
+            {},
+            document.title,
+            destination.startsWith(`${basename}/`)
+              ? destination
+              : `${basename}/dashboard`,
+          );
+          window.dispatchEvent(new PopStateEvent("popstate"));
+        }}
       >
         <AuthConfigContext.Provider value={config}>
           <AuthProvider>

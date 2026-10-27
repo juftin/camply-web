@@ -38,11 +38,19 @@ Database config uses `CAMPLY_DB_` prefix (defined in `backend/packages/db/db/con
 
 Valkey/Celery & Operations config:
 
-| Variable                    | Description                                                                   | Default                    |
-| --------------------------- | ----------------------------------------------------------------------------- | -------------------------- |
-| `CAMPLY_VALKEY_URL`         | Valkey connection string for Celery                                           | `redis://localhost:6379/0` |
-| `CAMPLY_HEARTBEAT_INTERVAL` | Heartbeat interval for periodic campsite availability discovery in seconds    | `300` (5 minutes)          |
-| `CAMPLY_TARGET_COOLDOWN`    | Minimum seconds elapsed before an existing target is eligible for re-checking | `55`                       |
+| Variable                    | Description                                                                                                             | Default                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| `CAMPLY_VALKEY_URL`         | Valkey connection string for Celery                                                                                     | `redis://localhost:6379/0`  |
+| `CAMPLY_HEARTBEAT_INTERVAL` | Heartbeat interval for periodic campsite availability discovery in seconds                                              | `300` (5 minutes)           |
+| `CAMPLY_TARGET_COOLDOWN`    | Minimum seconds elapsed before an existing target is eligible for re-checking                                           | `55`                        |
+| `CAMPLY_NOTIFICATION_MODE`  | `summary`: one alert per saved scan/check with new matching openings; `direct`: individual provider booking-link alerts | `summary`                   |
+| `CAMPLY_APP_URL`            | Public frontend base URL, including an optional path prefix, used by summary alerts                                     | `https://camply.juftin.dev` |
+
+Summary alerts link to `/dashboard/scans/{scan_id}#results` under `CAMPLY_APP_URL`. Set this on the **Celery worker** to the address recipients can open, for example `https://camply.example.com` or `https://example.com/camply/`. Use an absolute HTTP(S) base URL without credentials, a query, or a fragment. Login preserves the scan destination. Docker Compose defaults to `http://localhost:5173`; use a reachable hostname when opening notifications on another device.
+
+For local deployments that prefer the previous individual alerts with booking-provider links, set `CAMPLY_NOTIFICATION_MODE=direct` on the worker. The default remains `summary` in every environment. Unchanged availability does not alert again; newly matching nights can alert, and openings that disappear and return can alert again. Different saved scans receive separate summaries. Direct mode can produce multiple alerts per check.
+
+The campsite-details migration is required before starting the updated API/worker: run `task backend:migration-upgrade`. Existing snapshot attributes remain unknown until the next successful check; unknown types/electric hookups do not satisfy restrictive filters. Fresh snapshots replace them automatically. The results list, dashboard counts and alerts use the same saved filters and minimum consecutive stay.
 
 ---
 

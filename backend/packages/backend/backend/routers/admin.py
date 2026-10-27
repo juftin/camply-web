@@ -615,8 +615,9 @@ async def list_admin_scans(
     cg_keys = {(s.target.provider_id, s.target.campground_id) for s in scans}
     cg_map = await _lookup_campgrounds_map(session, cg_keys)
 
-    result_counts: dict[uuid.UUID, int] = dict(
-        (
+    result_counts: dict[uuid.UUID, int] = {
+        row[0]: row[1]
+        for row in (
             await session.execute(
                 select(
                     ScanResult.target_id,
@@ -625,10 +626,8 @@ async def list_admin_scans(
                 .where(ScanResult.target_id.in_({s.target_id for s in scans}))
                 .group_by(ScanResult.target_id)
             )
-        )
-        .tuples()
-        .all()
-    )
+        ).all()
+    }
 
     items: list[AdminScanItem] = []
     for s in scans:
