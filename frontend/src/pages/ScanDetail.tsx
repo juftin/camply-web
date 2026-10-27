@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   Calendar,
   Activity,
@@ -6,24 +7,22 @@ import {
   Clock,
   ChevronLeft,
   Loader2,
+  ExternalLink,
+  ChevronRight,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScanForm } from "@/components/ScanForm";
 import { FoundCampsites } from "@/components/FoundCampsites";
 import { useScanDetail } from "@/hooks/useScans";
+import { getCampground } from "@/lib/api";
 import {
   toTitleCase,
   formatDate,
   daysBetween,
   formatRelativeTime,
+  formatDisplayDate,
 } from "@/lib/utils";
 
 export function ScanDetail() {
@@ -36,6 +35,16 @@ export function ScanDetail() {
     refetch,
     isFetching,
   } = useScanDetail(scanId ?? null);
+  const { data: campground } = useQuery({
+    queryKey: [
+      "campground",
+      scan ? String(scan.provider_id) : null,
+      scan?.campground_id,
+    ],
+    queryFn: () => getCampground(scan!.provider_id, scan!.campground_id),
+    enabled: !!scan,
+    retry: false,
+  });
 
   if (isLoading) {
     return (
@@ -102,6 +111,31 @@ export function ScanDetail() {
             {toTitleCase(scan.recreation_area_name)}
           </p>
         )}
+        {campground?.url && (
+          <a
+            href={campground.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm text-primary hover:underline"
+          >
+            View campground on provider
+            <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+          </a>
+        )}
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <Badge variant={scan.is_active ? "success" : "secondary"}>
+            {scan.is_active ? "Monitoring" : "Paused"}
+          </Badge>
+          <span>
+            {formatDisplayDate(scan.start_date, false)} –{" "}
+            {formatDisplayDate(scan.end_date, false)}
+          </span>
+          <span>· {scan.min_stay_length}+ nights</span>
+          {(scan.preferred_types ?? []).length > 0 && (
+            <span>· {scan.preferred_types.join(", ")}</span>
+          )}
+          {scan.require_electric && <span>· Electric required</span>}
+        </div>
       </div>
 
       <div className="mb-6">
@@ -124,12 +158,18 @@ export function ScanDetail() {
         )}
         <FoundCampsites key={scan.id} scan={scan} />
         {/* Overview */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Scan Overview</CardTitle>
-            <CardDescription>Details about this monitor</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <details className="group rounded-lg border bg-card text-card-foreground shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg p-5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+            <ChevronRight
+              aria-hidden="true"
+              className="h-3.5 w-3.5 text-muted-foreground transition-transform group-open:rotate-90"
+            />
+            Scan overview
+            <span className="ml-auto hidden text-xs font-normal text-muted-foreground sm:inline">
+              Dates, preferences & monitoring details
+            </span>
+          </summary>
+          <div className="space-y-4 p-6 pt-0">
             <div className="flex flex-wrap gap-2">
               <Badge variant={scan.is_active ? "success" : "secondary"}>
                 {scan.is_active ? "Active" : "Paused"}
@@ -194,8 +234,8 @@ export function ScanDetail() {
                 </Badge>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </details>
       </div>
     </div>
   );

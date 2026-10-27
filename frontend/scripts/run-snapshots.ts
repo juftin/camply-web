@@ -511,21 +511,22 @@ const SCENARIOS: Scenario[] = [
     viewport: { width: 1280, height: 800 },
     theme: "light",
     description:
-      "Scan details view displaying found campsites and polling status (Desktop, Light)",
+      "Date-grouped campsites with a full-campground provider link (Desktop, Light)",
   },
   ...(["light", "dark"] as const).map((theme) => ({
     name: `scan-detail-mobile-${theme}`,
     route: "/dashboard/scans/scan-mock-1",
     viewport: { width: 375, height: 812 },
     theme,
-    description: `Found campsites with consecutive stays and booking actions (Mobile, ${theme})`,
+    description: `Date-grouped campsites and full-campground provider link (Mobile, ${theme})`,
   })),
   {
     name: "scan-detail-desktop-dark",
     route: "/dashboard/scans/scan-mock-1",
     viewport: { width: 1280, height: 800 },
     theme: "dark",
-    description: "Found campsite list with booking actions (Desktop, Dark)",
+    description:
+      "Date-grouped campsites and full-campground provider link (Desktop, Dark)",
   },
   {
     name: "home-search-dropdown-desktop-light",
@@ -977,7 +978,7 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
       contentType: "application/json",
       body: JSON.stringify({
         ...MOCK_SCANS[0],
-        found_count: 2,
+        found_count: 3,
         start_date: "2026-11-15",
         end_date: "2026-11-21",
         last_checked_at: "2026-10-10T11:59:40Z",
@@ -1007,6 +1008,21 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
             booking_url:
               "https://www.recreation.gov/camping/campgrounds/232447",
             available_dates: ["2026-11-17", "2026-11-18"],
+          },
+          {
+            campsite_id: "site-403",
+            campsite_name: "Upper Pines Site 063",
+            campsite_type: "TENT",
+            is_electric: false,
+            is_accessible: false,
+            booking_url:
+              "https://www.recreation.gov/camping/campgrounds/232447",
+            available_dates: [
+              "2026-11-15",
+              "2026-11-16",
+              "2026-11-19",
+              "2026-11-20",
+            ],
           },
         ],
       }),

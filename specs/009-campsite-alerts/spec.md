@@ -15,6 +15,8 @@
 - Group consecutive available nights into check-in/check-out ranges; omit blocks below the saved minimum stay. Never imply that separated blocks form one stay.
 - Show freshness and warn that booking-provider availability can change. Keep the list usable on phones and provide search for large result sets.
 - Preserve authentication on scan links. No provider requests from the results page.
+- Group identical maximal consecutive check-in/check-out ranges into collapsible date sections with compact campsite rows. A site with separated openings appears in each relevant section; do not generate every possible shorter stay. Show unique matching-site and date-range counts, search and soonest-check-in/longest-stay sorting. Initially expand the first two ranges; searches reveal all matching sections.
+- Keep scan dates, preferences and monitoring status above the results. Link directly to the full campground on the provider website from the page header, including when no sites match. Obtain that URL from Camply's existing campground endpoint without blocking availability when campground metadata is unavailable.
 
 ## Acceptance checks
 
