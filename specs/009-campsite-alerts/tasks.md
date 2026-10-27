@@ -16,3 +16,4 @@
 - [x] Integrate date sections, compact campsite rows and a full-campground provider link.
 - [x] Verify frontend quality gates and actual-page desktop/mobile screenshots.
 - [x] Update frontend architecture notes and global checklist.
+- [x] Give the native sort select explicit sizing, appearance and an SVG chevron to avoid macOS-version differences in snapshots; refresh the affected scan-detail baselines.

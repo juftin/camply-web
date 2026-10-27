@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  ChevronDown,
   ChevronRight,
   Clock,
   ExternalLink,
@@ -139,15 +140,21 @@ export const FoundCampsites = ({ scan }: { scan: ScanDetailResponse }) => {
               </div>
               <label className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                 Sort by
-                <select
-                  aria-label="Sort date groups"
-                  value={sort}
-                  onChange={(event) => setSort(event.target.value)}
-                  className="h-10 rounded-md border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="soonest">Soonest check-in</option>
-                  <option value="longest">Longest stay</option>
-                </select>
+                <span className="relative">
+                  <select
+                    aria-label="Sort date groups"
+                    value={sort}
+                    onChange={(event) => setSort(event.target.value)}
+                    className="h-10 w-44 appearance-none rounded-md border bg-background pl-3 pr-9 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="soonest">Soonest check-in</option>
+                    <option value="longest">Longest stay</option>
+                  </select>
+                  <ChevronDown
+                    aria-hidden="true"
+                    className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground"
+                  />
+                </span>
               </label>
             </div>
           )}
