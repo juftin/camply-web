@@ -1,9 +1,11 @@
 """Standalone launch validates resources before it starts an HTTP server."""
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
+from backend import standalone
 from backend.config import BackendConfig, RuntimeMode
 from backend.standalone import validate_standalone
 from db.config import DatabaseConfig, DatabaseDrivers
@@ -32,6 +34,32 @@ def test_reject_multiple_workers(
             BackendConfig(runtime_mode=RuntimeMode.STANDALONE, frontend_dir=tmp_path),
             DatabaseConfig(HOST=str(tmp_path / "state.db")),
         )
+
+
+@pytest.mark.parametrize("configured", [None, "https://synthetic.example/prefix"])
+def test_launcher_selects_local_alert_links(
+    monkeypatch: pytest.MonkeyPatch, configured: str | None
+) -> None:
+    """Default summary links to the Python origin while preserving explicit public URLs."""
+    monkeypatch.setattr("sys.argv", ["standalone", "--port", "8765"])
+    monkeypatch.setattr(standalone, "backend_config", BackendConfig())
+    monkeypatch.setenv("CAMPLY_RUNTIME_MODE", "standalone")
+    if configured:
+        monkeypatch.setenv("CAMPLY_APP_URL", configured)
+    else:
+        monkeypatch.delenv("CAMPLY_APP_URL", raising=False)
+    with (
+        patch.object(standalone, "validate_standalone"),
+        patch.object(standalone, "upgrade_database"),
+        patch("uvicorn.run") as serve,
+    ):
+        standalone.main()
+    import os
+
+    assert os.environ["CAMPLY_APP_URL"] == (configured or "http://127.0.0.1:8765")
+    serve.assert_called_once_with(
+        "backend.app:app", host="127.0.0.1", port=8765, workers=1
+    )
 
 
 @pytest.mark.parametrize(

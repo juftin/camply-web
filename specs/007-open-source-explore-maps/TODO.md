@@ -5,6 +5,7 @@
 The map surfaces (Explore, Campground detail, and Recreation Area detail) default to OpenStreetMap's public raster tile server (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`).
 
 While this default provides an immediate, zero-credential development experience and automated tests intercept requests with synthetic fixtures, OpenStreetMap's [Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/) establishes that:
+
 - Public tile servers are operated on community donations with strict capacity limits.
 - High-volume, public, or automated production traffic must not rely directly on `tile.openstreetmap.org`.
 - Bulk downloading and pre-rendering are prohibited.

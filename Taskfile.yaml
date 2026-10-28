@@ -22,6 +22,7 @@ tasks:
     cmds:
       - task: frontend:build:standalone
       - python3 scripts/stage_frontend.py
+      - rm -rf "{{.ROOT_DIR}}/backend/dist"
       - uv build --project backend --all-packages --wheel --out-dir "{{.ROOT_DIR}}/backend/dist"
 
   standalone:run:
@@ -193,7 +194,9 @@ tasks:
 
   dist:
     desc: Build Backend Workspace Source Distributions
-    cmd: uv build --project backend --all-packages --sdist --out-dir "{{.ROOT_DIR}}/dist" --clear
+    cmds:
+      - rm -rf "{{.ROOT_DIR}}/dist"
+      - uv build --project backend --all-packages --sdist --out-dir "{{.ROOT_DIR}}/dist"
 
   release:test:
     desc: Verify Release Versions, Source Distributions, and Docker Publication Plans

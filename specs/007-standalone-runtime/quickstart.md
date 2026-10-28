@@ -69,4 +69,17 @@ Separately run `task admin:smoke` with Docker for distributed regression and app
 
 Unit tests additionally cover coalesced refreshes, provider failure isolation, 60/120/240-second target backoff, bounded/expired local history, current subscription eligibility and UTC minimum-stay rechecks, atomic rollback when intent insertion fails, delivery failure classification, four-attempt exhaustion, interrupted-send recovery, and terminal retention. Synthetic upstreams and temporary databases avoid real bookings or notifications.
 
-The repository-wide pre-commit run exposes the existing duplicate module docstring in untouched `backend/packages/db/db/models/search.py`. Hooks are also run on every PR file. TOML formatting is owned by the existing pretty-format-toml hook; Oxfmt excludes TOML to avoid conflicting trailing-comma rewrites introduced when editing dependency extras.
+The initial repository-wide pre-commit run encountered a duplicate-module-docstring false positive. Current main has addressed the hook configuration. TOML formatting remains owned by the dedicated pretty-format-toml hook.
+
+## Verification evidence (2026-10-28)
+
+The PR was rebased onto `7da9ea8` and reviewed against current search/maps, summarized notifications, result expiration/details, dependency upgrades, compression, and release workflows. See [review decisions](review.md).
+
+- `task test`: 630 Python tests, 337 frontend tests, and nine release tests pass. All 14 opt-in backend cases are covered by separate standalone/admin/map/PostgreSQL smoke commands. `task fix`, `task lint`, `task check`, `task api:check`, and repository-wide `task pre-commit -- --all-files` pass.
+- `task standalone:test` verifies fresh installed core wheels outside the checkout, map APIs, saved site details, summary links, gzip/immutable map worker assets, real login/CSRF, shared target checks, and alert recovery after restart. A synthetic stale wheel confirms build output is cleared before packaging.
+- SQLite upgrades cover fresh storage, populated current-main data, earlier PR pending payloads, online backup/restore, foreign keys, and write contention. `task backend:migration:test` verifies the merged PostgreSQL migration graph in a disposable container.
+- `task admin:smoke`, `task search:smoke`, and `task maps:verify` pass against real distributed services/PostgreSQL and Chromium where applicable.
+- `CAMPLY_SNAPSHOT_PORT=51866 task snapshot:check` matches all 76 current-main visual baselines. The dedicated port avoids another development server; no baselines were regenerated.
+- The distributed backend Docker image builds with the upgraded locked dependencies and distributed extras. Generated `uv.lock` formatting remains owned by uv, while manifest TOML and multi-document pnpm lock YAML use their dedicated hooks. `task test` also verifies version stamping, source distributions rebuilding into wheels, and image-publication plans without publishing.
+
+New failure tests cover summary recounting after edited filters, qualifying stays, accepted-send acknowledgment contention without resend, fatal storage readiness, and distinct polling-cycle job identities with stable retry identities. The original outbox revision is preserved; merge revision `4d64e0e4ae18` provides a single head for both prior schemas.

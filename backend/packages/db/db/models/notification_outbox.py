@@ -22,7 +22,7 @@ class NotificationOutbox(Base):
 
     __tablename__ = "notification_outbox"
     __table_args__ = (
-        UniqueConstraint("detection_id", "scan_id", "campsite_id"),
+        UniqueConstraint("detection_id", "scan_id", "delivery_key"),
         CheckConstraint("attempt_count >= 0 AND attempt_count <= 4"),
         CheckConstraint(
             "status IN ('pending', 'sending', 'retry', 'sent', 'skipped', 'failed')"
@@ -50,8 +50,8 @@ class NotificationOutbox(Base):
         ForeignKey("unique_targets.id", ondelete="SET NULL")
     )
     """Original target, so relinked scans cannot receive stale alerts."""
-    campsite_id: Mapped[str] = mapped_column(String(128))
-    """Provider campsite identity scoped to this target."""
+    delivery_key: Mapped[str] = mapped_column(String(128))
+    """Summary marker or provider campsite identity, unique within this detection."""
     payload: Mapped[dict[str, Any]] = mapped_column(JSON)
     """Credential-free serialized NotificationDTO."""
     status: Mapped[str] = mapped_column(String(16), default="pending")

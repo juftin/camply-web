@@ -60,6 +60,10 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
     os.environ["CAMPLY_RUNTIME_MODE"] = "standalone"
+    browser_host = "127.0.0.1" if args.host in {"0.0.0.0", "::"} else args.host
+    if ":" in browser_host:
+        browser_host = f"[{browser_host}]"
+    os.environ.setdefault("CAMPLY_APP_URL", f"http://{browser_host}:{args.port}")
     backend_config.runtime_mode = RuntimeMode.STANDALONE
     try:
         validate_standalone(backend_config, db)

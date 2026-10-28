@@ -1,6 +1,10 @@
 """Persist retries and acknowledge standalone alerts only after accepted delivery."""
 
+import asyncio
 import datetime as dt
+import sqlite3
+import time
+import uuid
 from collections.abc import Awaitable, Callable
 from http import HTTPStatus
 from typing import Any
@@ -8,11 +12,12 @@ from typing import Any
 import httpx
 from pydantic import ValidationError
 from sqlalchemy import delete, select
+from sqlalchemy.exc import OperationalError
 
 from db.config import DatabaseConfig
 from db.models import NotificationOutbox, UniqueTarget, User, UserScan
-from providers.dto import CampsiteDTO
-from worker.engine.scanner import _matches_scan_filters
+from worker.config import worker_config
+from worker.engine.alerts import matching_opening, summarize_openings
 from worker.notifications.base import NotificationDTO
 from worker.notifications.pushover import PushoverProvider
 
@@ -22,6 +27,40 @@ MAX_ATTEMPTS = 4
 
 class MissingCredentials(Exception):
     """Delivery cannot be attempted until the owner configures application credentials."""
+
+
+def is_sqlite_busy(error: OperationalError) -> bool:
+    """Retry only SQLite lock contention; other storage faults must fail readiness."""
+    code = getattr(error.orig, "sqlite_errorcode", 0)
+    return code & 0xFF in {sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED}
+
+
+async def finish_delivery(
+    database: DatabaseConfig, row_id: uuid.UUID, *, outcome: str, reason: str
+) -> bool:
+    """Persist an external outcome, retrying busy writes without sending again."""
+    while True:
+        try:
+            async with database.get_session() as session:
+                row = await session.get(NotificationOutbox, row_id)
+                if row is None:
+                    return False
+                row.status = {
+                    "success": "sent",
+                    "retry": "retry",
+                    "failure": "failed",
+                    "skipped": "skipped",
+                }[outcome]
+                row.error_category = None if outcome == "success" else reason
+                now = dt.datetime.now(dt.timezone.utc)
+                row.next_attempt_at = now + dt.timedelta(seconds=120)
+                row.finished_at = None if outcome == "retry" else now
+                await session.commit()
+                return True
+        except OperationalError as error:
+            if not is_sqlite_busy(error):
+                raise
+            await asyncio.sleep(0.25)
 
 
 async def send_accepted(user_key: str, payload: NotificationDTO) -> bool:
@@ -36,37 +75,22 @@ def current_payload(
     payload: NotificationDTO, scan: UserScan, target: UniqueTarget, today: dt.date
 ) -> NotificationDTO | None:
     """Clip past/out-of-range nights using UTC, then apply the current scan filters."""
-    dates = sorted(
-        {
-            dt.date.fromisoformat(value)
-            for value in payload.metadata["available_dates"]
-            if max(today, target.start_date)
-            <= dt.date.fromisoformat(value)
-            < target.end_date
-        }
-    )
-    if not dates:
-        return None
-    campsite = CampsiteDTO(
-        campsite_id=payload.metadata["campsite_id"],
-        campsite_name=payload.campsite_name,
-        campsite_type=payload.metadata["campsite_type"],
-        capacity=0,
-        available_dates=dates,
-        is_electric=payload.metadata["is_electric"],
-        is_accessible=payload.metadata.get("is_accessible", False),
-    )
-    if not _matches_scan_filters(campsite, scan):
-        return None
-    return payload.model_copy(
-        update={
-            "start_date": dates[0],
-            "end_date": dates[-1] + dt.timedelta(days=1),
-            "metadata": {
-                **payload.metadata,
-                "available_dates": [value.isoformat() for value in dates],
-            },
-        }
+    if "openings" not in payload.metadata:
+        return matching_opening(payload, scan, target, today)
+    matching = [
+        current
+        for item in payload.metadata["openings"]
+        if (
+            current := matching_opening(
+                NotificationDTO.model_validate(item), scan, target, today
+            )
+        )
+        is not None
+    ]
+    return (
+        summarize_openings(matching, scan, target, app_url=str(worker_config.app_url))
+        if matching
+        else None
     )
 
 
@@ -140,6 +164,7 @@ async def deliver_next(
     send: Callable[[str, NotificationDTO], Awaitable[bool]] = send_accepted,
 ) -> dict[str, Any] | None:
     """Consume one due intent without holding a transaction across network delivery."""
+    started = time.monotonic()
     now = dt.datetime.now(dt.timezone.utc)
     async with database.get_session() as session:
         row = (
@@ -196,31 +221,16 @@ async def deliver_next(
         await session.commit()
     if payload is not None:
         outcome, reason = await delivery_outcome(send, str(token), payload)
-        async with database.get_session() as session:
-            row = await session.get(NotificationOutbox, job_id)
-            if row is None:
-                return None
-            if outcome == "retry" and attempt >= MAX_ATTEMPTS:
-                outcome = "failure"
-            row.status = {
-                "success": "sent",
-                "retry": "retry",
-                "failure": "failed",
-                "skipped": "skipped",
-            }[outcome]
-            row.error_category = None if outcome == "success" else reason
-            row.next_attempt_at = dt.datetime.now(dt.timezone.utc) + dt.timedelta(
-                seconds=120
-            )
-            row.finished_at = (
-                None if outcome == "retry" else dt.datetime.now(dt.timezone.utc)
-            )
-            await session.commit()
+        if outcome == "retry" and attempt >= MAX_ATTEMPTS:
+            outcome = "failure"
+        if not await finish_delivery(database, job_id, outcome=outcome, reason=reason):
+            return None
     return {
         "task_id": str(job_id),
         "attempt": max(1, attempt),
         "outcome": outcome,
         "reason": reason,
+        "duration_ms": (time.monotonic() - started) * 1000,
         "entity_type": "target",
         "entity_id": str(target_id) if target_id else None,
     }

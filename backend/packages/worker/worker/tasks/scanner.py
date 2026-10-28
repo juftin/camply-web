@@ -12,7 +12,6 @@ from db.models import UserScan
 from providers import PROVIDERS
 from worker.celery_app import celery_app
 from worker.config import worker_config
-from worker.engine.scanner import _longest_consecutive as _longest_consecutive
 from worker.engine.scanner import _matches_scan_filters as _matches_scan_filters
 from worker.engine.scanner import check_target
 from worker.locks import ValkeyLock
@@ -105,6 +104,8 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
             sessions=db.get_session,
             registry=PROVIDERS,
             dispatch=_dispatch_notification,
+            notification_mode=worker_config.notification_mode,
+            app_url=str(worker_config.app_url),
             on_provider_result=_record_provider_result,
         )
         if result["status"] == "success":

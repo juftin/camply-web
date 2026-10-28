@@ -29,6 +29,8 @@ class SyntheticProvider(RecreationGovProvider):
                         provider_name="Synthetic",
                         campground_id="synthetic-cg",
                         campground_name="Synthetic Pines",
+                        latitude=37.7,
+                        longitude=-119.6,
                     )
                 )
                 await session.commit()

@@ -2,11 +2,13 @@
 
 import asyncio
 import datetime as dt
+import sqlite3
 import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from sqlalchemy.exc import OperationalError
 
 from db.config import DatabaseConfig
 from worker.runtime import LocalRunner
@@ -99,10 +101,11 @@ async def test_target_backoff_and_catalog_failure_isolation() -> None:
                 runner.in_flight.add("target")
                 runner.scan_queue.put_nowait("target")
                 await asyncio.wait_for(runner.scan_queue.join(), timeout=1)
-                count, deadline = runner.retries["target"]
+                count, deadline, _ = runner.retries["target"]
                 assert count == (attempt if attempt < 4 else 0)
                 assert delay - 1 < deadline - started < delay + 1
                 assert "target" not in runner.in_flight
+            assert len({row["task_id"] for row in runner.recent()}) == 1
         finally:
             scan.cancel()
             await asyncio.gather(scan, return_exceptions=True)
@@ -135,3 +138,48 @@ def test_history_expires_after_one_day() -> None:
     runner.record("synthetic", outcome="success")
     runner.history[0]["finished_at"] -= dt.timedelta(hours=25)
     assert runner.recent() == []
+
+
+@pytest.mark.anyio
+async def test_repeated_target_checks_have_distinct_jobs() -> None:
+    """A new polling cycle has its own identity while retaining the target context."""
+    runner = LocalRunner(DatabaseConfig(HOST=":memory:"), heartbeat=300, cooldown=55)
+    with patch(
+        "worker.runtime.check_target",
+        new_callable=AsyncMock,
+        return_value={"status": "success"},
+    ):
+        scan = asyncio.create_task(runner._scan())
+        try:
+            for _ in range(2):
+                runner.scan_queue.put_nowait("target")
+                await asyncio.wait_for(runner.scan_queue.join(), timeout=1)
+            assert len({row["task_id"] for row in runner.recent()}) == 2
+            assert {row["entity_id"] for row in runner.recent()} == {"target"}
+        finally:
+            scan.cancel()
+            await asyncio.gather(scan, return_exceptions=True)
+
+
+@pytest.mark.anyio
+async def test_storage_fault_stops_notification_readiness() -> None:
+    """Unexpected storage failures cannot leave a silently broken consumer healthy."""
+    runner = LocalRunner(DatabaseConfig(HOST=":memory:"), heartbeat=300, cooldown=55)
+    failure = OperationalError(
+        "synthetic missing table", {}, sqlite3.OperationalError()
+    )
+    with (
+        patch("worker.runtime.recover_deliveries", new_callable=AsyncMock),
+        patch("worker.runtime.prune_finished", new_callable=AsyncMock),
+        patch("worker.runtime.due_targets", new_callable=AsyncMock, return_value=[]),
+        patch(
+            "worker.runtime.deliver_next", new_callable=AsyncMock, side_effect=failure
+        ),
+    ):
+        await runner.start()
+        try:
+            await asyncio.sleep(0.01)
+            assert not runner.healthy
+            assert runner.tasks[-1].exception() is failure
+        finally:
+            await runner.close()

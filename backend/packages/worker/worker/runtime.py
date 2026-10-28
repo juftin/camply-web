@@ -12,10 +12,16 @@ from sqlalchemy.exc import OperationalError
 
 from db.config import DatabaseConfig
 from providers import PROVIDERS
+from worker.config import worker_config
 from worker.engine.catalog import populate_provider
 from worker.engine.discovery import due_targets
 from worker.engine.scanner import check_target
-from worker.outbox import deliver_next, prune_finished, recover_deliveries
+from worker.outbox import (
+    deliver_next,
+    is_sqlite_busy,
+    prune_finished,
+    recover_deliveries,
+)
 
 _MAX_TARGET_ATTEMPTS = 4
 ("""Initial target check plus at most three retries per cycle.""")
@@ -42,7 +48,7 @@ class LocalRunner:
         self.scan_queue: asyncio.Queue[str] = asyncio.Queue(maxsize=100)
         self.catalog_queue: asyncio.Queue[str] = asyncio.Queue(maxsize=1)
         self.in_flight: set[str] = set()
-        self.retries: dict[str, tuple[int, float]] = {}
+        self.retries: dict[str, tuple[int, float, str]] = {}
         self.tasks: list[asyncio.Task[None]] = []
         self.history: deque[dict[str, Any]] = deque(maxlen=1000)
         self.last_discovery: dict[str, Any] | None = None
@@ -160,7 +166,7 @@ class LocalRunner:
                 exclude=self.in_flight
                 | {
                     key
-                    for key, (_, deadline) in self.retries.items()
+                    for key, (_, deadline, _) in self.retries.items()
                     if deadline > time.monotonic()
                 },
             )
@@ -186,7 +192,7 @@ class LocalRunner:
             self.record("camply.search.schedule_checks", outcome="success")
             delays = [
                 deadline - time.monotonic()
-                for key, (_, deadline) in self.retries.items()
+                for key, (_, deadline, _) in self.retries.items()
                 if key not in self.in_flight and deadline > time.monotonic()
             ]
             try:
@@ -202,13 +208,17 @@ class LocalRunner:
             key = await self.scan_queue.get()
             started = time.monotonic()
             self.active += 1
-            attempt = self.retries.get(key, (0, 0))[0] + 1
+            retry = self.retries.get(key)
+            attempt = retry[0] + 1 if retry else 1
+            job_id = retry[2] if retry and retry[0] else str(uuid.uuid4())
             try:
                 result = await check_target(
                     key,
                     sessions=self.database.get_session,
                     registry=PROVIDERS,
                     persistent=True,
+                    notification_mode=worker_config.notification_mode,
+                    app_url=str(worker_config.app_url),
                     invite_only=self.invite_only,
                 )
                 outcome = {
@@ -220,7 +230,7 @@ class LocalRunner:
                 self.record(
                     "camply.search.check_campsite_availability",
                     outcome=outcome,
-                    task_id=key,
+                    task_id=job_id,
                     attempt=attempt,
                     duration_ms=(time.monotonic() - started) * 1000,
                     entity_type="target",
@@ -237,12 +247,13 @@ class LocalRunner:
                 self.retries[key] = (
                     attempt if attempt < _MAX_TARGET_ATTEMPTS else 0,
                     time.monotonic() + delay,
+                    job_id,
                 )
                 self.wake.set()
                 self.record(
                     "camply.search.check_campsite_availability",
                     outcome="retry" if attempt < _MAX_TARGET_ATTEMPTS else "failure",
-                    task_id=key,
+                    task_id=job_id,
                     attempt=attempt,
                     reason="provider_error",
                     entity_type="target",
@@ -283,7 +294,9 @@ class LocalRunner:
         while True:
             try:
                 result = await deliver_next(self.database, invite_only=self.invite_only)
-            except OperationalError:
+            except OperationalError as error:
+                if not is_sqlite_busy(error):
+                    raise
                 await asyncio.sleep(0.5)
                 continue
             if result is None:

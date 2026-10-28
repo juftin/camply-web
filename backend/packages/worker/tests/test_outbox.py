@@ -1,7 +1,9 @@
 """Standalone detection and delivery must survive restarts without false success."""
 
+import asyncio
 import datetime as dt
-from typing import Any
+import sqlite3
+from typing import Any, Literal
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
@@ -94,8 +96,9 @@ async def test_delivery_clips_expired_nights_and_requires_acceptance(
     assert result is not None
     assert result["outcome"] == "success"
     payload = send.call_args.args[1]
+    metadata = payload.metadata["openings"][0]["metadata"]
     today = dt.datetime.now(dt.timezone.utc).date()
-    assert payload.metadata["available_dates"] == [
+    assert metadata["available_dates"] == [
         today.isoformat(),
         (today + dt.timedelta(days=1)).isoformat(),
     ]
@@ -122,6 +125,88 @@ async def test_edited_filters_skip_pending_alert(
     result = await deliver_next(database, send=send)
     assert result is not None and result["outcome"] == "skipped"
     send.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_accepted_delivery_survives_write_contention(
+    local_data: tuple[DatabaseConfig, UniqueTarget, UserScan],
+) -> None:
+    """Retry a busy acknowledgment without repeating an accepted external send."""
+    database, target, _ = local_data
+    await check_target(
+        str(target.id),
+        sessions=database.get_session,
+        registry={1: fake_provider(target)},
+        persistent=True,
+    )
+    writer = sqlite3.connect(database.HOST)
+
+    async def accepted(*args: object) -> bool:
+        """Hold a competing writer past the connection's busy timeout."""
+        writer.execute("BEGIN IMMEDIATE")
+        release = asyncio.get_running_loop().call_later(1.25, writer.rollback)
+        releases.append(release)
+        return True
+
+    releases: list[asyncio.TimerHandle] = []
+    send = AsyncMock(side_effect=accepted)
+    try:
+        result = await asyncio.wait_for(deliver_next(database, send=send), timeout=4)
+        assert result is not None and result["outcome"] == "success"
+        send.assert_awaited_once()
+        async with database.get_session() as session:
+            row = (await session.scalars(select(NotificationOutbox))).one()
+            assert row.status == "sent" and row.attempt_count == 1
+    finally:
+        for release in releases:
+            release.cancel()
+        writer.close()
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("mode", ["summary", "direct"])
+async def test_durable_alert_modes_revalidate_each_site(
+    local_data: tuple[DatabaseConfig, UniqueTarget, UserScan],
+    mode: Literal["summary", "direct"],
+) -> None:
+    """Group durable summaries per scan and remove sites excluded before delivery."""
+    database, target, scan = local_data
+    provider = fake_provider(target)
+    first = provider.return_value.find_availabilities.return_value[0]
+    provider.return_value.find_availabilities.return_value.append(
+        first.model_copy(update={"campsite_id": "electric", "is_electric": True})
+    )
+    await check_target(
+        str(target.id),
+        sessions=database.get_session,
+        registry={1: provider},
+        persistent=True,
+        notification_mode=mode,
+        app_url="https://synthetic.example/prefix",
+    )
+    async with database.get_session() as session:
+        rows = (await session.scalars(select(NotificationOutbox))).all()
+        assert len(rows) == (1 if mode == "summary" else 2)
+        if mode == "summary":
+            assert rows[0].payload["metadata"]["new_campsite_count"] == 2
+            assert (
+                rows[0].payload["booking_url"]
+                == f"https://synthetic.example/prefix/dashboard/scans/{scan.id}#results"
+            )
+        current = await session.get(UserScan, scan.id)
+        assert current is not None
+        current.require_electric = True
+        await session.commit()
+    send = AsyncMock(return_value=True)
+    while await deliver_next(database, send=send) is not None:
+        pass
+    send.assert_awaited_once()
+    payload = send.call_args.args[1]
+    if mode == "summary":
+        assert payload.metadata["new_campsite_count"] == 1
+        assert payload.metadata["openings"][0]["metadata"]["campsite_id"] == "electric"
+    else:
+        assert payload.metadata["campsite_id"] == "electric"
 
 
 @pytest.mark.anyio

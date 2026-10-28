@@ -38,13 +38,22 @@ def test_postgres_populated_upgrade() -> None:
             .rsplit(":", 1)[1]
         )
         deadline = time.monotonic() + 30
-        while subprocess.run(
-            ["docker", "exec", container, "pg_isready", "-U", "postgres"],
-            capture_output=True,
-            check=False,
-        ).returncode:
-            assert time.monotonic() < deadline, "Test-owned PostgreSQL did not start"
-            time.sleep(0.25)
+        while True:
+            try:
+                with psycopg.connect(
+                    host="127.0.0.1",
+                    port=port,
+                    user="postgres",
+                    dbname="postgres",
+                    connect_timeout=1,
+                ) as connection:
+                    connection.execute("SELECT 1")
+                break
+            except psycopg.OperationalError:
+                assert time.monotonic() < deadline, (
+                    "Test-owned PostgreSQL did not start"
+                )
+                time.sleep(0.1)
         database = DatabaseConfig(
             DRIVERNAME=DatabaseDrivers.POSTGRES,
             HOST="127.0.0.1",
@@ -52,7 +61,7 @@ def test_postgres_populated_upgrade() -> None:
             USERNAME="postgres",
             DATABASE="postgres",
         )
-        upgrade_database(database, revision="9b2c3d4e5f6a")
+        upgrade_database(database, revision="09367969f1a4")
         with psycopg.connect(
             host=database.HOST, port=port, user="postgres", dbname="postgres"
         ) as connection:

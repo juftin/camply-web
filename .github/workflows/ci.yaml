@@ -28,6 +28,7 @@ jobs:
       - uses: ./.github/actions/setup-backend
       - uses: ./.github/actions/setup-frontend
       - run: task release:test
+
   standalone-smoke:
     name: Standalone Install and Browser Smoke
     runs-on: ubuntu-latest
@@ -38,7 +39,7 @@ jobs:
       - uses: ./.github/actions/setup-frontend
       - run: task frontend:browser:install
       - run: task standalone:test
-      - uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: standalone-smoke

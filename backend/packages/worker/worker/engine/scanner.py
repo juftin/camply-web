@@ -3,12 +3,13 @@
 import datetime
 import uuid as uuid_mod
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 
 import structlog
 from sqlalchemy import and_, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from db.availability import matches_scan_filters
 from db.eligibility import eligible_scan_condition
 from db.models import (
     Campground,
@@ -21,53 +22,20 @@ from db.models import (
 from providers.base import BaseProvider
 from providers.dto import CampsiteDTO
 from providers.utils import normalize_name
+from worker.engine.alerts import matching_opening, summarize_openings
 from worker.notifications.base import NotificationDTO
 
 logger = structlog.getLogger(__name__)
 
 
-def _longest_consecutive(dates: list[datetime.date]) -> int:
-    """Find the longest consecutive streak of dates."""
-    if not dates:
-        return 0
-    sorted_dates = sorted(dates)
-    longest = 1
-    current = 1
-    for i in range(1, len(sorted_dates)):
-        delta = (sorted_dates[i] - sorted_dates[i - 1]).days
-        if delta == 1:
-            current += 1
-            longest = max(longest, current)
-        else:
-            current = 1
-    return longest
-
-
 def _matches_scan_filters(campsite: CampsiteDTO, scan: UserScan) -> bool:
-    """
-    Check whether a campsite matches a user's scan filters.
-
-    Filters applied:
-      - min_stay_length: consecutive nights available >= scan.min_stay_length
-      - preferred_types: if set, campsite_type must be in the list
-      - require_electric: if True, campsite must have electric hookup
-    """
-    # Minimum stay length: check for a consecutive block of N nights
-    if scan.min_stay_length and scan.min_stay_length > 1:
-        consec = _longest_consecutive(campsite.available_dates)
-        if consec < scan.min_stay_length:
-            return False
-
-    # Preferred campsite types
-    if scan.preferred_types:
-        if campsite.campsite_type.value not in scan.preferred_types:
-            return False
-
-    # Electric required
-    if scan.require_electric and not campsite.is_electric:
-        return False
-
-    return True
+    """Use the same site preferences and qualifying stays as the results API."""
+    return matches_scan_filters(
+        [night.isoformat() for night in campsite.available_dates],
+        campsite_type=campsite.campsite_type.value,
+        is_electric=campsite.is_electric,
+        scan=scan,
+    )
 
 
 async def check_target(
@@ -77,6 +45,8 @@ async def check_target(
     registry: dict[int, type[BaseProvider]],
     dispatch: Callable[[UserScan, NotificationDTO], None] | None = None,
     persistent: bool = False,
+    notification_mode: Literal["summary", "direct"] = "summary",
+    app_url: str = "https://camply.juftin.dev",
     invite_only: bool = False,
     on_provider_result: Callable[[int, bool], None] | None = None,
 ) -> dict[str, Any]:
@@ -173,10 +143,21 @@ async def check_target(
             except Exception:
                 pass
 
-        # Build a campsite lookup dict for O(1) access during fan-out
-        campsite_by_id: dict[str, CampsiteDTO] = {
-            c.campsite_id: c for c in availabilities
-        }
+        # Keep snapshots and alerts aligned with the current results API.
+        first_night = max(
+            target.start_date, datetime.datetime.now(datetime.timezone.utc).date()
+        )
+        availabilities = [
+            campsite.model_copy(update={"available_dates": dates})
+            for campsite in availabilities
+            if (
+                dates := [
+                    night
+                    for night in campsite.available_dates
+                    if first_night <= night < target.end_date
+                ]
+            )
+        ]
 
         # Load previous scan results for diffing
         prev_stmt = select(ScanResult).where(ScanResult.target_id == target_uuid)
@@ -236,6 +217,10 @@ async def check_target(
                 ScanResult(
                     target_id=target_uuid,
                     campsite_id=campsite.campsite_id,
+                    campsite_name=campsite.campsite_name,
+                    campsite_type=campsite.campsite_type.value,
+                    is_electric=campsite.is_electric,
+                    is_accessible=campsite.is_accessible,
                     available_dates=[d.isoformat() for d in campsite.available_dates],
                 )
             )
@@ -269,28 +254,45 @@ async def check_target(
             active_scans = us_result.scalars().all()
 
             for scan in active_scans:
+                matching = []
                 for opening in new_openings:
-                    campsite_id = opening.metadata["campsite_id"]
-                    matching_campsite = campsite_by_id.get(campsite_id)
-                    if matching_campsite is None:
-                        continue
-                    if _matches_scan_filters(matching_campsite, scan):
-                        if persistent:
-                            session.add(
-                                NotificationOutbox(
-                                    detection_id=detection_id,
-                                    user_id=scan.user_id,
-                                    scan_id=scan.id,
-                                    target_id=target_uuid,
-                                    campsite_id=campsite_id,
-                                    payload=opening.model_dump(mode="json"),
-                                    created_at=target.last_checked_at,
-                                    next_attempt_at=target.last_checked_at,
-                                )
+                    current = matching_opening(
+                        opening,
+                        scan,
+                        target,
+                        datetime.datetime.now(datetime.timezone.utc).date(),
+                    )
+                    if current is not None and any(
+                        (current.metadata["campsite_id"], night) not in previously_seen
+                        for night in current.metadata["available_dates"]
+                    ):
+                        matching.append(current)
+                if not matching:
+                    continue
+                notifications = (
+                    [summarize_openings(matching, scan, target, app_url=app_url)]
+                    if notification_mode == "summary"
+                    else matching
+                )
+                for notification in notifications:
+                    if persistent:
+                        session.add(
+                            NotificationOutbox(
+                                detection_id=detection_id,
+                                user_id=scan.user_id,
+                                scan_id=scan.id,
+                                target_id=target_uuid,
+                                delivery_key="summary"
+                                if notification_mode == "summary"
+                                else notification.metadata["campsite_id"],
+                                payload=notification.model_dump(mode="json"),
+                                created_at=target.last_checked_at,
+                                next_attempt_at=target.last_checked_at,
                             )
-                        elif dispatch is not None:
-                            dispatch(scan, opening)
-                        notifications_sent += 1
+                        )
+                    elif dispatch is not None:
+                        dispatch(scan, notification)
+                    notifications_sent += 1
 
             logger.info(
                 "New openings detected and fanned out",

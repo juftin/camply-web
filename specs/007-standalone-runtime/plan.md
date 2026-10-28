@@ -316,3 +316,7 @@ Technical references supporting the design:
 ## Review resolutions (2026-10-14)
 
 Package Alembic resources in the db wheel and resolve them through installed resources (T011–T013). Standalone requires explicit accepted delivery outcomes and classified skip/retry/permanent failure rather than treating no-op returns as success (T016/T020). Expiry uses a UTC calendar-day cutoff, clips expired/out-of-range nights, and reapplies minimum stay before delivery (T016/T020/T025). See the runtime contract and data model for precise rules.
+
+## Current-main review (2026-10-28)
+
+The rebase preserves summarized/direct alerts, current stay filtering through `db.availability`, rich campsite snapshots, map APIs/assets, response compression, dependency upgrades, and release workflows. The original outbox revision is retained and joined to the current schema through merge revision `4d64e0e4ae18`. Durable summary snapshots are revalidated per site; busy acknowledgments retry persistence without resending; local polling cycles have distinct job identities. See [review findings and evidence](review.md).

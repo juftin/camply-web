@@ -13,6 +13,7 @@ from contextlib import ExitStack
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Callable
+from urllib.parse import urlparse
 
 import httpx
 import pytest
@@ -125,10 +126,10 @@ def _exercise_scans(
     delivery_gate.set()
     process = start()
     _wait(
-        lambda: rows("SELECT COUNT(*) FROM notification_outbox WHERE status='sent'")[0][
-            0
-        ]
-        == 2
+        lambda: (
+            rows("SELECT COUNT(*) FROM notification_outbox WHERE status='sent'")[0][0]
+            == 2
+        )
     )
     assert rows("SELECT COUNT(*) FROM user_scans")[0][0] == 2
     assert client.get("/api/scans").is_success
@@ -136,6 +137,53 @@ def _exercise_scans(
     assert client.get("/api/admin/trends").json()["available"] is False
     assert client.get("/metrics").status_code == 404
     assert client.get("/api/missing").status_code == 404
+    _verify_current_features(client, origin, deliveries)
+
+
+def _verify_current_features(
+    client: httpx.Client, origin: str, deliveries: list[bytes]
+) -> None:
+    """Exercise current maps, saved site details, and summary links on installed SQLite."""
+    import json
+
+    summary = client.get("/api/search/map/summary").json()
+    assert summary["total"] == 1 and summary["mappable_total"] == 1
+    mapped = client.get(
+        "/api/search/map",
+        params={"west": -120, "south": 37, "east": -119, "north": 38, "zoom": 10},
+    )
+    assert mapped.is_success, mapped.text
+    assert mapped.json()["represented_total"] == 1
+    scans = client.get("/api/scans").json()["scans"]
+    detail = client.get(f"/api/scans/{scans[0]['id']}").json()
+    assert detail["found_count"] == 1
+    assert detail["results"][0]["campsite_name"] == "Synthetic Site"
+    assert detail["results"][0]["campsite_type"] == "TENT"
+    for sent in deliveries:
+        payload = json.loads(sent)
+        assert payload["url_title"] == "View campsites"
+        assert payload["url"].startswith(origin + "/dashboard/scans/")
+        response = client.get(
+            urlparse(payload["url"]).path, headers={"Accept": "text/html"}
+        )
+        assert response.is_success and "text/html" in response.headers["content-type"]
+
+
+def _verify_map_worker(core: Path, origin: str) -> None:
+    """Serve the installed MapLibre worker with compression and immutable caching."""
+    workers = list(
+        core.glob(
+            "lib/python*/site-packages/backend/static/assets/maplibre-gl-worker-*.js"
+        )
+    )
+    assert len(workers) == 1, "The standalone wheel must bundle the map worker"
+    resource = httpx.get(
+        origin + "/assets/" + workers[0].name, headers={"Accept-Encoding": "gzip"}
+    )
+    assert resource.is_success
+    assert "javascript" in resource.headers["content-type"]
+    assert resource.headers["content-encoding"] == "gzip"
+    assert "immutable" in resource.headers["cache-control"]
 
 
 def test_installed_standalone_stack(tmp_path: Path) -> None:
@@ -233,6 +281,7 @@ def test_installed_standalone_stack(tmp_path: Path) -> None:
             **os.environ,
             "PYTHONPATH": "",
             "CAMPLY_RUNTIME_MODE": "standalone",
+            "CAMPLY_APP_URL": origin,
             "CAMPLY_DB_DRIVERNAME": "sqlite+aiosqlite",
             "CAMPLY_DB_HOST": str(database),
             "CAMPLY_AUTH_MODE": "session",
@@ -277,6 +326,7 @@ def test_installed_standalone_stack(tmp_path: Path) -> None:
             return process
 
         process = start()
+        _verify_map_worker(core, origin)
         _exercise_scans(
             origin,
             stack,

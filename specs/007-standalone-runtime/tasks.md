@@ -1,7 +1,7 @@
 # Tasks: Optional standalone runtime
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/](contracts/), [quickstart.md](quickstart.md).
-**Status**: All 36 tasks completed and verified. See [quickstart evidence](quickstart.md#verification-evidence-2026-10-14).
+**Status**: All 42 tasks complete and verified against current main. See [review](review.md) and [current verification](quickstart.md#verification-evidence-2026-10-28).
 **Tests**: Required by FR-015 and the constitution. Add behavior tests before implementation and observe intended failures.
 **Format**: `- [ ] Tnnn [P?] [USn?] description with exact paths`. [P] means separate files with prerequisites already satisfied.
 
@@ -42,7 +42,7 @@
 
 - [x] T015 [P] [US2] Add deterministic scheduling/deduplication/cooldown/retry/coalesced-sync/failure-isolation/shutdown tests in `backend/packages/worker/tests/test_runtime.py` before local runner implementation (FR-004/005/011/013).
 - [x] T016 [P] [US2] Add outbox transaction/crash/retry/reopening and current owner/target/filters/invitation/date/credential checks in `backend/packages/worker/tests/test_outbox.py`, including terminal failure at four consumed attempts and 24-hour terminal pruning (FR-006/008/015).
-- [x] T017 [US2] Add `backend/packages/db/db/models/notification_outbox.py` and export it from `db/models/__init__.py`: `id` is a "Required UUID primary key"; `detection_id` is a "Required UUID"; user/scan/target references are "Nullable UUID FK" with "ON DELETE SET NULL"; `campsite_id` is a "Required string, maximum 128 characters"; `payload` is "Required JSON NotificationDTO; contains no credentials"; `status` is "Required enum: pending, sending, retry, sent, skipped, failed"; `attempt_count` is "Required integer >= 0, default 0; at most four sends"; `next_attempt_at`/`created_at` are "Required UTC datetime"; `finished_at` is "Nullable UTC datetime; required for terminal states"; `error_category` is "Nullable allowlisted string, maximum 64 characters". Add unique detection/scan/site and due/cleanup indexes per `data-model.md` (FR-006).
+- [x] T017 [US2] Add `backend/packages/db/db/models/notification_outbox.py` and export it from `db/models/__init__.py`: `id` is a "Required UUID primary key"; `detection_id` is a "Required UUID"; user/scan/target references are "Nullable UUID FK" with "ON DELETE SET NULL"; `delivery_key` is a "Required string, maximum 128 characters: summary marker or campsite ID"; `payload` is "Required JSON NotificationDTO; contains no credentials"; `status` is "Required enum: pending, sending, retry, sent, skipped, failed"; `attempt_count` is "Required integer >= 0, default 0; at most four sends"; `next_attempt_at`/`created_at` are "Required UTC datetime"; `finished_at` is "Nullable UTC datetime; required for terminal states"; `error_category` is "Nullable allowlisted string, maximum 64 characters". Add unique detection/scan/delivery key and due/cleanup indexes per `data-model.md` (FR-006).
 - [x] T018 [US2] Generate the outbox Alembic revision under `backend/packages/db/migrations/versions/` using `task backend:migration`; extend T005 tests for fresh/populated SQLite and PostgreSQL upgrades and FK-safe deletion (FR-003/006).
 - [x] T019 [US2] Commit standalone delivery intents with result replacement/success timestamp in `backend/packages/worker/worker/engine/scanner.py`; keep the existing distributed dispatch adapter and new-detection identity across closing/reopening (FR-004/006).
 - [x] T020 [US2] Implement due delivery, current-scan validation, 120-second transient retry, three retries/four sends, interrupted-attempt recovery, explicit upstream acceptance, classified failure/no-op outcomes, UTC date clipping with minimum-stay recheck, credential-free error categories, and terminal pruning in `backend/packages/worker/worker/outbox.py` (FR-006/008).
@@ -104,3 +104,12 @@ flowchart LR
 Deliver foundation → US1 → US2 → US3 → final verification. US1 is the deployable website/API/storage increment; campsite monitoring is added by US2. Each story has a separate acceptance checkpoint, though integrated stories depend on the preceding runtime foundation.
 
 Implementation was authorized with `/speckit.implement` and the subsequent requirements-review approval. Installed-artifact and real-HTTP runtime scenarios share `test_standalone_smoke.py` so the same clean environment verifies both stories. Catalog writes preserve the existing provider transaction boundaries; archive parsing is offloaded without redesigning ingestion.
+
+## Rebase and review against current main (2026-10-28)
+
+- [x] T037 Review upstream changes and rebase onto `7da9ea8`, preserving search/maps, richer results, compression, dependency upgrades, CI, and release workflows.
+- [x] T038 Use `db.availability` for shared filtering and qualifying stays; preserve current summary/direct behavior and site details in `worker/engine/scanner.py` and `alerts.py`.
+- [x] T039 Keep original migration history and add merge revision `4d64e0e4ae18`; verify upgrades from current main and the earlier PR schema preserve saved/pending state.
+- [x] T040 Revalidate each site in durable summaries, retry busy acknowledgments without resending, fail readiness on other storage errors, and use distinct polling-cycle job IDs with stable retries.
+- [x] T041 Default standalone summary links to the configured listener, preserve explicit public URLs, clear stale build wheels, and expand installed-artifact tests to maps/results/compressed worker assets.
+- [x] T042 Complete current full-suite/type/lint/API/pre-commit/visual/runtime/release verification, update operational documentation and PR, and push the reviewed branch.
