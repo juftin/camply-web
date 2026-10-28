@@ -104,7 +104,7 @@ Stores individual site metadata. Populated during scans or full metadata syncs.
 
 The scanner replaces the latest snapshot, including these attributes, after every successful provider check. User scan results, counts and alerts share saved-filter logic; unknown attributes cannot satisfy restrictive preferences. The additive campsite-details migration preserves existing dates and populates metadata on the next successful check.
 
-User-facing results and counts exclude nights before the current UTC date and outside the target's check-in/check-out interval before applying minimum-stay rules. This expires past availability even when a scan is paused or no worker is running. A successful empty provider response clears the snapshot. Failed checks preserve the previous snapshot and its last-successful-check timestamp; snapshot age alone does not establish that a site is unavailable.
+User-facing results and counts exclude nights before the current UTC date and outside the target's check-in/check-out interval before applying minimum-stay rules. The worker applies the same window before snapshot replacement and new-opening detection, so notifications cannot qualify using expired nights. Read-time filtering also expires past availability when a scan is paused or no worker is running. A successful empty provider response clears the snapshot. Failed checks preserve the previous snapshot and its last-successful-check timestamp; snapshot age alone does not establish that a site is unavailable.
 
 ---
 

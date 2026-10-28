@@ -1,6 +1,7 @@
 """Exercise alert grouping and new-opening detection with real snapshot storage."""
 
 import datetime
+import uuid
 from collections.abc import AsyncIterator
 from typing import Literal
 from unittest.mock import AsyncMock, MagicMock
@@ -177,3 +178,55 @@ async def test_grouped_openings_and_reappearance(
     provider_mock.find_availabilities.return_value = sites
     await scanner._check_target_availability_async(MagicMock(), target_id)
     assert dispatch.call_count == (2 if mode == "summary" else 4)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("remaining_nights", [0, 1, 2])
+@pytest.mark.parametrize("mode", ["summary", "direct"])
+async def test_alerts_only_use_remaining_nights(
+    monkeypatch: pytest.MonkeyPatch,
+    remaining_nights: int,
+    mode: Literal["summary", "direct"],
+    scanner_setup: tuple[
+        async_sessionmaker[AsyncSession],
+        str,
+        list[str],
+        list[CampsiteDTO],
+        MagicMock,
+        MagicMock,
+    ],
+) -> None:
+    """Expired nights cannot make a provider opening qualify for an alert."""
+    maker, target_id, _, sites, _, dispatch = scanner_setup
+    monkeypatch.setattr(scanner, "worker_config", WorkerConfig(notification_mode=mode))
+    today = datetime.datetime.now(tz=datetime.timezone.utc).date()
+    yesterday = today - datetime.timedelta(days=1)
+    current_dates = [
+        today + datetime.timedelta(days=offset) for offset in range(remaining_nights)
+    ]
+    checkout = today + datetime.timedelta(days=3)
+    async with maker() as session:
+        target = await session.get(UniqueTarget, uuid.UUID(target_id))
+        assert target is not None
+        target.start_date = yesterday
+        target.end_date = checkout
+        await session.commit()
+    for site in sites:
+        site.available_dates = [
+            yesterday,
+            *current_dates,
+            checkout,
+            checkout + datetime.timedelta(days=1),
+        ]
+
+    result = await scanner._check_target_availability_async(MagicMock(), target_id)
+    assert result is not None and result["status"] == "success"
+    expected_alerts = 2 if mode == "summary" else 4
+    assert dispatch.call_count == (expected_alerts if remaining_nights == 2 else 0)
+    async with maker() as session:
+        stored = (await session.scalars(select(ScanResult))).all()
+        assert len(stored) == (3 if current_dates else 0)
+        assert all(
+            row.available_dates == [night.isoformat() for night in current_dates]
+            for row in stored
+        )

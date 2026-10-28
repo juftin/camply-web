@@ -194,6 +194,24 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
                 except Exception:
                     pass
 
+            # Apply the same date window as user-facing results before diffing or alerts.
+            first_night = max(
+                target.start_date,
+                datetime.datetime.now(tz=datetime.timezone.utc).date(),
+            )
+            current_availabilities: list[CampsiteDTO] = []
+            for campsite in availabilities:
+                dates = [
+                    night
+                    for night in campsite.available_dates
+                    if first_night <= night < target.end_date
+                ]
+                if dates:
+                    current_availabilities.append(
+                        campsite.model_copy(update={"available_dates": dates})
+                    )
+            availabilities = current_availabilities
+
             # Build a campsite lookup dict for O(1) access during fan-out
             campsite_by_id: dict[str, CampsiteDTO] = {
                 c.campsite_id: c for c in availabilities
