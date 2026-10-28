@@ -955,7 +955,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         <div
-          class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md ring-1 ring-yellow-400/30"
+          class="rounded-lg border bg-card text-card-foreground shadow-sm min-w-0 transition-all hover:shadow-md ring-1 ring-yellow-400/30"
         >
           <a
             class="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -1086,7 +1086,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                   Min 2 nights
                 </div>
                 <div
-                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px]"
+                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 max-w-full whitespace-normal break-words text-[10px]"
                 >
                   STANDARD NONELECTRIC, TENT ONLY
                 </div>
@@ -1219,7 +1219,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
           </div>
         </div>
         <div
-          class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md opacity-60 ring-1 ring-yellow-400/30"
+          class="rounded-lg border bg-card text-card-foreground shadow-sm min-w-0 transition-all hover:shadow-md opacity-60 ring-1 ring-yellow-400/30"
         >
           <a
             class="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -1345,7 +1345,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                 class="flex flex-wrap gap-1.5"
               >
                 <div
-                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px]"
+                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 max-w-full whitespace-normal break-words text-[10px]"
                 >
                   TENT ONLY
                 </div>
@@ -1478,7 +1478,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
           </div>
         </div>
         <div
-          class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md ring-1 ring-yellow-400/30"
+          class="rounded-lg border bg-card text-card-foreground shadow-sm min-w-0 transition-all hover:shadow-md ring-1 ring-yellow-400/30"
         >
           <a
             class="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -1631,7 +1631,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                   Min 3 nights
                 </div>
                 <div
-                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px]"
+                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 max-w-full whitespace-normal break-words text-[10px]"
                 >
                   RV NONELECTRIC
                 </div>
@@ -2838,7 +2838,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot without logo 1`]
 exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for active scan with filters 1`] = `
 <DocumentFragment>
   <div
-    class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md"
+    class="rounded-lg border bg-card text-card-foreground shadow-sm min-w-0 transition-all hover:shadow-md"
   >
     <a
       class="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -2986,7 +2986,7 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for active sca
             Min 2 nights
           </div>
           <div
-            class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px]"
+            class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 max-w-full whitespace-normal break-words text-[10px]"
           >
             STANDARD NONELECTRIC, TENT ONLY
           </div>
@@ -3124,7 +3124,7 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for active sca
 exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for ended scan 1`] = `
 <DocumentFragment>
   <div
-    class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md opacity-60 ring-1 ring-yellow-400/30"
+    class="rounded-lg border bg-card text-card-foreground shadow-sm min-w-0 transition-all hover:shadow-md opacity-60 ring-1 ring-yellow-400/30"
   >
     <a
       class="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -3382,7 +3382,7 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for ended scan
 exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for paused scan 1`] = `
 <DocumentFragment>
   <div
-    class="rounded-lg border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md opacity-60"
+    class="rounded-lg border bg-card text-card-foreground shadow-sm min-w-0 transition-all hover:shadow-md opacity-60"
   >
     <a
       class="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

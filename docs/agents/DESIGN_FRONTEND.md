@@ -49,7 +49,7 @@ The self-contained SVGs in `frontend/public/branding/` use outlined lettering so
 
 ### 2. Main Dashboard (`/dashboard`)
 
-- **Active Scans**: A responsive grid of `ScanCard` components showing monitoring tasks.
+- **Active Scans**: Collapsed campground groups, keyed by provider and campground ID, show the number of saved scans and scans with openings. Expanding a group reveals the responsive `ScanCard` grid with each scan's dates and controls. Group summaries count scans with openings rather than summing potentially overlapping site matches.
 - **Stats**: Summary cards showing total scans, active count, and campsites found.
 - **Settings Panel**: Toggle-able slide-down with Pushover key configuration.
 - **Navigation**: `Header.tsx` shows "Dashboard" and auth controls for authenticated users.
@@ -70,6 +70,7 @@ The self-contained SVGs in `frontend/public/branding/` use outlined lettering so
 - **Delete**: Each scan card has an accessible delete button and confirmation dialog. Card controls sit outside the detail link. Confirmation awaits the request, disables repeat submissions while pending, and keeps failures visible in the dialog for retry; success refreshes the dashboard.
 - **Detail View**: Clicking through from the dashboard is routed to a dedicated detail view.
 - **Found campsites**: Results appear before the collapsible scan overview, grouped by identical check-in/check-out ranges with compact campsite rows. The first two date sections start expanded; native details/summary controls support keyboard toggling. Search reveals matching sites across all sections; counts show unique sites and date ranges, with soonest-check-in and longest-stay sorting. Each row shows its provider name/number, type, electric/accessibility attributes when known, and a provider action. Consecutive nights form maximal ranges with night counts; gaps remain separate and stays shorter than the saved minimum are omitted. The header shows scan dates, preferences and monitoring status, plus a separate “View campground on provider” link from the existing campground endpoint, available even when no sites match. Metadata failures do not block results. The latest-check timestamp and availability caveat identify the snapshot's freshness. Empty states distinguish waiting for a first check, no matches, and paused scans; refresh failures preserve loaded results with a retry action. API results and dashboard counts apply the same preferences as alerts. Notification links target `#results`, and session/Auth0 login preserves the destination, including deployments under a frontend path prefix.
+- **Bounded results and expiration**: Scan details preserve the shared stay-date groups and show five campsites per page within each group. Search covers all matching sites and returns to the first page; refreshed results clamp pagination when sites disappear. The API excludes past nights using the UTC date and nights outside the target interval before evaluating minimum stays, so paused scans cannot retain expired matches. Successful checks remove sites that are no longer available, including clearing all results for an empty response. Paused results explicitly say they are not being refreshed; failed checks preserve the last successful snapshot and its timestamp.
 
 ### Explore (`/search`)
 

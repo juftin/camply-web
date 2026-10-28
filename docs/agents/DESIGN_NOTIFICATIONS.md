@@ -61,6 +61,8 @@ The worker defaults to **one summary per saved scan per check** containing new m
 
 `CAMPLY_NOTIFICATION_MODE=direct` preserves individual site alerts with provider booking links for local deployments. `summary` is the default in every environment. Both modes apply the same site preferences and minimum consecutive stay as the API. Newly available nights outside qualifying stay blocks do not trigger alerts. Unchanged openings remain silent; openings can alert again after disappearing and returning.
 
+Before storing results or detecting new openings, the worker discards nights before the current UTC date and outside the target's check-in/check-out interval. Minimum stays are evaluated on the remaining nights, matching API expiration, so expired nights cannot cause an alert that opens to no qualifying results.
+
 Snapshots retain campsite names, types and electric/accessibility attributes, so opening a summary requires no live provider request. The list represents the latest successful check, not a permanent history; availability may change before booking.
 
 ### 3. Delivery

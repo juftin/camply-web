@@ -282,8 +282,11 @@ class TestScannerTaskAsync:
             mock_target.id = target_uuid_obj
             mock_target.provider_id = 1
             mock_target.campground_id = "cg_1"
-            mock_target.start_date = datetime.date(2026, 9, 1)
-            mock_target.end_date = datetime.date(2026, 9, 3)
+            check_in = datetime.datetime.now(
+                tz=datetime.timezone.utc
+            ).date() + datetime.timedelta(days=1)
+            mock_target.start_date = check_in
+            mock_target.end_date = check_in + datetime.timedelta(days=2)
             mock_target.last_checked_at = None
 
             mock_campground = MagicMock()
@@ -300,7 +303,7 @@ class TestScannerTaskAsync:
                 campsite_name="Site 1",
                 campsite_type=CampsiteType.TENT,
                 capacity=6,
-                available_dates=[datetime.date(2026, 9, 1)],
+                available_dates=[check_in],
                 is_electric=False,
                 is_accessible=False,
             )

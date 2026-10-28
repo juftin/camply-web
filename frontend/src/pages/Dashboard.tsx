@@ -6,6 +6,7 @@ import {
   LogOut,
   Settings,
   AlertTriangle,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { ScanCard } from "@/components/ScanCard";
 import { ScanForm } from "@/components/ScanForm";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,6 +28,8 @@ import {
   useDeleteScan,
   getApiErrorMessage,
 } from "@/hooks/useScans";
+import type { ScanResponse } from "@/lib/structs";
+import { toTitleCase } from "@/lib/utils";
 
 export function Dashboard() {
   const {
@@ -112,6 +116,13 @@ export function Dashboard() {
   const scans = scanList?.scans ?? [];
   const activeScans = scans.filter((s) => s.is_active);
   const foundCount = scans.reduce((acc, s) => acc + s.found_count, 0);
+  const campgroundGroups = new Map<string, ScanResponse[]>();
+  for (const scan of scans) {
+    const key = `${scan.provider_id}:${scan.campground_id}`;
+    const group = campgroundGroups.get(key) ?? [];
+    group.push(scan);
+    campgroundGroups.set(key, group);
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
@@ -299,18 +310,61 @@ export function Dashboard() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {scans.map((scan) => (
-            <ScanCard
-              key={scan.id}
-              scan={scan}
-              onToggleActive={handleToggleActive}
-              onDelete={handleDelete}
-              toggling={
-                updateScan.isPending && updateScan.variables?.scanId === scan.id
-              }
-            />
-          ))}
+        <div className="space-y-3">
+          {[...campgroundGroups].map(([key, group]) => {
+            const campground = group[0];
+            const withOpenings = group.filter(
+              (scan) => scan.found_count > 0,
+            ).length;
+            return (
+              <details
+                key={key}
+                className="group rounded-lg border bg-card text-card-foreground"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold break-words">
+                      {toTitleCase(
+                        campground.campground_name ||
+                          campground.recreation_area_name ||
+                          "Unknown Campground",
+                      )}
+                    </h3>
+                    {campground.recreation_area_name &&
+                      campground.campground_name && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {toTitleCase(campground.recreation_area_name)}
+                        </p>
+                      )}
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span>
+                        {group.length} scan{group.length !== 1 ? "s" : ""}
+                      </span>
+                      <Badge variant={withOpenings ? "success" : "secondary"}>
+                        {withOpenings} scan{withOpenings !== 1 ? "s" : ""} with
+                        openings
+                      </Badge>
+                    </div>
+                  </div>
+                  <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="grid gap-4 border-t p-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.map((scan) => (
+                    <ScanCard
+                      key={scan.id}
+                      scan={scan}
+                      onToggleActive={handleToggleActive}
+                      onDelete={handleDelete}
+                      toggling={
+                        updateScan.isPending &&
+                        updateScan.variables?.scanId === scan.id
+                      }
+                    />
+                  ))}
+                </div>
+              </details>
+            );
+          })}
         </div>
       )}
     </div>

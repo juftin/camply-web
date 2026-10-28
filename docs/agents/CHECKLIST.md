@@ -60,6 +60,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.4.18 Replace placeholder branding with the original camply artwork: horizontal and stacked logos with the title, tent-and-trees artwork without the title, light/dark variants, branded favicons, and the Recreation.gov provider logo. Add the supplied portrait to Meet Justin and preview all logo variations in the design system catalog; see the [branding plan](../../specs/008-branding/plan.md).
 - [x] T1.4.19 Show searchable matching campsite details, consecutive available stays and booking actions; align API/dashboard counts with notification filters, persist provider site attributes, preserve notification destinations through login, and cover desktop/mobile themes. See [campsite alerts plan](../../specs/009-campsite-alerts/plan.md).
 - [x] T1.4.19a Group identical stay dates into collapsible sections with compact campsite rows, unique-site counts, search and date/stay-length sorting; surface scan context and a separate full-campground provider link. Verify grouping and navigation regressions plus desktop/mobile themes.
+- [x] T1.4.20 Collapse dashboard scans into campground groups, paginate each stay-date group at five campsites per page, and expire past/out-of-range nights before matching saved stays in the API and alerts. Cover successful availability removal and preservation on provider errors; see [compact results plan](../../specs/011-compact-results/plan.md).
 
 ### 1.5 Governance & Licensing
 

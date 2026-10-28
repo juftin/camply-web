@@ -296,6 +296,118 @@ describe("Found campsites", () => {
     ).toBeInTheDocument();
   });
 
+  it("paginates date groups independently and searches all their campsites", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getScan).mockResolvedValue({
+      ...scan,
+      found_count: 12,
+      results: Array.from({ length: 12 }, (_, index) => ({
+        ...scan.results[0],
+        campsite_id: `site-${index}`,
+        campsite_name: `Synthetic site ${index + 1}`,
+      })),
+    });
+    open();
+    const results = await screen.findByRole("region", {
+      name: "Found campsites",
+    });
+    const first = within(results).getByRole("group", {
+      name: "Jul 1, 2027 – Jul 3, 2027",
+    });
+    const second = within(results).getByRole("group", {
+      name: "Jul 5, 2027 – Jul 7, 2027",
+    });
+    expect(
+      within(results).getByText("12 sites · 2 date ranges"),
+    ).toBeInTheDocument();
+    expect(
+      within(first).getAllByRole("link", { name: /view synthetic site/i }),
+    ).toHaveLength(5);
+    expect(
+      within(second).getAllByRole("link", { name: /view synthetic site/i }),
+    ).toHaveLength(5);
+    expect(
+      within(first).getByRole("button", { name: "Previous campsites" }),
+    ).toBeDisabled();
+    await user.click(
+      within(first).getByRole("button", { name: "Next campsites" }),
+    );
+    expect(within(first).getByText("Synthetic site 6")).toBeInTheDocument();
+    expect(within(second).getByText("Synthetic site 1")).toBeInTheDocument();
+    await user.click(
+      within(first).getByRole("button", { name: "Next campsites" }),
+    );
+    expect(
+      within(first).getAllByRole("link", { name: /view synthetic site/i }),
+    ).toHaveLength(2);
+    expect(
+      within(first).getByRole("button", { name: "Next campsites" }),
+    ).toBeDisabled();
+    await user.type(screen.getByRole("searchbox"), "site 1");
+    expect(screen.getAllByText("Synthetic site 1")).toHaveLength(2);
+    expect(screen.getAllByText("Synthetic site 12")).toHaveLength(2);
+    expect(
+      within(results).getByText("4 sites · 2 date ranges"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Next campsites" }),
+    ).not.toBeInTheDocument();
+    await user.clear(screen.getByRole("searchbox"));
+    expect(screen.getAllByText("Synthetic site 1")).toHaveLength(2);
+    expect(screen.queryByText("Synthetic site 6")).not.toBeInTheDocument();
+  });
+
+  it("keeps pagination valid when campsites disappear and later return", async () => {
+    const user = userEvent.setup();
+    const largeScan = {
+      ...scan,
+      results: Array.from({ length: 6 }, (_, index) => ({
+        ...scan.results[0],
+        campsite_id: `site-${index}`,
+        campsite_name: `Synthetic site ${index + 1}`,
+        available_dates: ["2027-07-01", "2027-07-02"],
+      })),
+    };
+    vi.mocked(getScan).mockResolvedValue(largeScan);
+    const { client } = open();
+    await user.click(
+      await screen.findByRole("button", { name: "Next campsites" }),
+    );
+    expect(screen.getByText("Synthetic site 6")).toBeInTheDocument();
+    vi.mocked(getScan).mockResolvedValue({
+      ...largeScan,
+      results: largeScan.results.slice(0, 2),
+    });
+    await act(async () => {
+      await client.invalidateQueries({
+        queryKey: ["scans", "detail", "scan-1"],
+      });
+    });
+    expect(await screen.findByText("Synthetic site 1")).toBeInTheDocument();
+    expect(screen.queryByText("Synthetic site 6")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Next campsites" }),
+    ).not.toBeInTheDocument();
+    vi.mocked(getScan).mockResolvedValue(largeScan);
+    await act(async () => {
+      await client.invalidateQueries({
+        queryKey: ["scans", "detail", "scan-1"],
+      });
+    });
+    expect(screen.getByText("Synthetic site 1")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Previous campsites" }),
+    ).toBeDisabled();
+  });
+
+  it("labels paused snapshots with matches as no longer being refreshed", async () => {
+    vi.mocked(getScan).mockResolvedValue({ ...scan, is_active: false });
+    open();
+    expect(
+      await screen.findByText(/availability is not being refreshed/),
+    ).toBeInTheDocument();
+  });
+
   it("shows a checked empty state for paused scans", async () => {
     vi.mocked(getScan).mockResolvedValue({
       ...scan,
