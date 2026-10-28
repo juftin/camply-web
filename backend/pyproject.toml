@@ -27,6 +27,7 @@ target-version = "py39"
 ignore = [
   "E501",  # line too long
   "PLR0913",  # Too many arguments to function call
+  "PLR0917",  # Too many positional arguments
   "PLW2901",  # Outer for loop variable overwritten by inner assignment target
   "RUF012"  # Mutable class attributes should be annotated with `typing.ClassVar`
 ]
@@ -53,7 +54,7 @@ known-first-party = ["backend", "db", "providers", "worker"]
 
 [tool.ruff.lint.per-file-ignores]
 # Tests can use magic values, assertions, and relative imports
-"**/tests/**/*" = ["PLR2004", "S101", "TID252"]
+"**/tests/**/*" = ["PLR2004", "RUF059", "S101", "TID252"]
 # FastAPI routers use Query/Depends in argument defaults
 "**/routers/*" = ["B008"]
 # Scanner task orchestrates many steps (lock, DB, provider, diff, fan-out)
@@ -86,3 +87,6 @@ ignore_missing_imports = true
 dev = [
   "httpx>=0.28.1"
 ]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"

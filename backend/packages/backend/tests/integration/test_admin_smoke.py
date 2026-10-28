@@ -180,14 +180,16 @@ def test_admin_live_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
             backend_config, "prometheus_url", f"http://127.0.0.1:{prom_port}"
         )
         _wait(
-            lambda: httpx.get(
-                f"http://127.0.0.1:{prom_port}/api/v1/query",
-                params={"query": "camply_application_outcomes_total"},
+            lambda: (
+                httpx.get(
+                    f"http://127.0.0.1:{prom_port}/api/v1/query",
+                    params={"query": "camply_application_outcomes_total"},
+                )
+                .json()
+                .get("data", {})
+                .get("result", [])
+                != []
             )
-            .json()
-            .get("data", {})
-            .get("result", [])
-            != []
         )
 
         failure_count = httpx.get(

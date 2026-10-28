@@ -107,7 +107,7 @@ def test_usedirect_catalog_blocks_seed_downgrade(provider_id: int) -> None:
                 id="10", provider_id=provider_id, name="Synthetic campground"
             )
         )
-        with pytest.raises(RuntimeError, match="UseDirect.*dependent data"):
+        with pytest.raises(RuntimeError, match=r"UseDirect.*dependent data"):
             revision.downgrade()
         assert len(connection.scalars(select(Provider.id)).all()) == 9
         assert connection.scalar(select(Campground.id)) == "10"
@@ -129,7 +129,7 @@ def test_populated_catalog_blocks_seed_downgrade() -> None:
                 id="10", provider_id=2, name="Synthetic campground"
             )
         )
-        with pytest.raises(RuntimeError, match="ReserveCalifornia.*data"):
+        with pytest.raises(RuntimeError, match=r"ReserveCalifornia.*data"):
             revision.downgrade()
         assert (
             connection.scalar(select(Provider.name).where(Provider.id == 2))

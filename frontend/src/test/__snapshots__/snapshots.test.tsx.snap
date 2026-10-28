@@ -1107,13 +1107,13 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                   width="24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path
-                    d="M12 6v6l4 2"
-                  />
                   <circle
                     cx="12"
                     cy="12"
                     r="10"
+                  />
+                  <path
+                    d="M12 6v6l4 2"
                   />
                 </svg>
                 <span>
@@ -1366,13 +1366,13 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                   width="24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path
-                    d="M12 6v6l4 2"
-                  />
                   <circle
                     cx="12"
                     cy="12"
                     r="10"
+                  />
+                  <path
+                    d="M12 6v6l4 2"
                   />
                 </svg>
                 <span>
@@ -1652,13 +1652,13 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                   width="24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path
-                    d="M12 6v6l4 2"
-                  />
                   <circle
                     cx="12"
                     cy="12"
                     r="10"
+                  />
+                  <path
+                    d="M12 6v6l4 2"
                   />
                 </svg>
                 <span>
@@ -2103,13 +2103,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
+            d="M4 5h16"
+          />
+          <path
             d="M4 12h16"
           />
           <path
-            d="M4 18h16"
-          />
-          <path
-            d="M4 6h16"
+            d="M4 19h16"
           />
         </svg>
       </button>
@@ -2355,13 +2355,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
+            d="M4 5h16"
+          />
+          <path
             d="M4 12h16"
           />
           <path
-            d="M4 18h16"
-          />
-          <path
-            d="M4 6h16"
+            d="M4 19h16"
           />
         </svg>
       </button>
@@ -2585,13 +2585,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for unauthentica
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
+            d="M4 5h16"
+          />
+          <path
             d="M4 12h16"
           />
           <path
-            d="M4 18h16"
-          />
-          <path
-            d="M4 6h16"
+            d="M4 19h16"
           />
         </svg>
       </button>
@@ -2737,13 +2737,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot without logo 1`]
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
+            d="M4 5h16"
+          />
+          <path
             d="M4 12h16"
           />
           <path
-            d="M4 18h16"
-          />
-          <path
-            d="M4 6h16"
+            d="M4 19h16"
           />
         </svg>
       </button>
@@ -3007,13 +3007,13 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for active sca
             width="24"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <path
-              d="M12 6v6l4 2"
-            />
             <circle
               cx="12"
               cy="12"
               r="10"
+            />
+            <path
+              d="M12 6v6l4 2"
             />
           </svg>
           <span>
@@ -3265,13 +3265,13 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for ended scan
             width="24"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <path
-              d="M12 6v6l4 2"
-            />
             <circle
               cx="12"
               cy="12"
               r="10"
+            />
+            <path
+              d="M12 6v6l4 2"
             />
           </svg>
           <span>
@@ -3518,13 +3518,13 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for paused sca
             width="24"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <path
-              d="M12 6v6l4 2"
-            />
             <circle
               cx="12"
               cy="12"
               r="10"
+            />
+            <path
+              d="M12 6v6l4 2"
             />
           </svg>
           <span>

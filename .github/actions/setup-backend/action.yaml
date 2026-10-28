@@ -18,7 +18,7 @@ runs:
         curl -sL https://taskfile.dev/install.sh | sh -s -- -d -b "$HOME/.local/bin" v3.41.0
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-    - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+    - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
       with:
         enable-cache: true
         cache-suffix: backend
