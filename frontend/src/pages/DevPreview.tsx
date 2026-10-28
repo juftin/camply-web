@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CamplyLogo } from "@/components/CamplyLogo";
+import { PaletteStudio } from "@/components/PaletteStudio";
 import type { ScanResponse } from "@/lib/structs";
 
 /**
@@ -123,6 +124,11 @@ export function DevPreview(): React.ReactElement {
           <ThemeToggle />
         </div>
       </div>
+
+      {/* Interactive Theme Palette Studio */}
+      <section className="space-y-4">
+        <PaletteStudio />
+      </section>
 
       <section className="space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">Branding</h2>

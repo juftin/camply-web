@@ -4,6 +4,27 @@ Visual inspection guide, color science rationale, and before-and-after compariso
 
 ---
 
+## 🕹️ Interactive Color Palette Studio (Live in Browser)
+
+An interactive palette tool has been added to the application so reviewers can experiment live in the browser:
+* **Dedicated Palette Studio**: Visit [`/palette`](https://adoring-bedbug.camply-81r.pages.dev/palette) or `/dev/palette`
+* **Design System Catalog**: Visit [`/dev/preview`](https://adoring-bedbug.camply-81r.pages.dev/dev/preview) (embedded directly at the top of the catalog)
+* **Floating Tool Option**: Toggle *"Show floating tool across all pages"* inside the studio to bring a floating palette trigger across the entire app (`/`, `/dashboard`, `/search`, etc.)
+
+### Studio Capabilities:
+1. **One-Click Presets**: Steel/Slate Blue, Alpine Lake Blue, Nordic Dusk, Deep Denim, Evergreen Pine, Campfire Amber, and Legacy Neon.
+2. **Interactive Controls**:
+   * Visual point-and-click color picker (`<input type="color">`).
+   * Rainbow Hue Slider (0° – 360°).
+   * Saturation Slider (0% – 100%) with dark-mode optical glare warnings.
+   * Lightness Slider (15% – 85%).
+   * Auto-tune dark mode glare toggle.
+3. **Live WCAG Contrast Analysis**: Real-time evaluation of button text readability against WCAG AA standards.
+4. **Instant CSS Export**: "Copy CSS" button copies the ready-to-use `:root` and `.dark` snippet to clipboard.
+5. **Session Persistence**: Color choices immediately update all UI elements in real time and persist across pages via `localStorage`, with a "Reset" button to revert anytime.
+
+---
+
 ## ⚡️ The Issue: Why the Previous Blue Looked "Glow-in-the-Dark"
 
 The original Shadcn default palette used pure Tailwind Blue:
