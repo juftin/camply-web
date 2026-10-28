@@ -261,7 +261,6 @@ def test_installed_standalone_stack(tmp_path: Path) -> None:
             except BrokenPipeError:
                 pass
 
-    origin = f"http://127.0.0.1:{_port()}"
     database = tmp_path / "state.db"
 
     def rows(sql: str) -> list[tuple]:
@@ -277,6 +276,7 @@ def test_installed_standalone_stack(tmp_path: Path) -> None:
         stack.callback(upstream.shutdown)
         stack.callback(availability_gate.set)
         stack.callback(delivery_gate.set)
+        origin = f"http://127.0.0.1:{_port()}"
         env = {
             **os.environ,
             "PYTHONPATH": "",

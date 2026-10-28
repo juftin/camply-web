@@ -20,6 +20,8 @@ Default summary links to the Python listener, with explicit `CAMPLY_APP_URL` tak
 
 Existing current-main summary/direct regressions initially failed against the rebased extraction, and `upgrade head` initially found two revision heads. Those failures drove the shared-engine and migration changes. New tests reproduced a busy acknowledgment after upstream acceptance and conflated job identities before their fixes.
 
+The distributed admin smoke hands Uvicorn an already-bound socket, preventing a service from taking a guessed API port before startup. Metrics and synthetic upstream services allocate their ports before dependent listeners are chosen.
+
 The expanded installed-wheel smoke uses a separate core-only environment outside the checkout, real SQLite, generated upstream HTTP, real cookies/CSRF, and Chromium. It verifies map discovery, stored campsite attributes, summary deep links, compressed immutable MapLibre worker assets, two subscriptions sharing one check, and persisted pending-delivery restart recovery. It rejects Celery/Redis/Prometheus/psycopg dependencies and imports.
 
 Current verification results are recorded in [quickstart.md](quickstart.md#verification-evidence-2026-10-28). No visual baselines were changed. The snapshot run uses an isolated port to avoid reusing another worktree's development server.
