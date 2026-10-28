@@ -82,8 +82,8 @@ async def _verify(port: int, password: str) -> None:
                         campground_name="Synthetic Pines",
                         recreation_area_id="area",
                         recreation_area_name="Fixture Park",
-                        latitude=0 if i < 130 else (i % 170) - 85.0,
-                        longitude=0 if i < 130 else (i * 1.37) % 360 - 180,
+                        latitude=1.0 if i < 130 else (i % 170) - 85.0,
+                        longitude=1.0 if i < 130 else (i * 1.37) % 360 - 180,
                         has_electric=i % 2 == 0,
                         state="CA",
                     )

@@ -106,7 +106,8 @@ tasks:
     deps: [install]
 
   snapshot:verify:
-    desc: Verify the local HTML gallery without a server or network
+    desc: Verify snapshot navigation and the offline HTML gallery
     cmds:
+      - pnpm exec tsx scripts/verify-snapshot-navigation.ts
       - pnpm exec tsx scripts/verify-snapshot-gallery.ts
     deps: [install]

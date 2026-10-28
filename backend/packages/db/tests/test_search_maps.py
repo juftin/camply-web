@@ -29,8 +29,8 @@ async def map_session() -> AsyncIterator[AsyncSession]:
                     recreation_area_id="area",
                     recreation_area_name="Fixture Park",
                     state="CA",
-                    latitude=0,
-                    longitude=0,
+                    latitude=10,
+                    longitude=10,
                     has_electric=i % 2 == 0,
                     pets_allowed=True,
                     max_rv_length=30,
@@ -43,6 +43,7 @@ async def map_session() -> AsyncIterator[AsyncSession]:
             ("east", 2, -179),
             ("missing", None, None),
             ("invalid", 91, 0),
+            ("null_island", 0, 0),
             ("pole", 90, 180),
         ]:
             session.add(
@@ -70,9 +71,9 @@ async def test_summary_preserves_unmappable_and_dateline(
     """Count all matches but frame only usable coordinates on a circular arc."""
     result = await map_summary(map_session, filters={})
     assert (result.total, result.mappable_total, result.unmappable_total) == (
-        135,
+        136,
         133,
-        2,
+        3,
     )
     wrapped = await map_summary(map_session, filters={"state": "co"})
     assert wrapped.bounds is not None
@@ -111,7 +112,11 @@ async def test_complete_membership_and_keysets(map_session: AsyncSession) -> Non
             if cursor is None:
                 break
     assert len(visited) == 133
-    assert "missing" not in visited and "invalid" not in visited
+    assert (
+        "missing" not in visited
+        and "invalid" not in visited
+        and "null_island" not in visited
+    )
 
 
 @pytest.mark.asyncio
@@ -171,14 +176,20 @@ async def test_explore_filters_items_counts_facets_and_pages_by_viewport(
     map_session: AsyncSession,
 ) -> None:
     """Viewport filtering covers the full catalog before counts and pagination."""
-    bounds = Bounds(west=-1, south=-1, east=1, north=1)
+    bounds = Bounds(west=9, south=9, east=11, north=11)
     rows, total, facets = await Search.search(
         session=map_session, bounds=bounds, limit=20, offset=20, has_electric=True
     )
     assert len(rows) == 20
     assert total == 65
     assert facets["states"] == {"CA": 65}
-    assert all(row.latitude == 0 and row.longitude == 0 for row in rows)
+    assert all(row.latitude == 10 and row.longitude == 10 for row in rows)
+    zero_bounds = Bounds(west=-1, south=-1, east=1, north=1)
+    zero_rows, zero_total, _ = await Search.search(
+        session=map_session, bounds=zero_bounds
+    )
+    assert zero_total == 0
+    assert len(zero_rows) == 0
     dateline = Bounds(west=178, south=0, east=-178, north=3)
     rows, total, _ = await Search.search(session=map_session, bounds=dateline)
     assert {row.id for row in rows} == {"west", "east"}
@@ -187,3 +198,42 @@ async def test_explore_filters_items_counts_facets_and_pages_by_viewport(
         session=map_session, bounds=Bounds(west=-180, south=-90, east=180, north=90)
     )
     assert total == 133
+
+
+@pytest.mark.asyncio
+async def test_lat_lon_zero_filtering(map_session: AsyncSession) -> None:
+    """Mapping results filter out lat/lon of 0/0 while keeping 0 latitude or 0 longitude."""
+    map_session.add(
+        Search(
+            id="equator_place",
+            entity_type="RecreationArea",
+            provider_id=1,
+            provider_name="Fixture",
+            recreation_area_id="equator_place",
+            recreation_area_name="Equator Place",
+            latitude=0.0,
+            longitude=10.0,
+        )
+    )
+    map_session.add(
+        Search(
+            id="prime_meridian_place",
+            entity_type="RecreationArea",
+            provider_id=1,
+            provider_name="Fixture",
+            recreation_area_id="prime_meridian_place",
+            recreation_area_name="Prime Meridian Place",
+            latitude=10.0,
+            longitude=0.0,
+        )
+    )
+    await map_session.commit()
+    summary = await map_summary(map_session, filters={"term": "Place"})
+    assert summary.total == 2
+    assert summary.mappable_total == 2
+    assert summary.unmappable_total == 0
+
+    co_summary = await map_summary(map_session, filters={"state": "co"})
+    assert co_summary.total == 6
+    assert co_summary.mappable_total == 3
+    assert co_summary.unmappable_total == 3

@@ -105,7 +105,7 @@ The frontend uses Vite 8 (Rolldown), Vitest 5, Oxlint, Oxfmt, and native TypeScr
 - Verify snapshots match baselines (CI regression check): `task snapshot:check`
 - Rebuild the comparison gallery from saved screenshots: `task snapshot:report` (no Vite server or browser capture)
 - View visual report: `frontend/snapshots/REPORT.md` (Markdown index) or open `frontend/snapshots/report.html` directly in your browser
-- Verify the offline HTML viewer and record desktop/mobile evidence: `task snapshot:verify` (requires Chromium via `task frontend:browser:install`)
+- Verify snapshot navigation and the offline HTML viewer, and record desktop/mobile evidence: `task snapshot:verify` (requires Chromium via `task frontend:browser:install`)
 - Run component DOM snapshots: `task frontend:test` (or `task test`)
 
 The HTML gallery offers **Side by side**, **Reveal slider**, and **Highlighted diff** views. Search names, descriptions, viewports or themes and filter Modified, Unchanged or New screenshots. The reveal slider works with the keyboard. New screenshots explicitly show that no baseline existed and disable comparison modes that need one. Different screenshot sizes are padded to a common canvas, preserving alignment without stretching either image.
@@ -115,6 +115,8 @@ The HTML uses relative links to PNG files in `before/`, `current/`, and `diffs/`
 Run `task snapshot` before accepting UI changes. `task snapshot:update` compares against the old baseline **before** replacing it, so the `before/` folder retains the old PNGs and the HTML links to the actual before/after images and metrics. Each command replaces the latest report and comparison files; copy the HTML together with `before/`, `current/`, and `diffs/` if you want to retain a review across future runs. `task snapshot:report` compares existing `current/` captures with the currently accepted `baselines/`, reports how many saved views were found, and never accepts new baselines. It requires at least one saved capture. The Markdown index uses saved `before/`, `current/`, and `diffs/` images beside it.
 
 Visual regression checking is automated in GitHub Actions CI via the `ui-snapshots` workflow job, which installs headless Chromium, verifies the gallery with `task snapshot:verify`, executes `task snapshot:check` with deterministic test clocks, and uploads the report, local image folders and browser verification evidence on completion. Viewer evidence and a synthetic demo report with its image folders are available locally under `frontend/tmp/snapshot-gallery/` after verification. The comparison generator and browser verification script are included in frontend type checking.
+
+Map snapshots navigate at `domcontentloaded` and wait for loaded search results, the rendered map and fixture markers. They do not depend on global network idleness, which background map requests can prevent. `task snapshot:verify` exercises navigation with a deliberately pending request and delayed result/map rendering before verifying the offline gallery.
 
 ---
 

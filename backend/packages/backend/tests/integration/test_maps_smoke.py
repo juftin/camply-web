@@ -55,7 +55,7 @@ async def _seed(session: AsyncSession) -> None:
         provider = index % 2 + 1
         identifier = f"{index // 2:05}"
         latitude, longitude = (
-            (0.0, 0.0)
+            (1.0, 1.0)
             if index < 130
             else ((index % 150) - 75.0, (index * 1.37) % 360 - 180)
         )
