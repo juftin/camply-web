@@ -22,6 +22,8 @@ Existing current-main summary/direct regressions initially failed against the re
 
 The distributed admin smoke hands Uvicorn an already-bound socket, preventing a service from taking a guessed API port before startup. Metrics and synthetic upstream services allocate their ports before dependent listeners are chosen.
 
+Explicit default-runtime regressions launch the API in a fresh Python process with runtime configuration unset and a usable frontend build present. Import, startup, and shutdown must leave the local runner, lifespan-owned database resources, and automatic migrations unused; frontend paths remain 404 while `/metrics` exports real request counters and database gauges. Shared-target discovery and checks retain Celery scan/notification task names and arguments, distributed locking, summary/direct links, committed results, and an empty local outbox. Temporary mutations enabling local startup or frontend serving, removing request instrumentation, or suppressing Celery alert dispatch each make the new tests fail; production code is unchanged by this verification.
+
 The expanded installed-wheel smoke uses a separate core-only environment outside the checkout, real SQLite, generated upstream HTTP, real cookies/CSRF, and Chromium. It verifies map discovery, stored campsite attributes, summary deep links, compressed immutable MapLibre worker assets, two subscriptions sharing one check, and persisted pending-delivery restart recovery. It rejects Celery/Redis/Prometheus/psycopg dependencies and imports.
 
 Current verification results are recorded in [quickstart.md](quickstart.md#verification-evidence-2026-10-28). No visual baselines were changed. The snapshot run uses an isolated port to avoid reusing another worktree's development server.

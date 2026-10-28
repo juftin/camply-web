@@ -1,7 +1,7 @@
 # Tasks: Optional standalone runtime
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/](contracts/), [quickstart.md](quickstart.md).
-**Status**: All 42 tasks complete and verified against current main. See [review](review.md) and [current verification](quickstart.md#verification-evidence-2026-10-28).
+**Status**: All 43 tasks complete and verified against current main. See [review](review.md) and [current verification](quickstart.md#verification-evidence-2026-10-28).
 **Tests**: Required by FR-015 and the constitution. Add behavior tests before implementation and observe intended failures.
 **Format**: `- [ ] Tnnn [P?] [USn?] description with exact paths`. [P] means separate files with prerequisites already satisfied.
 
@@ -113,3 +113,4 @@ Implementation was authorized with `/speckit.implement` and the subsequent requi
 - [x] T040 Revalidate each site in durable summaries, retry busy acknowledgments without resending, fail readiness on other storage errors, and use distinct polling-cycle job IDs with stable retries.
 - [x] T041 Default standalone summary links to the configured listener, preserve explicit public URLs, clear stale build wheels, and expand installed-artifact tests to maps/results/compressed worker assets.
 - [x] T042 Complete current full-suite/type/lint/API/pre-commit/visual/runtime/release verification, update operational documentation and PR, and push the reviewed branch.
+- [x] T043 Add fresh-process default-runtime coverage in `backend/packages/backend/tests/test_distributed_runtime.py` for API import/lifespan, absent local runner/resources/migrations, unmounted frontend, and real Prometheus instrumentation. Verify discovery and summary/direct alert contracts still use Celery without local outbox writes in `backend/packages/worker/tests/test_distributed_dispatch.py`; confirm these tests detect deliberately introduced isolation regressions.
