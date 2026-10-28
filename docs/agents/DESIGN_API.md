@@ -42,7 +42,7 @@ Session cookies include a credential version derived by HMAC from the current sa
 ### 1. Search & Metadata (Public/Auth-Light)
 
 - **`GET /api/search?query=<term>`**: Full-text search for campgrounds and recreation areas (uses the `Search` FTS table).
-- **`GET /api/search/explore`**: Paginated search with totals and facets. Optional `west`, `south`, `east`, and `north` filter the full matching set before pagination and aggregation. Supply all four finite bounds or none; longitude is within [-180, 180], latitude within [-90, 90], south < north, and west ≠ east. West > east crosses the antimeridian. Viewport filtering excludes missing/invalid coordinates and accepts zero; unbounded search retains unmappable places.
+- **`GET /api/search/explore`**: Paginated search with totals and facets. Optional `west`, `south`, `east`, and `north` filter the full matching set before pagination and aggregation. Supply all four finite bounds or none; longitude is within [-180, 180], latitude within [-90, 90], south < north, and west ≠ east. West > east crosses the antimeridian. Viewport filtering excludes missing/invalid coordinates and lat/lon of 0/0; unbounded search retains unmappable places.
 - **`GET /api/providers`**: List supported providers and their scanning capabilities.
 - **`GET /api/provider/{id}`**: Get a single provider by ID.
 - **`GET /api/campground/{provider}/{id}`**: Get a single campground.
@@ -203,7 +203,7 @@ Admin workload fields are nullable: an unanswered or malformed inspection reply 
 
 ### Geographic discovery (public)
 
-`GET /api/search/map/summary` returns global filtered `total`, `mappable_total`, `unmappable_total`, and nullable circular `bounds`. `GET /api/search/map` adds required `west`, `south`, `east`, `north`, and `zoom` (0–19), returning an echoed viewport and at most 512 location/group features. Longitude west > east means an antimeridian crossing; west=-180/east=180 is the full world. Invalid/nonfinite request bounds return 422. Only finite catalog coordinates within ±90/±180 are mapped; zero is valid.
+`GET /api/search/map/summary` returns global filtered `total`, `mappable_total`, `unmappable_total`, and nullable circular `bounds`. `GET /api/search/map` adds required `west`, `south`, `east`, `north`, and `zoom` (0–19), returning an echoed viewport and at most 512 location/group features. Longitude west > east means an antimeridian crossing; west=-180/east=180 is the full world. Invalid/nonfinite request bounds return 422. Only finite catalog coordinates within ±90/±180 other than lat/lon 0/0 are mapped.
 
 Both routes and `GET /api/search/map/members` reuse the existing Explore predicates, including PostgreSQL fuzzy matching. Map membership ignores list pagination/sort. Groups aggregate every matching visible row in a server-selected geographic grid; singleton features carry the existing search-result metadata. Global counts differ from visible represented counts. Member requests carry `cell_id`, the group's captured viewport, and the same filters, plus `page_size` (default 50, maximum 100) and optional `after_id` (the previous `next_cursor`). This keyset interface keeps co-located places reachable without fetching every list page or transferring the catalog.
 

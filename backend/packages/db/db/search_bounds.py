@@ -26,8 +26,12 @@ def normalized_longitude(cls: Any) -> Any:
 
 
 def valid_coordinates(cls: Any) -> Any:
-    """Exclude missing/nonfinite/out-of-range coordinates while accepting zero."""
-    return and_(cls.latitude.between(-90, 90), cls.longitude.between(-180, 180))
+    """Exclude missing/nonfinite/out-of-range coordinates and lat/lon of 0/0."""
+    return and_(
+        cls.latitude.between(-90, 90),
+        cls.longitude.between(-180, 180),
+        or_(cls.latitude != 0, cls.longitude != 0),
+    )
 
 
 def viewport_filter(cls: Any, bounds: Bounds) -> Any:

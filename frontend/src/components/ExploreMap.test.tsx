@@ -75,8 +75,8 @@ const item = {
   campground_name: "Off page campground",
   recreation_area_id: "area",
   recreation_area_name: "Area",
-  latitude: 0,
-  longitude: 0,
+  latitude: 35,
+  longitude: -105,
 };
 const world = { west: -180, east: 180, south: -90, north: 90 };
 beforeEach(() => {
@@ -330,6 +330,34 @@ describe("Explore map discovery", () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByText("No places match your search."),
+    ).not.toBeInTheDocument();
+  });
+  it("filters out mapping results that have a lat/lon of 0/0", () => {
+    vi.mocked(hooks.useMapFeatures).mockReturnValue({
+      data: {
+        viewport: world,
+        grid_level: 1,
+        represented_total: 1,
+        features: [
+          {
+            kind: "location",
+            cell_id: "1:0:0",
+            item: {
+              ...item,
+              id: "Camp/2/area/zero",
+              campground_name: "Zero Island",
+              latitude: 0,
+              longitude: 0,
+            },
+          },
+        ],
+      },
+      isFetching: false,
+      isError: false,
+    } as unknown as ReturnType<typeof hooks.useMapFeatures>);
+    open();
+    expect(
+      screen.queryByRole("button", { name: "Zero Island" }),
     ).not.toBeInTheDocument();
   });
 });

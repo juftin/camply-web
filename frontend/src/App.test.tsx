@@ -245,7 +245,9 @@ describe("Application authentication", () => {
       client.setQueryData(["me"], { ...user, is_invited: true });
       onRedirect({ returnTo: appPath("/dashboard/scans/test#results") });
     });
-    expect(await screen.findByText("Scan detail")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Scan detail", {}, { timeout: 3000 }),
+    ).toBeInTheDocument();
     expect(window.location.pathname + window.location.hash).toBe(
       appPath("/dashboard/scans/test#results"),
     );

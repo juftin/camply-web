@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   basemapConfig,
+  hasMappableCoordinates,
   regionalBounds,
   validCoordinates,
   normalizeLongitude,
@@ -31,6 +32,15 @@ describe("map geometry and configuration", () => {
     for (const latitude of [null, undefined, NaN, Infinity, 91])
       expect(validCoordinates(latitude, 0)).toBe(false);
     expect(validCoordinates(0, -181)).toBe(false);
+  });
+  it("filters out items that have a lat/lon of 0/0 from mappable coordinates", () => {
+    expect(hasMappableCoordinates({ latitude: 0, longitude: 0 })).toBe(false);
+    expect(hasMappableCoordinates({ latitude: 0, longitude: 10 })).toBe(true);
+    expect(hasMappableCoordinates({ latitude: 10, longitude: 0 })).toBe(true);
+    expect(hasMappableCoordinates({ latitude: null, longitude: 0 })).toBe(
+      false,
+    );
+    expect(hasMappableCoordinates(null)).toBe(false);
   });
   it("frames dateline neighbors on the shortest arc", () => {
     expect(normalizeLongitude(540)).toBe(-180);
