@@ -15,6 +15,7 @@ import { spawn, type ChildProcess } from "child_process";
 import { chromium, type Browser, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
 import { setupAdminSnapshotMocks } from "./admin-snapshot-mocks";
+import { navigateToSnapshot } from "./snapshot-navigation";
 import {
   generateHtmlReport,
   recordSnapshot,
@@ -1228,7 +1229,11 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
 
   await setupPageMocks(page, scenario);
 
-  await page.goto(`${BASE_URL}${scenario.route}`, { waitUntil: "networkidle" });
+  await navigateToSnapshot(
+    page,
+    `${BASE_URL}${scenario.route}`,
+    scenario.name.startsWith("map-error"),
+  );
 
   // Enforce zero CSS animations and transitions for pixel stability
   await page.addStyleTag({
@@ -1261,18 +1266,6 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
   if (scenario.route.startsWith("/admin")) {
     await page.waitForFunction(
       () => document.querySelectorAll(".animate-spin").length === 0,
-    );
-  }
-
-  if (
-    scenario.route.startsWith("/search") ||
-    scenario.name.startsWith("map-")
-  ) {
-    await page.waitForFunction(
-      () =>
-        !Array.from(document.querySelectorAll('[role="status"]')).some(
-          (element) => element.textContent === "Loading map…",
-        ),
     );
   }
 

@@ -1,6 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "scripts/snapshot-navigation.ts",
+    "scripts/verify-snapshot-navigation.ts",
     "scripts/snapshot-report.ts",
     "scripts/snapshot-report.test.ts",
     "scripts/verify-snapshot-gallery.ts"

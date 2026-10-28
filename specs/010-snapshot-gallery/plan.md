@@ -7,3 +7,5 @@
 5. Verify synthetic unit regressions, local-file browser interactions, existing snapshot capture/check workflows, formatting, lint, types and tests.
 
 Constitution check: no app routes, services, dependencies or production configuration changes. Reuse existing PNG/pixelmatch tooling, accessible native controls, and Task workflows. This feature has its own branch and PR, independent of campsite alerts.
+
+Navigation reliability follow-up: map routes use DOM readiness, loaded search results, rendered canvases and fixture markers instead of global network idleness. Preserve the intentional map-summary failure scenario. Verify with a synthetic browser page whose background request remains pending while results and map content render asynchronously; run this regression through the existing snapshot verification Task and CI job.
