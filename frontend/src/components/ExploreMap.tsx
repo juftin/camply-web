@@ -11,7 +11,9 @@ import {
 import { mapQueryParams, type SearchExploreParams } from "@/lib/api";
 import {
   detailUrl,
+  hasMappableCoordinates,
   toCampground,
+  validCoordinates,
   type GeoBounds,
   type MapCamera,
   type MapPin,
@@ -103,50 +105,58 @@ export const ExploreMap = ({
   };
   const pins: MapPin[] = useMemo(
     () =>
-      (features.data?.features ?? []).map((feature) =>
-        feature.kind === "location"
-          ? {
-              id: feature.item.id,
-              lat: feature.item.latitude!,
-              lng: feature.item.longitude!,
-              label: toTitleCase(
-                feature.item.campground_name ||
-                  feature.item.recreation_area_name ||
-                  "Place",
-              ),
-              description: [
-                feature.item.provider_name,
-                feature.item.entity_type === "Campground"
-                  ? "Campground"
-                  : "Recreation Area",
-                feature.item.city,
-                feature.item.state,
-                feature.item.country,
-              ]
-                .filter(Boolean)
-                .join(" · "),
-              type:
-                feature.item.entity_type === "Campground"
-                  ? "campground"
-                  : "recreation-area",
-              onSelect: () => select({ kind: "location", item: feature.item }),
-            }
-          : {
-              id: feature.cell_id,
-              lat: feature.latitude,
-              lng: feature.longitude,
-              label: `${feature.count} places`,
-              count: feature.count,
-              description:
-                "Zoom in or select this group to explore its places.",
-              onSelect: () =>
-                select({
-                  kind: "group",
-                  group: feature,
-                  bounds: features.data!.viewport,
-                }),
-            },
-      ),
+      (features.data?.features ?? [])
+        .filter((feature) =>
+          feature.kind === "location"
+            ? hasMappableCoordinates(feature.item)
+            : validCoordinates(feature.latitude, feature.longitude) &&
+              !(feature.latitude === 0 && feature.longitude === 0),
+        )
+        .map((feature) =>
+          feature.kind === "location"
+            ? {
+                id: feature.item.id,
+                lat: feature.item.latitude!,
+                lng: feature.item.longitude!,
+                label: toTitleCase(
+                  feature.item.campground_name ||
+                    feature.item.recreation_area_name ||
+                    "Place",
+                ),
+                description: [
+                  feature.item.provider_name,
+                  feature.item.entity_type === "Campground"
+                    ? "Campground"
+                    : "Recreation Area",
+                  feature.item.city,
+                  feature.item.state,
+                  feature.item.country,
+                ]
+                  .filter(Boolean)
+                  .join(" · "),
+                type:
+                  feature.item.entity_type === "Campground"
+                    ? "campground"
+                    : "recreation-area",
+                onSelect: () =>
+                  select({ kind: "location", item: feature.item }),
+              }
+            : {
+                id: feature.cell_id,
+                lat: feature.latitude,
+                lng: feature.longitude,
+                label: `${feature.count} places`,
+                count: feature.count,
+                description:
+                  "Zoom in or select this group to explore its places.",
+                onSelect: () =>
+                  select({
+                    kind: "group",
+                    group: feature,
+                    bounds: features.data!.viewport,
+                  }),
+              },
+        ),
     [features.data],
   );
   const placeSummary = (item: MapSearchResult) => (

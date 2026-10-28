@@ -32,6 +32,15 @@ export const validCoordinates = (
   Number.isFinite(lng) &&
   Math.abs(lat) <= 90 &&
   Math.abs(lng) <= 180;
+export const hasMappableCoordinates = (
+  item?: {
+    latitude?: number | null;
+    longitude?: number | null;
+  } | null,
+): boolean =>
+  item != null &&
+  validCoordinates(item.latitude, item.longitude) &&
+  !(item.latitude === 0 && item.longitude === 0);
 export const normalizeLongitude = (lng: number): number =>
   ((((lng + 180) % 360) + 360) % 360) - 180;
 export const displayLatitude = (lat: number): number =>
