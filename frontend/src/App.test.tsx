@@ -242,8 +242,8 @@ describe("Application authentication", () => {
     vi.mocked(getMe).mockResolvedValue({ ...user, is_invited: true });
     act(() => {
       auth0.isAuthenticated = true;
-      client.setQueryData(["me"], { ...user, is_invited: true });
       onRedirect({ returnTo: appPath("/dashboard/scans/test#results") });
+      client.setQueryData(["me"], { ...user, is_invited: true });
     });
     expect(await screen.findByText("Scan detail")).toBeInTheDocument();
     expect(window.location.pathname + window.location.hash).toBe(
