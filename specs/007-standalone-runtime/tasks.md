@@ -109,7 +109,7 @@ Implementation was authorized with `/speckit.implement` and the subsequent requi
 
 - [x] T037 Review upstream changes and rebase onto `7da9ea8`, preserving search/maps, richer results, compression, dependency upgrades, CI, and release workflows.
 - [x] T038 Use `db.availability` for shared filtering and qualifying stays; preserve current summary/direct behavior and site details in `worker/engine/scanner.py` and `alerts.py`.
-- [x] T039 Keep original migration history and add merge revision `4d64e0e4ae18`; verify upgrades from current main and the earlier PR schema preserve saved/pending state.
+- [x] T039 Keep original migration history and add merge revision `4d64e0e4ae18`; verify upgrades from current main and the earlier PR schema preserve saved/pending state, and exercise explicit search-index downgrade/upgrade boundaries across merged history.
 - [x] T040 Revalidate each site in durable summaries, retry busy acknowledgments without resending, fail readiness on other storage errors, and use distinct polling-cycle job IDs with stable retries.
 - [x] T041 Default standalone summary links to the configured listener, preserve explicit public URLs, clear stale build wheels, and expand installed-artifact tests to maps/results/compressed worker assets.
 - [x] T042 Complete current full-suite/type/lint/API/pre-commit/visual/runtime/release verification, update operational documentation and PR, and push the reviewed branch.

@@ -75,15 +75,21 @@ def postgres_url() -> Generator[str, None, None]:
             "CAMPLY_DB_DATABASE": "postgres",
         }
         db_dir = Path(__file__).resolve().parents[1]
-        for args in (["upgrade", "head"], ["downgrade", "-1"], ["upgrade", "head"]):
-            subprocess.run(
+        # Exercise removal and recreation of the search indexes across merged history.
+        for args in (
+            ["upgrade", "head"],
+            ["downgrade", "9b2c3d4e5f6a"],
+            ["upgrade", "head"],
+        ):
+            migrated = subprocess.run(
                 [sys.executable, "-m", "alembic", *args],
                 cwd=db_dir,
                 env=env,
-                check=True,
+                check=False,
                 capture_output=True,
                 text=True,
             )
+            assert migrated.returncode == 0, migrated.stderr
         yield url.replace("postgresql://", "postgresql+psycopg://")
     finally:
         subprocess.run(
