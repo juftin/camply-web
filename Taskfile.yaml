@@ -20,8 +20,6 @@ tasks:
   standalone:build:
     desc: Build frontend and core Python wheels without Docker
     cmds:
-      - task: frontend:build:standalone
-      - python3 scripts/stage_frontend.py
       - rm -rf "{{.ROOT_DIR}}/dist"
       - uv build --project backend --wheel --out-dir "{{.ROOT_DIR}}/dist" --clear
 

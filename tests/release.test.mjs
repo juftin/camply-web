@@ -34,6 +34,7 @@ function fixture(t, { sources = false } = {}) {
     "backend/.python-version",
     "backend/README.md",
     "backend/LICENSE",
+    "backend/hatch_build.py",
   ];
   for (const file of files) {
     mkdirSync(dirname(join(directory, file)), { recursive: true });
