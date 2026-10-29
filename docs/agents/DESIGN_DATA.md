@@ -2,9 +2,18 @@
 
 This document defines the database architecture for the `camply` platform, reconciling the legacy CLI data structures with the existing `backend` FastAPI models.
 
+## Python package boundaries
+
+Database APIs live in `camply.db` and are included in the base distribution
+with SQLite. Persistence must not import `camply.server` or `camply.worker`.
+The `postgres` extra independently adds Psycopg. The complete existing Alembic
+revision graph and template ship under `camply.db.migrations`;
+`python -m camply.db.migration` resolves them from installed resources and
+upgrades the configured database without relying on the checkout directory.
+
 ## Standalone storage
 
-Both runtimes share SQLAlchemy models and the complete Alembic revision graph. PostgreSQL remains the distributed deployment database; standalone requires file-backed SQLite. `db.migrate.upgrade_database()` locates installed migration resources independently of the current directory and runs before HTTP starts. SQLite connections enable foreign keys, WAL, and a 1,000 ms busy timeout. Engine/session resources are shared within the standalone lifespan; provider and delivery HTTP calls do not hold write transactions.
+Both runtimes share SQLAlchemy models and the complete Alembic revision graph. PostgreSQL remains the distributed deployment database; standalone requires file-backed SQLite. `camply.db.migration.upgrade()` locates installed migration resources independently of the current directory and runs before HTTP starts. SQLite connections enable foreign keys, WAL, and a 1,000 ms busy timeout. Engine/session resources are shared within the standalone lifespan; provider and delivery HTTP calls do not hold write transactions.
 
 `notification_outbox` stores UUID detection/delivery identities, nullable user/scan/target references with `ON DELETE SET NULL`, a credential-free JSON payload, lifecycle state, attempt count (0–4), due/created/finished UTC timestamps, and an allowlisted error category. A unique detection/scan/delivery-key constraint avoids duplicate summary or direct intents within a detection; due/finished indexes support delivery and pruning. Results and intents commit atomically. Closing/reopening availability creates a new detection. Terminal records expire after 24 hours; pending records survive restart. See the [field contract](../../specs/007-standalone-runtime/data-model.md).
 

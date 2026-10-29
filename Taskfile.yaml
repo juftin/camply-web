@@ -14,7 +14,7 @@ tasks:
   standalone:install:
     desc: Install core Python and frontend build dependencies without backing services
     cmds:
-      - uv sync --project backend --package backend --no-dev
+      - uv sync --project backend --no-dev --no-default-groups --extra server
       - task: frontend:install
 
   standalone:build:
@@ -22,21 +22,21 @@ tasks:
     cmds:
       - task: frontend:build:standalone
       - python3 scripts/stage_frontend.py
-      - rm -rf "{{.ROOT_DIR}}/backend/dist"
-      - uv build --project backend --all-packages --wheel --out-dir "{{.ROOT_DIR}}/backend/dist"
+      - rm -rf "{{.ROOT_DIR}}/dist"
+      - uv build --project backend --wheel --out-dir "{{.ROOT_DIR}}/dist" --clear
 
   standalone:run:
     desc: Migrate SQLite and serve the complete application in one Python process
     env:
       CAMPLY_RUNTIME_MODE: standalone
     cmds:
-      - uv run --project backend --package backend --no-dev -- python -m backend.standalone {{.CLI_ARGS}}
+      - uv run --project backend --no-dev --extra server -- python -m camply.server.standalone {{.CLI_ARGS}}
 
   standalone:test:
     desc: Verify a core-only installed build, real SQLite recovery, and Chromium
     cmds:
       - task: standalone:build
-      - CAMPLY_STANDALONE_SMOKE=1 task backend:test -- -c pyproject.toml packages/backend/tests/integration/test_standalone_smoke.py -s
+      - CAMPLY_STANDALONE_SMOKE=1 task backend:test -- tests/server/integration/test_standalone_smoke.py -s
 
   install:
     desc: Install All Dependencies (Backend + Frontend)
@@ -49,6 +49,7 @@ tasks:
     cmds:
       - task: release:test
       - task: backend:test
+      - task: backend:packaging:test
       - task: frontend:test
 
   api:generate:
@@ -56,7 +57,7 @@ tasks:
     cmds:
       - task: backend:run
         vars:
-          CLI_ARGS: python -m backend.openapi --output ../frontend/tmp/openapi.json
+          CLI_ARGS: python -m camply.server.openapi --output ../frontend/tmp/openapi.json
       - task: frontend:codegen
         vars:
           OPENAPI_SCHEMA: "{{.ROOT_DIR}}/frontend/tmp/openapi.json"
@@ -66,7 +67,7 @@ tasks:
     cmds:
       - task: backend:run
         vars:
-          CLI_ARGS: python -m backend.openapi --output ../frontend/tmp/openapi.json
+          CLI_ARGS: python -m camply.server.openapi --output ../frontend/tmp/openapi.json
       - task: frontend:codegen
         vars:
           CLI_ARGS: --check
@@ -75,20 +76,20 @@ tasks:
   search:smoke:
     desc: Verify search and migrations against an isolated PostgreSQL container
     cmds:
-      - CAMPLY_POSTGRES_SEARCH_TEST=1 task backend:test -- -c pyproject.toml packages/db/tests/test_postgres_search.py
+      - CAMPLY_POSTGRES_SEARCH_TEST=1 task backend:test -- -c pyproject.toml tests/db/test_postgres_search.py
 
   maps:verify:
     desc: Verify bounded map discovery with isolated PostgreSQL, API and Chromium
     deps: [frontend:install]
     cmds:
       - task: backend:maps:test-postgres
-      - CAMPLY_MAPS_SMOKE=1 task backend:test -- -c pyproject.toml packages/backend/tests/integration/test_maps_smoke.py -s
+      - CAMPLY_MAPS_SMOKE=1 task backend:test -- -c pyproject.toml tests/server/integration/test_maps_smoke.py -s
 
   admin:smoke:
     desc: Verify admin workflows against isolated live monitoring services and Chromium
     deps: [frontend:install]
     cmds:
-      - CAMPLY_ADMIN_SMOKE=1 task backend:test -- -c pyproject.toml packages/backend/tests/integration/test_admin_smoke.py -s
+      - CAMPLY_ADMIN_SMOKE=1 task backend:test -- -c pyproject.toml tests/server/integration/test_admin_smoke.py -s
 
   snapshot:
     desc: Run UI Visual Snapshots and Generate Comparison Report
@@ -174,10 +175,7 @@ tasks:
   release:prepare:
     desc: Stamp Release Versions in Backend and Frontend Build Metadata
     cmds:
-      - |
-        for package in camply-backend backend db providers worker; do
-          env -u UV_LOCKED uv version --project backend --package "$package" --frozen "$RELEASE_VERSION" || exit
-        done
+      - env -u UV_LOCKED uv version --project backend --frozen "$RELEASE_VERSION"
       - env -u UV_LOCKED uv lock --project backend
       - |
         node --input-type=module -e '
@@ -193,13 +191,11 @@ tasks:
       RELEASE_VERSION: "{{.RELEASE_VERSION}}"
 
   dist:
-    desc: Build Backend Workspace Source Distributions
-    cmds:
-      - rm -rf "{{.ROOT_DIR}}/dist"
-      - uv build --project backend --all-packages --sdist --out-dir "{{.ROOT_DIR}}/dist"
+    desc: Build Backend Wheel and Source Distribution
+    cmd: uv build --project backend --out-dir "{{.ROOT_DIR}}/dist" --clear
 
   release:test:
-    desc: Verify Release Versions, Source Distributions, and Docker Publication Plans
+    desc: Verify Release Versions, Python Artifacts, and Docker Publication Plans
     cmd: node --test tests/release.test.mjs
 
   version:

@@ -36,25 +36,27 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
 
 ## 🏗️ Directory Structure
 
-- `backend/`: FastAPI Python application (`uv` workspace).
-  - `packages/backend/`: FastAPI application & API endpoints.
-  - `packages/db/`: Database models and migrations (Alembic).
-  - `packages/providers/`: Third-party API providers (e.g., recreation.gov).
+- `backend/`: One `camply` Python distribution managed by `uv`.
+  - `src/camply/server/`: FastAPI application & API endpoints (`server` extra).
+  - `src/camply/db/`: Models, SQLite persistence, and packaged Alembic migrations.
+  - `src/camply/providers/`: Third-party booking providers.
+  - `src/camply/worker/`: Celery tasks and notifications (`distributed` extra).
+  - `tests/packaging/`: Isolated wheel/sdist tests (`task backend:packaging:test`).
 - `frontend/`: React TypeScript application (Vite, Tailwind CSS, Shadcn/UI).
-- `cli/`: Legacy command-line interface (Deprecated - Core logic being migrated).
+- The future Camply CLI is not implemented. The existing `populate-database` utility is retained.
 - `docs/agents/`: Unified documentation and design blueprints.
 - `tests/`: System-level or shared tests.
 - `.worktrees/`: Git worktrees directory for parallel isolated development.
 
 ## ⚙️ Technology Stack & Standards
 
-- **Backend**: Python 3.12 managed by `uv`. FastAPI for web services.
+- **Backend**: Python >=3.11 managed by `uv`; Python 3.14 defaults for development, CI, Docker, and releases. Explicit compatibility checks use 3.11. FastAPI for web services.
 - **Frontend**: React 18+ with TypeScript, built via Vite. Tailwind CSS + Shadcn/UI.
 - **Database**: PostgreSQL (SQLAlchemy + Alembic).
 - **Worker**: Smart De-duplicated Poller (Celery + Valkey).
 - **Infrastructure**: Docker & Docker Compose.
 - **API**: OpenAPI with automated TypeScript client generation.
-- **Quality Gates**: `mypy`, native TypeScript 7, `ruff`, `oxlint`, `oxfmt`, `pytest`, `vitest`.
+- **Quality Gates**: `mypy`, Import Linter, native TypeScript 7, `ruff`, `oxlint`, `oxfmt`, `pytest`, `vitest`.
 
 ## 🌳 Working with Git Worktrees
 
@@ -87,6 +89,7 @@ All commands use `go-task` (`Taskfile.yaml`) for consistent execution.
   - `task fix`: Automatically fix issues with linters and formatters (`ruff`, `oxlint`, `oxfmt`).
   - `task lint`: Run linters across the codebase.
   - `task check`: Run static type checking (`mypy` for backend, `tsc` for frontend).
+  - `task backend:imports`: Enforce internal layers and optional dependency boundaries (also included in lint and pre-commit).
 
 ## 🧪 Testing Locally
 

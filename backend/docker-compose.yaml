@@ -90,7 +90,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: ghcr.io/juftin/camply-backend:${BACKEND_VERSION:-local}
-    command: celery -A worker.celery_app worker -l info -Q celery --concurrency=4
+    command: celery -A camply.worker.celery_app worker -l info -Q celery --concurrency=4
     depends_on:
       db:
         condition: service_healthy
@@ -123,7 +123,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: ghcr.io/juftin/camply-backend:${BACKEND_VERSION:-local}
-    command: sh -c "celery -A worker.celery_app call camply.catalog.sync_all_providers --expires=600 && celery -A worker.celery_app beat -l info"
+    command: sh -c "celery -A camply.worker.celery_app call camply.catalog.sync_all_providers --expires=600 && celery -A camply.worker.celery_app beat -l info"
     depends_on:
       db:
         condition: service_healthy

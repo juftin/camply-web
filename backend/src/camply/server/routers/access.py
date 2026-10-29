@@ -1,0 +1,42 @@
+"""
+Access request router — ``/api/request-access`` endpoint.
+"""
+
+from __future__ import annotations
+
+import structlog
+from fastapi import APIRouter, status
+from sqlalchemy.exc import IntegrityError
+
+from camply.db.models import AccessRequest
+from camply.server.dependencies import SessionDep
+from camply.server.metrics import ACCESS_REQUESTS_TOTAL
+from camply.server.schemas import AccessRequestCreate, AccessRequestResponse
+
+logger = structlog.getLogger(__name__)
+
+access_router = APIRouter(tags=["access"])
+
+
+@access_router.post("/request-access", status_code=status.HTTP_201_CREATED)
+async def request_access(
+    body: AccessRequestCreate,
+    session: SessionDep,
+) -> AccessRequestResponse:
+    """Submit an invitation request.
+
+    Duplicate emails are silently accepted (idempotent).
+    """
+    access_req = AccessRequest(email=body.email.lower().strip())
+    session.add(access_req)
+    try:
+        await session.commit()
+        ACCESS_REQUESTS_TOTAL.inc()
+    except IntegrityError:
+        await session.rollback()
+        logger.info("Duplicate access request ignored", email=body.email)
+
+    logger.info("Invitation requested", email=body.email, name=body.name)
+    return AccessRequestResponse(
+        message="Thank you! Your invitation request has been received."
+    )

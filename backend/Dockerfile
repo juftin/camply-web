@@ -1,4 +1,4 @@
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.14
 FROM python:${PYTHON_VERSION}-slim-bookworm AS base
 
 WORKDIR /app
@@ -17,20 +17,18 @@ ENV UV_LINK_MODE=copy \
     VIRTUAL_ENV=/app/.venv
 
 COPY pyproject.toml uv.lock /app/
-COPY packages/backend/pyproject.toml /app/packages/backend/pyproject.toml
-COPY packages/db/pyproject.toml /app/packages/db/pyproject.toml
-COPY packages/providers/pyproject.toml /app/packages/providers/pyproject.toml
-COPY packages/worker/pyproject.toml /app/packages/worker/pyproject.toml
 
 RUN --mount=from=ghcr.io/astral-sh/uv:latest,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --no-dev --extra distributed --no-install-workspace
+    uv sync --locked --no-dev --extra server --extra distributed --extra postgres --extra sentry --no-install-project
 
-COPY packages/ /app/packages/
+COPY src/ /app/src/
+COPY README.md LICENSE /app/
+COPY config/ /app/config/
 RUN --mount=from=ghcr.io/astral-sh/uv:latest,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --extra distributed
+    uv sync --locked --no-dev --extra server --extra distributed --extra postgres --extra sentry
 
 ENV PATH="/app/.venv/bin:${PATH}"
 
@@ -45,4 +43,4 @@ USER camply
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-CMD [ "gunicorn", "--config", "/app/packages/backend/config/gunicorn.conf.py", "backend.app:app"]
+CMD [ "gunicorn", "--config", "/app/config/gunicorn.conf.py", "camply.server.app:app"]

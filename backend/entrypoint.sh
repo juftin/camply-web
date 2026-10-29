@@ -25,8 +25,7 @@ if [ -n "${PROMETHEUS_MULTIPROC_DIR}" ]; then
 fi
 
 if [ "${SKIP_MIGRATIONS:-0}" != "1" ]; then
-    cd /app/packages/db
-    alembic upgrade head
+    python -m camply.db.migration
 fi
 
 exec "${@}"

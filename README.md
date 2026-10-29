@@ -38,43 +38,21 @@ Standalone runs exactly one process on one host. It persists scans and pending a
 📂 camply
 ├── README.md
 ├── docker-compose.yaml
-├── cli/
-|   ├── pyproject.toml
-|   └── camply/
 ├── frontend/
-|   ├── Dockerfile
-|   ├── docker-compose.yaml
-|   ├── package.json
-|   ├── tsconfig.json
-|   ├── src/
-|   └── public/
+│   ├── package.json
+│   └── src/
 └── backend/
-    ├── Dockerfile
-    ├── docker-compose.yaml
     ├── pyproject.toml
     ├── uv.lock
-    └── packages/
-        ├── backend/
-        |   ├── pyproject.toml
-        |   └── backend/
-        ├── db/
-        |   ├── pyproject.toml
-        |   ├── migrations/
-        |   └── db/
+    ├── alembic.ini
+    ├── config/gunicorn.conf.py
+    ├── tests/
+    └── src/camply/
+        ├── server/
+        ├── db/migrations/
         ├── providers/
-        |   ├── pyproject.toml
-        |   └── providers/
         └── worker/
-            ├── pyproject.toml
-            ├── tests/
-            └── worker/
 ```
-
-### cli
-
-- This directory contains the legacy command-line interface (CLI) for the project.
-  There will be no further development on this CLI and it can be ignored for new
-  features.
 
 ### frontend
 
@@ -90,16 +68,17 @@ Standalone runs exactly one process on one host. It persists scans and pending a
 
 ### backend
 
-- **Stack**: Python 3.12 + FastAPI + SQLAlchemy (async) + Pydantic v2.
+- **Stack**: Python >=3.11 (3.14 by default) + FastAPI + SQLAlchemy (async) + Pydantic v2.
 - **API Endpoints**: Search, campground/rec-area lookup, user profile (`/me`),
   scan CRUD (`/scans`) — all with OpenAPI docs at `/api/docs`.
 - **Auth**: Two modes — local (auto-admin, no token needed) and Auth0 (JWT
   validation via PyJWT + JWKS).
-- The backend is a `uv` workspace containing multiple packages:
-  - `backend/`: FastAPI application serving API endpoints and auth.
-  - `db/`: Database models (User, UniqueTarget, UserScan, ScanResult, etc.)
-    and Alembic migrations.
-  - `providers/`: Third-party API providers (Recreation.gov) with pluggable
-    `BaseProvider` ABC.
-  - `worker/`: Celery-powered background task worker for campsite polling,
-    availability diffing, de-duplicated scanning, and Pushover notifications.
+- The backend builds one `camply` Python distribution. `camply.providers` and
+  `camply.db` supply provider APIs and SQLite persistence; `camply.server` supplies
+  the HTTP API and `camply.worker` supplies Celery tasks.
+- Optional extras add dependencies: `server`, `distributed`, `postgres`, and
+  `sentry`. See [backend installation and capabilities](backend/README.md).
+- The future local CLI and single-process scanning server are separate work.
+  This package retains `populate-database`, but introduces no `camply` command.
+  API-only installations can manage scans; scheduled checks still require
+  Celery workers, beat, and Valkey/Redis. The frontend remains separately built.

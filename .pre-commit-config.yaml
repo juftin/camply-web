@@ -20,7 +20,7 @@ repos:
       - id: check-docstring-first
         # This token-based hook mistakes valid module attribute docstrings for
         # duplicate module docstrings. Syntax checks still cover these modules.
-        exclude: ^backend/packages/(db/db/(models/search|search_maps|search_bounds)|backend/backend/routers/search)\.py$
+        exclude: ^backend/(src/camply/(__about__|db/(models/search|search_maps|search_bounds|migrations/env)|server/(routers/search|services/operations))|tests/packaging/conftest)\.py$
       - id: check-merge-conflict
       - id: mixed-line-ending
 
@@ -37,17 +37,23 @@ repos:
       - id: ruff-format
         name: format
         description: Runs Code Auto-Formatters
-        entry: uv run --project backend ruff format
+        entry: uv run --project backend --all-extras ruff format
         language: system
         types:
           - python
       - id: ruff-check
         name: lint
         description: Runs Code Linters
-        entry: uv run --project backend ruff check --fix
+        entry: uv run --project backend --all-extras ruff check --fix
         language: system
         types:
           - python
+      - id: import-linter
+        name: import architecture
+        entry: task backend:imports
+        language: system
+        pass_filenames: false
+        files: ^backend/(src/.*\.py|pyproject\.toml)$
       - id: oxfmt
         # TOML is already formatted by pretty-format-toml above.
         exclude: \.toml$

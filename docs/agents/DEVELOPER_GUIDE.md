@@ -4,8 +4,8 @@ This guide walks you through setting up the `camply` development environment.
 
 ## 📋 Prerequisites
 
-- **Python 3.12+** (Managed via [uv](https://github.com/astral-sh/uv))
-- **Node.js 24+** and **pnpm 10.34.6** (Node 24 is selected by `frontend/.node-version`, CI, and Docker; pnpm is pinned in `frontend/package.json`)
+- **Python 3.14** (package supports Python >=3.11; compatibility is tested explicitly) (Managed via [uv](https://github.com/astral-sh/uv))
+- **Node.js 24+** and **pnpm 12.15.0** (Node 24 is selected by `frontend/.node-version`, CI, and Docker; pnpm is pinned in `frontend/package.json`)
 - **Docker & Docker Compose**
 - **go-task** (The [Taskfile](https://taskfile.dev) runner)
 
@@ -17,15 +17,23 @@ Frontend installs use `pnpm install --frozen-lockfile`. To change frontend depen
 
 Running `task` without arguments lists available workflows. Use `task install` to install project dependencies.
 
+## Python package capabilities
+
+The backend is one `camply` distribution with internal `server`, `db`,
+`providers`, and `worker` subpackages. Development sync installs all extras;
+consumers can select `server`, `distributed`, `postgres`, and `sentry`
+independently. Base provides providers, SQLite, and `populate-database`.
+See [backend installation](../../backend/README.md) for artifact examples.
+
 ## Standalone runtime
 
-Docker is optional for this workflow. Run `task standalone:install`, `task standalone:build`, then `task standalone:run -- --port 8000`. The build stages root-based assets into the backend wheel and packages the complete Alembic revision graph in the db wheel. The launcher validates resources, upgrades the configured SQLite file, then serves the UI, `/api`, and local background loops on `127.0.0.1:8000`. `CAMPLY_RUNTIME_MODE` is independent of authentication and deployment environment.
+Docker is optional for this workflow. Run `task standalone:install`, `task standalone:build`, then `task standalone:run -- --port 8000`. The build stages root-based assets into the backend distribution and packages the complete Alembic revision graph. The launcher validates resources, upgrades the configured SQLite file, then serves the UI, `/api`, and local background loops on `127.0.0.1:8000`. `CAMPLY_RUNTIME_MODE` is independent of authentication and deployment environment.
 
 Set `CAMPLY_DB_HOST` to an absolute writable file path to choose storage. On macOS the default is the platform-specific camply application-data directory, not a checkout path. Use **Sync Providers** in Admin Operations for the first catalog import; later refreshes run at midnight UTC. Searches and Pushover delivery need access to their upstream services. Set the existing `PUSHOVER_APP_TOKEN` and configure each user's Pushover key.
 
 For session login over local HTTP, set `CAMPLY_AUTH_MODE=session`, securely inject `CAMPLY_LOGIN_USERNAME`, `CAMPLY_LOGIN_PASSWORD`, and `CAMPLY_SESSION_SECRET`, set `CAMPLY_SESSION_COOKIE_SECURE=false`, and include the exact frontend origin in `CAMPLY_CORS_ORIGINS`. HTTPS deployments retain secure cookies. Auth0 callbacks must use the Python-served origin. Automatic shared-admin login remains the default.
 
-For installation outside the checkout, create a Python 3.12 environment and install all four wheels from `backend/dist` with `uv pip install --python /path/to/venv/bin/python backend/dist/*.whl`. Start with `CAMPLY_RUNTIME_MODE=standalone /path/to/venv/bin/python -m backend.standalone`. No Vite or Node process is needed. Each standalone build clears stale wheel versions from `backend/dist`. To supply a separate prebuilt UI, set `CAMPLY_FRONTEND_DIR` to its absolute directory. Build assets before producing release wheels; normal editable backend installs do not require frontend assets.
+For installation outside the checkout, install the `camply` package with the `server` extra. Start with `CAMPLY_RUNTIME_MODE=standalone python -m camply.server.standalone`. No Vite or Node process is needed. To supply a separate prebuilt UI, set `CAMPLY_FRONTEND_DIR` to its absolute directory. Build assets before producing release wheels; normal editable backend installs do not require frontend assets.
 
 Alerts use the existing summary/direct modes. Standalone summary links default to the listener origin; set `CAMPLY_APP_URL` to the public URL (including any path prefix) behind HTTPS or a reverse proxy. Site details and map/search APIs use the shared SQLite-backed catalog and latest scan results.
 
@@ -78,7 +86,7 @@ We use Alembic for backend migrations.
 
 ### 2. Provider Migration
 
-When porting logic from the legacy `cli/` to the new `backend/packages/providers`:
+When porting logic from the legacy `cli/` to the new `backend/src/camply/providers`:
 
 1.  Define the internal Pydantic models in `models/`.
 2.  Implement the `BaseProvider` interface.
@@ -93,7 +101,7 @@ If you change a FastAPI router:
 
 ### 4. Releases
 
-Pushes to `main` run the complete CI suite before the `release` workflow creates GitHub releases with the existing Renovate App. The separate `publish` workflow publishes backend/frontend images to GHCR from the released full-version tag, or from the successful main SHA when no release is needed. `latest` tracks successful `main` builds; Gitmoji-driven releases also publish full-version tags, moving Docker/Git major aliases such as `v1`, and Python workspace sdists as GitHub release assets. Use `task dist` to build the sdists locally. See [release operations](RELEASES.md) for version rules, repository permissions, local verification, and failure recovery.
+Pushes to `main` run the complete CI suite before the `release` workflow creates GitHub releases with the existing Renovate App. The separate `publish` workflow publishes backend/frontend images to GHCR from the released full-version tag, or from the successful main SHA when no release is needed. `latest` tracks successful `main` builds; Gitmoji-driven releases also publish full-version tags, moving Docker/Git major aliases such as `v1`, and the `camply` wheel and sdist as GitHub release assets. Use `task dist` to build the artifacts locally. See [release operations](RELEASES.md) for version rules, repository permissions, local verification, and failure recovery.
 
 ---
 
@@ -101,7 +109,10 @@ Pushes to `main` run the complete CI suite before the `release` workflow creates
 
 ### Backend
 
-- Run all tests: `task backend:test`
+- Enforce module and optional dependency boundaries: `task backend:imports` (also included in `task backend:lint`, CI, and pre-commit).
+- Run backend unit/integration tests: `task backend:test`
+- Verify isolated wheel and sdist installations: `task backend:packaging:test`
+- Verify artifact compatibility on the minimum Python: `task backend:packaging:test PACKAGING_PYTHON=3.11`
 - Update VCR cassettes: `task backend:test -- --vcr-record=all`
 
 ### Frontend

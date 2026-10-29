@@ -67,6 +67,32 @@ jobs:
       - name: ${{ matrix.name }}
         run: ${{ matrix.cmd }}
 
+  backend-packaging:
+    name: Backend Artifact Matrix (Python 3.14)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-backend
+      - run: task backend:packaging:test
+        env:
+          PACKAGING_PYTHON: "3.14"
+
+  backend-compatibility:
+    name: Backend Minimum Python (3.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      UV_PYTHON: "3.11"
+      PACKAGING_PYTHON: "3.11"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-backend
+        with:
+          python-version: "3.11"
+      - run: task backend:test
+      - run: task backend:packaging:test
+
   backend-docker:
     name: Backend Docker Build
     needs: [backend-checks]

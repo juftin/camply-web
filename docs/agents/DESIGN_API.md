@@ -2,6 +2,13 @@
 
 This document defines the interface between the `camply-backend` (FastAPI) and `camply-frontend` (React). It also outlines the security flow for Auth0 and optional invite-only access.
 
+## Python package boundaries
+
+The existing ASGI application is `camply.server.app:app`, enabled by the
+`server` extra. This installation supports API browsing and scan management
+with SQLite. Operations overview/task-list responses use
+existing unavailable/error fields when `distributed` is absent unless `CAMPLY_RUNTIME_MODE=standalone` is active.
+
 ## Runtime and hosting contract
 
 `CAMPLY_RUNTIME_MODE=standalone` serves built root-based frontend assets and the API from Python. Known API routes keep their normal errors, `/api/*` misses never become HTML, and `/metrics` is unavailable. HTML navigation falls back to the entry page for root/deep links; missing asset paths return 404. GET/HEAD are supported, other static methods return 405, hashed `/assets/` files are immutable, and entry HTML is not cached. Auth mode, CSRF, invitation checks, and administrator authorization remain independent of runtime.
@@ -95,7 +102,7 @@ Session cookies include a credential version derived by HMAC from the current sa
 
 ## 📦 Request / Response DTOs (Pydantic)
 
-All schemas are defined in `backend/packages/backend/backend/schemas.py`.
+All schemas are defined in `backend/src/camply/server/schemas.py`.
 
 ### `ScanCreateRequest`
 

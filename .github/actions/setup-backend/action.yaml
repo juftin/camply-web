@@ -1,13 +1,13 @@
 ---
 name: Setup Backend
 description: >-
-  Install Task runner, set up uv and Python, and synchronise all workspace
-  packages.
+  Install Task runner, set up uv and Python, and synchronise the backend
+  with all optional extras.
 
 inputs:
   python-version:
     description: Python version to install
-    default: "3.12"
+    default: "3.14"
 
 runs:
   using: composite
@@ -29,4 +29,4 @@ runs:
     - name: Install backend dependencies
       shell: bash
       working-directory: ./backend
-      run: uv sync --all-packages --extra distributed
+      run: uv sync --locked --all-extras

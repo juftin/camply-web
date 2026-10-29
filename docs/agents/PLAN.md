@@ -8,10 +8,10 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 
 ## 🏗️ Core Architecture & Standards
 
-- **Backend**: FastAPI (Python 3.12, `uv` workspace) using **Pydantic v2**.
+- **Backend**: FastAPI (Python >=3.11, Python 3.14 runtime defaults, one `camply` distribution managed by `uv`) using **Pydantic v2**.
 - **Frontend**: React (TypeScript, Vite, Tailwind CSS + **Shadcn/UI**).
-- **Database**: PostgreSQL for distributed deployment or file-backed SQLite for optional standalone (SQLAlchemy + Alembic).
-- **Worker**: Shared async de-duplicated poller with Celery + Valkey adapters or bounded local loops in standalone.
+- **Database**: SQLite in the base package; PostgreSQL through the `postgres` extra for distributed deployment (SQLAlchemy + Alembic).
+- **Worker**: Shared async de-duplicated poller with Celery + Valkey adapters in distributed mode or bounded local loops in standalone.
 - **Auth**: Multi-user **Auth0** integration with optional **invite-only access** (`CAMPLY_INVITE_ONLY`). The owner selects `none` (automatic shared-account login), `session` (in-app password login), or `auth0`, independently of the environment. HTTP Basic authentication is unsupported.
 - **Licensing**: Transition to a **Non-Commercial License** (e.g., Polyform Non-Commercial or AGPL with restrictions) to prevent unauthorized paid hosting/monetization.
 - **Notifications**: Initial support for **Pushover** (extensible to Email/Discord).
@@ -25,6 +25,16 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
   - **Local Dev**: Unified orchestration via `Docker Compose` and `Taskfile.yaml`.
 
 ---
+
+## Python distribution boundary
+
+The backend builds one `camply` distribution with internal `server`, `db`,
+`providers`, and `worker` subpackages. Base supplies provider APIs, SQLite,
+and the population utility; optional extras supply `server`, `distributed`,
+`postgres`, and `sentry` dependencies. Server and worker bootstraps remain
+independent. API-only installs do not execute scheduled scans. Future local
+CLI, embedded scheduling, frontend bundling, and PyPI publication are separate
+work; the package migration introduces none of these.
 
 ## 🚀 Strategic Feature Requirements
 
@@ -106,8 +116,8 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 
 ## 🏁 Next Immediate Steps
 
-1. [x] **Database Design**: Create SQLAlchemy models for the Multi-User / De-duplicated architecture in `backend/packages/db`.
-2. [x] **Provider Migration**: Extract search logic from `cli/` to `backend/packages/providers/`.
+1. [x] **Database Design**: Create SQLAlchemy models for the Multi-User / De-duplicated architecture in `backend/src/camply/db`.
+2. [x] **Provider Migration**: Extract search logic from `cli/` to `backend/src/camply/providers/`.
 3. [x] **API Scaffolding**: Setup OpenAPI client generation in the frontend.
 4. [x] **API Endpoints**: FastAPI scan/search/me CRUD endpoints.
 5. [x] **Dashboard UI**: Scan management dashboard with creation, toggling, and deletion.
