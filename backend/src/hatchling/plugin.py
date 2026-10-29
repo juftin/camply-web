@@ -42,12 +42,13 @@ class FrontendBuildHook(BuildHookInterface):
         build_data : dict[str, Any]
             The build data dictionary passed to the target builder.
         """
-        if self.target_name != "wheel":
+        if self.target_name != "wheel" or version != "standard":
             return
 
         backend_root = Path(self.root).resolve()
         frontend_dir = backend_root.parent / "frontend"
         package_json = frontend_dir / "package.json"
+        node_modules = frontend_dir / "node_modules"
 
         pnpm = shutil.which("pnpm")
         npm = shutil.which("npm")
@@ -58,6 +59,16 @@ class FrontendBuildHook(BuildHookInterface):
             )
             self.app.display_info(
                 "Frontend package.json not found; skipping frontend build."
+            )
+            return
+
+        if not node_modules.is_dir():
+            logger.info(
+                "Frontend node_modules not found at %s; skipping frontend build",
+                node_modules,
+            )
+            self.app.display_info(
+                "Frontend node_modules not found; skipping frontend build."
             )
             return
 
