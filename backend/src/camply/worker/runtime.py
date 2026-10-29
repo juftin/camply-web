@@ -151,45 +151,51 @@ class LocalRunner:
         """Page eligible targets and prevent duplicate local dispatch."""
         next_catalog = dt.datetime.now(dt.timezone.utc).date() + dt.timedelta(days=1)
         while True:
-            self.wake.clear()
-            now = dt.datetime.now(dt.timezone.utc)
-            if now.date() >= next_catalog:
-                self.request_sync()
-                next_catalog = now.date() + dt.timedelta(days=1)
-                await prune_finished(self.database)
-            targets = await due_targets(
-                sessions=self.database.get_session,
-                cooldown=self.cooldown,
-                limit=100,
-                today=now.date(),
-                invite_only=self.invite_only,
-                exclude=self.in_flight
-                | {
-                    key
-                    for key, (_, deadline, _) in self.retries.items()
-                    if deadline > time.monotonic()
-                },
-            )
-            enqueued = 0
-            for target in targets:
-                key = str(target.id)
-                retry = self.retries.get(key)
-                if (
-                    key in self.in_flight
-                    or (retry and retry[1] > time.monotonic())
-                    or self.scan_queue.full()
-                ):
-                    continue
-                self.in_flight.add(key)
-                self.scan_queue.put_nowait(key)
-                enqueued += 1
-            self.last_discovery = {
-                "timestamp": now,
-                "targets_discovered": len(targets),
-                "targets_enqueued": enqueued,
-                "status": "success",
-            }
-            self.record("camply.search.schedule_checks", outcome="success")
+            try:
+                self.wake.clear()
+                now = dt.datetime.now(dt.timezone.utc)
+                if now.date() >= next_catalog:
+                    self.request_sync()
+                    next_catalog = now.date() + dt.timedelta(days=1)
+                    await prune_finished(self.database)
+                targets = await due_targets(
+                    sessions=self.database.get_session,
+                    cooldown=self.cooldown,
+                    limit=100,
+                    today=now.date(),
+                    invite_only=self.invite_only,
+                    exclude=self.in_flight
+                    | {
+                        key
+                        for key, (_, deadline, _) in self.retries.items()
+                        if deadline > time.monotonic()
+                    },
+                )
+                enqueued = 0
+                for target in targets:
+                    key = str(target.id)
+                    retry = self.retries.get(key)
+                    if (
+                        key in self.in_flight
+                        or (retry and retry[1] > time.monotonic())
+                        or self.scan_queue.full()
+                    ):
+                        continue
+                    self.in_flight.add(key)
+                    self.scan_queue.put_nowait(key)
+                    enqueued += 1
+                self.last_discovery = {
+                    "timestamp": now,
+                    "targets_discovered": len(targets),
+                    "targets_enqueued": enqueued,
+                    "status": "success",
+                }
+                self.record("camply.search.schedule_checks", outcome="success")
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                logger.warning("Standalone discovery loop error: %s", exc)
+                self.record("camply.search.schedule_checks", outcome="failure")
             delays = [
                 deadline - time.monotonic()
                 for key, (_, deadline, _) in self.retries.items()
@@ -268,26 +274,28 @@ class LocalRunner:
         """Refresh provider catalogs sequentially, retaining individual outcomes."""
         while True:
             job = await self.catalog_queue.get()
-            for provider_id, provider_cls in PROVIDERS.items():
-                started = time.monotonic()
-                self.active += 1
-                try:
-                    await populate_provider(provider_id, provider_cls)
-                    outcome = "success"
-                except Exception:
-                    outcome = "failure"
-                finally:
-                    self.active -= 1
-                self.record(
-                    "camply.catalog.sync_provider_catalog",
-                    outcome=outcome,
-                    task_id=job,
-                    duration_ms=(time.monotonic() - started) * 1000,
-                    provider_id=provider_id,
-                    provider_name=provider_cls.__name__,
-                )
-            self.catalog_job = None
-            self.catalog_queue.task_done()
+            try:
+                for provider_id, provider_cls in PROVIDERS.items():
+                    started = time.monotonic()
+                    self.active += 1
+                    try:
+                        await populate_provider(provider_id, provider_cls)
+                        outcome = "success"
+                    except Exception:
+                        outcome = "failure"
+                    finally:
+                        self.active -= 1
+                    self.record(
+                        "camply.catalog.sync_provider_catalog",
+                        outcome=outcome,
+                        task_id=job,
+                        duration_ms=(time.monotonic() - started) * 1000,
+                        provider_id=provider_id,
+                        provider_name=provider_cls.__name__,
+                    )
+            finally:
+                self.catalog_job = None
+                self.catalog_queue.task_done()
 
     async def _notifications(self) -> None:
         """Drain due durable alerts without blocking provider checks or HTTP."""

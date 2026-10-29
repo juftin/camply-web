@@ -12,6 +12,12 @@ class NullMetric:
     def inc(self, amount: float = 1) -> None:
         """Ignore a counter update in a runtime without metric collection."""
 
+    def dec(self, amount: float = 1) -> None:
+        """Ignore a gauge decrement in a runtime without metric collection."""
+
+    def set(self, value: float) -> None:
+        """Ignore a gauge update in a runtime without metric collection."""
+
     def observe(self, value: float) -> None:
         """Ignore a timing sample in a runtime without metric collection."""
 

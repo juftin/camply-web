@@ -71,3 +71,17 @@ class FrontendBuildHook(BuildHookInterface):
         if static_dest.exists():
             shutil.rmtree(static_dest)
         shutil.copytree(dist_dir, static_dest)
+
+    def clean(self, versions: list[str]) -> None:
+        """
+        Remove staged static files when cleaning build targets.
+
+        Parameters
+        ----------
+        versions : list[str]
+            The list of versions being cleaned.
+        """
+        backend_root = Path(self.root).resolve()
+        static_dest = backend_root / "src" / "camply" / "server" / "static"
+        if static_dest.exists():
+            shutil.rmtree(static_dest)
