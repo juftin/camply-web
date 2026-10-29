@@ -15,7 +15,8 @@ This document defines the user experience and visual architecture for the `campl
 
 We use **Shadcn/UI** as the foundation, providing accessible, themeable components.
 
-- **Primary Colors**: Nature-inspired (Forest Green, Slate, Earthy Orange).
+- **Primary Colors**: Nature-inspired (Forest Green, Steel/Slate Blue, Earthy Orange).
+  - Primary Theme Blue: Steel/Slate Blue (`215 50% 46%` / `#3b6cb0` light, `215 45% 60%` / `#6b91c7` dark). Calibrated with 45–50% saturation to eliminate optical glare and dark-mode neon vibration while satisfying WCAG AA (≥ 4.5:1) contrast. See [Theme Dashboard](../THEME_DASHBOARD.md) for palette visual comparisons.
 - **Typography**: Clean sans-serif (Inter or Geist).
 - **Components** (installed and in use):
   - `badge.tsx` — For scan status indicators (Active/Paused/Ended)

@@ -1,0 +1,274 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1204 480" width="1204" height="480" style="background:#030712; border-radius:16px;">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap');
+      text { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    </style>
+  </defs>
+  
+  <!-- Header Title -->
+  <text x="24" y="38" fill="#f8fafc" font-size="20" font-weight="bold">Theme Palette Component Comparison</text>
+  <text x="24" y="56" fill="#94a3b8" font-size="12">Visualizing primary buttons, status badges, and switches across dark &amp; light modes</text>
+
+  
+    <g transform="translate(20, 70)">
+      <!-- Dark mode sub-card -->
+      <rect width="220" height="380" rx="12" fill="#090d16" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,4" />
+      
+      <!-- Title -->
+      <text x="16" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold">Current (Default)</text>
+      <text x="16" y="50" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">Glow-in-the-Dark (91% Sat)</text>
+
+      <!-- Saturation pill -->
+      <rect x="16" y="62" width="120" height="20" rx="10" fill="#ef444420" />
+      <text x="24" y="76" fill="#ef4444" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600">Sat: 83% / 91%</text>
+
+      <!-- DARK MODE PREVIEW -->
+      <text x="16" y="110" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="bold" letter-spacing="0.05em">DARK MODE</text>
+      
+      <!-- Primary Button (Dark) -->
+      <rect x="16" y="122" width="188" height="36" rx="6" fill="#3b82f6" />
+      <text x="110" y="145" fill="#020817" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Primary Action</text>
+
+      <!-- Badge (Dark) -->
+      <rect x="16" y="170" width="68" height="22" rx="11" fill="#3b82f6" />
+      <text x="50" y="185" fill="#020817" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Active</text>
+
+      <!-- Switch (Dark) -->
+      <rect x="94" y="171" width="40" height="20" rx="10" fill="#3b82f6" />
+      <circle cx="124" cy="181" r="7" fill="#020817" />
+      <text x="142" y="185" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">On</text>
+
+      <text x="16" y="212" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">Hex: <tspan fill="#cbd5e1">#3b82f6</tspan></text>
+      <text x="16" y="226" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">HSL: <tspan fill="#cbd5e1">217.2 91.2% 59.8%</tspan></text>
+
+      <line x1="16" y1="240" x2="204" y2="240" stroke="#1e293b" stroke-width="1" />
+
+      <!-- LIGHT MODE PREVIEW -->
+      <text x="16" y="260" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="bold" letter-spacing="0.05em">LIGHT MODE</text>
+      
+      <!-- Primary Button (Light) -->
+      <rect x="16" y="272" width="188" height="36" rx="6" fill="#2563eb" />
+      <text x="110" y="295" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Primary Action</text>
+
+      <!-- Badge (Light) -->
+      <rect x="16" y="320" width="68" height="22" rx="11" fill="#2563eb" />
+      <text x="50" y="335" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Active</text>
+
+      <!-- Switch (Light) -->
+      <rect x="94" y="321" width="40" height="20" rx="10" fill="#2563eb" />
+      <circle cx="124" cy="331" r="7" fill="#ffffff" />
+      <text x="142" y="335" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">On</text>
+
+      <text x="16" y="360" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">Hex: <tspan fill="#cbd5e1">#2563eb</tspan></text>
+    </g>
+  
+    <g transform="translate(256, 70)">
+      <!-- Dark mode sub-card -->
+      <rect width="220" height="380" rx="12" fill="#090d16" stroke="#334155" stroke-width="1" />
+      
+      <!-- Title -->
+      <text x="16" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold">Option 1: Steel / Slate Blue</text>
+      <text x="16" y="50" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">Balanced & Modern (Recommended)</text>
+
+      <!-- Saturation pill -->
+      <rect x="16" y="62" width="120" height="20" rx="10" fill="#10b98120" />
+      <text x="24" y="76" fill="#10b981" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600">Sat: 50% / 45%</text>
+
+      <!-- DARK MODE PREVIEW -->
+      <text x="16" y="110" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="bold" letter-spacing="0.05em">DARK MODE</text>
+      
+      <!-- Primary Button (Dark) -->
+      <rect x="16" y="122" width="188" height="36" rx="6" fill="#6b91c7" />
+      <text x="110" y="145" fill="#020817" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Primary Action</text>
+
+      <!-- Badge (Dark) -->
+      <rect x="16" y="170" width="68" height="22" rx="11" fill="#6b91c7" />
+      <text x="50" y="185" fill="#020817" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Active</text>
+
+      <!-- Switch (Dark) -->
+      <rect x="94" y="171" width="40" height="20" rx="10" fill="#6b91c7" />
+      <circle cx="124" cy="181" r="7" fill="#020817" />
+      <text x="142" y="185" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">On</text>
+
+      <text x="16" y="212" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">Hex: <tspan fill="#cbd5e1">#6b91c7</tspan></text>
+      <text x="16" y="226" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">HSL: <tspan fill="#cbd5e1">215 45% 60%</tspan></text>
+
+      <line x1="16" y1="240" x2="204" y2="240" stroke="#1e293b" stroke-width="1" />
+
+      <!-- LIGHT MODE PREVIEW -->
+      <text x="16" y="260" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="bold" letter-spacing="0.05em">LIGHT MODE</text>
+      
+      <!-- Primary Button (Light) -->
+      <rect x="16" y="272" width="188" height="36" rx="6" fill="#3b6cb0" />
+      <text x="110" y="295" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Primary Action</text>
+
+      <!-- Badge (Light) -->
+      <rect x="16" y="320" width="68" height="22" rx="11" fill="#3b6cb0" />
+      <text x="50" y="335" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Active</text>
+
+      <!-- Switch (Light) -->
+      <rect x="94" y="321" width="40" height="20" rx="10" fill="#3b6cb0" />
+      <circle cx="124" cy="331" r="7" fill="#ffffff" />
+      <text x="142" y="335" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">On</text>
+
+      <text x="16" y="360" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">Hex: <tspan fill="#cbd5e1">#3b6cb0</tspan></text>
+    </g>
+  
+    <g transform="translate(492, 70)">
+      <!-- Dark mode sub-card -->
+      <rect width="220" height="380" rx="12" fill="#090d16" stroke="#334155" stroke-width="1" />
+      
+      <!-- Title -->
+      <text x="16" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold">Option 2: Alpine Lake Blue</text>
+      <text x="16" y="50" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">Campsite & Nature Inspired</text>
+
+      <!-- Saturation pill -->
+      <rect x="16" y="62" width="120" height="20" rx="10" fill="#10b98120" />
+      <text x="24" y="76" fill="#10b981" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600">Sat: 55% / 48%</text>
+
+      <!-- DARK MODE PREVIEW -->
+      <text x="16" y="110" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="bold" letter-spacing="0.05em">DARK MODE</text>
+      
+      <!-- Primary Button (Dark) -->
+      <rect x="16" y="122" width="188" height="36" rx="6" fill="#609ec7" />
+      <text x="110" y="145" fill="#020817" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Primary Action</text>
+
+      <!-- Badge (Dark) -->
+      <rect x="16" y="170" width="68" height="22" rx="11" fill="#609ec7" />
+      <text x="50" y="185" fill="#020817" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Active</text>
+
+      <!-- Switch (Dark) -->
+      <rect x="94" y="171" width="40" height="20" rx="10" fill="#609ec7" />
+      <circle cx="124" cy="181" r="7" fill="#020817" />
+      <text x="142" y="185" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">On</text>
+
+      <text x="16" y="212" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">Hex: <tspan fill="#cbd5e1">#609ec7</tspan></text>
+      <text x="16" y="226" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">HSL: <tspan fill="#cbd5e1">204 48% 58%</tspan></text>
+
+      <line x1="16" y1="240" x2="204" y2="240" stroke="#1e293b" stroke-width="1" />
+
+      <!-- LIGHT MODE PREVIEW -->
+      <text x="16" y="260" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="bold" letter-spacing="0.05em">LIGHT MODE</text>
+      
+      <!-- Primary Button (Light) -->
+      <rect x="16" y="272" width="188" height="36" rx="6" fill="#3077a6" />
+      <text x="110" y="295" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Primary Action</text>
+
+      <!-- Badge (Light) -->
+      <rect x="16" y="320" width="68" height="22" rx="11" fill="#3077a6" />
+      <text x="50" y="335" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Active</text>
+
+      <!-- Switch (Light) -->
+      <rect x="94" y="321" width="40" height="20" rx="10" fill="#3077a6" />
+      <circle cx="124" cy="331" r="7" fill="#ffffff" />
+      <text x="142" y="335" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">On</text>
+
+      <text x="16" y="360" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">Hex: <tspan fill="#cbd5e1">#3077a6</tspan></text>
+    </g>
+  
+    <g transform="translate(728, 70)">
+      <!-- Dark mode sub-card -->
+      <rect width="220" height="380" rx="12" fill="#090d16" stroke="#334155" stroke-width="1" />
+      
+      <!-- Title -->
+      <text x="16" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold">Option 3: Nordic Dusk Blue</text>
+      <text x="16" y="50" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">Ultra Low Glare & Twilight</text>
+
+      <!-- Saturation pill -->
+      <rect x="16" y="62" width="120" height="20" rx="10" fill="#10b98120" />
+      <text x="24" y="76" fill="#10b981" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600">Sat: 38% / 38%</text>
+
+      <!-- DARK MODE PREVIEW -->
+      <text x="16" y="110" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="bold" letter-spacing="0.05em">DARK MODE</text>
+      
+      <!-- Primary Button (Dark) -->
+      <rect x="16" y="122" width="188" height="36" rx="6" fill="#7994c3" />
+      <text x="110" y="145" fill="#020817" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Primary Action</text>
+
+      <!-- Badge (Dark) -->
+      <rect x="16" y="170" width="68" height="22" rx="11" fill="#7994c3" />
+      <text x="50" y="185" fill="#020817" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Active</text>
+
+      <!-- Switch (Dark) -->
+      <rect x="94" y="171" width="40" height="20" rx="10" fill="#7994c3" />
+      <circle cx="124" cy="181" r="7" fill="#020817" />
+      <text x="142" y="185" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">On</text>
+
+      <text x="16" y="212" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">Hex: <tspan fill="#cbd5e1">#7994c3</tspan></text>
+      <text x="16" y="226" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">HSL: <tspan fill="#cbd5e1">218 38% 62%</tspan></text>
+
+      <line x1="16" y1="240" x2="204" y2="240" stroke="#1e293b" stroke-width="1" />
+
+      <!-- LIGHT MODE PREVIEW -->
+      <text x="16" y="260" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="bold" letter-spacing="0.05em">LIGHT MODE</text>
+      
+      <!-- Primary Button (Light) -->
+      <rect x="16" y="272" width="188" height="36" rx="6" fill="#4c6ea9" />
+      <text x="110" y="295" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Primary Action</text>
+
+      <!-- Badge (Light) -->
+      <rect x="16" y="320" width="68" height="22" rx="11" fill="#4c6ea9" />
+      <text x="50" y="335" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Active</text>
+
+      <!-- Switch (Light) -->
+      <rect x="94" y="321" width="40" height="20" rx="10" fill="#4c6ea9" />
+      <circle cx="124" cy="331" r="7" fill="#ffffff" />
+      <text x="142" y="335" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">On</text>
+
+      <text x="16" y="360" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">Hex: <tspan fill="#cbd5e1">#4c6ea9</tspan></text>
+    </g>
+  
+    <g transform="translate(964, 70)">
+      <!-- Dark mode sub-card -->
+      <rect width="220" height="380" rx="12" fill="#090d16" stroke="#334155" stroke-width="1" />
+      
+      <!-- Title -->
+      <text x="16" y="32" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold">Option 4: Deep Denim Navy</text>
+      <text x="16" y="50" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">Classic & Subdued</text>
+
+      <!-- Saturation pill -->
+      <rect x="16" y="62" width="120" height="20" rx="10" fill="#10b98120" />
+      <text x="24" y="76" fill="#10b981" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="600">Sat: 46% / 42%</text>
+
+      <!-- DARK MODE PREVIEW -->
+      <text x="16" y="110" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="bold" letter-spacing="0.05em">DARK MODE</text>
+      
+      <!-- Primary Button (Dark) -->
+      <rect x="16" y="122" width="188" height="36" rx="6" fill="#758ec7" />
+      <text x="110" y="145" fill="#020817" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Primary Action</text>
+
+      <!-- Badge (Dark) -->
+      <rect x="16" y="170" width="68" height="22" rx="11" fill="#758ec7" />
+      <text x="50" y="185" fill="#020817" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Active</text>
+
+      <!-- Switch (Dark) -->
+      <rect x="94" y="171" width="40" height="20" rx="10" fill="#758ec7" />
+      <circle cx="124" cy="181" r="7" fill="#020817" />
+      <text x="142" y="185" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">On</text>
+
+      <text x="16" y="212" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">Hex: <tspan fill="#cbd5e1">#758ec7</tspan></text>
+      <text x="16" y="226" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">HSL: <tspan fill="#cbd5e1">222 42% 62%</tspan></text>
+
+      <line x1="16" y1="240" x2="204" y2="240" stroke="#1e293b" stroke-width="1" />
+
+      <!-- LIGHT MODE PREVIEW -->
+      <text x="16" y="260" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10" font-weight="bold" letter-spacing="0.05em">LIGHT MODE</text>
+      
+      <!-- Primary Button (Light) -->
+      <rect x="16" y="272" width="188" height="36" rx="6" fill="#3e5aa8" />
+      <text x="110" y="295" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Primary Action</text>
+
+      <!-- Badge (Light) -->
+      <rect x="16" y="320" width="68" height="22" rx="11" fill="#3e5aa8" />
+      <text x="50" y="335" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Active</text>
+
+      <!-- Switch (Light) -->
+      <rect x="94" y="321" width="40" height="20" rx="10" fill="#3e5aa8" />
+      <circle cx="124" cy="331" r="7" fill="#ffffff" />
+      <text x="142" y="335" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="11">On</text>
+
+      <text x="16" y="360" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="10">Hex: <tspan fill="#cbd5e1">#3e5aa8</tspan></text>
+    </g>
+  
+</svg>

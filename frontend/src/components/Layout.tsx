@@ -3,6 +3,7 @@ import { Github } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { CamplyLogo } from "@/components/CamplyLogo";
+import { FloatingPaletteWidget } from "@/components/FloatingPaletteWidget";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -49,6 +50,7 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
       </footer>
+      <FloatingPaletteWidget />
     </div>
   );
 }

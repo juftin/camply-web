@@ -25,6 +25,7 @@ import { Campground } from "@/pages/Campground";
 import { RecreationArea } from "@/pages/RecreationArea";
 import { ScanDetail } from "@/pages/ScanDetail";
 import { DevPreview } from "@/pages/DevPreview";
+import { PalettePage } from "@/pages/PalettePage";
 import { AdminRoute } from "@/components/AdminRoute";
 import { AdminOverview } from "@/pages/admin/AdminOverview";
 import { AdminUsers } from "@/pages/admin/AdminUsers";
@@ -113,6 +114,8 @@ function AppRoutes() {
                   element={<RecreationArea />}
                 />
                 <Route path="/dev/preview" element={<DevPreview />} />
+                <Route path="/palette" element={<PalettePage />} />
+                <Route path="/dev/palette" element={<PalettePage />} />
 
                 {/* Admin routes */}
                 <Route
