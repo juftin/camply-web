@@ -4,6 +4,7 @@ Hatchling build hook to compile and bundle the React frontend into wheels.
 
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 import subprocess
@@ -13,6 +14,8 @@ from typing import Any
 from hatchling.builders.hooks.plugin.interface import (
     BuildHookInterface,  # type: ignore[import-untyped]
 )
+
+logger = logging.getLogger(__name__)
 
 
 class FrontendBuildHook(BuildHookInterface):
@@ -47,8 +50,25 @@ class FrontendBuildHook(BuildHookInterface):
         package_json = frontend_dir / "package.json"
 
         pnpm = shutil.which("pnpm")
-        if not package_json.is_file() or not pnpm:
+        if not package_json.is_file():
+            logger.info(
+                "Frontend package.json not found at %s; skipping frontend build",
+                package_json,
+            )
+            self.app.display_info(
+                "Frontend package.json not found; skipping frontend build."
+            )
             return
+
+        if not pnpm:
+            logger.warning("pnpm executable not found in PATH; skipping frontend build")
+            self.app.display_warning(
+                "pnpm executable not found in PATH; skipping frontend build."
+            )
+            return
+
+        self.app.display_waiting("Building React frontend with pnpm...")
+        logger.info("Building React frontend at %s using pnpm", frontend_dir)
 
         build_env = {
             **os.environ,
@@ -65,12 +85,20 @@ class FrontendBuildHook(BuildHookInterface):
         dist_dir = frontend_dir / "dist"
         if not (dist_dir / "index.html").is_file():
             msg = "Frontend build did not produce dist/index.html"
+            logger.error(msg)
             raise RuntimeError(msg)
 
         static_dest = backend_root / "src" / "camply" / "server" / "static"
+        relative_dest = static_dest.relative_to(backend_root)
+        self.app.display_info(f"Staging built frontend assets into {relative_dest}")
+        logger.info(
+            "Staging built frontend assets from %s to %s", dist_dir, static_dest
+        )
+
         if static_dest.exists():
             shutil.rmtree(static_dest)
         shutil.copytree(dist_dir, static_dest)
+        self.app.display_success("Frontend build and staging complete.")
 
     def clean(self, versions: list[str]) -> None:
         """
@@ -84,4 +112,7 @@ class FrontendBuildHook(BuildHookInterface):
         backend_root = Path(self.root).resolve()
         static_dest = backend_root / "src" / "camply" / "server" / "static"
         if static_dest.exists():
+            relative_dest = static_dest.relative_to(backend_root)
+            self.app.display_info(f"Removing staged frontend assets at {relative_dest}")
+            logger.info("Removing staged frontend static assets at %s", static_dest)
             shutil.rmtree(static_dest)
