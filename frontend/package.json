@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
-    "build": "pnpm run typecheck && vite build --config vite.config.ts",
+    "build": "node node_modules/@typescript/native/bin/tsc --project tsconfig.json --noEmit && node node_modules/@typescript/native/bin/tsc --project tsconfig.snapshots.json --noEmit && vite build --config vite.config.ts",
     "lint": "oxlint src functions --report-unused-disable-directives --max-warnings 0 && oxfmt --check .",
     "fix": "oxlint src functions --fix && oxfmt .",
     "preview": "vite preview --config vite.config.ts",

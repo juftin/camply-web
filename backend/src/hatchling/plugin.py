@@ -50,6 +50,7 @@ class FrontendBuildHook(BuildHookInterface):
         package_json = frontend_dir / "package.json"
 
         pnpm = shutil.which("pnpm")
+        npm = shutil.which("npm")
         if not package_json.is_file():
             logger.info(
                 "Frontend package.json not found at %s; skipping frontend build",
@@ -60,15 +61,23 @@ class FrontendBuildHook(BuildHookInterface):
             )
             return
 
-        if not pnpm:
-            logger.warning("pnpm executable not found in PATH; skipping frontend build")
+        if pnpm:
+            build_cmd = [pnpm, "run", "build"]
+            runner = "pnpm"
+        elif npm:
+            build_cmd = [npm, "run", "build"]
+            runner = "npm"
+        else:
+            logger.warning(
+                "Neither pnpm nor npm found in PATH; skipping frontend build"
+            )
             self.app.display_warning(
-                "pnpm executable not found in PATH; skipping frontend build."
+                "Neither pnpm nor npm found in PATH; skipping frontend build."
             )
             return
 
-        self.app.display_waiting("Building React frontend with pnpm...")
-        logger.info("Building React frontend at %s using pnpm", frontend_dir)
+        self.app.display_waiting(f"Building React frontend with {runner}...")
+        logger.info("Building React frontend at %s using %s", frontend_dir, runner)
 
         build_env = {
             **os.environ,
@@ -76,7 +85,7 @@ class FrontendBuildHook(BuildHookInterface):
             "VITE_API_URL": "/api",
         }
         subprocess.run(
-            [pnpm, "run", "build"],
+            build_cmd,
             cwd=frontend_dir,
             env=build_env,
             check=True,
