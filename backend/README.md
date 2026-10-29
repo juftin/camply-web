@@ -6,13 +6,13 @@ Python 3.14. Ruff and mypy retain the 3.11 compatibility floor.
 
 ## Modules and optional dependencies
 
-| Installation          | Capability                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------------ |
-| `camply`              | Providers, database models, SQLite persistence, Alembic resources, and `populate-database` |
-| `camply[server]`      | Existing FastAPI application and HTTP serving dependencies                                 |
-| `camply[distributed]` | Existing Celery worker/beat and Redis client dependencies                                  |
-| `camply[postgres]`    | Psycopg PostgreSQL driver                                                                  |
-| `camply[sentry]`      | Optional error reporting SDK                                                               |
+| Installation          | Capability                                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------------------------- |
+| `camply`              | Providers, database models, SQLite persistence, Alembic resources, `camply`, and `populate-database` |
+| `camply[server]`      | Existing FastAPI application and HTTP serving dependencies                                           |
+| `camply[distributed]` | Existing Celery worker/beat and Redis client dependencies                                            |
+| `camply[postgres]`    | Psycopg PostgreSQL driver                                                                            |
+| `camply[sentry]`      | Optional error reporting SDK                                                                         |
 
 Extras are additive dependency selections; every wheel contains all modules.
 They do not provision databases, brokers, or processes. For the existing full
@@ -42,8 +42,8 @@ using installed package resources, independently of the working directory.
 `CAMPLY_DB_*` configuration names and SQLite defaults are unchanged. Missing
 PostgreSQL or Sentry dependencies produce installation hints when configured.
 
-The future local Camply CLI is not implemented: there is no new `camply`
-command. An API-only installation can serve browsing and scan-management
+The base `camply` command currently provides only `--version` and `--help`
+(also available as `python -m camply.cli`); subcommands are future work. An API-only installation can serve browsing and scan-management
 routes, but does not execute scheduled scans. Worker/beat and Valkey/Redis
 remain required for polling. Without `distributed`, operations reads report
 unavailable; task detail and provider dispatch return HTTP 503 while retaining

@@ -22,11 +22,13 @@ Running `task` without arguments lists available workflows. Use `task install` t
 The backend is one `camply` distribution with internal `server`, `db`,
 `providers`, and `worker` subpackages. Development sync installs all extras;
 consumers can select `server`, `distributed`, `postgres`, and `sentry`
-independently. Base provides providers, SQLite, and `populate-database`.
+independently. Base provides providers, SQLite, the `camply` command, and
+`populate-database`.
 See [backend installation](../../backend/README.md) for artifact examples.
 
 API-only installs do not run scheduled scans: workers, beat, and Valkey/Redis
-remain required. There is no new Camply CLI or bundled frontend. Import paths
+remain required. The `camply` CLI (`camply.cli`) is an entrypoint with
+`--version` only; there is no bundled frontend. Import paths
 have moved from `backend.*`, `db.*`, `providers.*`, and `worker.*` to
 `camply.server.*`, `camply.db.*`, `camply.providers.*`, and `camply.worker.*`.
 
