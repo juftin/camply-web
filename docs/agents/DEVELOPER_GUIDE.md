@@ -27,10 +27,28 @@ independently. Base provides providers, SQLite, the `camply` command, and
 See [backend installation](../../backend/README.md) for artifact examples.
 
 API-only installs do not run scheduled scans: workers, beat, and Valkey/Redis
-remain required. The `camply` CLI (`camply.cli`) is an entrypoint with
-`--version` only; there is no bundled frontend. Import paths
+remain required unless using the standalone runtime. The `camply` CLI (`camply.cli`) is an entrypoint with
+`--version` only; there is no bundled frontend in API-only distributions. Import paths
 have moved from `backend.*`, `db.*`, `providers.*`, and `worker.*` to
 `camply.server.*`, `camply.db.*`, `camply.providers.*`, and `camply.worker.*`.
+
+## Standalone runtime
+
+Docker is optional for this workflow. Run `task standalone:install`, `task standalone:build`, then `task standalone:run -- --port 8000`. The build stages root-based assets into the backend distribution and packages the complete Alembic revision graph. The launcher validates resources, upgrades the configured SQLite file, then serves the UI, `/api`, and local background loops on `127.0.0.1:8000`. `CAMPLY_RUNTIME_MODE` is independent of authentication and deployment environment.
+
+Set `CAMPLY_DB_HOST` to an absolute writable file path to choose storage. On macOS the default is the platform-specific camply application-data directory, not a checkout path. Use **Sync Providers** in Admin Operations for the first catalog import; later refreshes run at midnight UTC. Searches and Pushover delivery need access to their upstream services. Set the existing `PUSHOVER_APP_TOKEN` and configure each user's Pushover key.
+
+For session login over local HTTP, set `CAMPLY_AUTH_MODE=session`, securely inject `CAMPLY_LOGIN_USERNAME`, `CAMPLY_LOGIN_PASSWORD`, and `CAMPLY_SESSION_SECRET`, set `CAMPLY_SESSION_COOKIE_SECURE=false`, and include the exact frontend origin in `CAMPLY_CORS_ORIGINS`. HTTPS deployments retain secure cookies. Auth0 callbacks must use the Python-served origin. Automatic shared-admin login remains the default.
+
+For installation outside the checkout, install the `camply` package with the `server` extra. Start with `CAMPLY_RUNTIME_MODE=standalone python -m camply.server.standalone`. No Vite or Node process is needed. To supply a separate prebuilt UI, set `CAMPLY_FRONTEND_DIR` to its absolute directory. Build assets before producing release wheels; normal editable backend installs do not require frontend assets.
+
+Alerts use the existing summary/direct modes. Standalone summary links default to the listener origin; set `CAMPLY_APP_URL` to the public URL (including any path prefix) behind HTTPS or a reverse proxy. Site details and map/search APIs use the shared SQLite-backed catalog and latest scan results.
+
+Only one process may use a standalone database. The launcher rejects conflicting worker counts and reload settings; use the launcher rather than a multi-worker ASGI command. Local scheduling uses bounded queues with one consumer each for checks, catalog refreshes, and delivery. The API stays asynchronous during upstream requests. SQLite WAL, foreign keys, a one-second busy timeout, short write transactions, and shared lifespan resources support this small-instance workload. Catalog updates retain each provider's existing commit boundaries; a refresh of all providers is not one transaction.
+
+To back up, stop the application before copying its database, or use SQLite's online backup API (for example `sqlite3 /path/to/camply.db '.backup /path/to/backup.db'`). Do not copy only a live database file while its WAL is active. Stop the application, restore a consistent backup to the configured path, and restart; migrations are reapplied idempotently. Pending alerts survive restart, and interrupted sends consume their persisted attempt budget. The merge migration supports both current-main databases and the earlier standalone PR schema without rewriting its original revision. Upstream acceptance followed by a process failure can cause a duplicate after restart.
+
+Run `task standalone:test` for a clean installed-wheel dependency audit plus real HTTP, SQLite recovery, session/CSRF, and Chromium desktop/mobile checks using synthetic upstreams. It needs the development environment and `task frontend:browser:install`, with no backing service containers. Separately, `task backend:migration:test` validates PostgreSQL upgrades in a disposable Docker container, and `task admin:smoke` covers distributed administration. `task install` and other development checks deliberately install distributed extras; `standalone:install` selects the core-only runtime.
 
 ## 🚀 Quick Start (Local Setup)
 

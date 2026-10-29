@@ -6,12 +6,16 @@ This document defines the interface between the `camply-backend` (FastAPI) and `
 
 The existing ASGI application is `camply.server.app:app`, enabled by the
 `server` extra. This installation supports API browsing and scan management
-with SQLite without Celery/Redis. Operations overview/task-list responses use
-existing unavailable/error fields when `distributed` is absent; task detail
-and provider-sync dispatch return HTTP 503 with an installation hint. Existing
-authentication and authorization apply before these capability responses.
-API-only installations do not execute scheduled scans: workers, beat, and
-Valkey/Redis remain required. The frontend is separately built and hosted.
+with SQLite. Operations overview/task-list responses use
+existing unavailable/error fields when `distributed` is absent unless `CAMPLY_RUNTIME_MODE=standalone` is active.
+
+## Runtime and hosting contract
+
+`CAMPLY_RUNTIME_MODE=standalone` serves built root-based frontend assets and the API from Python. Known API routes keep their normal errors, `/api/*` misses never become HTML, and `/metrics` is unavailable. HTML navigation falls back to the entry page for root/deep links; missing asset paths return 404. GET/HEAD are supported, other static methods return 405, hashed `/assets/` files are immutable, and entry HTML is not cached. Auth mode, CSRF, invitation checks, and administrator authorization remain independent of runtime.
+
+`GET /api/health` verifies the database and all supervised local loops in standalone, returning HTTP 503 when unhealthy; `/api/ping` remains liveness. Admin operations adds `runtime_mode`, `capabilities`, and local `scheduler_status`. Standalone returns `broker_connected: null`, unsupported reserved/scheduled counts as null, measured queue/running counts, and bounded local attempt history (1,000 entries/24 hours, cleared on restart). Historical trends use the existing unavailable response shape and are intentionally hidden by capability in the frontend. Failed loops display a real unhealthy state rather than a broker outage.
+
+Administrator provider sync dispatches to the selected runtime. Repeated local sync requests share the active job identity and return promptly. Existing distributed broker/inspection/Prometheus behavior remains the default. See [admin response details](../../specs/007-standalone-runtime/contracts/admin-api.md).
 
 ## 🎯 API Philosophy
 

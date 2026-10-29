@@ -84,6 +84,19 @@ class ZippedDataContents:
     addresses: str
 
 
+def _read_catalog(data_file: Path, contents: ZippedDataContents) -> AddressPopulator:
+    """Parse large offline JSON/archive data off the application's event loop."""
+    with zipfile.ZipFile(data_file, "r") as zipped:
+        addresses = AddressData.model_validate_json(
+            zipped.read(contents.addresses)
+        ).to_mapping()
+        parsed = contents.data_model.model_validate_json(
+            zipped.read(contents.json_file)
+        )
+        parsed.ADDRESSES = addresses
+        return parsed
+
+
 class RecreationGovProvider(BaseProvider):
     """
     Recreation.gov Provider Class
@@ -470,16 +483,9 @@ class RecreationGovProvider(BaseProvider):
         )
         async with db.get_session() as session:
             data_file = await self.download_offline_data()
-            with zipfile.ZipFile(data_file, "r") as zipped:
-                for data in self.data_files:
-                    with zipped.open(data.addresses, mode="r") as address_file:
-                        addresses = AddressData.model_validate_json(
-                            address_file.read()
-                        ).to_mapping()
-                    with zipped.open(data.json_file, mode="r") as json_file:
-                        parsed = data.data_model.model_validate_json(json_file.read())
-                        parsed.ADDRESSES = addresses
-                        await parsed.to_database(session)
+            for data in self.data_files:
+                parsed = await asyncio.to_thread(_read_catalog, data_file, data)
+                await parsed.to_database(session)
             await self.populate_search_table(session)
 
     @classmethod

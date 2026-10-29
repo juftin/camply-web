@@ -54,6 +54,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/camply"]
 
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "src/hatchling/plugin.py"
+
 [tool.hatch.build.targets.sdist]
 include = ["/src", "/README.md", "/LICENSE", "/alembic.ini", "/config"]
 
@@ -95,6 +98,8 @@ known-first-party = ["camply"]
 # FastAPI routers use Query/Depends in argument defaults
 "**/routers/*" = ["B008"]
 # Scanner task orchestrates many steps (lock, DB, provider, diff, fan-out)
+"**/worker/engine/scanner.py" = ["C901", "PLR0912", "PLR0915"]
+"**/worker/engine/notifications.py" = ["PLR0911"]
 "**/worker/tasks/scanner.py" = ["C901", "PLR0911", "PLR0912", "PLR0915"]
 # Trends service orchestrates Prometheus queries across 4 groups
 "**/services/trends.py" = ["C901", "PLR0912", "PLR0915"]
@@ -116,7 +121,8 @@ module = [
   "uvicorn_worker",
   "celery.*",
   "aiosqlite",
-  "fake_useragent"
+  "fake_useragent",
+  "hatchling.*"
 ]
 ignore_missing_imports = true
 
@@ -150,6 +156,11 @@ type = "layers"
 containers = ["camply"]
 layers = ["cli | server | worker", "providers", "db", "__about__"]
 exhaustive = true
+ignore_imports = [
+  "camply.server.app -> camply.worker.runtime",
+  "camply.server.services.local_operations -> camply.worker.runtime"
+]
+unmatched_ignore_imports_alerting = "error"
 
 [[tool.importlinter.contracts]]
 name = "Base dependencies stay optional-free"

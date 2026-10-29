@@ -50,8 +50,49 @@ beforeEach(() => {
 });
 
 describe("AdminOperations", () => {
+  it("explains local monitoring limits without fetching trends or reporting a broker outage", async () => {
+    vi.mocked(api.getAdminOperations).mockResolvedValue({
+      runtime_mode: "standalone",
+      inspection_available: true,
+      telemetry_available: true,
+      stale: false,
+      capabilities: {
+        broker: false,
+        historical_trends: false,
+        persistent_job_history: false,
+      },
+      scheduler_status: "running",
+      workers: [],
+      queue_depth: 0,
+      active_tasks_total: 0,
+      reserved_tasks_total: null,
+      scheduled_tasks_total: null,
+      broker_connected: null,
+      snapshot_at: "2026-10-14T00:00:00Z",
+    });
+    vi.mocked(api.listAdminOperationsTasks).mockResolvedValue({
+      available: true,
+      tasks: [],
+      total: 0,
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <AdminOperations />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(
+      await screen.findByText(/historical trends are disabled in standalone/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/history clears on restart/i)).toBeInTheDocument();
+    expect(screen.queryByText("Disconnected")).not.toBeInTheDocument();
+    expect(api.getAdminTrends).not.toHaveBeenCalled();
+  });
+
   it("renders operations metrics, worker nodes, and telemetry", async () => {
     vi.mocked(api.getAdminOperations).mockResolvedValue({
+      runtime_mode: "distributed",
       inspection_available: true,
       telemetry_available: true,
       stale: false,
@@ -146,6 +187,7 @@ describe("AdminOperations", () => {
     const user = userEvent.setup();
 
     vi.mocked(api.getAdminOperations).mockResolvedValue({
+      runtime_mode: "distributed",
       inspection_available: true,
       telemetry_available: true,
       stale: false,
@@ -236,6 +278,7 @@ describe("AdminOperations", () => {
     const user = userEvent.setup();
 
     vi.mocked(api.getAdminOperations).mockResolvedValue({
+      runtime_mode: "distributed",
       inspection_available: true,
       telemetry_available: true,
       stale: false,
@@ -288,6 +331,7 @@ describe("AdminOperations", () => {
     const user = userEvent.setup();
 
     vi.mocked(api.getAdminOperations).mockResolvedValue({
+      runtime_mode: "distributed",
       inspection_available: true,
       telemetry_available: true,
       stale: false,
@@ -332,6 +376,7 @@ describe("AdminOperations", () => {
 
 it("shows telemetry outages as unavailable instead of idle", async () => {
   vi.mocked(api.getAdminOperations).mockResolvedValue({
+    runtime_mode: "distributed",
     workers: [],
     queue_depth: 0,
     active_tasks_total: 0,
@@ -372,6 +417,7 @@ it("shows telemetry outages as unavailable instead of idle", async () => {
 
 it("preserves known counts and shows unanswered workload as unknown", async () => {
   vi.mocked(api.getAdminOperations).mockResolvedValue({
+    runtime_mode: "distributed",
     workers: [
       {
         name: "worker-1",

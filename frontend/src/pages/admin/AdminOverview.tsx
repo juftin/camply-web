@@ -19,10 +19,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AdminNav } from "@/components/AdminNav";
 import { AdminTrendsPanel } from "@/components/admin/AdminTrendsPanel";
-import { useAdminOverview } from "@/hooks/useAdmin";
+import { useAdminOverview, useAdminOperations } from "@/hooks/useAdmin";
 
 export function AdminOverview() {
   const { data, isLoading, error, refetch } = useAdminOverview();
+  const { data: operations } = useAdminOperations();
 
   if (isLoading) {
     return (
@@ -243,11 +244,17 @@ export function AdminOverview() {
       </div>
 
       {/* Historical Trend Graphs */}
-      <AdminTrendsPanel
-        group="usage"
-        title="User and Scan Trends"
-        description="User registrations, saved scans, shared availability checks, and campground searches over time."
-      />
+      {operations?.capabilities?.historical_trends === false ? (
+        <p className="mb-6 text-sm text-muted-foreground">
+          Historical trends are disabled in standalone mode.
+        </p>
+      ) : operations ? (
+        <AdminTrendsPanel
+          group="usage"
+          title="User and Scan Trends"
+          description="User registrations, saved scans, shared availability checks, and campground searches over time."
+        />
+      ) : null}
 
       {/* Configuration & Worker Timing */}
       <Card>

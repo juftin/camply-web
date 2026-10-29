@@ -204,6 +204,8 @@ Feature specification: [Open-Source Maps & Explore Map View](../../specs/007-ope
 - [x] T4.2.6 Enforce internal layers, runtime independence, lightweight root imports, and optional dependency boundaries using Import Linter; integrate lint/pre-commit and verify intentional violations fail.
 - [x] T4.2.7 Add the `camply.cli` package and base `camply` console script (`--version`/`--help`, `python -m camply.cli`), constrained by Import Linter to base dependencies as a sibling of `server`/`worker`; verify unit, boundary, and isolated-install coverage. Subcommands are future work.
 
+- [x] T4.2.2 Complete the pre-implementation Spec-Kit specification, clarification review, research, design/contracts, tasking, and consistency analysis for optional Python-served frontend assets, SQLite, and background work without Celery, Redis/Valkey, or Prometheus; see [standalone runtime plan](../../specs/007-standalone-runtime/plan.md).
+- [x] T4.2.3 Implement and verify the standalone runtime, minimal dependency installation, notification recovery, Python-served frontend, and service-free browser smoke tests while preserving the distributed stack; rebase onto current search/maps/results/release behavior and preserve both migration paths. Explicit regressions protect default API startup, Prometheus instrumentation, and Celery scan/alert dispatch from standalone behavior.
 - [ ] T4.1.4 Finalize production `docker-compose.yml`.
 - [ ] T4.1.5 Create Kubernetes manifests for API and Worker scaling.
 - [ ] T4.1.6 Complete a full mobile-responsive audit of the UI.

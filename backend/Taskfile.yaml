@@ -123,6 +123,11 @@ tasks:
       - uv run --all-extras -- alembic upgrade head {{.CLI_ARGS}}
     deps: [sync]
 
+  migration:test:
+    desc: Verify PostgreSQL upgrades in a disposable Docker container
+    cmds:
+      - CAMPLY_POSTGRES_SMOKE=1 task test -- tests/db/test_postgres_migrations.py
+
   ########################
   # WORKER
   ########################

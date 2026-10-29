@@ -18,7 +18,7 @@ from typing import Any, Optional
 import httpx
 import structlog
 
-from camply.server.config import backend_config
+from camply.server.config import RuntimeMode, backend_config
 from camply.server.schemas import (
     AdminTrendsResponse,
     TrendMetric,
@@ -135,6 +135,19 @@ async def get_admin_trends(
     """
     Fetch historical trend series for an administrative metrics group.
     """
+    if backend_config.runtime_mode == RuntimeMode.STANDALONE:
+        duration, step, _ = _parse_step_and_range(range_param)
+        end = dt.datetime.now(tz=dt.timezone.utc)
+        return AdminTrendsResponse(
+            group=group,
+            range=range_param,
+            step_seconds=step,
+            start_time=end - dt.timedelta(seconds=duration),
+            end_time=end,
+            available=False,
+            metrics=[],
+            error_message="Historical trends are disabled in standalone mode",
+        )
     # 1. Check cache
     cache_key = (
         f"{group}:{range_param}:{endpoint_filter}:{task_name_filter}:{provider_filter}"

@@ -2,6 +2,16 @@
 
 This document defines the architecture for the notification layer in `camply`, focusing on a standardized interface, multiple provider support, and asynchronous delivery.
 
+## Standalone delivery
+
+Standalone stores delivery intents in the same transaction as successful scan results and uses one asynchronous outbox consumer. It commits `sending` and increments the attempt count before HTTP; it records `sent` only after explicit Pushover acceptance. Missing application/user credentials or current ineligibility produce a skip. Invalid payloads, malformed acceptance responses, and permanent upstream rejection fail. Transport errors, HTTP 429, and server failures retry after 120 seconds, with three retries and four total sends. Interrupted attempts retain their consumed budget and are retried on startup unless exhausted.
+
+Standalone honors the shared summary/direct setting. Summaries persist the matching site snapshots, then reapply current filters and dates to each site and recalculate the count before sending. No remaining match produces a skip. Direct alerts use the same filtering helper as the results API, including only qualifying consecutive stay blocks. SQLite lock contention during acknowledgment retries the database write rather than sending a second request; other storage failures make readiness fail.
+
+Before every send, validate current owner/scan/target linkage, active scan, enabled user, optional invitation, current filters, credentials, and dates. The date cutoff is the current UTC calendar day: remove earlier nights and nights outside the current target, then reapply the minimum consecutive stay requirement. Include only eligible dates in the delivered payload. Queued intents contain no credentials; outcomes store allowlisted categories rather than raw errors. Terminal records are pruned after 24 hours; pending/retry rows persist.
+
+A process failure after upstream acceptance but before recording `sent` can produce a duplicate; exactly-once external delivery is not claimed. Local operational attempt history is separate, in memory, capped at 1,000 entries/24 hours. Distributed mode retains its Celery notification adapter and existing task contract.
+
 ## 🎯 Architecture Goals
 
 1. **Standardization**: All notification channels must implement a unified `BaseNotificationProvider`.

@@ -18,6 +18,20 @@ to book your spot!
 
 ---
 
+## Run without backing services
+
+The optional standalone runtime serves the built TypeScript frontend and API from one Python process, with SQLite and local background polling. It needs no PostgreSQL, Celery, Redis/Valkey, Prometheus, or Docker. Node/pnpm are build dependencies; prepared wheels require only Python at runtime.
+
+```bash
+task standalone:install
+task standalone:build
+task standalone:run
+```
+
+Open <http://127.0.0.1:8000>. In Admin Operations, **Sync Providers** loads the initial catalog. Configure your Pushover application token and user key to receive alerts. The default authentication mode automatically signs in as a shared administrator; select session or Auth0 authentication before sharing an instance. See [configuration](docs/agents/CONFIGURATION.md) and the [standalone guide](docs/agents/DEVELOPER_GUIDE.md#standalone-runtime).
+
+Standalone runs exactly one process on one host. It persists scans and pending alerts, with bounded in-memory job history; historical monitoring charts are unavailable. The existing distributed Docker stack remains the default runtime.
+
 ## Directory Structure
 
 ```text

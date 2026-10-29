@@ -109,12 +109,17 @@ def _verify_task_attempts(celery: Celery, client: redis.Redis) -> None:
     assert len({record["event_id"] for record in records}) == 3
 
 
-def _start_api(stack: ExitStack, port: int) -> str:
-    """Serve the actual FastAPI app over HTTP and clean up its server thread."""
+def _start_api(stack: ExitStack) -> str:
+    """Serve the app on an OS-bound socket without releasing its port before startup."""
+    listener = stack.enter_context(socket.socket())
+    listener.bind(("127.0.0.1", 0))
+    port = listener.getsockname()[1]
     server = uvicorn.Server(
         uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
     )
-    thread = threading.Thread(target=server.run, daemon=True)
+    thread = threading.Thread(
+        target=server.run, kwargs={"sockets": [listener]}, daemon=True
+    )
     thread.start()
 
     def stop_api() -> None:
@@ -131,7 +136,6 @@ def _start_api(stack: ExitStack, port: int) -> str:
 def test_admin_live_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify attempt counts, real inspection, trend queries, and browser suspension flows."""
     root = Path(__file__).resolve().parents[4]
-    metrics_port, api_port = _port(), _port()
     with ExitStack() as stack:
         valkey_port = _container(stack, "valkey/valkey:8-alpine", 6379, [])
         broker = f"redis://127.0.0.1:{valkey_port}/0"
@@ -145,6 +149,7 @@ def test_admin_live_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
         monkeypatch.setattr(operations, "_cache_lock", asyncio.Lock())
         monkeypatch.setattr(trends, "_TRENDS_CACHE", {})
 
+        metrics_port = _port()
         log = stack.enter_context((tmp_path / "worker.log").open("wb"))
         worker = subprocess.Popen(
             [sys.executable, str(Path(__file__).with_name("smoke_worker.py"))],
@@ -198,7 +203,7 @@ def test_admin_live_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
         ).json()["data"]["result"][0]["value"][1]
         assert float(failure_count) == 1
 
-        origin = _start_api(stack, api_port)
+        origin = _start_api(stack)
         profile = httpx.get(f"{origin}/api/me").json()
         scan = httpx.post(
             f"{origin}/api/scans",

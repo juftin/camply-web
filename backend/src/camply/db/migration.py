@@ -20,9 +20,20 @@ def get_alembic_config(database_config: DatabaseConfig | None = None) -> Config:
     return config
 
 
-def upgrade(revision: str = "head") -> None:
+def upgrade(
+    revision: str = "head", database_config: DatabaseConfig | None = None
+) -> None:
     """Upgrade the configured database using the installed revision history."""
-    command.upgrade(get_alembic_config(), revision=revision)
+    command.upgrade(
+        get_alembic_config(database_config=database_config), revision=revision
+    )
+
+
+def upgrade_database(
+    database_config: DatabaseConfig | None = None, *, revision: str = "head"
+) -> None:
+    """Upgrade database supporting either positional database config or keyword revision."""
+    upgrade(revision=revision, database_config=database_config)
 
 
 if __name__ == "__main__":

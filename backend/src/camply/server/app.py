@@ -2,6 +2,9 @@
 camply-backend FastAPI Application
 """
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 import structlog
 
 try:
@@ -15,12 +18,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import Response
 
 from camply.server.__about__ import __application__, __version__
-from camply.server.config import backend_config
-from camply.server.metrics import (
-    PrometheusMiddleware,
-    get_metrics_response,
-    refresh_db_gauges,
-)
+from camply.server.config import RuntimeMode, backend_config
 from camply.server.routers.access import access_router
 from camply.server.routers.admin import admin_router
 from camply.server.routers.auth_config import auth_config_router
@@ -65,7 +63,38 @@ if backend_config.sentry_dsn:
 # FastAPI application
 # ---------------------------------------------------------------------------
 
+
+@asynccontextmanager
+async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+    """Own standalone resources and supervised tasks only while the app is serving."""
+    if backend_config.runtime_mode != RuntimeMode.STANDALONE:
+        yield
+        return
+    from camply.db.config import db
+    from camply.server.services import local_operations
+    from camply.server.standalone import validate_standalone
+    from camply.worker.runtime import LocalRunner
+
+    validate_standalone(backend_config, db)
+    db.open()
+    local = LocalRunner(
+        db,
+        heartbeat=backend_config.heartbeat_interval,
+        cooldown=backend_config.target_cooldown,
+        invite_only=backend_config.invite_only,
+    )
+    local_operations.runner = local
+    try:
+        await local.start()
+        yield
+    finally:
+        await local.close()
+        local_operations.runner = None
+        await db.close()
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title=__application__,
     version=__version__,
     docs_url="/api/docs",
@@ -83,14 +112,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_middleware(PrometheusMiddleware)
+if backend_config.runtime_mode == RuntimeMode.DISTRIBUTED:
+    from camply.server.metrics import (
+        PrometheusMiddleware,
+        get_metrics_response,
+        refresh_db_gauges,
+    )
 
+    app.add_middleware(PrometheusMiddleware)
 
-@app.get("/metrics")
-async def metrics_endpoint() -> Response:
-    """Prometheus metrics endpoint — unauthenticated, not under /api."""
-    await refresh_db_gauges()
-    return get_metrics_response()
+    @app.get("/metrics")
+    async def metrics_endpoint() -> Response:
+        """Export real monitoring instruments only in distributed mode."""
+        await refresh_db_gauges()
+        return get_metrics_response()
 
 
 API_ROUTERS: list[APIRouter] = [
@@ -109,6 +144,16 @@ API_ROUTERS: list[APIRouter] = [
 
 for router in API_ROUTERS:
     app.include_router(router, prefix="/api")
+
+
+if backend_config.runtime_mode == RuntimeMode.STANDALONE:
+    from pathlib import Path
+
+    from camply.server.static import attach_frontend
+
+    attach_frontend(
+        app, backend_config.frontend_dir or Path(__file__).resolve().parent / "static"
+    )
 
 
 def main() -> None:  # pragma: no cover

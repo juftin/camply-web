@@ -11,6 +11,31 @@ includes:
     dir: backend
 
 tasks:
+  standalone:install:
+    desc: Install core Python and frontend build dependencies without backing services
+    cmds:
+      - uv sync --project backend --no-dev --no-default-groups --extra server
+      - task: frontend:install
+
+  standalone:build:
+    desc: Build frontend and core Python wheels without Docker
+    cmds:
+      - rm -rf "{{.ROOT_DIR}}/dist"
+      - uv build --project backend --wheel --out-dir "{{.ROOT_DIR}}/dist" --clear
+
+  standalone:run:
+    desc: Migrate SQLite and serve the complete application in one Python process
+    env:
+      CAMPLY_RUNTIME_MODE: standalone
+    cmds:
+      - uv run --project backend --no-dev --extra server -- python -m camply.server.standalone {{.CLI_ARGS}}
+
+  standalone:test:
+    desc: Verify a core-only installed build, real SQLite recovery, and Chromium
+    cmds:
+      - task: standalone:build
+      - CAMPLY_STANDALONE_SMOKE=1 task backend:test -- tests/server/integration/test_standalone_smoke.py -s
+
   install:
     desc: Install All Dependencies (Backend + Frontend)
     cmds:

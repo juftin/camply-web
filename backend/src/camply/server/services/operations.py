@@ -30,7 +30,7 @@ except ModuleNotFoundError as exc:
         raise
     Celery = None
 
-from camply.server.config import backend_config
+from camply.server.config import RuntimeMode, backend_config
 from camply.server.schemas import (
     AdminDiscoveryMetadata,
     AdminOperationsResponse,
@@ -199,6 +199,10 @@ async def get_operations_overview() -> AdminOperationsResponse:
     """
     Return the current operations overview snapshot, cached for 10 seconds.
     """
+    if backend_config.runtime_mode == RuntimeMode.STANDALONE:
+        from camply.server.services import local_operations
+
+        return await local_operations.get_operations_overview()
     global _cached_overview, _cached_overview_time
 
     if Celery is None or redis is None:
@@ -483,6 +487,17 @@ async def get_recent_tasks(
     """
     Fetch bounded recent task executions with optional filters.
     """
+    if backend_config.runtime_mode == RuntimeMode.STANDALONE:
+        from camply.server.services import local_operations
+
+        return await local_operations.get_recent_tasks(
+            limit=limit,
+            offset=offset,
+            task_name=task_name,
+            outcome=outcome,
+            provider=provider,
+            search=search,
+        )
     if Celery is None or redis is None:
         return AdminOperationsTasksResponse(
             tasks=[], total=0, available=False, error_message=DISTRIBUTED_INSTALL_HINT
@@ -537,6 +552,10 @@ async def get_task_detail(task_id: str) -> Optional[AdminOperationsTaskDetail]:
     """
     Fetch single task execution detail by ID.
     """
+    if backend_config.runtime_mode == RuntimeMode.STANDALONE:
+        from camply.server.services import local_operations
+
+        return await local_operations.get_task_detail(task_id)
     require_distributed()
     return await asyncio.to_thread(_get_task_detail_sync, task_id=task_id)
 
@@ -566,4 +585,8 @@ async def trigger_provider_sync() -> str:
     str
         The dispatched task ID.
     """
+    if backend_config.runtime_mode == RuntimeMode.STANDALONE:
+        from camply.server.services import local_operations
+
+        return await local_operations.trigger_provider_sync()
     return await asyncio.to_thread(dispatch_sync_all_providers)
