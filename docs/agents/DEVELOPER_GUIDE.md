@@ -4,8 +4,8 @@ This guide walks you through setting up the `camply` development environment.
 
 ## 📋 Prerequisites
 
-- **Python 3.12+** (Managed via [uv](https://github.com/astral-sh/uv))
-- **Node.js 24+** and **pnpm 10.34.6** (Node 24 is selected by `frontend/.node-version`, CI, and Docker; pnpm is pinned in `frontend/package.json`)
+- **Python 3.14** (package supports Python >=3.11; compatibility is tested explicitly) (Managed via [uv](https://github.com/astral-sh/uv))
+- **Node.js 24+** and **pnpm 12.15.0** (Node 24 is selected by `frontend/.node-version`, CI, and Docker; pnpm is pinned in `frontend/package.json`)
 - **Docker & Docker Compose**
 - **go-task** (The [Taskfile](https://taskfile.dev) runner)
 
@@ -16,6 +16,19 @@ Enable pnpm with `corepack enable` before running frontend tasks. If your Node.j
 Frontend installs use `pnpm install --frozen-lockfile`. To change frontend dependencies, run `pnpm add <package>` (or `pnpm add --save-dev <package>`) from `frontend/` and commit both `package.json` and `pnpm-lock.yaml`.
 
 Running `task` without arguments lists available workflows. Use `task install` to install project dependencies.
+
+## Python package capabilities
+
+The backend is one `camply` distribution with internal `server`, `db`,
+`providers`, and `worker` subpackages. Development sync installs all extras;
+consumers can select `server`, `distributed`, `postgres`, and `sentry`
+independently. Base provides providers, SQLite, and `populate-database`.
+See [backend installation](../../backend/README.md) for artifact examples.
+
+API-only installs do not run scheduled scans: workers, beat, and Valkey/Redis
+remain required. There is no new Camply CLI or bundled frontend. Import paths
+have moved from `backend.*`, `db.*`, `providers.*`, and `worker.*` to
+`camply.server.*`, `camply.db.*`, `camply.providers.*`, and `camply.worker.*`.
 
 ## 🚀 Quick Start (Local Setup)
 
@@ -60,7 +73,7 @@ We use Alembic for backend migrations.
 
 ### 2. Provider Migration
 
-When porting logic from the legacy `cli/` to the new `backend/packages/providers`:
+When porting logic from the legacy `cli/` to the new `backend/src/camply/providers`:
 
 1.  Define the internal Pydantic models in `models/`.
 2.  Implement the `BaseProvider` interface.
@@ -75,7 +88,7 @@ If you change a FastAPI router:
 
 ### 4. Releases
 
-Pushes to `main` run the complete CI suite before the `release` workflow creates GitHub releases with the existing Renovate App. The separate `publish` workflow publishes backend/frontend images to GHCR from the released full-version tag, or from the successful main SHA when no release is needed. `latest` tracks successful `main` builds; Gitmoji-driven releases also publish full-version tags, moving Docker/Git major aliases such as `v1`, and Python workspace sdists as GitHub release assets. Use `task dist` to build the sdists locally. See [release operations](RELEASES.md) for version rules, repository permissions, local verification, and failure recovery.
+Pushes to `main` run the complete CI suite before the `release` workflow creates GitHub releases with the existing Renovate App. The separate `publish` workflow publishes backend/frontend images to GHCR from the released full-version tag, or from the successful main SHA when no release is needed. `latest` tracks successful `main` builds; Gitmoji-driven releases also publish full-version tags, moving Docker/Git major aliases such as `v1`, and the `camply` wheel and sdist as GitHub release assets. Use `task dist` to build the artifacts locally. See [release operations](RELEASES.md) for version rules, repository permissions, local verification, and failure recovery.
 
 ---
 
@@ -83,7 +96,10 @@ Pushes to `main` run the complete CI suite before the `release` workflow creates
 
 ### Backend
 
-- Run all tests: `task backend:test`
+- Enforce module and optional dependency boundaries: `task backend:imports` (also included in `task backend:lint`, CI, and pre-commit).
+- Run backend unit/integration tests: `task backend:test`
+- Verify isolated wheel and sdist installations: `task backend:packaging:test`
+- Verify artifact compatibility on the minimum Python: `task backend:packaging:test PACKAGING_PYTHON=3.11`
 - Update VCR cassettes: `task backend:test -- --vcr-record=all`
 
 ### Frontend

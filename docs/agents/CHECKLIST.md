@@ -6,7 +6,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ## 🛠️ Phase 1: Smart Poller & Single-Scan MVP (Current Focus)
 
-### 1.1 Data Layer (`backend/packages/db`)
+### 1.1 Data Layer (`backend/src/camply/db`)
 
 - [x] T1.1.1 Implement `User` model with invitation eligibility (API/model `is_invited`, existing column `is_early_access_user`).
 - [x] T1.1.2 Implement `UniqueTarget` model with unique hashing and composite keys.
@@ -15,7 +15,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.1.5 Create and run the initial Alembic migration.
 - [x] T1.1.6 **Testing**: Write unit tests for models and unique constraint validations.
 
-### 1.2 Provider Engine (`backend/packages/providers`)
+### 1.2 Provider Engine (`backend/src/camply/providers`)
 
 - [x] T1.2.1 Define the `BaseProvider` ABC with standardized `find_availabilities` and `sync_metadata`.
 - [x] T1.2.2 Implement `CampsiteDTO` (Pydantic v2) for unified data transfer.
@@ -196,6 +196,12 @@ Feature specification: [Open-Source Maps & Explore Map View](../../specs/007-ope
 ### 4.2 Deployment
 
 - [x] T4.2.1 Add separate release/publish workflows with CI-gated Gitmoji semantic releases using the shared cookiecutter infrastructure and the existing App through `APP_ID`/`APP_PRIVATE_KEY`, synchronized application build versions, full-version/major-alias GHCR images, latest images for successful main builds, Git major aliases via semantic-release-major-tag, workspace sdists attached to releases, publication regression checks, and [release operations documentation](RELEASES.md); see the [release plan](../../specs/009-release-ci/plan.md).
+- [x] T4.2.2 Specify and plan consolidation into one `camply` Python distribution with internal subpackages and optional runtime extras; see the [package migration plan](../../specs/012-python-package/plan.md). CLI implementation, local scheduling, UI bundling, and PyPI publication are excluded.
+- [x] T4.2.2a Resolve the migration's Python policy (`>=3.11` support; 3.14 development/primary CI/Docker/release defaults), align extras/tooling task order, and add a [requirements and acceptance checklist](../../specs/012-python-package/checklists/requirements.md).
+- [x] T4.2.3 Consolidate workspace members into `backend/src/camply/`, package runtime resources, and update imports, governance, development tooling, containers, and release artifacts.
+- [x] T4.2.4 Isolate `server`, `distributed`, `postgres`, and `sentry` extras while keeping providers/SQLite in base and preserving the existing metadata utility.
+- [x] T4.2.5 Verify base/server/worker installations and sdist-rebuilt wheels outside the checkout; integrate packaging checks into Task/CI and document migration/deployment limitations.
+- [x] T4.2.6 Enforce internal layers, runtime independence, lightweight root imports, and optional dependency boundaries using Import Linter; integrate lint/pre-commit and verify intentional violations fail.
 
 - [ ] T4.1.4 Finalize production `docker-compose.yml`.
 - [ ] T4.1.5 Create Kubernetes manifests for API and Worker scaling.

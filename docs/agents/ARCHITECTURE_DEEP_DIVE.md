@@ -2,6 +2,18 @@
 
 This document explains the technical implementation and reasoning behind the core scanning engine of `camply`.
 
+## Python package boundaries
+
+The Python backend is one `camply` distribution with internal
+`camply.providers`, `camply.db`, `camply.server`, and `camply.worker`
+subpackages. Base includes providers and SQLite; `server`, `distributed`,
+`postgres`, and `sentry` independently add runtime dependencies. Server and
+worker application bootstrap must remain independent. Scanning stays in
+`camply.worker`; extracting a shared scanning engine, implementing a local
+CLI, and embedding scheduling in an API process are future work. Existing
+Celery JSON task names, beat schedule names, and database revisions are
+preserved through the module migration.
+
 ## 🎯 The Problem: API Bans & Inefficiency
 
 In a multi-user system, multiple users often want to watch the same popular campgrounds (e.g., Lower Pines in Yosemite) for the same dates.

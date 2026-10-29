@@ -2,6 +2,13 @@
 
 This document outlines the architecture for the provider layer in `camply`, focusing on a standardized interface, provider-specific Pydantic models, and the logic migration from the legacy CLI.
 
+## Python package boundaries
+
+Provider APIs live in `camply.providers` within the single `camply`
+distribution. They may use `camply.db` persistence, but must not import server
+or worker application bootstrap. Providers and SQLite are base dependencies;
+HTTP serving, Celery/Redis, PostgreSQL, and Sentry remain optional extras.
+
 ## 🎯 Architecture Goals
 
 1. **Standardization**: All providers must return a unified `CampsiteDTO` to the worker.
@@ -70,7 +77,7 @@ Instead of wrapping the legacy `cli/` code, we are migrating the core "Scraping"
 ### 1. Internal Pydantic Models
 
 We will copy and refine the Pydantic models from `cli/camply/containers/api_responses.py` into each provider's `models/` subdirectory.
-_Example_: `backend/packages/providers/recreation_gov/models/api.py`.
+_Example_: `backend/src/camply/providers/recreation_gov/models/api.py`.
 
 ### 2. The Translation Layer
 

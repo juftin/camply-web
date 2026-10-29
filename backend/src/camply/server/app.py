@@ -1,0 +1,129 @@
+"""
+camply-backend FastAPI Application
+"""
+
+import structlog
+
+try:
+    from fastapi import APIRouter, FastAPI
+except ModuleNotFoundError as exc:
+    if exc.name != "fastapi":
+        raise
+    raise RuntimeError("The API server requires installing 'camply[server]'.") from exc
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import Response
+
+from camply.server.__about__ import __application__, __version__
+from camply.server.config import backend_config
+from camply.server.metrics import (
+    PrometheusMiddleware,
+    get_metrics_response,
+    refresh_db_gauges,
+)
+from camply.server.routers.access import access_router
+from camply.server.routers.admin import admin_router
+from camply.server.routers.auth_config import auth_config_router
+from camply.server.routers.campgrounds import campground_router
+from camply.server.routers.health import health_router
+from camply.server.routers.me import me_router
+from camply.server.routers.providers import provider_router
+from camply.server.routers.recreation_areas import recreation_area_router
+from camply.server.routers.scans import scan_router
+from camply.server.routers.search import search_router
+from camply.server.routers.sessions import session_router
+
+logger = structlog.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Sentry initialisation
+# ---------------------------------------------------------------------------
+if backend_config.sentry_dsn:
+    try:
+        import sentry_sdk
+    except ModuleNotFoundError as exc:
+        if exc.name != "sentry_sdk":
+            raise
+        raise RuntimeError(
+            "CAMPLY_SENTRY_DSN is configured; install 'camply[sentry]' to enable reporting."
+        ) from exc
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.starlette import StarletteIntegration
+
+    sentry_sdk.init(
+        dsn=backend_config.sentry_dsn,
+        traces_sample_rate=backend_config.sentry_traces_sample_rate,
+        integrations=[
+            StarletteIntegration(),
+            FastApiIntegration(),
+        ],
+        environment=backend_config.environment,
+    )
+    logger.info("Sentry initialized for FastAPI backend")
+
+# ---------------------------------------------------------------------------
+# FastAPI application
+# ---------------------------------------------------------------------------
+
+app = FastAPI(
+    title=__application__,
+    version=__version__,
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json",
+    redoc_url=None,
+)
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=backend_config.cors_origins,
+    allow_origin_regex=backend_config.cors_origin_regex,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.add_middleware(PrometheusMiddleware)
+
+
+@app.get("/metrics")
+async def metrics_endpoint() -> Response:
+    """Prometheus metrics endpoint — unauthenticated, not under /api."""
+    await refresh_db_gauges()
+    return get_metrics_response()
+
+
+API_ROUTERS: list[APIRouter] = [
+    health_router,
+    auth_config_router,
+    session_router,
+    access_router,
+    search_router,
+    campground_router,
+    recreation_area_router,
+    provider_router,
+    scan_router,
+    me_router,
+    admin_router,
+]
+
+for router in API_ROUTERS:
+    app.include_router(router, prefix="/api")
+
+
+def main() -> None:  # pragma: no cover
+    """
+    API Server Entry Point
+    """
+    import uvicorn
+
+    uvicorn.run(
+        app="camply.server.app:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+    )
+
+
+if __name__ == "__main__":
+    main()

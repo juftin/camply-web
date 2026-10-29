@@ -36,25 +36,26 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
 
 ## 🏗️ Directory Structure
 
-- `backend/`: FastAPI Python application (`uv` workspace).
-  - `packages/backend/`: FastAPI application & API endpoints.
-  - `packages/db/`: Database models and migrations (Alembic).
-  - `packages/providers/`: Third-party API providers (e.g., recreation.gov).
+- `backend/`: FastAPI Python application (single `camply` distribution managed by `uv`).
+  - `src/camply/server/`: FastAPI application & API endpoints.
+  - `src/camply/db/`: Database models and packaged migrations (Alembic).
+  - `src/camply/providers/`: Third-party API providers (e.g., recreation.gov).
+  - `src/camply/worker/`: Celery tasks and notifications.
 - `frontend/`: React TypeScript application (Vite, Tailwind CSS, Shadcn/UI).
-- `cli/`: Legacy command-line interface (Deprecated - Core logic being migrated).
+- The future local CLI is not implemented; `populate-database` remains available.
 - `docs/agents/`: Unified documentation and design blueprints.
 - `tests/`: System-level or shared tests.
 - `.worktrees/`: Git worktrees directory for parallel isolated development.
 
 ## ⚙️ Technology Stack & Standards
 
-- **Backend**: Python 3.12 managed by `uv`. FastAPI for web services.
+- **Backend**: Python >=3.11 (3.14 runtime defaults) managed by `uv`. FastAPI for web services.
 - **Frontend**: React 18+ with TypeScript, built via Vite. Tailwind CSS + Shadcn/UI.
 - **Database**: PostgreSQL (SQLAlchemy + Alembic).
 - **Worker**: Smart De-duplicated Poller (Celery + Valkey).
 - **Infrastructure**: Docker & Docker Compose.
 - **API**: OpenAPI with automated TypeScript client generation.
-- **Quality Gates**: `mypy`, `tsc`, `ruff`, `eslint`, `pytest`, `vitest`.
+- **Quality Gates**: `mypy`, Import Linter, `tsc`, `ruff`, `eslint`, `pytest`, `vitest`.
 
 ## 🌳 Working with Git Worktrees
 
@@ -124,9 +125,20 @@ Before creating a PR, agents and contributors must ensure the following:
 
 ## Active Technologies
 
-- Python 3.12 + SQLAlchemy 2.0 (Mapped/mapped_column), Alembic, Pydantic v2 (001-checklist-data-layer)
+- Python >=3.11 (3.14 runtime defaults) + SQLAlchemy 2.0 (Mapped/mapped_column), Alembic, Pydantic v2 (001-checklist-data-layer)
 - PostgreSQL (with JSONB support for filters) (001-checklist-data-layer)
 
 ## Recent Changes
 
 - 001-checklist-data-layer: Added Python 3.12 + SQLAlchemy 2.0 (Mapped/mapped_column), Alembic, Pydantic v2
+
+## Python package boundaries
+
+The backend builds one `camply` distribution from `backend/src/camply/`.
+Internal `server`, `db`, `providers`, and `worker` subpackages replace the
+workspace packages. Base includes providers and SQLite; `server`,
+`distributed`, `postgres`, and `sentry` extras independently add dependencies.
+Development installs select all extras. `task backend:packaging:test` verifies
+isolated artifacts, with `PACKAGING_PYTHON=3.11` for minimum compatibility.
+Primary runtimes use Python 3.14. The future CLI, embedded scheduler, bundled
+frontend, and PyPI publication are outside this migration.

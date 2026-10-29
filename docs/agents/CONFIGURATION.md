@@ -2,10 +2,26 @@
 
 This document defines all environment variables used by the `camply` monorepo. Agents and contributors should use this as a reference when setting up local or production environments.
 
+## Python installation capabilities
+
+Python >=3.11 is supported; development, primary CI, Docker, and release
+runtimes default to 3.14. Base `camply` provides provider and SQLite APIs.
+The `server`, `distributed`, `postgres`, and `sentry` extras independently add
+HTTP, Celery/Redis, Psycopg, and Sentry dependencies. Selecting an extra does
+not start or provision services. Configuration keys remain unchanged.
+
+Use `camply[server]` for the API without broker integration and
+`camply[server,distributed,postgres,sentry]` for the existing full stack.
+API-only installs retain scan management, but scheduled checks need workers,
+beat, and Valkey/Redis. Missing distributed support makes operations reads
+unavailable and task detail/dispatch return authorized HTTP 503 responses.
+A configured Sentry DSN needs the `sentry` extra; PostgreSQL engine creation
+needs `postgres`. See [backend installation](../../backend/README.md).
+
 ## ⚙️ Core Configuration
 
 All backend environment variables are prefixed with `CAMPLY_` to avoid conflicts.
-They are defined in `backend/packages/backend/backend/config.py` via `pydantic-settings`.
+They are defined in `backend/src/camply/server/config.py` via `pydantic-settings`.
 
 | Variable                           | Description                                                   | Default                                                            |
 | ---------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------ |
@@ -27,7 +43,7 @@ They are defined in `backend/packages/backend/backend/config.py` via `pydantic-s
 | `CAMPLY_AUTH0_AUDIENCE`            | Auth0 API Audience/Identifier                                 | `None`                                                             |
 | `CAMPLY_AUTH0_CLIENT_ID`           | Auth0 frontend Client ID                                      | `None`                                                             |
 
-Database config uses `CAMPLY_DB_` prefix (defined in `backend/packages/db/db/config.py`):
+Database config uses `CAMPLY_DB_` prefix (defined in `backend/src/camply/db/config.py`):
 
 | Variable               | Description        | Default                           |
 | ---------------------- | ------------------ | --------------------------------- |
