@@ -16,7 +16,6 @@ import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const packages = ["backend", "db", "providers", "worker"];
 
 function fixture(t, { sources = false } = {}) {
   const directory = mkdtempSync(join(tmpdir(), "camply-release-"));
@@ -32,21 +31,19 @@ function fixture(t, { sources = false } = {}) {
     "docker-bake.release.hcl",
     "backend/docker-compose.yaml",
     "frontend/docker-compose.yaml",
-    ...packages.map((name) => `backend/packages/${name}/pyproject.toml`),
+    "backend/.python-version",
+    "backend/README.md",
+    "backend/LICENSE",
   ];
   for (const file of files) {
     mkdirSync(dirname(join(directory, file)), { recursive: true });
     cpSync(join(root, file), join(directory, file));
   }
   if (sources) {
-    for (const name of packages) {
-      const file = `backend/packages/${name}/${name}`;
-      cpSync(join(root, file), join(directory, file), { recursive: true });
-    }
     for (const file of [
-      "backend/packages/backend/config",
-      "backend/packages/db/migrations",
-      "backend/packages/db/alembic.ini",
+      "backend/src",
+      "backend/config",
+      "backend/alembic.ini",
     ]) {
       cpSync(join(root, file), join(directory, file), { recursive: true });
     }
@@ -66,7 +63,7 @@ function task(directory, args, env = {}) {
       DOCKER_CONTEXT: "",
       BUILDX_BUILDER: "",
       UV_OFFLINE: "0",
-      UV_PYTHON: "3.12",
+      UV_PYTHON: "3.14",
       ...env,
     },
   });
@@ -79,18 +76,20 @@ test("release preparation stamps both applications and keeps the lock usable", (
     UV_CACHE_DIR: join(directory, "uv-cache"),
   });
   assert.equal(result.status, 0, result.stderr);
-  for (const file of [
-    "backend/pyproject.toml",
-    ...packages.map((name) => `backend/packages/${name}/pyproject.toml`),
-  ]) {
-    assert.match(
-      readFileSync(join(directory, file), "utf8"),
-      /version = "2\.3\.4"/,
-    );
-  }
+  assert.match(
+    readFileSync(join(directory, "backend/pyproject.toml"), "utf8"),
+    /version = "2\.3\.4"/,
+  );
   const lock = readFileSync(join(directory, "backend/uv.lock"), "utf8");
-  for (const name of ["camply-backend", ...packages]) {
-    assert.ok(lock.includes(`name = "${name}"\nversion = "2.3.4"`));
+  assert.ok(lock.includes('name = "camply"\nversion = "2.3.4"'));
+  for (const name of [
+    "camply-backend",
+    "backend",
+    "db",
+    "providers",
+    "worker",
+  ]) {
+    assert.ok(!lock.includes(`name = "${name}"\nversion = "2.3.4"`));
   }
   const frontend = JSON.parse(
     readFileSync(join(directory, "frontend/package.json"), "utf8"),
@@ -102,13 +101,13 @@ test("release preparation stamps both applications and keeps the lock usable", (
     env: {
       ...process.env,
       UV_CACHE_DIR: join(directory, "uv-cache"),
-      UV_PYTHON: "3.12",
+      UV_PYTHON: "3.14",
     },
   });
   assert.equal(check.status, 0, check.stderr);
 });
 
-test("sdists contain stamped package metadata and rebuild into wheels", (t) => {
+test("one wheel and sdist contain stamped metadata and support standalone rebuilding", (t) => {
   const directory = fixture(t, { sources: true });
   const prepared = task(directory, ["release:prepare"], {
     RELEASE_VERSION: "2.3.4",
@@ -116,15 +115,19 @@ test("sdists contain stamped package metadata and rebuild into wheels", (t) => {
   assert.equal(prepared.status, 0, prepared.stderr);
   mkdirSync(join(directory, "dist"));
   writeFileSync(join(directory, "dist/stale-0.0.1.tar.gz"), "stale build");
+  writeFileSync(
+    join(directory, "dist/stale-0.0.1-py3-none-any.whl"),
+    "stale wheel",
+  );
   const built = task(directory, ["dist"]);
   assert.equal(built.status, 0, built.stderr);
-  const archives = readdirSync(join(directory, "dist")).filter((file) =>
-    file.endsWith(".tar.gz"),
+  const artifacts = readdirSync(join(directory, "dist")).filter(
+    (file) => file.endsWith(".tar.gz") || file.endsWith(".whl"),
   );
-  assert.deepEqual(
-    archives.sort(),
-    packages.map((name) => `${name}-2.3.4.tar.gz`).sort(),
-  );
+  assert.deepEqual(artifacts.sort(), [
+    "camply-2.3.4-py3-none-any.whl",
+    "camply-2.3.4.tar.gz",
+  ]);
   const config = JSON.parse(
     readFileSync(join(root, ".releaserc.json"), "utf8"),
   );
@@ -132,41 +135,116 @@ test("sdists contain stamped package metadata and rebuild into wheels", (t) => {
     (plugin) =>
       Array.isArray(plugin) && plugin[0] === "@semantic-release/github",
   );
-  const assets = globSync(github.assets, { cwd: directory });
   assert.deepEqual(
-    assets.sort(),
-    archives.map((file) => `dist/${file}`).sort(),
+    globSync(github.assets, { cwd: directory }).sort(),
+    artifacts.map((file) => `dist/${file}`).sort(),
   );
-  for (const name of packages) {
-    const archive = join(directory, "dist", `${name}-2.3.4.tar.gz`);
-    const metadata = spawnSync(
-      "tar",
-      ["-xOf", archive, `${name}-2.3.4/PKG-INFO`],
-      { encoding: "utf8" },
-    );
-    assert.equal(metadata.status, 0, metadata.stderr);
-    assert.match(metadata.stdout, new RegExp(`^Name: ${name}$`, "m"));
-    assert.match(metadata.stdout, /^Version: 2\.3\.4$/m);
-    const contents = spawnSync("tar", ["-tzf", archive], { encoding: "utf8" });
-    assert.equal(contents.status, 0, contents.stderr);
-    assert.ok(contents.stdout.includes(`${name}-2.3.4/${name}/__init__.py`));
-    if (name === "db")
-      assert.ok(contents.stdout.includes("/migrations/env.py"));
-    if (name === "backend")
-      assert.ok(contents.stdout.includes("/config/gunicorn.conf.py"));
-    const wheel = spawnSync(
-      "uv",
-      ["build", "--wheel", archive, "--out-dir", join(directory, "wheels")],
-      { cwd: directory, encoding: "utf8" },
-    );
-    assert.equal(wheel.status, 0, wheel.stderr);
+  const archive = join(directory, "dist/camply-2.3.4.tar.gz");
+  const metadata = spawnSync(
+    "tar",
+    ["-xOf", archive, "camply-2.3.4/PKG-INFO"],
+    {
+      encoding: "utf8",
+    },
+  );
+  assert.equal(metadata.status, 0, metadata.stderr);
+  assert.match(metadata.stdout, /^Name: camply$/m);
+  assert.match(metadata.stdout, /^Version: 2\.3\.4$/m);
+  assert.match(metadata.stdout, /^Requires-Python: >=3\.11$/m);
+  const extras = [...metadata.stdout.matchAll(/^Provides-Extra: (.+)$/gm)].map(
+    (match) => match[1],
+  );
+  assert.deepEqual(extras.sort(), [
+    "distributed",
+    "postgres",
+    "sentry",
+    "server",
+  ]);
+  for (const [dependency, extra] of [
+    ["fastapi", "server"],
+    ["celery", "distributed"],
+    ["psycopg", "postgres"],
+    ["sentry-sdk", "sentry"],
+  ]) {
+    const requirement = metadata.stdout
+      .split("\n")
+      .find((line) => line.startsWith(`Requires-Dist: ${dependency}`));
+    assert.ok(requirement?.includes(`extra == '${extra}'`), requirement);
   }
-  assert.equal(
-    readdirSync(join(directory, "wheels")).filter((file) =>
-      file.endsWith(".whl"),
-    ).length,
-    packages.length,
+  const contents = spawnSync("tar", ["-tzf", archive], { encoding: "utf8" });
+  assert.equal(contents.status, 0, contents.stderr);
+  for (const file of [
+    "LICENSE",
+    "README.md",
+    "src/camply/__init__.py",
+    "src/camply/py.typed",
+    "src/camply/db/migrations/env.py",
+    "src/camply/db/migrations/script.py.mako",
+  ]) {
+    assert.ok(contents.stdout.includes(`camply-2.3.4/${file}`), file);
+  }
+  const rebuild = mkdtempSync(join(tmpdir(), "camply-sdist-rebuild-"));
+  t.after(() => rmSync(rebuild, { recursive: true, force: true }));
+  const standaloneArchive = join(rebuild, "camply-2.3.4.tar.gz");
+  cpSync(archive, standaloneArchive);
+  const rebuilt = spawnSync(
+    "uv",
+    [
+      "build",
+      "--wheel",
+      standaloneArchive,
+      "--out-dir",
+      join(rebuild, "wheels"),
+    ],
+    {
+      cwd: rebuild,
+      encoding: "utf8",
+      env: { ...process.env, UV_PYTHON: "3.14" },
+    },
   );
+  assert.equal(rebuilt.status, 0, rebuilt.stderr);
+  assert.deepEqual(readdirSync(join(rebuild, "wheels")), [
+    ".gitignore",
+    "camply-2.3.4-py3-none-any.whl",
+  ]);
+  for (const wheel of [
+    join(directory, "dist/camply-2.3.4-py3-none-any.whl"),
+    join(rebuild, "wheels/camply-2.3.4-py3-none-any.whl"),
+  ]) {
+    const listed = spawnSync("unzip", ["-Z1", wheel], { encoding: "utf8" });
+    assert.equal(listed.status, 0, listed.stderr);
+    for (const file of [
+      "camply/py.typed",
+      "camply/db/migrations/env.py",
+      "camply/db/migrations/script.py.mako",
+    ])
+      assert.ok(listed.stdout.split("\n").includes(file), file);
+    assert.match(
+      listed.stdout,
+      /camply-2\.3\.4\.dist-info\/(?:licenses\/)?LICENSE/,
+    );
+  }
+});
+
+test("runtime defaults and compatibility checks preserve the Python support policy", () => {
+  assert.equal(
+    readFileSync(join(root, "backend/.python-version"), "utf8").trim(),
+    "3.14",
+  );
+  assert.match(
+    readFileSync(join(root, "backend/Dockerfile"), "utf8"),
+    /ARG PYTHON_VERSION=3\.14/,
+  );
+  assert.match(
+    readFileSync(
+      join(root, ".github/actions/setup-backend/action.yaml"),
+      "utf8",
+    ),
+    /default: "3\.14"/,
+  );
+  const ci = readFileSync(join(root, ".github/workflows/ci.yaml"), "utf8");
+  assert.match(ci, /python-version: "3\.11"/);
+  assert.match(ci, /task backend:packaging:test/);
 });
 
 for (const [version, major] of [

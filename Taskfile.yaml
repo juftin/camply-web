@@ -22,6 +22,7 @@ tasks:
     cmds:
       - task: release:test
       - task: backend:test
+      - task: backend:packaging:test
       - task: frontend:test
 
   api:generate:
@@ -29,7 +30,7 @@ tasks:
     cmds:
       - task: backend:run
         vars:
-          CLI_ARGS: python -m backend.openapi --output ../frontend/tmp/openapi.json
+          CLI_ARGS: python -m camply.server.openapi --output ../frontend/tmp/openapi.json
       - task: frontend:codegen
         vars:
           OPENAPI_SCHEMA: "{{.ROOT_DIR}}/frontend/tmp/openapi.json"
@@ -39,7 +40,7 @@ tasks:
     cmds:
       - task: backend:run
         vars:
-          CLI_ARGS: python -m backend.openapi --output ../frontend/tmp/openapi.json
+          CLI_ARGS: python -m camply.server.openapi --output ../frontend/tmp/openapi.json
       - task: frontend:codegen
         vars:
           CLI_ARGS: --check
@@ -48,20 +49,20 @@ tasks:
   search:smoke:
     desc: Verify search and migrations against an isolated PostgreSQL container
     cmds:
-      - CAMPLY_POSTGRES_SEARCH_TEST=1 task backend:test -- -c pyproject.toml packages/db/tests/test_postgres_search.py
+      - CAMPLY_POSTGRES_SEARCH_TEST=1 task backend:test -- -c pyproject.toml tests/db/test_postgres_search.py
 
   maps:verify:
     desc: Verify bounded map discovery with isolated PostgreSQL, API and Chromium
     deps: [frontend:install]
     cmds:
       - task: backend:maps:test-postgres
-      - CAMPLY_MAPS_SMOKE=1 task backend:test -- -c pyproject.toml packages/backend/tests/integration/test_maps_smoke.py -s
+      - CAMPLY_MAPS_SMOKE=1 task backend:test -- -c pyproject.toml tests/server/integration/test_maps_smoke.py -s
 
   admin:smoke:
     desc: Verify admin workflows against isolated live monitoring services and Chromium
     deps: [frontend:install]
     cmds:
-      - CAMPLY_ADMIN_SMOKE=1 task backend:test -- -c pyproject.toml packages/backend/tests/integration/test_admin_smoke.py -s
+      - CAMPLY_ADMIN_SMOKE=1 task backend:test -- -c pyproject.toml tests/server/integration/test_admin_smoke.py -s
 
   snapshot:
     desc: Run UI Visual Snapshots and Generate Comparison Report
@@ -147,10 +148,7 @@ tasks:
   release:prepare:
     desc: Stamp Release Versions in Backend and Frontend Build Metadata
     cmds:
-      - |
-        for package in camply-backend backend db providers worker; do
-          env -u UV_LOCKED uv version --project backend --package "$package" --frozen "$RELEASE_VERSION" || exit
-        done
+      - env -u UV_LOCKED uv version --project backend --frozen "$RELEASE_VERSION"
       - env -u UV_LOCKED uv lock --project backend
       - |
         node --input-type=module -e '
@@ -166,11 +164,11 @@ tasks:
       RELEASE_VERSION: "{{.RELEASE_VERSION}}"
 
   dist:
-    desc: Build Backend Workspace Source Distributions
-    cmd: uv build --project backend --all-packages --sdist --out-dir "{{.ROOT_DIR}}/dist" --clear
+    desc: Build Backend Wheel and Source Distribution
+    cmd: uv build --project backend --out-dir "{{.ROOT_DIR}}/dist" --clear
 
   release:test:
-    desc: Verify Release Versions, Source Distributions, and Docker Publication Plans
+    desc: Verify Release Versions, Python Artifacts, and Docker Publication Plans
     cmd: node --test tests/release.test.mjs
 
   version:

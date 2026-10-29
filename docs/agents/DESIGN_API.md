@@ -2,6 +2,17 @@
 
 This document defines the interface between the `camply-backend` (FastAPI) and `camply-frontend` (React). It also outlines the security flow for Auth0 and optional invite-only access.
 
+## Python package boundaries
+
+The existing ASGI application is `camply.server.app:app`, enabled by the
+`server` extra. This installation supports API browsing and scan management
+with SQLite without Celery/Redis. Operations overview/task-list responses use
+existing unavailable/error fields when `distributed` is absent; task detail
+and provider-sync dispatch return HTTP 503 with an installation hint. Existing
+authentication and authorization apply before these capability responses.
+API-only installations do not execute scheduled scans: workers, beat, and
+Valkey/Redis remain required. The frontend is separately built and hosted.
+
 ## 🎯 API Philosophy
 
 1. **OpenAPI-First**: Every endpoint must be documented so that the frontend TypeScript client can be automatically generated.
@@ -87,7 +98,7 @@ Session cookies include a credential version derived by HMAC from the current sa
 
 ## 📦 Request / Response DTOs (Pydantic)
 
-All schemas are defined in `backend/packages/backend/backend/schemas.py`.
+All schemas are defined in `backend/src/camply/server/schemas.py`.
 
 ### `ScanCreateRequest`
 

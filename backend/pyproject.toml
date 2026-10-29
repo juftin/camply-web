@@ -1,27 +1,63 @@
 [project]
-name = "camply-backend"
+name = "camply"
 version = "0.1.0"
 description = "A full-stack application to help you find campsites at sold-out campgrounds"
+readme = "README.md"
 license = "PolyForm-Noncommercial-1.0.0"
-requires-python = ">=3.9,<4.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
 dependencies = [
-  "backend",
-  "db",
-  "providers",
-  "worker"
+  "aiosqlite>=0.21.0,<0.23.0",
+  "alembic>=1,<2",
+  "click>=8,<9",
+  "fake-useragent>=2.2.0",
+  "httpx>=0.28.0,<0.29.0",
+  "platformdirs>=4,<5",
+  "pydantic>=2,<3",
+  "pydantic-settings>=2,<3",
+  "rich>=14,<16",
+  "sqlalchemy[asyncio]>=2,<3",
+  "structlog>=24,<27"
 ]
 
-[tool.uv.sources]
-backend = { workspace = true }
-db = { workspace = true }
-providers = { workspace = true }
-worker = { workspace = true }
+[project.scripts]
+populate-database = "camply.providers.cli:populate_database"
 
-[tool.uv.workspace]
-members = ["packages/*"]
+[project.optional-dependencies]
+server = [
+  "cryptography>=42,<51",
+  "fastapi>=0.115.12",
+  "gunicorn>=23.0.0 ; sys_platform != 'win32'",
+  "orjson>=3,<4",
+  "prometheus-client>=0.21,<1",
+  "pyjwt>=2,<3",
+  "uvicorn-worker>=0.3.0 ; sys_platform != 'win32'",
+  "uvicorn[standard]>=0.34.0"
+]
+distributed = [
+  "celery[redis]>=5.4,<6",
+  "prometheus-client>=0.21,<1",
+  "redis>=5,<9"
+]
+postgres = [
+  "psycopg[binary]>=3,<4"
+]
+sentry = [
+  "sentry-sdk>=2,<3"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/camply"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/README.md", "/LICENSE", "/alembic.ini", "/config"]
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py311"
 
 [tool.ruff.lint]
 ignore = [
@@ -50,7 +86,7 @@ select = [
 ban-relative-imports = "all"
 
 [tool.ruff.lint.isort]
-known-first-party = ["backend", "db", "providers", "worker"]
+known-first-party = ["camply"]
 
 [tool.ruff.lint.per-file-ignores]
 # Tests can use magic values, assertions, and relative imports
@@ -70,6 +106,7 @@ known-first-party = ["backend", "db", "providers", "worker"]
 convention = "numpy"
 
 [tool.mypy]
+python_version = "3.11"
 ignore_missing_imports = false
 
 [[tool.mypy.overrides]]
@@ -78,15 +115,116 @@ module = [
   "uvicorn_worker",
   "celery.*",
   "aiosqlite",
-  "fake_useragent",
-  "importlib_metadata"
+  "fake_useragent"
 ]
 ignore_missing_imports = true
 
 [dependency-groups]
 dev = [
-  "httpx>=0.28.1"
+  "httpx>=0.28.1",
+  "import-linter>=2.15,<3",
+  "mypy>=1,<3",
+  "pip>=24,<27",
+  "pytest>=8,<10",
+  "pytest-asyncio>=0.24,<2",
+  "pytest-cov>=6,<8",
+  "pytest-vcr>=1.0.2",
+  "ruff>=0.11.0,<0.18.0",
+  "types-pyyaml>=6.0.12.20250516",
+  "types-ujson>=5.10.0.20250326"
 ]
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--import-mode=importlib"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.importlinter]
+root_package = "camply"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Component dependency layers"
+type = "layers"
+containers = ["camply"]
+layers = ["server | worker", "providers", "db", "__about__"]
+exhaustive = true
+
+[[tool.importlinter.contracts]]
+name = "Base dependencies stay optional-free"
+type = "forbidden"
+source_modules = [
+  "camply",
+  "camply.__about__",
+  "camply.db",
+  "camply.db.**",
+  "camply.providers",
+  "camply.providers.**"
+]
+as_packages = false
+forbidden_modules = [
+  "fastapi",
+  "uvicorn",
+  "gunicorn",
+  "uvicorn_worker",
+  "orjson",
+  "jwt",
+  "cryptography",
+  "prometheus_client",
+  "celery",
+  "redis",
+  "psycopg",
+  "sentry_sdk"
+]
+
+[[tool.importlinter.contracts]]
+name = "Workers avoid server dependencies"
+type = "forbidden"
+source_modules = ["camply.worker"]
+forbidden_modules = [
+  "fastapi",
+  "uvicorn",
+  "gunicorn",
+  "uvicorn_worker",
+  "orjson",
+  "jwt",
+  "cryptography"
+]
+
+[[tool.importlinter.contracts]]
+name = "Server broker access uses its guarded gateway"
+type = "forbidden"
+source_modules = ["camply.server"]
+forbidden_modules = ["celery", "redis"]
+ignore_imports = [
+  "camply.server.services.operations -> celery",
+  "camply.server.services.operations -> redis"
+]
+unmatched_ignore_imports_alerting = "error"
+
+[[tool.importlinter.contracts]]
+name = "Sentry access uses runtime initialization"
+type = "forbidden"
+source_modules = ["camply"]
+forbidden_modules = ["sentry_sdk"]
+ignore_imports = [
+  "camply.server.app -> sentry_sdk",
+  "camply.worker.celery_app -> sentry_sdk"
+]
+unmatched_ignore_imports_alerting = "error"
+
+[[tool.importlinter.contracts]]
+name = "Package root stays lightweight"
+type = "forbidden"
+source_modules = ["camply"]
+as_packages = false
+forbidden_modules = [
+  "camply.db",
+  "camply.db.**",
+  "camply.providers",
+  "camply.providers.**",
+  "camply.server",
+  "camply.server.**",
+  "camply.worker",
+  "camply.worker.**"
+]

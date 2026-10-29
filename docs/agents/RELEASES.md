@@ -14,7 +14,7 @@ Release runs are serialized without cancelling an active run. Image publication 
 flowchart LR
     Push[Push to main] --> CI[Complete CI suite]
     CI --> Analyze[Analyze Gitmoji commits]
-    Analyze -->|Release needed| Source[Stamp versions and build sdists]
+    Analyze -->|Release needed| Source[Stamp versions and build wheel/sdist]
     Source --> Release[App creates GitHub release]
     Release -->|release published| Tagged[Publish exact release tag]
     Analyze -->|No release| Main[Publish exact main SHA]
@@ -22,9 +22,29 @@ flowchart LR
     Main --> Latest[Latest images only]
 ```
 
-The release preparation hook runs `task release:prepare RELEASE_VERSION=1.2.3` and `task dist`. Preparation stamps the backend root and all four workspace packages, updates `backend/uv.lock`, and sets the frontend package version. Those changes exist only in the runner; development version files remain unchanged in Git. The publisher repeats version preparation at the full release tag so installed application metadata matches the image version. Tags identify the exact source commit.
+The release preparation hook runs `task release:prepare RELEASE_VERSION=1.2.3` and `task dist`. Preparation stamps the single `camply` backend distribution, updates `backend/uv.lock`, and sets the frontend package version. Those changes exist only in the runner; development version files remain unchanged in Git. The publisher repeats version preparation at the full release tag so installed application metadata matches the image version. Tags identify the exact source commit.
 
-The GitHub release provides generated release notes and version-stamped Python source distributions: `backend-1.2.3.tar.gz`, `db-1.2.3.tar.gz`, `providers-1.2.3.tar.gz`, and `worker-1.2.3.tar.gz`. `task dist` clears stale build outputs and builds all four installable workspace packages into `dist/`; the virtual workspace root has no distribution. The GitHub plugin attaches `dist/*.tar.gz`. Source builds complete before release creation. Packages are not uploaded to PyPI. Application hosting, server rollouts, and database migrations remain separate operator tasks.
+The GitHub release provides generated release notes and one version-stamped
+Python wheel/sdist pair: `camply-1.2.3-py3-none-any.whl` and
+`camply-1.2.3.tar.gz`. `task dist` clears stale build outputs and builds the
+single distribution into `dist/`. The GitHub plugin attaches both artifacts.
+Builds complete before release creation; no PyPI upload is configured. The
+standalone sdist includes its README, license, typing marker, and full Alembic
+migration graph and can be rebuilt without frontend or repository siblings.
+Python metadata supports >=3.11; primary development, CI, Docker, and release
+fixtures use 3.14, with explicit 3.11 compatibility verification.
+
+### Deployment of the package migration
+
+The imports change to `camply.server`, `camply.db`, `camply.providers`, and
+`camply.worker`; custom ASGI/Celery module commands must change with them.
+Select `server,distributed,postgres,sentry` for the existing full deployment.
+For rollout, stop beat, drain active tasks, back up the database, and replace
+the API, worker, and beat together. Celery JSON wire task names and argument
+shapes are preserved. Apply the existing database migration chain before
+restarting processes; revision identities are retained. Rollback restores the
+previous code/images and does not rewrite database history. Application
+hosting, rollout, and database migrations remain separate operator tasks.
 
 ## Version rules
 

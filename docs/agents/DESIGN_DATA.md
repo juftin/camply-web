@@ -2,6 +2,15 @@
 
 This document defines the database architecture for the `camply` platform, reconciling the legacy CLI data structures with the existing `backend` FastAPI models.
 
+## Python package boundaries
+
+Database APIs live in `camply.db` and are included in the base distribution
+with SQLite. Persistence must not import `camply.server` or `camply.worker`.
+The `postgres` extra independently adds Psycopg. The complete existing Alembic
+revision graph and template ship under `camply.db.migrations`;
+`python -m camply.db.migration` resolves them from installed resources and
+upgrades the configured database without relying on the checkout directory.
+
 ## 🎯 Hierarchy Overview
 
 The system models campsite data in a four-tier hierarchy. To handle overlapping IDs across different booking services, **Composite Primary Keys** (`id` + `provider_id`) are used for all provider-sourced entities.

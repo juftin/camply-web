@@ -3,7 +3,8 @@
 version: "3"
 
 vars:
-  SOURCE_CODE: packages
+  SOURCE_CODE: src
+  PACKAGING_PYTHON: '{{.PACKAGING_PYTHON | default "3.14"}}'
 
 env:
   UV_LOCKED: 1
@@ -17,45 +18,62 @@ tasks:
   test:
     desc: Run Tests
     cmds:
-      - uv run -- pytest {{.CLI_ARGS}}
+      - uv run --all-extras -- pytest --ignore=tests/packaging {{.CLI_ARGS}}
+    deps: [sync]
+
+  packaging:test:
+    desc: Verify Isolated Python Artifacts and Optional Extras
+    cmds:
+      - uv run --all-extras -- pytest tests/packaging {{.CLI_ARGS}}
+    env:
+      PACKAGING_PYTHON: "{{.PACKAGING_PYTHON}}"
     deps: [sync]
 
   fix:
     desc: Fix Code with Linters and Formatters
     cmds:
       - task: fmt
-      - uv run -- ruff check --fix {{.CLI_ARGS | default "."}}
+      - uv run --all-extras -- ruff check --fix {{.CLI_ARGS | default "."}}
     deps: [sync]
 
   lint:
-    desc: Run Code Linters (ruff format check + ruff check)
+    desc: Run Formatting, Code, and Import Architecture Checks
     cmds:
-      - uv run -- ruff format --check {{.CLI_ARGS | default "."}}
-      - uv run -- ruff check {{.CLI_ARGS | default "."}}
+      - uv run --all-extras -- ruff format --check {{.CLI_ARGS | default "."}}
+      - uv run --all-extras -- ruff check {{.CLI_ARGS | default "."}}
+      - task: imports
+        vars:
+          CLI_ARGS: ""
+    deps: [sync]
+
+  imports:
+    desc: Enforce Python Module and Optional Dependency Boundaries
+    cmds:
+      - uv run --all-extras -- lint-imports {{.CLI_ARGS}}
     deps: [sync]
 
   run:
     desc: Run Command within Project (requires "--")
     cmds:
-      - uv run -- {{.CLI_ARGS}}
+      - uv run --all-extras -- {{.CLI_ARGS}}
     deps: [sync]
 
   check:
     desc: Run Static Type Checkers
     cmds:
-      - uv run -- mypy {{.CLI_ARGS | default .SOURCE_CODE}}
+      - uv run --all-extras -- mypy {{.CLI_ARGS | default .SOURCE_CODE}}
     deps: [sync]
 
   fmt:
     desc: Run Code Formatters
     cmds:
-      - uv run -- ruff format {{.CLI_ARGS | default "."}}
+      - uv run --all-extras -- ruff format {{.CLI_ARGS | default "."}}
     deps: [sync]
 
   dev:
     desc: Run the Project in Debug Mode
     cmds:
-      - uv run gunicorn --config packages/backend/config/gunicorn.conf.py backend.app:app
+      - uv run --all-extras -- gunicorn --config config/gunicorn.conf.py camply.server.app:app
     env:
       GUNICORN_RELOAD: "1"
     deps: [sync, migration-upgrade]
@@ -82,7 +100,7 @@ tasks:
   admin:provision:
     desc: Provision an administrator by User UUID
     cmds:
-      - uv run python -m backend.provision {{.CLI_ARGS}}
+      - uv run --all-extras -- python -m camply.server.provision {{.CLI_ARGS}}
     deps: [sync]
     preconditions:
       - sh: '[[ -z "{{.CLI_ARGS}}" ]] && exit 1 || exit 0'
@@ -93,18 +111,16 @@ tasks:
   ########################
   migration:
     desc: Run Alembic Migration (task migration -- revision message)
-    dir: packages/db
     cmds:
-      - uv run -- alembic revision --autogenerate -m "{{.CLI_ARGS}}"
+      - uv run --all-extras -- alembic revision --autogenerate -m "{{.CLI_ARGS}}"
     deps: [sync]
     preconditions:
       - sh: '[[ -z "{{.CLI_ARGS}}" ]] && exit 1 || exit 0'
         msg: Migration message is required
   migration-upgrade:
     desc: Run Alembic Migration Upgrade
-    dir: packages/db
     cmds:
-      - uv run -- alembic upgrade head {{.CLI_ARGS}}
+      - uv run --all-extras -- alembic upgrade head {{.CLI_ARGS}}
     deps: [sync]
 
   ########################
@@ -114,24 +130,24 @@ tasks:
     desc: Run Celery Worker in Development Mode
     deps: [sync]
     cmds:
-      - uv run -- celery -A worker.celery_app worker -l info -Q celery --concurrency=2
+      - uv run --all-extras -- celery -A camply.worker.celery_app worker -l info -Q celery --concurrency=2
 
   worker:beat:
     desc: Run Celery Beat Scheduler in Development Mode
     deps: [sync]
     cmds:
-      - uv run -- celery -A worker.celery_app beat -l info
+      - uv run --all-extras -- celery -A camply.worker.celery_app beat -l info
 
   worker:all:
     desc: Run Both Celery Worker and Beat in Development Mode
     deps: [sync]
     cmds:
-      - uv run -- celery -A worker.celery_app worker -l info -Q celery --concurrency=2 -B
+      - uv run --all-extras -- celery -A camply.worker.celery_app worker -l info -Q celery --concurrency=2 -B
 
   maps:test-postgres:
     desc: Verify map queries against an isolated PostgreSQL container
     cmds:
-      - CAMPLY_MAPS_POSTGRES=1 task test -- -c pyproject.toml packages/db/tests/integration/test_search_maps_postgres.py -s
+      - CAMPLY_MAPS_POSTGRES=1 task test -- -c pyproject.toml tests/db/integration/test_search_maps_postgres.py -s
 
   ########################
   # INTERNAL TASKS
@@ -140,4 +156,4 @@ tasks:
     desc: Install Project Dependencies
     internal: true
     cmds:
-      - uv sync --all-packages
+      - uv sync --locked --all-extras
