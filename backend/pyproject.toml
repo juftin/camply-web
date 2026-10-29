@@ -21,6 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
+camply = "camply.cli.main:cli"
 populate-database = "camply.providers.cli:populate_database"
 
 [project.optional-dependencies]
@@ -153,7 +154,7 @@ include_external_packages = true
 name = "Component dependency layers"
 type = "layers"
 containers = ["camply"]
-layers = ["server | worker", "providers", "db", "__about__"]
+layers = ["cli | server | worker", "providers", "db", "__about__"]
 exhaustive = true
 ignore_imports = [
   "camply.server.app -> camply.worker.runtime",
@@ -167,6 +168,8 @@ type = "forbidden"
 source_modules = [
   "camply",
   "camply.__about__",
+  "camply.cli",
+  "camply.cli.**",
   "camply.db",
   "camply.db.**",
   "camply.providers",
@@ -230,6 +233,8 @@ type = "forbidden"
 source_modules = ["camply"]
 as_packages = false
 forbidden_modules = [
+  "camply.cli",
+  "camply.cli.**",
   "camply.db",
   "camply.db.**",
   "camply.providers",

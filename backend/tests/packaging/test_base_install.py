@@ -29,7 +29,23 @@ def test_base_imports_and_metadata(install: Callable[[str], Installation]) -> No
         assert db.DRIVERNAME.value == 'sqlite+aiosqlite'
         scripts = {entry.name: entry.value for entry in distribution.entry_points if entry.group == 'console_scripts'}
         assert scripts['populate-database'] == 'camply.providers.cli:populate_database'
-        assert 'camply' not in scripts
+        assert scripts['camply'] == 'camply.cli.main:cli'
+    """)
+
+
+def test_cli_version_is_offline(install: Callable[[str], Installation]) -> None:
+    """The base ``camply`` entry point reports its version without optional runtimes."""
+    install("").run("""
+        import importlib.metadata as metadata
+        import subprocess
+        import sys
+        from pathlib import Path
+        result = subprocess.run([str(Path(sys.executable).with_name('camply')), '--version'],
+                                check=True, capture_output=True, text=True)
+        assert result.stdout == f"camply, version {metadata.version('camply')}\\n"
+        result = subprocess.run([sys.executable, '-c', 'import sys, camply.cli.main; print(sorted(m for m in sys.modules if m.startswith(("camply.server", "camply.worker", "camply.providers", "camply.db"))))'],
+                                check=True, capture_output=True, text=True)
+        assert result.stdout == '[]\\n'
     """)
 
 

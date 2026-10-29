@@ -42,7 +42,7 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
   - `src/camply/providers/`: Third-party API providers (e.g., recreation.gov).
   - `src/camply/worker/`: Celery tasks and notifications.
 - `frontend/`: React TypeScript application (Vite, Tailwind CSS, Shadcn/UI).
-- The future local CLI is not implemented; `populate-database` remains available.
+- `src/camply/cli/`: The `camply` command entrypoint (currently `--version`/`--help`); `populate-database` remains available.
 - `docs/agents/`: Unified documentation and design blueprints.
 - `tests/`: System-level or shared tests.
 - `.worktrees/`: Git worktrees directory for parallel isolated development.
@@ -140,5 +140,5 @@ workspace packages. Base includes providers and SQLite; `server`,
 `distributed`, `postgres`, and `sentry` extras independently add dependencies.
 Development installs select all extras. `task backend:packaging:test` verifies
 isolated artifacts, with `PACKAGING_PYTHON=3.11` for minimum compatibility.
-Primary runtimes use Python 3.14. The future CLI, embedded scheduler, bundled
+Primary runtimes use Python 3.14. CLI subcommands, embedded scheduler, bundled
 frontend, and PyPI publication are outside this migration.
