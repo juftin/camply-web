@@ -202,6 +202,7 @@ Feature specification: [Open-Source Maps & Explore Map View](../../specs/007-ope
 - [x] T4.2.4 Isolate `server`, `distributed`, `postgres`, and `sentry` extras while keeping providers/SQLite in base and preserving the existing metadata utility.
 - [x] T4.2.5 Verify base/server/worker installations and sdist-rebuilt wheels outside the checkout; integrate packaging checks into Task/CI and document migration/deployment limitations.
 - [x] T4.2.6 Enforce internal layers, runtime independence, lightweight root imports, and optional dependency boundaries using Import Linter; integrate lint/pre-commit and verify intentional violations fail.
+- [x] T4.2.7 Add the `camply.cli` package and base `camply` console script (`--version`/`--help`, `python -m camply.cli`), constrained by Import Linter to base dependencies as a sibling of `server`/`worker`; verify unit, boundary, and isolated-install coverage. Subcommands are future work.
 
 - [ ] T4.1.4 Finalize production `docker-compose.yml`.
 - [ ] T4.1.5 Create Kubernetes manifests for API and Worker scaling.

@@ -43,7 +43,7 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
   - `src/camply/worker/`: Celery tasks and notifications (`distributed` extra).
   - `tests/packaging/`: Isolated wheel/sdist tests (`task backend:packaging:test`).
 - `frontend/`: React TypeScript application (Vite, Tailwind CSS, Shadcn/UI).
-- The future Camply CLI is not implemented. The existing `populate-database` utility is retained.
+- `src/camply/cli/`: The `camply` command-line entrypoint (base dependencies only; currently `--version`/`--help`). The existing `populate-database` utility is retained.
 - `docs/agents/`: Unified documentation and design blueprints.
 - `tests/`: System-level or shared tests.
 - `.worktrees/`: Git worktrees directory for parallel isolated development.

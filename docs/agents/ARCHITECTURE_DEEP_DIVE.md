@@ -9,8 +9,8 @@ The Python backend is one `camply` distribution with internal
 subpackages. Base includes providers and SQLite; `server`, `distributed`,
 `postgres`, and `sentry` independently add runtime dependencies. Server and
 worker application bootstrap must remain independent. Scanning stays in
-`camply.worker`; extracting a shared scanning engine, implementing a local
-CLI, and embedding scheduling in an API process are future work. Existing
+`camply.worker`; extracting a shared scanning engine, adding local CLI
+subcommands to `camply.cli`, and embedding scheduling in an API process are future work. Existing
 Celery JSON task names, beat schedule names, and database revisions are
 preserved through the module migration.
 

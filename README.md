@@ -64,7 +64,8 @@ to book your spot!
   the HTTP API and `camply.worker` supplies Celery tasks.
 - Optional extras add dependencies: `server`, `distributed`, `postgres`, and
   `sentry`. See [backend installation and capabilities](backend/README.md).
-- The future local CLI and single-process scanning server are separate work.
-  This package retains `populate-database`, but introduces no `camply` command.
+- The base package installs a `camply` command (`camply --version`) and retains
+  `populate-database`. CLI subcommands and a single-process scanning server are
+  separate work.
   API-only installations can manage scans; scheduled checks still require
   Celery workers, beat, and Valkey/Redis. The frontend remains separately built.
