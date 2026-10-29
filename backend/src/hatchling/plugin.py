@@ -4,6 +4,7 @@ Hatchling build hook to compile and bundle the React frontend into wheels.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -49,9 +50,15 @@ class FrontendBuildHook(BuildHookInterface):
         if not package_json.is_file() or not pnpm:
             return
 
+        build_env = {
+            **os.environ,
+            "CAMPLY_STANDALONE_BUILD": "1",
+            "VITE_API_URL": "/api",
+        }
         subprocess.run(
             [pnpm, "run", "build"],
             cwd=frontend_dir,
+            env=build_env,
             check=True,
         )
 
