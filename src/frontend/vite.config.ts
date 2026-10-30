@@ -6,15 +6,22 @@ import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
 
 function syncRootBuild(): Plugin {
+  let isDistBuild = false;
   return {
     name: "sync-root-build",
+    configResolved(config) {
+      isDistBuild =
+        config.build.outDir === path.resolve(import.meta.dirname, "dist");
+    },
     closeBundle() {
-      const out = path.resolve(import.meta.dirname, "../../build/frontend");
-      fs.rmSync(out, { recursive: true, force: true });
-      fs.mkdirSync(out, { recursive: true });
-      fs.cpSync(path.resolve(import.meta.dirname, "dist"), out, {
-        recursive: true,
-      });
+      if (!isDistBuild) return;
+      const dist = path.resolve(import.meta.dirname, "dist");
+      if (fs.existsSync(dist)) {
+        const out = path.resolve(import.meta.dirname, "../../build/frontend");
+        fs.rmSync(out, { recursive: true, force: true });
+        fs.mkdirSync(out, { recursive: true });
+        fs.cpSync(dist, out, { recursive: true });
+      }
     },
   };
 }
