@@ -42,10 +42,8 @@ function fixture(t, { sources = false } = {}) {
       "src",
       "pnpm-lock.yaml",
       "pnpm-workspace.yaml",
-      ".node-version",
       "vite.config.ts",
       "tsconfig.json",
-      "tsconfig.node.json",
     ]) {
       cpSync(join(root, file), join(directory, file), { recursive: true });
     }

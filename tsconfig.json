@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["node", "vite/client", "@testing-library/jest-dom/vitest"],
     "module": "ESNext",
     "skipLibCheck": true,
@@ -18,8 +18,9 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true
   },
-  "include": ["src/frontend"],
-  "exclude": ["src/frontend/tooling", "src/frontend/functions"]
+  "include": ["src/frontend", "vite.config.ts"],
+  "exclude": ["src/frontend/functions"]
 }

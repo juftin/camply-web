@@ -68,7 +68,6 @@ include = [
   "/package.json",
   "/pnpm-lock.yaml",
   "/pnpm-workspace.yaml",
-  "/.node-version",
   "/.python-version",
   "/vite.config.ts",
   "/tsconfig*.json"

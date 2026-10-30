@@ -5,7 +5,7 @@ This guide walks you through setting up the `camply` development environment.
 ## 📋 Prerequisites
 
 - **Python 3.14** (package supports Python >=3.11; compatibility is tested explicitly) (Managed via [uv](https://github.com/astral-sh/uv))
-- **Node.js 24+** and **pnpm 12.15.0** (Node 24 is selected by `.node-version`, CI, and Docker; pnpm is pinned in `package.json`)
+- **Node.js 24+** and **pnpm 12.15.0** (Node 24 is specified by `package.json` engines, CI, and Docker; pnpm is pinned in `package.json`)
 - **Docker & Docker Compose**
 - **go-task** (The [Taskfile](https://taskfile.dev) runner)
 
