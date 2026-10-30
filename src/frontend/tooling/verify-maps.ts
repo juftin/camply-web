@@ -59,7 +59,9 @@ const report: Record<string, unknown> = {
     "deterministic 5000 matching places; 130 overlapping; two unmappable",
   tileSource: "intercepted deterministic 256px raster",
 };
+const configFile = new URL("../vite.config.ts", import.meta.url).pathname;
 const server = await createServer({
+  configFile,
   base: "/",
   server: { host: "127.0.0.1", port: 0 },
 });
@@ -544,6 +546,7 @@ try {
   Object.assign(process.env, publicSettings);
   try {
     await build({
+      configFile,
       base: "/map-check/",
       build: {
         outDir: new URL("../../../tmp/maps-static", import.meta.url).pathname,
@@ -552,6 +555,7 @@ try {
       logLevel: "warn",
     });
     const staticServer = await preview({
+      configFile,
       base: "/map-check/",
       build: {
         outDir: new URL("../../../tmp/maps-static", import.meta.url).pathname,
@@ -634,6 +638,7 @@ try {
     }
     process.env.VITE_MAP_MAX_NATIVE_ZOOM = "25";
     const invalidServer = await createServer({
+      configFile,
       server: { host: "127.0.0.1", port: 0 },
     });
     await invalidServer.listen();

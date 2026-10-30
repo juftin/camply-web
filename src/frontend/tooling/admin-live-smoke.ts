@@ -3,6 +3,7 @@ import { chromium, expect } from "@playwright/test";
 import { createServer } from "vite";
 
 const server = await createServer({
+  configFile: new URL("../vite.config.ts", import.meta.url).pathname,
   base: "/",
   server: { host: "127.0.0.1", port: 0 },
 });
