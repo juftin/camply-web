@@ -5,6 +5,8 @@ The ``camply`` console script resolves to :func:`cli`. Subcommands are
 registered on this group as the CLI grows.
 """
 
+from pathlib import Path
+
 import click
 
 from camply.__about__ import __application__, __version__
@@ -29,3 +31,19 @@ def cli(ctx: click.Context) -> None:
     """
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
+
+
+@cli.group()
+def frontend() -> None:
+    """Locate the frontend bundled with the installed distribution."""
+
+
+@frontend.command(name="dir")
+def frontend_dir() -> None:
+    """Print the absolute directory of the packaged static assets."""
+    directory = Path(__file__).resolve().parents[1] / "server" / "static"
+    if not (directory / "index.html").is_file():
+        raise click.ClickException(
+            "Frontend assets are missing. Install a prepared camply wheel."
+        )
+    click.echo(str(directory))

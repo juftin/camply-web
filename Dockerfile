@@ -17,23 +17,21 @@ RUN corepack enable pnpm && corepack prepare pnpm@12.15.0 --activate
 COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .python-version ./
 COPY src/ src/
-ARG CAMPLY_API_URL
 ARG VITE_ENABLE_COMMUNITY_PAGES=false
 ARG VITE_MAP_TILE_URL
 ARG VITE_MAP_ATTRIBUTION_TEXT
 ARG VITE_MAP_ATTRIBUTION_URL
 ARG VITE_MAP_MAX_NATIVE_ZOOM=19
-ENV CAMPLY_API_URL=$CAMPLY_API_URL \
-    VITE_ENABLE_COMMUNITY_PAGES=$VITE_ENABLE_COMMUNITY_PAGES \
+ENV VITE_ENABLE_COMMUNITY_PAGES=$VITE_ENABLE_COMMUNITY_PAGES \
     VITE_MAP_TILE_URL=$VITE_MAP_TILE_URL \
     VITE_MAP_ATTRIBUTION_TEXT=$VITE_MAP_ATTRIBUTION_TEXT \
     VITE_MAP_ATTRIBUTION_URL=$VITE_MAP_ATTRIBUTION_URL \
     VITE_MAP_MAX_NATIVE_ZOOM=$VITE_MAP_MAX_NATIVE_ZOOM
 RUN uv build --out-dir dist
 
-FROM python-base AS backend
+FROM python-base AS camply
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
+    apt-get install -y --no-install-recommends curl nginx gettext-base && \
     rm -rf /var/lib/apt/lists/* && \
     addgroup --system --gid 1000 camply && \
     adduser --system --uid 1000 --gid 1000 camply
@@ -43,20 +41,18 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY --from=application-build /app/dist/ /app/dist/
 RUN uv pip install --no-deps /app/dist/*.whl && rm -rf /app/dist
 COPY deploy/entrypoint.sh /app/entrypoint.sh
+COPY deploy/nginx.conf /app/nginx.conf.template
+COPY deploy/nginx.main.conf /etc/nginx/nginx.conf
 ENV PATH="/app/.venv/bin:${PATH}" \
     HOME=/home/camply
-RUN mkdir -p ${HOME}/.local/share/camply && \
-    chown -R camply:camply /app ${HOME}
+RUN CAMPLY_FRONTEND_DIR="$(camply frontend dir)" && \
+    export CAMPLY_FRONTEND_DIR && \
+    envsubst '${CAMPLY_FRONTEND_DIR}' < /app/nginx.conf.template > /etc/nginx/conf.d/default.conf && \
+    rm /app/nginx.conf.template && \
+    mkdir -p ${HOME}/.local/share/camply && \
+    chown camply:camply /app && \
+    chown -R camply:camply ${HOME}
 USER camply
+EXPOSE 8000 8080
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["gunicorn", "--config", "python:camply.server.gunicorn", "camply.server.app:app"]
-
-FROM nginx:alpine AS frontend
-RUN rm -rf /usr/share/nginx/html/*
-COPY --from=application-build /app/build/frontend/ /usr/share/nginx/html/
-COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
-COPY deploy/nginx.main.conf /etc/nginx/nginx.conf
-RUN chown -R nginx:nginx /usr/share/nginx/html
-USER nginx
-EXPOSE 8080
-CMD ["nginx", "-g", "daemon off;"]

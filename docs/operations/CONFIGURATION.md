@@ -177,13 +177,12 @@ The Admin UI provides native monitoring dashboards for usage trends, API latency
 
 These variables are primarily used in `docker-compose.yaml`.
 
-| Variable            | Description                   | Default  |
-| ------------------- | ----------------------------- | -------- |
-| `POSTGRES_USER`     | DB Username                   | `camply` |
-| `POSTGRES_PASSWORD` | DB Password                   | `camply` |
-| `POSTGRES_DB`       | DB Name                       | `camply` |
-| `BACKEND_VERSION`   | Docker image tag for backend  | `local`  |
-| `FRONTEND_VERSION`  | Docker image tag for frontend | `local`  |
+| Variable            | Description                    | Default  |
+| ------------------- | ------------------------------ | -------- |
+| `POSTGRES_USER`     | DB Username                    | `camply` |
+| `POSTGRES_PASSWORD` | DB Password                    | `camply` |
+| `POSTGRES_DB`       | DB Name                        | `camply` |
+| `CAMPLY_VERSION`    | Shared camply Docker image tag | `local`  |
 
 ## Optional Community Pages (Public Frontend Build Setting)
 

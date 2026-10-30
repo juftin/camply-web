@@ -28,7 +28,7 @@ See [backend installation](../../README.md) for artifact examples.
 
 API-only installs do not run scheduled scans: workers, beat, and Valkey/Redis
 remain required unless using the standalone runtime. The `camply` CLI (`camply.cli`) is an entrypoint with
-`--version` and `--help`; every prepared distribution includes the frontend, while extras select runtime dependencies. Import paths
+`--version`, `--help`, and `frontend dir` (the absolute path to bundled static assets); every prepared distribution includes the frontend, while extras select runtime dependencies. The shared `camply` Docker image includes Python and Nginx, and sets Nginx's root to `camply frontend dir`. Compose uses this image for the API, frontend, worker, and beat, selecting each role by command. Import paths
 have moved from `backend.*`, `db.*`, `providers.*`, and `worker.*` to
 `camply.server.*`, `camply.db.*`, `camply.providers.*`, and `camply.worker.*`.
 
@@ -108,7 +108,7 @@ If you change a FastAPI router:
 
 ### 4. Releases
 
-Pushes to `main` run the complete CI suite before the `release` workflow creates GitHub releases with the existing Renovate App. The separate `publish` workflow publishes backend/frontend images to GHCR from the released full-version tag, or from the successful main SHA when no release is needed. `latest` tracks successful `main` builds; Gitmoji-driven releases also publish full-version tags, moving Docker/Git major aliases such as `v1`, and the `camply` wheel and sdist as GitHub release assets. Use `task dist` to build the artifacts locally. See [release operations](../operations/RELEASES.md) for version rules, repository permissions, local verification, and failure recovery.
+Pushes to `main` run the complete CI suite before the `release` workflow creates GitHub releases with the existing Renovate App. The separate `publish` workflow publishes the shared `camply` image to GHCR from the released full-version tag, or from the successful main SHA when no release is needed. `latest` tracks successful `main` builds; Gitmoji-driven releases also publish full-version tags, moving Docker/Git major aliases such as `v1`, and the `camply` wheel and sdist as GitHub release assets. Use `task dist` to build the artifacts locally. See [release operations](../operations/RELEASES.md) for version rules, repository permissions, local verification, and failure recovery.
 
 ---
 

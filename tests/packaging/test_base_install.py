@@ -63,6 +63,31 @@ def test_population_help_is_offline(install: Callable[[str], Installation]) -> N
     """)
 
 
+def test_frontend_dir_is_available_without_server(
+    install: Callable[[str], Installation],
+) -> None:
+    """Base installations expose the real bundled UI without importing the server."""
+    install("").run("""
+        import subprocess
+        import sys
+        from pathlib import Path
+        import camply
+        from camply.cli.main import cli
+        from click.testing import CliRunner
+
+        expected = Path(camply.__file__).parent / 'server' / 'static'
+        result = subprocess.run([str(Path(sys.executable).with_name('camply')), 'frontend', 'dir'],
+                                check=True, capture_output=True, text=True)
+        assert result.stdout == str(expected.resolve()) + '\\n'
+        assert result.stderr == ''
+        assert (Path(result.stdout.strip()) / 'index.html').is_file()
+        invoked = CliRunner().invoke(cli, ['frontend', 'dir'])
+        assert invoked.exit_code == 0, invoked.output
+        assert invoked.output == result.stdout
+        assert not any(name.startswith(('camply.server', 'camply.worker', 'camply.providers', 'camply.db')) for name in sys.modules)
+    """)
+
+
 def test_installed_migrations_preserve_history(
     install: Callable[[str], Installation],
 ) -> None:

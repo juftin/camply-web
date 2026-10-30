@@ -35,6 +35,8 @@ Using the project's interpreter, `python -m build` also works directly. It creat
 
 The sdist contains frontend source and prepared assets. Rebuilding its wheel and installing or running a prepared wheel require no Node or pnpm. Every wheel contains the UI, Python typing markers, Gunicorn configuration, and the full Alembic migration graph. The build does not stage generated assets into working source files.
 
+Run `camply frontend dir` to print the absolute path to the installed frontend assets. This command needs only the base package and reports an error for editable installs without bundled assets. The shared `camply` Docker image includes Python and Nginx, with Nginx's root set directly to this installed directory.
+
 Install the actual wheel path into a uv-managed environment with the desired extras:
 
 ```bash
@@ -62,7 +64,19 @@ task compose:infra
 task dev
 ```
 
-Vite serves development UI on port 5173 and proxies `/api` to the backend on port 8000. Use `task compose:up` to run the whole distributed stack in containers. One root Dockerfile provides backend/frontend targets; root Compose defines all services and preserves named volumes and `.data/camply` storage.
+Vite serves development UI on port 5173 and proxies `/api` to the backend on port 8000. Use `task compose:up` to run the whole distributed stack in containers. One root Dockerfile builds `ghcr.io/juftin/camply` for the API, Nginx, Celery worker, and beat; root Compose defines all services and preserves named volumes and `.data/camply` storage.
+
+Build the shared image with `task build`. The default command runs Gunicorn; Compose selects the other roles with command overrides:
+
+| Role           | Command in the `camply` image                                                 |
+| -------------- | ----------------------------------------------------------------------------- |
+| API            | Default command (Gunicorn)                                                    |
+| Frontend       | `nginx -g 'daemon off;'`                                                      |
+| Worker         | `celery -A camply.worker.celery_app worker -l info -Q celery --concurrency=4` |
+| Scheduler      | `celery -A camply.worker.celery_app beat -l info`                             |
+| Asset location | `camply frontend dir`                                                         |
+
+Nginx and CLI commands start without database migrations. Worker and scheduler containers set `SKIP_MIGRATIONS=1`; the API applies migrations. Set `CAMPLY_VERSION` to select the image tag in Compose. PostgreSQL, Valkey, and Prometheus keep their upstream images.
 
 ```text
 /

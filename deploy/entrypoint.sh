@@ -2,6 +2,12 @@
 
 set -e
 
+case "${1:-}" in
+    nginx|camply)
+        exec "${@}"
+        ;;
+esac
+
 # Ensure cache directory is writable. On Linux, Docker bind-mounts
 # are created as root:root, so the camply user cannot write to them.
 # Replace the unwritable directory with a symlink to /tmp.

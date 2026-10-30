@@ -64,11 +64,9 @@ tasks:
       - rm -rf build/frontend src/frontend/dist node_modules
 
   docker:
-    desc: Build Docker Image
-    cmd: docker buildx bake --file docker-compose.yaml frontend
-    env:
-      FRONTEND_VERSION:
-        sh: node -p "require('./package.json').version"
+    desc: Build the Shared camply Docker Image
+    cmds:
+      - task: :build
 
   codegen:
     env:

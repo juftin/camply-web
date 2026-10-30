@@ -84,11 +84,9 @@ tasks:
       - task: docker
 
   docker:
-    desc: Build Docker Image
-    cmd: docker buildx bake --file docker-compose.yaml backend
-    env:
-      BACKEND_VERSION:
-        sh: uv version --short
+    desc: Build the Shared camply Docker Image
+    cmds:
+      - task: :build
 
   version:
     desc: View / Set Project Version
