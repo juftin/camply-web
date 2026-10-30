@@ -13,7 +13,7 @@ describe("Pages configuration", () => {
     expect(error).toBeUndefined();
     expect(config).toMatchObject({
       name: "camply-81r",
-      pages_build_output_dir: "../../build/frontend",
+      pages_build_output_dir: "dist",
       compatibility_date: "2024-11-11",
     });
   });

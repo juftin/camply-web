@@ -52,11 +52,9 @@ async function main(): Promise<void> {
       path.join(frontend, "functions"),
       { recursive: true },
     );
-    cpSync(
-      path.join(root, "build/frontend"),
-      path.join(fixture, "build/frontend"),
-      { recursive: true },
-    );
+    cpSync(path.join(root, "src/frontend/dist"), path.join(frontend, "dist"), {
+      recursive: true,
+    });
     const { config, error } = ts.parseConfigFileTextToJson(
       "wrangler.jsonc",
       readFileSync(path.join(frontend, "wrangler.jsonc"), "utf8"),
@@ -64,10 +62,10 @@ async function main(): Promise<void> {
     assert.equal(error, undefined);
     assert.equal(
       path.resolve(frontend, config.pages_build_output_dir),
-      path.join(fixture, "build/frontend"),
+      path.join(frontend, "dist"),
     );
     const routes = JSON.parse(
-      readFileSync(path.join(fixture, "build/frontend/_routes.json"), "utf8"),
+      readFileSync(path.join(frontend, "dist/_routes.json"), "utf8"),
     );
     assert(
       routes.include.includes("/api") && routes.include.includes("/api/*"),

@@ -61,7 +61,7 @@ tasks:
   clean:
     desc: Clean Build Artifacts
     cmds:
-      - rm -rf build/frontend node_modules
+      - rm -rf build/frontend src/frontend/dist node_modules
 
   docker:
     desc: Build Docker Image

@@ -26,7 +26,7 @@ Implementation creates `src/frontend/wrangler.jsonc` with this baseline:
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "camply-81r",
-  "pages_build_output_dir": "../../build/frontend",
+  "pages_build_output_dir": "dist",
   "compatibility_date": "2024-11-11",
 }
 ```

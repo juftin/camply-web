@@ -1,12 +1,27 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig, type Plugin } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import fs from "fs";
 import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
 
+function syncRootBuild(): Plugin {
+  return {
+    name: "sync-root-build",
+    closeBundle() {
+      const out = path.resolve(import.meta.dirname, "../../build/frontend");
+      fs.rmSync(out, { recursive: true, force: true });
+      fs.mkdirSync(out, { recursive: true });
+      fs.cpSync(path.resolve(import.meta.dirname, "dist"), out, {
+        recursive: true,
+      });
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), syncRootBuild()],
   css: {
     postcss: {
       plugins: [
@@ -27,7 +42,7 @@ export default defineConfig({
   publicDir: "public",
   envDir: process.env.CAMPLY_STANDALONE_BUILD === "1" ? false : undefined,
   build: {
-    outDir: path.resolve(import.meta.dirname, "../../build/frontend"),
+    outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
     // Preserve Vite 6's browser support when upgrading the bundler.
     target: ["es2020", "edge88", "firefox78", "chrome87", "safari14"],
