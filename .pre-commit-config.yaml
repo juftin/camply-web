@@ -9,16 +9,16 @@ repos:
       - id: end-of-file-fixer
         exclude: mkdocs.yaml
       - id: check-yaml
-        exclude: ^(mkdocs\.yaml|frontend/pnpm-lock\.yaml)$
+        exclude: ^(mkdocs\.yaml|pnpm-lock\.yaml)$
       - id: check-yaml
         name: check pnpm lock YAML documents
-        files: ^frontend/pnpm-lock\.yaml$
+        files: ^pnpm-lock\.yaml$
         args: [--allow-multiple-documents]
       - id: check-ast
       - id: check-docstring-first
         # This token-based hook mistakes valid module attribute docstrings for
         # duplicate module docstrings. Syntax checks still cover these modules.
-        exclude: ^backend/(src/camply/(__about__|db/(models/search|search_maps|search_bounds|migrations/env)|server/(routers/search|services/operations))|tests/packaging/conftest)\.py$
+        exclude: ^(hatch_build|src/camply/(__about__|db/(models/search|search_maps|search_bounds|migrations/env)|server/(routers/search|services/operations))|tests/packaging/conftest)\.py$
       - id: check-merge-conflict
       - id: mixed-line-ending
 
@@ -35,14 +35,14 @@ repos:
       - id: ruff-format
         name: format
         description: Runs Code Auto-Formatters
-        entry: uv run --project backend --all-extras ruff format
+        entry: uv run --all-extras ruff format
         language: system
         types:
           - python
       - id: ruff-check
         name: lint
         description: Runs Code Linters
-        entry: uv run --project backend --all-extras ruff check --fix
+        entry: uv run --all-extras ruff check --fix
         language: system
         types:
           - python
@@ -51,13 +51,13 @@ repos:
         entry: task backend:imports
         language: system
         pass_filenames: false
-        files: ^backend/(src/.*\.py|pyproject\.toml)$
+        files: ^(src/camply/.*\.py|pyproject\.toml)$
       - id: oxfmt
         # TOML is already formatted by pretty-format-toml above.
         exclude: \.toml$
         name: oxfmt
         description: Opinionated Code Formatter
-        entry: pnpm --dir ./frontend run format
+        entry: pnpm run format
         args: [--write, --no-error-on-unmatched-pattern]
         language: system
         types:

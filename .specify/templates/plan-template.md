@@ -2,7 +2,7 @@
 
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
 
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Input**: Feature specification from `/docs/specs/[###-feature-name]/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command; its definition describes the execution workflow.
 
@@ -47,7 +47,7 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
+docs/specs/[###-feature]/
 ├── plan.md              # This file (/speckit.plan command output)
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
@@ -66,39 +66,19 @@ specs/[###-feature]/
 -->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+pyproject.toml
+package.json
+Taskfile.yaml
+taskfiles/
+├── python.yaml
+└── frontend.yaml
 src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
+├── camply/
+└── frontend/
+    ├── functions/
+    └── tooling/
 tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+docs/specs/
 ```
 
 **Structure Decision**: [Document the selected structure and reference the real

@@ -1,5 +1,5 @@
 {
-  "$schema": "./frontend/node_modules/oxfmt/configuration_schema.json",
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "printWidth": 80,
   "sortPackageJson": false,
   "ignorePatterns": [
@@ -8,7 +8,9 @@
     "**/node_modules/**",
     "**/dist/**",
     "**/*.tsbuildinfo",
-    "frontend/snapshots/**",
-    "frontend/src/lib/api/generated/**"
+    "tests/frontend/snapshots/**",
+    "src/frontend/lib/api/generated/**",
+    "build/**",
+    "tmp/**"
   ]
 }

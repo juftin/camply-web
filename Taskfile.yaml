@@ -4,31 +4,32 @@ version: "3"
 
 includes:
   frontend:
-    taskfile: frontend/Taskfile.yaml
-    dir: frontend
+    taskfile: taskfiles/frontend.yaml
+    dir: .
   backend:
-    taskfile: backend/Taskfile.yaml
-    dir: backend
+    taskfile: taskfiles/python.yaml
+    dir: .
 
 tasks:
   standalone:install:
     desc: Install core Python and frontend build dependencies without backing services
     cmds:
-      - uv sync --project backend --no-dev --no-default-groups --extra server
+      - uv sync --no-dev --no-default-groups --extra server
       - task: frontend:install
 
   standalone:build:
     desc: Build frontend and core Python wheels without Docker
     cmds:
       - rm -rf "{{.ROOT_DIR}}/dist"
-      - uv build --project backend --wheel --out-dir "{{.ROOT_DIR}}/dist" --clear
+      - uv build --wheel --out-dir "{{.ROOT_DIR}}/dist" --clear
 
   standalone:run:
     desc: Migrate SQLite and serve the complete application in one Python process
     env:
       CAMPLY_RUNTIME_MODE: standalone
+      CAMPLY_FRONTEND_DIR: '{{.CAMPLY_FRONTEND_DIR | default (printf "%s/build/frontend" .ROOT_DIR)}}'
     cmds:
-      - uv run --project backend --no-dev --extra server -- python -m camply.server.standalone {{.CLI_ARGS}}
+      - uv run --no-dev --extra server -- python -m camply.server.standalone {{.CLI_ARGS}}
 
   standalone:test:
     desc: Verify a core-only installed build, real SQLite recovery, and Chromium
@@ -49,27 +50,28 @@ tasks:
       - task: backend:test
       - task: backend:packaging:test
       - task: frontend:test
+      - task: frontend:pages:check
 
   api:generate:
     desc: Generate API types from the local backend schema without a running server
     cmds:
       - task: backend:run
         vars:
-          CLI_ARGS: python -m camply.server.openapi --output ../frontend/tmp/openapi.json
+          CLI_ARGS: python -m camply.server.openapi --output build/openapi.json
       - task: frontend:codegen
         vars:
-          OPENAPI_SCHEMA: "{{.ROOT_DIR}}/frontend/tmp/openapi.json"
+          OPENAPI_SCHEMA: "{{.ROOT_DIR}}/build/openapi.json"
 
   api:check:
     desc: Verify committed API types match the current backend contract
     cmds:
       - task: backend:run
         vars:
-          CLI_ARGS: python -m camply.server.openapi --output ../frontend/tmp/openapi.json
+          CLI_ARGS: python -m camply.server.openapi --output build/openapi.json
       - task: frontend:codegen
         vars:
           CLI_ARGS: --check
-          OPENAPI_SCHEMA: "{{.ROOT_DIR}}/frontend/tmp/openapi.json"
+          OPENAPI_SCHEMA: "{{.ROOT_DIR}}/build/openapi.json"
 
   search:smoke:
     desc: Verify search and migrations against an isolated PostgreSQL container
@@ -134,9 +136,12 @@ tasks:
 
   build:
     desc: Build the Project Artifacts
-    cmds:
-      - task: backend:build
-      - task: frontend:build
+    cmd: docker buildx bake --file docker-compose.yaml backend frontend
+    env:
+      BACKEND_VERSION:
+        sh: uv version --short
+      FRONTEND_VERSION:
+        sh: node -p "require('./package.json').version"
 
   publish:
     desc: Publish Versioned Backend and Frontend Images to GHCR
@@ -173,12 +178,12 @@ tasks:
   release:prepare:
     desc: Stamp Release Versions in Backend and Frontend Build Metadata
     cmds:
-      - env -u UV_LOCKED uv version --project backend --frozen "$RELEASE_VERSION"
-      - env -u UV_LOCKED uv lock --project backend
+      - env -u UV_LOCKED uv version --frozen "$RELEASE_VERSION"
+      - env -u UV_LOCKED uv lock
       - |
         node --input-type=module -e '
           import { readFileSync, writeFileSync } from "node:fs";
-          const path = "frontend/package.json";
+          const path = "package.json";
           const metadata = JSON.parse(readFileSync(path, "utf8"));
           metadata.version = process.env.RELEASE_VERSION;
           writeFileSync(path, JSON.stringify(metadata, null, 2) + "\n");
@@ -190,7 +195,7 @@ tasks:
 
   dist:
     desc: Build Backend Wheel and Source Distribution
-    cmd: uv build --project backend --out-dir "{{.ROOT_DIR}}/dist" --clear
+    cmd: uv build --out-dir "{{.ROOT_DIR}}/dist" --clear
 
   release:test:
     desc: Verify Release Versions, Python Artifacts, and Docker Publication Plans
@@ -293,4 +298,4 @@ tasks:
           fi
         silent: true
     status:
-      - test ! -f ../.pre-commit-config.yaml
+      - test ! -f .pre-commit-config.yaml

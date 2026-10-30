@@ -1,0 +1,148 @@
+# DESIGN_DATA: Database Schema & De-duplication
+
+This document defines the database architecture for the `camply` platform, reconciling the legacy CLI data structures with the existing `backend` FastAPI models.
+
+## Python package boundaries
+
+Database APIs live in `camply.db` and are included in the base distribution
+with SQLite. Persistence must not import `camply.server` or `camply.worker`.
+The `postgres` extra independently adds Psycopg. The complete existing Alembic
+revision graph and template ship under `camply.db.migrations`;
+`python -m camply.db.migration` resolves them from installed resources and
+upgrades the configured database without relying on the checkout directory.
+
+## Standalone storage
+
+Both runtimes share SQLAlchemy models and the complete Alembic revision graph. PostgreSQL remains the distributed deployment database; standalone requires file-backed SQLite. `camply.db.migration.upgrade()` locates installed migration resources independently of the current directory and runs before HTTP starts. SQLite connections enable foreign keys, WAL, and a 1,000 ms busy timeout. Engine/session resources are shared within the standalone lifespan; provider and delivery HTTP calls do not hold write transactions.
+
+`notification_outbox` stores UUID detection/delivery identities, nullable user/scan/target references with `ON DELETE SET NULL`, a credential-free JSON payload, lifecycle state, attempt count (0–4), due/created/finished UTC timestamps, and an allowlisted error category. A unique detection/scan/delivery-key constraint avoids duplicate summary or direct intents within a detection; due/finished indexes support delivery and pruning. Results and intents commit atomically. Closing/reopening availability creates a new detection. Terminal records expire after 24 hours; pending records survive restart. See the [field contract](../specs/007-standalone-runtime/data-model.md).
+
+Backups must use SQLite online backup or copy the database while the app is stopped, including a consistent WAL state. The migration tests cover existing populated state, portable UUID/JSON/date values, FK-safe deletion, bounded contention, and restore. `task backend:migration:test` separately exercises the PostgreSQL chain in a disposable database.
+
+## 🎯 Hierarchy Overview
+
+The system models campsite data in a four-tier hierarchy. To handle overlapping IDs across different booking services, **Composite Primary Keys** (`id` + `provider_id`) are used for all provider-sourced entities.
+
+1.  **Provider**: (e.g., Recreation.gov, Parks Canada).
+2.  **Recreation Area**: (e.g., Yosemite National Park).
+3.  **Facility (Campground)**: (e.g., Lower Pines).
+4.  **Campsite**: (e.g., Site 042).
+
+---
+
+## 🏗️ Table Definitions (PostgreSQL)
+
+### 1. `providers` Table (Existing)
+
+Defines the supported booking services.
+
+- `id`: `Integer` (Primary Key, Autoincrement)
+- `name`: `String` (Unique, e.g., "recreation_dot_gov")
+- `url`: `String`
+
+### 2. `recreation_areas` Table (Existing)
+
+- `id`: `String` (Primary Key - Provider's Internal ID)
+- `provider_id`: `Integer` (Primary Key, Foreign Key -> `providers.id`)
+- `name`: `String`
+- `description`: `String`
+- `location`: `Point` (Lat/Long)
+
+### 3. `campgrounds` Table (Existing)
+
+- `id`: `String` (Primary Key - Provider's Internal ID)
+- `provider_id`: `Integer` (Primary Key, Foreign Key -> `providers.id`)
+- `recreation_area_id`: `String` (Foreign Key -> `recreation_areas.id`)
+- `name`: `String`
+- `location`: `Point`
+
+### 4. `search` Table (Existing - Flattened Search View)
+
+An optimized table for the frontend search bar, populated via provider sync tasks.
+
+- `id`: `String` (Primary Key - Format: `EntityType/ProviderID/RecAreaID/CampgroundID`)
+- `entity_type`: `String` ("RecreationArea" or "Campground")
+- `provider_name`: `String`
+- `recreation_area_name`: `String` (Indexed)
+- `campground_name`: `String` (Indexed)
+
+### 5. `campsites` Table (New - Dynamic)
+
+Stores individual site metadata. Populated during scans or full metadata syncs.
+
+- `id`: `String` (Primary Key - Provider's Internal ID)
+- `campground_id`: `String` (Primary Key, Foreign Key -> `campgrounds.id`)
+- `provider_id`: `Integer` (Primary Key, Foreign Key -> `providers.id`)
+- `name`: `String` (e.g., "Site 042")
+- `type`: `String` (e.g., "TENT", "RV")
+- `is_accessible`: `Boolean`
+- `attributes`: `JSONB` (e.g., `{"electric": true, "water": false, "max_length": 35}`)
+
+### 6. `users` Table (New)
+
+- `id`: `UUID` (Primary Key)
+- `auth0_id`: `String` (Unique)
+- `email`: `String`
+- `is_invited`: `Boolean` (mapped to the existing `is_early_access_user` database column)
+- `pushover_token`: `String` (Optional)
+
+### 7. `unique_targets` Table (The "What" - New)
+
+- `id`: `UUID` (Primary Key)
+- `provider_id`: `Integer` (Foreign Key -> `providers.id`)
+- `campground_id`: `String` (Foreign Key -> `campgrounds.id`)
+- `start_date`: `Date`
+- `end_date`: `Date`
+- `hash`: `String` (Unique Index) - `SHA256(provider_id + campground_id + start_date + end_date)`
+- `last_checked_at`: `Timestamp`
+
+### 8. `user_scans` Table (The "Who" - New)
+
+- `id`: `UUID` (Primary Key)
+- `user_id`: `UUID` (Foreign Key -> `users.id`)
+- `target_id`: `UUID` (Foreign Key -> `unique_targets.id`)
+- `is_active`: `Boolean`
+- **Filters**:
+  - `min_stay_length`: `Integer`
+  - `preferred_types`: `Array[String]`
+  - `require_electric`: `Boolean`
+
+### 9. `scan_results` Table (The Cache - New)
+
+- `id`: `UUID` (Primary Key)
+- `target_id`: `UUID` (Foreign Key -> `unique_targets.id`)
+- `campsite_id`: `String` (Foreign Key -> `campsites.id`)
+- `campsite_name`: `String` (Provider site label; empty for legacy snapshots)
+- `campsite_type`: `String | null` (Standardized type)
+- `is_electric`: `Boolean | null` (Unknown for legacy snapshots)
+- `is_accessible`: `Boolean | null` (Unknown for legacy snapshots)
+- `available_dates`: `Array[Date]`
+- `found_at`: `Timestamp`
+
+The scanner replaces the latest snapshot, including these attributes, after every successful provider check. User scan results, counts and alerts share saved-filter logic; unknown attributes cannot satisfy restrictive preferences. The additive campsite-details migration preserves existing dates and populates metadata on the next successful check.
+
+User-facing results and counts exclude nights before the current UTC date and outside the target's check-in/check-out interval before applying minimum-stay rules. The worker applies the same window before snapshot replacement and new-opening detection, so notifications cannot qualify using expired nights. Read-time filtering also expires past availability when a scan is paused or no worker is running. A successful empty provider response clears the snapshot. Failed checks preserve the previous snapshot and its last-successful-check timestamp; snapshot age alone does not establish that a site is unavailable.
+
+---
+
+## 🔄 Reconciled Implementation Details
+
+### Composite Keys & Foreign Keys
+
+Because we use composite keys, all foreign key relationships MUST include both the `id` and the `provider_id`. This is already implemented in the `campgrounds -> recreation_areas` relationship in the current codebase.
+
+### The "Search" Table Algorithm
+
+`Search.algorithm()` powers autocomplete and `Search.search()` powers Explore. Both search the committed metadata cache inside PostgreSQL; there is no external search service or index synchronization worker.
+
+A weighted `simple`-dictionary full-text vector ranks campground names (A), recreation area names (B), cities (C), and state codes (D). A GIN expression index supports token/prefix matching. Each query token must match a full-text prefix or an indexed `pg_trgm` word match on campground, recreation-area, or city names. Tokens shorter than four characters require a full-text match; the transaction-local word similarity threshold is 0.5. Exact displayed names rank ahead of prefixes, parent-name matches, and fuzzy matches. Name and ID tie breakers make pagination deterministic. SQLite retains portable literal substring matching without typo tolerance.
+
+Migration `2ac874f9d2ad` adds the weighted vector and city trigram indexes; the existing name trigram indexes remain in use. PostgreSQL maintains these indexes transactionally whenever provider ingestion refreshes the search table. Autocomplete skips count/facet queries; Explore returns exact totals and facets for the active criteria. See the [search implementation plan](../specs/007-live-search/plan.md).
+
+Provider imports currently omit the Search amenity and RV columns, leaving their defaults; these filters depend on future catalog enrichment. Native search indexes cannot supply missing metadata.
+
+### Metadata vs. Scan results
+
+- **Metadata** (`recreation_areas`, `campgrounds`, `campsites`) is mostly static or updated via weekly syncs.
+- **Scan results** (`scan_results`) are ephemeral and updated every few minutes by the **Smart Poller**.
+- A user creates a scan against a `campground_id`, but the system notifies them about a specific `campsite_id` that belongs to that campground.

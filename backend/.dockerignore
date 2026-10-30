@@ -1,9 +1,0 @@
-.venv
-dist
-.coverage
-
-.git
-.env
-.env.*
-*.log
-__pycache__

@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/frontend/tooling/snapshot-navigation.ts",
+    "src/frontend/tooling/verify-snapshot-navigation.ts",
+    "src/frontend/tooling/snapshot-report.ts",
+    "src/frontend/tooling/snapshot-report.test.ts",
+    "src/frontend/tooling/verify-snapshot-gallery.ts"
+  ],
+  "exclude": []
+}

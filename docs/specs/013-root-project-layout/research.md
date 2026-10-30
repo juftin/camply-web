@@ -7,7 +7,7 @@
 
 **Decision**: Move the project root without changing the `camply` package architecture or extras.
 
-**Evidence**: [Python metadata](../../../backend/pyproject.toml) defines one distribution with `server`, `distributed`, `postgres`, and `sentry` extras, and import-linter protects optional dependencies. [Standalone launcher](../../../backend/src/camply/server/standalone.py) already validates installed UI resources and supports an external absolute asset directory. [Constitution](../../../.specify/memory/constitution.md) principle IV still mandates nested roots.
+**Evidence**: [Python metadata](../../../pyproject.toml) defines one distribution with `server`, `distributed`, `postgres`, and `sentry` extras, and import-linter protects optional dependencies. [Standalone launcher](../../../src/camply/server/standalone.py) already validates installed UI resources and supports an external absolute asset directory. [Constitution](../../../.specify/memory/constitution.md) principle IV still mandates nested roots.
 
 **Rationale**: The recent package/standalone work already supplies the necessary runtime architecture. A directory/build migration should preserve it.
 
@@ -17,7 +17,7 @@
 
 **Decision**: Keep Hatchling; use a standard-build hook for both targets, explicitly map generated assets into archives, and validate bundled output before source-archive reuse.
 
-**Evidence**: The current [hook](../../../backend/src/hatchling/plugin.py) only handles standard wheels, looks outside the Python project, can skip missing sources/tooling, and stages output into an ignored source directory. The [sdist whitelist](../../../backend/pyproject.toml) omits frontend siblings. `python -m build` normally creates an sdist and builds its wheel from the extracted archive. [PyPA build documentation](https://build.pypa.io/en/stable/how-to/basic-usage.html)
+**Evidence**: The current [baseline hook](https://github.com/juftin/camply-web/blob/25c9763/backend/src/hatchling/plugin.py) only handles standard wheels, looks outside the Python project, can skip missing sources/tooling, and stages output into an ignored source directory. The [sdist whitelist](../../../pyproject.toml) omits frontend siblings. `python -m build` normally creates an sdist and builds its wheel from the extracted archive. [PyPA build documentation](https://build.pypa.io/en/stable/how-to/basic-usage.html)
 
 Hatch supports build-data forced inclusion and explicit generated artifacts. Default file selection respects version-control ignore rules. [Hatch hook interface](https://hatch.pypa.io/latest/plugins/build-hook/reference/), [Hatch file selection](https://hatch.pypa.io/latest/config/build/)
 
@@ -41,7 +41,7 @@ Hatch supports build-data forced inclusion and explicit generated artifacts. Def
 
 **Decision**: Move the existing settings into `camply.server.gunicorn` and use Gunicorn's `python:` configuration syntax.
 
-**Evidence**: Current settings live outside the import package and task/container commands reference a file path. Gunicorn accepts `python:MODULE_NAME` for configuration. [Current settings](../../../backend/config/gunicorn.conf.py), [Gunicorn settings reference](https://gunicorn.org/reference/settings/#config)
+**Evidence**: Current settings live outside the import package and task/container commands reference a file path. Gunicorn accepts `python:MODULE_NAME` for configuration. [Current settings](../../../src/camply/server/gunicorn.py), [Gunicorn settings reference](https://gunicorn.org/reference/settings/#config)
 
 **Rationale**: Installed packages can resolve configuration regardless of their working directory. Keeping it under `server` preserves current optional-runtime boundaries.
 
@@ -53,7 +53,7 @@ Hatch supports build-data forced inclusion and explicit generated artifacts. Def
 
 **Evidence**: Pages Functions use a `functions` directory at the Pages project root. Wrangler supports Pages output/date/project configuration, working-directory selection, and local Function bundling. [Function placement](https://developers.cloudflare.com/pages/functions/get-started/), [Pages configuration](https://developers.cloudflare.com/pages/functions/wrangler-configuration/), [Wrangler Pages commands](https://developers.cloudflare.com/workers/wrangler/commands/pages/)
 
-The current proxy uses externally supplied `CAMPLY_API_ORIGIN`, requires HTTPS, rewrites upstream redirects, and forwards cookies. Existing docs identify the project, preview trust policy, and minimum runtime date. [Proxy](../../../frontend/functions/api/[[path]].ts), [current operator guide](../../agents/CONFIGURATION.md)
+The current proxy uses externally supplied `CAMPLY_API_ORIGIN`, requires HTTPS, rewrites upstream redirects, and forwards cookies. Existing docs identify the project, preview trust policy, and minimum runtime date. [Proxy](../../../src/frontend/functions/api/[[path]].ts), [current operator guide](../../operations/CONFIGURATION.md)
 
 **Rationale**: This removes unwanted root folders while retaining framework discovery. The checked-in config must be validated with both preview/production bindings before eventual publication; no live values are inferred.
 

@@ -127,4 +127,17 @@ For this planning deliverable, the resolved spec/plan templates and `setup-plan.
 - The project's pinned Oxfmt 0.75.0 formatted the nine Markdown documents; its check and `git diff --check` passed.
 - The source branch still matched the fetched `origin/main` baseline when planning began. Only design documents and the global checklist changed; the active-feature pointer is ignored checkout-local state.
 
-Application builds, runtime suites, and hosted publication remain implementation work.
+## Implementation validation
+
+Implementation completed and verified on 2026-10-29:
+
+- **Packaging matrix**: All 44 tests in `tests/packaging/` passed, including direct wheels, source distributions with frozen frontend builds, and sdist-to-wheel rebuilding without Node/pnpm/npm.
+- **Python test suite**: All 697 tests passed across all subpackages (`src/camply/cli`, `src/camply/db`, `src/camply/providers`, `src/camply/server`, `src/camply/worker`).
+- **Frontend test suite**: All 339 unit/component tests passed across 35 test files in `src/frontend/`.
+- **Standalone runtime**: `task standalone:test` verified core-only installed wheel, Chromium UI rendering, SQLite database recovery, and client routing.
+- **Type checking**: `task check` passed cleanly (mypy on 124 Python source files and 4 TypeScript project configurations).
+- **Architecture and import boundaries**: `task backend:imports` verified all 6 architectural contracts with 0 violations.
+- **API contract**: `task api:check` confirmed OpenAPI schema generation and TypeScript client synchronization without drift.
+- **Deployment and release**: Verified 12 release tests, Dockerfile multi-stage builds (`backend` and `frontend` targets), non-root execution, Node-free runtime containers, packaged Gunicorn configuration, and Compose parity across all services.
+- **Spec-Kit migration**: `tests/test_specify_workflows.py` verified feature creation, sequence numbering, plan/tasks setup, and link resolution under `docs/specs/`.
+- **Pre-commit**: All pre-commit hooks passed on all files.

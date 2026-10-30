@@ -32,6 +32,7 @@ venv/
 ENV/
 
 # Development Tools
+.wrangler/
 .mypy_cache/
 .ruff_cache/
 .import_linter_cache/
@@ -78,17 +79,8 @@ temp/
 # Data
 .data/
 
-# API Clients
-backend/clients/
-
 # Git Worktrees
 .worktrees/
 
-# Snapshot Transient Runs
-frontend/snapshots/current/
-frontend/snapshots/diffs/
-frontend/snapshots/before/
-frontend/snapshots/report.html
-
-# Bundled frontend build assets
-backend/src/camply/server/static/
+# Bundled assets exist only inside release archives.
+src/camply/server/static/
