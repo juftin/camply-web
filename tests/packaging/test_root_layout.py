@@ -10,6 +10,7 @@ def test_root_build_configuration() -> None:
     with (root / "pyproject.toml").open("rb") as stream:
         config = tomllib.load(stream)
     assert (
-        config["tool"]["hatch"]["build"]["hooks"]["custom"]["path"] == "hatch_build.py"
+        config["tool"]["hatch"]["build"]["hooks"]["custom"]["path"]
+        == "src/hatchling/plugin.py"
     )
     assert (root / "src/camply/server/gunicorn.py").is_file()

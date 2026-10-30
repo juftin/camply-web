@@ -1,5 +1,5 @@
 {
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
   "plugins": [],
   "categories": {
     "correctness": "off"
@@ -106,7 +106,7 @@
       "plugins": ["typescript", "react"]
     },
     {
-      "files": ["src/frontend/tooling/**/*.ts", "vite.config.ts"],
+      "files": ["**/tooling/**/*.ts", "**/vite.config.ts"],
       "env": {
         "node": true
       }

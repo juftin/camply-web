@@ -56,16 +56,16 @@ packages = ["src/camply"]
 exclude = ["/src/camply/server/static"]
 
 [tool.hatch.build.hooks.custom]
-path = "hatch_build.py"
+path = "src/hatchling/plugin.py"
 
 [tool.hatch.build.targets.sdist]
 include = [
   "/src/camply",
   "/src/frontend",
+  "/src/hatchling",
   "/README.md",
   "/LICENSE",
   "/alembic.ini",
-  "/hatch_build.py",
   "/package.json",
   "/pnpm-lock.yaml",
   "/pnpm-workspace.yaml",

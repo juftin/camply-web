@@ -61,7 +61,7 @@ Run `task standalone:test` for a clean installed-wheel dependency audit plus rea
     ```
 
 2.  **Configure Environment**:
-    - Copy `.env.example` to `.env`: `cp .env.example .env`.
+    - Copy `.env.example` to `.env`: `cp docs/examples/.env.example .env`.
     - Adjust any settings as needed (see [docs/CONFIGURATION.md](../operations/CONFIGURATION.md)).
     - Choose `CAMPLY_AUTH_MODE=none` (default automatic admin login), `session` (in-app password login), or `auth0`. The choice is independent of `CAMPLY_ENVIRONMENT`; see CONFIGURATION.md for the required settings.
 

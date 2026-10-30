@@ -26,15 +26,13 @@ def test_complete_archive_contents(artifacts: dict[str, Path]) -> None:
                 for path in names
             )
             assert not any(
-                "node_modules" in path
-                or "src/frontend" in path
-                or "hatch_build" in path
+                "node_modules" in path or "src/frontend" in path or "hatchling" in path
                 for path in names
             )
     with tarfile.open(artifacts["sdist"]) as archive:
         names = [name.partition("/")[2] for name in archive.getnames()]
         for expected in (
-            "hatch_build.py",
+            "src/hatchling/plugin.py",
             "package.json",
             "pnpm-lock.yaml",
             "src/frontend/main.tsx",

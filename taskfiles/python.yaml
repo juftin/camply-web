@@ -3,7 +3,7 @@
 version: "3"
 
 vars:
-  SOURCE_CODE: src/camply hatch_build.py
+  SOURCE_CODE: src/camply src/hatchling
   PACKAGING_PYTHON: '{{.PACKAGING_PYTHON | default "3.14"}}'
 
 env:
@@ -33,14 +33,14 @@ tasks:
     desc: Fix Code with Linters and Formatters
     cmds:
       - task: fmt
-      - uv run --all-extras -- ruff check --fix {{.CLI_ARGS | default "src/camply tests hatch_build.py"}}
+      - uv run --all-extras -- ruff check --fix {{.CLI_ARGS | default "src/camply src/hatchling tests"}}
     deps: [sync]
 
   lint:
     desc: Run Formatting, Code, and Import Architecture Checks
     cmds:
-      - uv run --all-extras -- ruff format --check {{.CLI_ARGS | default "src/camply tests hatch_build.py"}}
-      - uv run --all-extras -- ruff check {{.CLI_ARGS | default "src/camply tests hatch_build.py"}}
+      - uv run --all-extras -- ruff format --check {{.CLI_ARGS | default "src/camply src/hatchling tests"}}
+      - uv run --all-extras -- ruff check {{.CLI_ARGS | default "src/camply src/hatchling tests"}}
       - task: imports
         vars:
           CLI_ARGS: ""
@@ -67,7 +67,7 @@ tasks:
   fmt:
     desc: Run Code Formatters
     cmds:
-      - uv run --all-extras -- ruff format {{.CLI_ARGS | default "src/camply tests hatch_build.py"}}
+      - uv run --all-extras -- ruff format {{.CLI_ARGS | default "src/camply src/hatchling tests"}}
     deps: [sync]
 
   dev:

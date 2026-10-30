@@ -34,7 +34,7 @@ ROOT_INPUTS = (
     "vite.config.ts",
     "tailwind.config.js",
     "postcss.config.js",
-    "hatch_build.py",
+    "src/hatchling/plugin.py",
 )
 """Root configuration whose contents determine the prepared frontend."""
 

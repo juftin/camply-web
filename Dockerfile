@@ -14,7 +14,7 @@ FROM python-base AS application-build
 # Only this shared build stage needs JavaScript tooling.
 COPY --from=node /usr/local/ /usr/local/
 RUN corepack enable pnpm && corepack prepare pnpm@12.15.0 --activate
-COPY pyproject.toml uv.lock hatch_build.py README.md LICENSE alembic.ini ./
+COPY pyproject.toml uv.lock README.md LICENSE alembic.ini ./
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version .python-version ./
 COPY vite.config.ts tsconfig*.json tailwind.config.js postcss.config.js ./
 COPY src/ src/

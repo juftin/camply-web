@@ -13,7 +13,8 @@ from unittest.mock import Mock
 import pytest
 
 spec = importlib.util.spec_from_file_location(
-    "camply_build", Path(__file__).resolve().parents[1] / "hatch_build.py"
+    "camply_build",
+    Path(__file__).resolve().parents[1] / "src" / "hatchling" / "plugin.py",
 )
 assert spec is not None and spec.loader is not None
 hook_module = importlib.util.module_from_spec(spec)
@@ -24,7 +25,9 @@ spec.loader.exec_module(hook_module)
 def project(tmp_path: Path) -> Path:
     """Supply synthetic source inputs without copying dependencies or actual secrets."""
     for name in hook_module.ROOT_INPUTS:
-        (tmp_path / name).write_text("synthetic input")
+        target_path = tmp_path / name
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_text("synthetic input")
     (tmp_path / "pyproject.toml").write_text(
         '[project]\nname = "camply"\nversion = "1.2.3"\n'
     )
