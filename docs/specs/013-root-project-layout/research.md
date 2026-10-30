@@ -31,7 +31,7 @@ Hatch supports build-data forced inclusion and explicit generated artifacts. Def
 
 **Decision**: Share application build stages and retain separate backend/frontend runtime targets and existing image names.
 
-**Evidence**: Root Compose currently includes two project-relative Compose files; backend/worker/beat share the backend image. The Bake release overlay and release tests assume backend/frontend target identities. [Compose entrypoint](../../../docker-compose.yaml), [release overlay](../../../docker-bake.release.hcl), [release tests](../../../tests/release.test.mjs)
+**Evidence**: Root Compose currently includes two project-relative Compose files; backend/worker/beat share the backend image. The Bake release overlay and release tests assume backend/frontend target identities. [Compose entrypoint](../../../docker-compose.yaml), [release overlay](../../../deploy/docker-bake.release.hcl), [release tests](../../../tests/release.test.mjs)
 
 **Rationale**: The user requested definition consolidation, not deployment-topology changes. Explicit root contexts and normalized before/after configuration checks protect mounts and environment semantics.
 

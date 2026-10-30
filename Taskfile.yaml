@@ -273,7 +273,7 @@ tasks:
     internal: true
     cmd: >-
       RELEASE_VERSION='{{.RELEASE_VERSION}}'
-      docker buildx bake --file docker-compose.yaml --file docker-bake.release.hcl --push
+      docker buildx bake --file docker-compose.yaml --file deploy/docker-bake.release.hcl --push
       --set '*.labels.org.opencontainers.image.version={{.IMAGE_VERSION}}'
       --set '*.labels.org.opencontainers.image.revision={{.GITHUB_SHA | default "local"}}'
       --set '*.labels.org.opencontainers.image.source=https://github.com/juftin/camply-web'

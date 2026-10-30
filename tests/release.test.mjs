@@ -28,7 +28,7 @@ function fixture(t, { sources = false } = {}) {
     "uv.lock",
     "package.json",
     "docker-compose.yaml",
-    "docker-bake.release.hcl",
+    "deploy/docker-bake.release.hcl",
     ".python-version",
     "README.md",
     "LICENSE",
@@ -40,17 +40,12 @@ function fixture(t, { sources = false } = {}) {
   if (sources) {
     for (const file of [
       "src",
-      "alembic.ini",
       "pnpm-lock.yaml",
       "pnpm-workspace.yaml",
       ".node-version",
       "vite.config.ts",
       "tsconfig.json",
       "tsconfig.node.json",
-      "tsconfig.snapshots.json",
-      "tsconfig.functions.json",
-      "tailwind.config.js",
-      "postcss.config.js",
     ]) {
       cpSync(join(root, file), join(directory, file), { recursive: true });
     }
@@ -136,8 +131,8 @@ test("one wheel and sdist contain stamped metadata and support standalone rebuil
     "camply-2.3.4.tar.gz",
   ]);
   const config = JSON.parse(
-    readFileSync(join(root, ".releaserc.json"), "utf8"),
-  );
+    readFileSync(join(root, "package.json"), "utf8"),
+  ).release;
   const [, github] = config.plugins.find(
     (plugin) =>
       Array.isArray(plugin) && plugin[0] === "@semantic-release/github",
@@ -408,8 +403,8 @@ test("publisher selects the full release tag or exact main SHA and rejects other
 test("semantic release signals publication only after preparing source assets", (t) => {
   const directory = fixture(t);
   const config = JSON.parse(
-    readFileSync(join(root, ".releaserc.json"), "utf8"),
-  );
+    readFileSync(join(root, "package.json"), "utf8"),
+  ).release;
   const [, exec] = config.plugins.find(
     (plugin) => Array.isArray(plugin) && plugin[0] === "@semantic-release/exec",
   );

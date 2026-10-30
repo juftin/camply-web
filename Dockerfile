@@ -14,9 +14,9 @@ FROM python-base AS application-build
 # Only this shared build stage needs JavaScript tooling.
 COPY --from=node /usr/local/ /usr/local/
 RUN corepack enable pnpm && corepack prepare pnpm@12.15.0 --activate
-COPY pyproject.toml uv.lock README.md LICENSE alembic.ini ./
+COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version .python-version ./
-COPY vite.config.ts tsconfig*.json tailwind.config.js postcss.config.js ./
+COPY vite.config.ts tsconfig*.json ./
 COPY src/ src/
 ARG CAMPLY_API_URL
 ARG VITE_ENABLE_COMMUNITY_PAGES=false

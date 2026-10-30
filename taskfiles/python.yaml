@@ -112,7 +112,7 @@ tasks:
   migration:
     desc: Run Alembic Migration (task migration -- revision message)
     cmds:
-      - uv run --all-extras -- alembic revision --autogenerate -m "{{.CLI_ARGS}}"
+      - uv run --all-extras -- alembic -c src/camply/db/alembic.ini revision --autogenerate -m "{{.CLI_ARGS}}"
     deps: [sync]
     preconditions:
       - sh: '[[ -z "{{.CLI_ARGS}}" ]] && exit 1 || exit 0'
@@ -120,7 +120,7 @@ tasks:
   migration-upgrade:
     desc: Run Alembic Migration Upgrade
     cmds:
-      - uv run --all-extras -- alembic upgrade head {{.CLI_ARGS}}
+      - uv run --all-extras -- alembic -c src/camply/db/alembic.ini upgrade head {{.CLI_ARGS}}
     deps: [sync]
 
   migration:test:

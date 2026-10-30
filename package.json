@@ -6,11 +6,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
-    "build": "node node_modules/@typescript/native/bin/tsc --project tsconfig.json --noEmit && node node_modules/@typescript/native/bin/tsc --project tsconfig.node.json --noEmit && node node_modules/@typescript/native/bin/tsc --project tsconfig.snapshots.json --noEmit && node node_modules/@typescript/native/bin/tsc --project tsconfig.functions.json --noEmit && vite build --config vite.config.ts",
+    "build": "node node_modules/@typescript/native/bin/tsc --project tsconfig.json --noEmit && node node_modules/@typescript/native/bin/tsc --project tsconfig.node.json --noEmit && node node_modules/@typescript/native/bin/tsc --project src/frontend/functions/tsconfig.json --noEmit && vite build --config vite.config.ts",
     "lint": "oxlint -c src/frontend/.oxlintrc.json src/frontend vite.config.ts --report-unused-disable-directives --max-warnings 0 && oxfmt -c src/frontend/.oxfmtrc.json --ignore-path src/frontend/.oxfmtignore --check .",
     "fix": "oxlint -c src/frontend/.oxlintrc.json src/frontend vite.config.ts --fix && oxfmt -c src/frontend/.oxfmtrc.json --ignore-path src/frontend/.oxfmtignore .",
     "preview": "vite preview --config vite.config.ts",
-    "typecheck": "node node_modules/@typescript/native/bin/tsc --project tsconfig.json --noEmit && node node_modules/@typescript/native/bin/tsc --project tsconfig.node.json --noEmit && node node_modules/@typescript/native/bin/tsc --project tsconfig.snapshots.json --noEmit && node node_modules/@typescript/native/bin/tsc --project tsconfig.functions.json --noEmit",
+    "typecheck": "node node_modules/@typescript/native/bin/tsc --project tsconfig.json --noEmit && node node_modules/@typescript/native/bin/tsc --project tsconfig.node.json --noEmit && node node_modules/@typescript/native/bin/tsc --project src/frontend/functions/tsconfig.json --noEmit",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
@@ -78,5 +78,34 @@
   "engines": {
     "node": ">=24"
   },
-  "packageManager": "pnpm@12.15.0"
+  "packageManager": "pnpm@12.15.0",
+  "release": {
+    "branches": [
+      "main"
+    ],
+    "plugins": [
+      "semantic-release-gitmoji",
+      [
+        "@semantic-release/exec",
+        {
+          "prepareCmd": "task release:prepare RELEASE_VERSION=${nextRelease.version} && task dist",
+          "successCmd": "touch .release-published"
+        }
+      ],
+      [
+        "@semantic-release/github",
+        {
+          "assets": [
+            "dist/*.whl",
+            "dist/*.tar.gz"
+          ],
+          "failComment": false,
+          "failTitle": false,
+          "releasedLabels": false,
+          "successComment": false
+        }
+      ],
+      "semantic-release-major-tag"
+    ]
+  }
 }

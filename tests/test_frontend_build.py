@@ -33,7 +33,7 @@ def project(tmp_path: Path) -> Path:
     )
     (tmp_path / "package.json").write_text('{"version": "1.2.3"}')
     frontend = tmp_path / "src/frontend"
-    frontend.mkdir(parents=True)
+    frontend.mkdir(parents=True, exist_ok=True)
     (frontend / "main.tsx").write_text("synthetic frontend")
     return tmp_path
 

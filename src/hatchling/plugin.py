@@ -32,8 +32,7 @@ ROOT_INPUTS = (
     "pnpm-workspace.yaml",
     ".node-version",
     "vite.config.ts",
-    "tailwind.config.js",
-    "postcss.config.js",
+    "src/frontend/tailwind.config.js",
     "src/hatchling/plugin.py",
 )
 """Root configuration whose contents determine the prepared frontend."""

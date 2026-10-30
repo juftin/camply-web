@@ -1,10 +1,25 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import tailwindcss from "tailwindcss";
+import autoprefixer from "autoprefixer";
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  css: {
+    postcss: {
+      plugins: [
+        tailwindcss({
+          config: path.resolve(
+            import.meta.dirname,
+            "src/frontend/tailwind.config.js",
+          ),
+        }),
+        autoprefixer(),
+      ],
+    },
+  },
   root: path.resolve(import.meta.dirname, "src/frontend"),
   base:
     process.env.CAMPLY_STANDALONE_BUILD === "1"

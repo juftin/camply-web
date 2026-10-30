@@ -65,16 +65,13 @@ include = [
   "/src/hatchling",
   "/README.md",
   "/LICENSE",
-  "/alembic.ini",
   "/package.json",
   "/pnpm-lock.yaml",
   "/pnpm-workspace.yaml",
   "/.node-version",
   "/.python-version",
   "/vite.config.ts",
-  "/tsconfig*.json",
-  "/tailwind.config.js",
-  "/postcss.config.js"
+  "/tsconfig*.json"
 ]
 exclude = ["/src/frontend/node_modules", "/src/camply/server/static", "**/__pycache__", "**/*.tsbuildinfo", "**/.env*", "**/.dev.vars*", "/src/frontend/.wrangler"]
 
