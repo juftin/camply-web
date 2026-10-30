@@ -195,6 +195,9 @@ Feature specification: [Open-Source Maps & Explore Map View](../../specs/007-ope
 
 ### 4.2 Deployment
 
+- [x] Specify and plan the root project layout, complete frontend-bearing wheel/sdist builds, consolidated Docker/Compose, packaged Gunicorn, nested Pages/Wrangler tooling, and Spec-Kit documentation migration; see [root layout specification](../specs/013-root-project-layout/spec.md) and [implementation plan](../specs/013-root-project-layout/plan.md).
+- [ ] Implement and verify [feature 013](../specs/013-root-project-layout/plan.md), including the constitution directory amendment and all packaging/deployment/Spec-Kit acceptance checks.
+
 - [x] T4.2.1 Add separate release/publish workflows with CI-gated Gitmoji semantic releases using the shared cookiecutter infrastructure and the existing App through `APP_ID`/`APP_PRIVATE_KEY`, synchronized application build versions, full-version/major-alias GHCR images, latest images for successful main builds, Git major aliases via semantic-release-major-tag, workspace sdists attached to releases, publication regression checks, and [release operations documentation](RELEASES.md); see the [release plan](../../specs/009-release-ci/plan.md).
 - [x] T4.2.2 Specify and plan consolidation into one `camply` Python distribution with internal subpackages and optional runtime extras; see the [package migration plan](../../specs/012-python-package/plan.md). CLI implementation, local scheduling, UI bundling, and PyPI publication are excluded.
 - [x] T4.2.2a Resolve the migration's Python policy (`>=3.11` support; 3.14 development/primary CI/Docker/release defaults), align extras/tooling task order, and add a [requirements and acceptance checklist](../../specs/012-python-package/checklists/requirements.md).
