@@ -67,7 +67,7 @@ Vite serves development UI on port 5173 and proxies `/api` to the backend on por
 ```text
 /
 ├── pyproject.toml, uv.lock, package.json, pnpm-lock.yaml
-├── Taskfile.yaml, taskfiles/{python,frontend}.yaml
+├── Taskfile.yaml, tasks/{python,frontend}.yaml
 ├── Dockerfile, docker-compose.yaml, docker-bake.release.hcl
 ├── src/
 │   ├── camply/{cli,db,providers,server,worker}/

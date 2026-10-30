@@ -4,10 +4,10 @@ version: "3"
 
 includes:
   frontend:
-    taskfile: taskfiles/frontend.yaml
+    taskfile: tasks/frontend.yaml
     dir: .
   backend:
-    taskfile: taskfiles/python.yaml
+    taskfile: tasks/python.yaml
     dir: .
 
 tasks:

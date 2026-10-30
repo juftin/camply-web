@@ -16,7 +16,6 @@ COPY --from=node /usr/local/ /usr/local/
 RUN corepack enable pnpm && corepack prepare pnpm@12.15.0 --activate
 COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .python-version ./
-COPY vite.config.ts tsconfig*.json ./
 COPY src/ src/
 ARG CAMPLY_API_URL
 ARG VITE_ENABLE_COMMUNITY_PAGES=false

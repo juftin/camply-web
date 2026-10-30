@@ -11,16 +11,13 @@ export default defineConfig({
     postcss: {
       plugins: [
         tailwindcss({
-          config: path.resolve(
-            import.meta.dirname,
-            "src/frontend/tailwind.config.js",
-          ),
+          config: path.resolve(import.meta.dirname, "tailwind.config.js"),
         }),
         autoprefixer(),
       ],
     },
   },
-  root: path.resolve(import.meta.dirname, "src/frontend"),
+  root: import.meta.dirname,
   base:
     process.env.CAMPLY_STANDALONE_BUILD === "1"
       ? "/"
@@ -30,14 +27,14 @@ export default defineConfig({
   publicDir: "public",
   envDir: process.env.CAMPLY_STANDALONE_BUILD === "1" ? false : undefined,
   build: {
-    outDir: path.resolve(import.meta.dirname, "build/frontend"),
+    outDir: path.resolve(import.meta.dirname, "../../build/frontend"),
     emptyOutDir: true,
     // Preserve Vite 6's browser support when upgrading the bundler.
     target: ["es2020", "edge88", "firefox78", "chrome87", "safari14"],
   },
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "./src/frontend"),
+      "@": import.meta.dirname,
     },
   },
   server: {
@@ -57,8 +54,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    setupFiles: [
-      path.resolve(import.meta.dirname, "src/frontend/test/setup.ts"),
-    ],
+    setupFiles: [path.resolve(import.meta.dirname, "test/setup.ts")],
   },
 });

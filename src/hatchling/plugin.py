@@ -30,7 +30,7 @@ ROOT_INPUTS = (
     "package.json",
     "pnpm-lock.yaml",
     "pnpm-workspace.yaml",
-    "vite.config.ts",
+    "src/frontend/vite.config.ts",
     "src/frontend/tailwind.config.js",
     "src/hatchling/plugin.py",
 )

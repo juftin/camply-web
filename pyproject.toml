@@ -68,9 +68,7 @@ include = [
   "/package.json",
   "/pnpm-lock.yaml",
   "/pnpm-workspace.yaml",
-  "/.python-version",
-  "/vite.config.ts",
-  "/tsconfig*.json"
+  "/.python-version"
 ]
 exclude = ["/src/frontend/node_modules", "/src/camply/server/static", "**/__pycache__", "**/*.tsbuildinfo", "**/.env*", "**/.dev.vars*", "/src/frontend/.wrangler"]
 

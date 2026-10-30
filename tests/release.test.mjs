@@ -22,8 +22,8 @@ function fixture(t, { sources = false } = {}) {
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const files = [
     "Taskfile.yaml",
-    "taskfiles/python.yaml",
-    "taskfiles/frontend.yaml",
+    "tasks/python.yaml",
+    "tasks/frontend.yaml",
     "pyproject.toml",
     "uv.lock",
     "package.json",
@@ -38,13 +38,7 @@ function fixture(t, { sources = false } = {}) {
     cpSync(join(root, file), join(directory, file));
   }
   if (sources) {
-    for (const file of [
-      "src",
-      "pnpm-lock.yaml",
-      "pnpm-workspace.yaml",
-      "vite.config.ts",
-      "tsconfig.json",
-    ]) {
+    for (const file of ["src", "pnpm-lock.yaml", "pnpm-workspace.yaml"]) {
       cpSync(join(root, file), join(directory, file), { recursive: true });
     }
   }

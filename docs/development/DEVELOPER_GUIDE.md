@@ -191,7 +191,7 @@ Mapping setup needs no key by default. Public build-time overrides and productio
 
 ## Root packaging and source archives
 
-Root `pyproject.toml`/`uv.lock` and `package.json`/`pnpm-lock.yaml` own the environments. `taskfiles/python.yaml` and `taskfiles/frontend.yaml` both execute from the root. The `backend:*` namespace is retained for compatibility; it does not imply a nested Python project.
+Root `pyproject.toml`/`uv.lock` and `package.json`/`pnpm-lock.yaml` own the environments. `tasks/python.yaml` and `tasks/frontend.yaml` both execute from the root. The `backend:*` namespace is retained for compatibility; it does not imply a nested Python project.
 
 Run `uv run python -m build` after `task install`, or `python -m build` with the project interpreter. Standard checkout builds require Node 24 and pinned pnpm, install the frozen frontend dependency graph, and compile root-hosted `/api` assets. A missing toolchain or broken build is an error. The sdist contains rebuildable frontend inputs and prepared assets; its wheel can be rebuilt outside the repository without Node. Editable Python installs, dependency discovery, and Python-only checks do not compile the UI.
 

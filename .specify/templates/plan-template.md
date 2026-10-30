@@ -69,7 +69,7 @@ docs/specs/[###-feature]/
 pyproject.toml
 package.json
 Taskfile.yaml
-taskfiles/
+tasks/
 ├── python.yaml
 └── frontend.yaml
 src/
