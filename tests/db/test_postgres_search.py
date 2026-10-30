@@ -75,6 +75,7 @@ def postgres_url() -> Generator[str, None, None]:
             "CAMPLY_DB_DATABASE": "postgres",
         }
         db_dir = Path(__file__).resolve().parents[2]
+        alembic_config = db_dir / "src/camply/db/alembic.ini"
         # Exercise removal and recreation of the search indexes across merged history.
         for args in (
             ["upgrade", "head"],
@@ -82,7 +83,7 @@ def postgres_url() -> Generator[str, None, None]:
             ["upgrade", "head"],
         ):
             migrated = subprocess.run(
-                [sys.executable, "-m", "alembic", *args],
+                [sys.executable, "-m", "alembic", "-c", str(alembic_config), *args],
                 cwd=db_dir,
                 env=env,
                 check=False,

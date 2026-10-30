@@ -178,9 +178,9 @@ def test_manifest_records_only_supported_public_settings(
 
 def test_ignored_frontend_files_do_not_change_archive_inputs(project: Path) -> None:
     """Digest exactly the source set Hatch includes rather than ignored machine output."""
-    (project / ".gitignore").write_text(".DS_Store\n*.log\ntmp/\n")
+    (project / ".gitignore").write_text(".DS_Store\n*.log\ncache/\n")
     before = hook_module.input_digest(project, {})
-    for name in (".DS_Store", "debug.log", "tmp/ignored.ts"):
+    for name in (".DS_Store", "debug.log", "cache/ignored.ts"):
         path = project / "src/frontend" / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("synthetic ignored output")
