@@ -202,6 +202,19 @@ get_feature_paths() {
         local _fd
         _fd=$(read_feature_json_feature_directory "$repo_root")
         if [[ -n "$_fd" ]]; then
+            # Retain existing feature identities when their tracked directories move.
+            local relocated=""
+            if [[ "$_fd" == specs/* ]]; then
+                relocated="docs/$_fd"
+            elif [[ "$_fd" == "$repo_root/specs/"* ]]; then
+                relocated="docs/specs/${_fd#"$repo_root/specs/"}"
+            fi
+            if [[ -n "$relocated" && -d "$repo_root/$relocated" && ! -d "$repo_root/${_fd#"$repo_root/"}" ]]; then
+                _fd="$relocated"
+                if [[ "$no_persist" != true ]]; then
+                    _persist_feature_json "$repo_root" "$_fd"
+                fi
+            fi
             feature_dir="$_fd"
             # Normalize relative paths to absolute under repo root
             [[ "$feature_dir" != /* ]] && feature_dir="$repo_root/$feature_dir"

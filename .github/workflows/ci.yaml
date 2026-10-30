@@ -74,6 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-backend
+      - uses: ./.github/actions/setup-frontend
       - run: task backend:packaging:test
         env:
           PACKAGING_PYTHON: "3.14"
@@ -90,6 +91,7 @@ jobs:
       - uses: ./.github/actions/setup-backend
         with:
           python-version: "3.11"
+      - uses: ./.github/actions/setup-frontend
       - run: task backend:test
       - run: task backend:packaging:test
 
@@ -144,6 +146,7 @@ jobs:
       - uses: ./.github/actions/setup-backend
       - uses: ./.github/actions/setup-frontend
       - run: task api:check
+      - run: task frontend:pages:check
 
   search-smoke:
     name: PostgreSQL Search
@@ -169,7 +172,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: map-verification
-          path: frontend/tmp/maps-*
+          path: tmp/maps-*
           if-no-files-found: ignore
 
   admin-smoke:
@@ -202,12 +205,12 @@ jobs:
         with:
           name: ui-snapshots-report
           path: |
-            frontend/snapshots/REPORT.md
-            frontend/snapshots/report.html
-            frontend/snapshots/diffs/
-            frontend/snapshots/current/
-            frontend/snapshots/before/
-            frontend/tmp/snapshot-gallery/
+            tmp/snapshots/REPORT.md
+            tmp/snapshots/report.html
+            tmp/snapshots/diffs/
+            tmp/snapshots/current/
+            tmp/snapshots/before/
+            tmp/snapshot-gallery/
           if-no-files-found: ignore
 
   frontend-docker:

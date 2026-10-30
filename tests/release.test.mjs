@@ -22,29 +22,23 @@ function fixture(t, { sources = false } = {}) {
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const files = [
     "Taskfile.yaml",
-    "backend/Taskfile.yaml",
-    "frontend/Taskfile.yaml",
-    "backend/pyproject.toml",
-    "backend/uv.lock",
-    "frontend/package.json",
+    "tasks/python.yaml",
+    "tasks/frontend.yaml",
+    "pyproject.toml",
+    "uv.lock",
+    "package.json",
     "docker-compose.yaml",
-    "docker-bake.release.hcl",
-    "backend/docker-compose.yaml",
-    "frontend/docker-compose.yaml",
-    "backend/.python-version",
-    "backend/README.md",
-    "backend/LICENSE",
+    "deploy/docker-bake.release.hcl",
+    ".python-version",
+    "README.md",
+    "LICENSE",
   ];
   for (const file of files) {
     mkdirSync(dirname(join(directory, file)), { recursive: true });
     cpSync(join(root, file), join(directory, file));
   }
   if (sources) {
-    for (const file of [
-      "backend/src",
-      "backend/config",
-      "backend/alembic.ini",
-    ]) {
+    for (const file of ["src", "pnpm-lock.yaml", "pnpm-workspace.yaml"]) {
       cpSync(join(root, file), join(directory, file), { recursive: true });
     }
   }
@@ -77,10 +71,10 @@ test("release preparation stamps both applications and keeps the lock usable", (
   });
   assert.equal(result.status, 0, result.stderr);
   assert.match(
-    readFileSync(join(directory, "backend/pyproject.toml"), "utf8"),
+    readFileSync(join(directory, "pyproject.toml"), "utf8"),
     /version = "2\.3\.4"/,
   );
-  const lock = readFileSync(join(directory, "backend/uv.lock"), "utf8");
+  const lock = readFileSync(join(directory, "uv.lock"), "utf8");
   assert.ok(lock.includes('name = "camply"\nversion = "2.3.4"'));
   for (const name of [
     "camply-backend",
@@ -92,11 +86,11 @@ test("release preparation stamps both applications and keeps the lock usable", (
     assert.ok(!lock.includes(`name = "${name}"\nversion = "2.3.4"`));
   }
   const frontend = JSON.parse(
-    readFileSync(join(directory, "frontend/package.json"), "utf8"),
+    readFileSync(join(directory, "package.json"), "utf8"),
   );
   assert.equal(frontend.version, "2.3.4");
   const check = spawnSync("uv", ["lock", "--check", "--offline"], {
-    cwd: join(directory, "backend"),
+    cwd: directory,
     encoding: "utf8",
     env: {
       ...process.env,
@@ -129,8 +123,8 @@ test("one wheel and sdist contain stamped metadata and support standalone rebuil
     "camply-2.3.4.tar.gz",
   ]);
   const config = JSON.parse(
-    readFileSync(join(root, ".releaserc.json"), "utf8"),
-  );
+    readFileSync(join(root, "package.json"), "utf8"),
+  ).release;
   const [, github] = config.plugins.find(
     (plugin) =>
       Array.isArray(plugin) && plugin[0] === "@semantic-release/github",
@@ -180,6 +174,10 @@ test("one wheel and sdist contain stamped metadata and support standalone rebuil
     "src/camply/py.typed",
     "src/camply/db/migrations/env.py",
     "src/camply/db/migrations/script.py.mako",
+    "src/camply/server/gunicorn.py",
+    "src/camply/server/static/index.html",
+    "src/frontend/index.html",
+    "build/frontend-manifest.json",
   ]) {
     assert.ok(contents.stdout.includes(`camply-2.3.4/${file}`), file);
   }
@@ -217,6 +215,8 @@ test("one wheel and sdist contain stamped metadata and support standalone rebuil
       "camply/py.typed",
       "camply/db/migrations/env.py",
       "camply/db/migrations/script.py.mako",
+      "camply/server/gunicorn.py",
+      "camply/server/static/index.html",
     ])
       assert.ok(listed.stdout.split("\n").includes(file), file);
     assert.match(
@@ -228,11 +228,11 @@ test("one wheel and sdist contain stamped metadata and support standalone rebuil
 
 test("runtime defaults and compatibility checks preserve the Python support policy", () => {
   assert.equal(
-    readFileSync(join(root, "backend/.python-version"), "utf8").trim(),
+    readFileSync(join(root, ".python-version"), "utf8").trim(),
     "3.14",
   );
   assert.match(
-    readFileSync(join(root, "backend/Dockerfile"), "utf8"),
+    readFileSync(join(root, "Dockerfile"), "utf8"),
     /ARG PYTHON_VERSION=3\.14/,
   );
   assert.match(
@@ -252,7 +252,8 @@ for (const [version, major] of [
   ["2.3.4", "v2"],
 ]) {
   test(`release ${version} publishes its version, ${major}, and latest with a same-origin API`, (t) => {
-    const result = task(fixture(t), ["publish", "--", "--print"], {
+    const directory = fixture(t);
+    const result = task(directory, ["publish", "--", "--print"], {
       CI: "true",
       RELEASE_VERSION: version,
       GITHUB_SHA: "0123456789abcdef",
@@ -276,7 +277,9 @@ for (const [version, major] of [
         target.labels["org.opencontainers.image.source"],
         "https://github.com/juftin/camply-web",
       );
-      assert.ok(target.context.endsWith(name));
+      assert.equal(target.context, ".");
+      assert.equal(target.target, name);
+      assert.equal(target.dockerfile, "Dockerfile");
     }
     assert.equal(plan.target.frontend.args.CAMPLY_API_URL, "");
   });
@@ -392,8 +395,8 @@ test("publisher selects the full release tag or exact main SHA and rejects other
 test("semantic release signals publication only after preparing source assets", (t) => {
   const directory = fixture(t);
   const config = JSON.parse(
-    readFileSync(join(root, ".releaserc.json"), "utf8"),
-  );
+    readFileSync(join(root, "package.json"), "utf8"),
+  ).release;
   const [, exec] = config.plugins.find(
     (plugin) => Array.isArray(plugin) && plugin[0] === "@semantic-release/exec",
   );
@@ -409,4 +412,98 @@ test("semantic release signals publication only after preparing source assets", 
   });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(marker(), true);
+});
+
+test("container definitions share one build and retain Node-free runtime users", () => {
+  const dockerfile = readFileSync(join(root, "Dockerfile"), "utf8");
+  assert.match(dockerfile, /AS application-build/i);
+  assert.equal((dockerfile.match(/RUN uv build/g) ?? []).length, 1);
+  assert.match(dockerfile, /AS backend[\s\S]*USER camply/);
+  assert.match(dockerfile, /AS frontend[\s\S]*USER nginx/);
+  assert.match(dockerfile, /python:camply\.server\.gunicorn/);
+  assert.match(
+    dockerfile,
+    /COPY --from=application-build \/app\/build\/frontend/,
+  );
+  for (const file of [
+    "backend/Dockerfile",
+    "frontend/Dockerfile",
+    "backend/docker-compose.yaml",
+    "frontend/docker-compose.yaml",
+  ]) {
+    assert.equal(globSync(file, { cwd: root }).length, 0, file);
+  }
+});
+
+test("distributed Compose retains services, persistent storage, and API relationships", () => {
+  const rendered = spawnSync(
+    "docker",
+    ["compose", "--env-file", "/dev/null", "config", "--format", "json"],
+    {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        PATH: process.env.PATH,
+        HOME: process.env.HOME,
+        COMPOSE_DISABLE_ENV_FILE: "1",
+      },
+    },
+  );
+  assert.equal(rendered.status, 0, rendered.stderr);
+  const config = JSON.parse(rendered.stdout);
+  assert.deepEqual(Object.keys(config.services).sort(), [
+    "backend",
+    "celery-beat",
+    "celery-worker",
+    "db",
+    "frontend",
+    "prometheus",
+    "valkey",
+  ]);
+  assert.deepEqual(Object.keys(config.volumes).sort(), [
+    "db_data",
+    "prometheus_data",
+    "valkey_data",
+  ]);
+  for (const name of ["backend", "celery-worker", "celery-beat"]) {
+    const service = config.services[name];
+    assert.equal(service.image, "ghcr.io/juftin/camply-backend:local");
+    assert.equal(service.build.context, root.replace(/\/$/, ""));
+    assert.equal(service.build.target, "backend");
+    assert.equal(service.environment.CAMPLY_DB_HOST, "db");
+    assert.equal(
+      service.environment.CAMPLY_VALKEY_URL,
+      "redis://valkey:6379/0",
+    );
+    assert.equal(service.depends_on.db.condition, "service_healthy");
+    assert.ok(
+      service.volumes.some(
+        (volume) =>
+          volume.type === "bind" &&
+          volume.source.endsWith("/.data/camply") &&
+          volume.target === "/home/camply/.local/share/camply",
+      ),
+    );
+  }
+  assert.equal(config.services.frontend.build.target, "frontend");
+  assert.equal(
+    config.services.frontend.depends_on.backend.condition,
+    "service_healthy",
+  );
+  assert.equal(
+    config.services.backend.healthcheck.test.at(-1),
+    "http://localhost:8000/api/health",
+  );
+  assert.equal(
+    config.services.frontend.healthcheck.test.at(-1),
+    "http://localhost:8080/healthz",
+  );
+  assert.ok(
+    config.services.prometheus.volumes.some(
+      (volume) =>
+        volume.source.endsWith(
+          "/deploy/monitoring/prometheus/prometheus.yml",
+        ) && volume.read_only,
+    ),
+  );
 });

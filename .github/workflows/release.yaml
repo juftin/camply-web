@@ -38,6 +38,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup-backend
+      - uses: ./.github/actions/setup-frontend
       - name: Generate release token with the existing Renovate App
         id: app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
@@ -51,7 +52,8 @@ jobs:
         with:
           node-version: lts/*
       - name: Install npm compatible with the shared release lockfile
-        # The shared action selects the same Node LTS; npm 11 rejects its lockfile.
+        # Match the shared action's Node installation so it retains npm 10.
+        # npm 11 rejects the shared action's release lockfile.
         run: npm install --global npm@10.9.9
       - name: Semantic release
         uses: juftin/actions/semantic-release@5a54b64fe07d8de40f92676cae6b56c565ec28b2 # v1.4.0
