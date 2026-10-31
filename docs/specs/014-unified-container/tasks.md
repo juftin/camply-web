@@ -21,3 +21,9 @@
 - [x] Support `CAMPLY_BACKEND_URL` in the frontend launcher and Compose, preserving the current default and Nginx variables; verify configuration rendering and synthetic upstream routing.
 
 Validation: CLI, entrypoint, installed-wheel/sdist resources, optional dependency boundaries, and rendered release/Compose plans passed. A shared runtime built from the real local wheel passed frontend/backend startup, API migrations and proxying, wheel-identical assets, SPA routes, worker/beat argument forwarding, non-root operation, and graceful shutdown. Lint, types, pre-commit hooks, and ShellCheck passed. The full source Docker build passed in CI; local Docker builds remain constrained by available storage.
+
+- [x] Gate Compose workers/beat on a healthy, migrated backend and verify fresh-database startup ordering.
+- [x] Add opt-in provider-sync dispatch to the beat CLI, preserving expiry, error propagation, native arguments, dependency checks, and exec.
+- [x] Use the beat option in Compose and update deployment guidance, installed-artifact tests, and the global checklist.
+
+Fresh-start evidence: a source-mounted Python runtime with fresh test-owned PostgreSQL and Valkey volumes reached Alembic revision `4d64e0e4ae18`; Docker timestamps placed worker/beat startup after API health, and the broker held exactly one `camply.catalog.sync_all_providers` message with `expiration=600000`. The worker consumed a synthetic empty queue so no booking-provider requests ran. This exercises runtime code and Compose dependencies without rebuilding the final shared image.

@@ -78,7 +78,7 @@ Build the shared image with `task build`. The default command is `camply serve b
 | Worker     | `camply serve worker`            |
 | Scheduler  | `camply serve beat`              |
 
-`camply serve backend` applies database migrations unless `SKIP_MIGRATIONS=1`; frontend and worker commands do not migrate. Compose retains its initial provider-sync dispatch before starting beat. Set `CAMPLY_VERSION` to select the image tag in Compose. PostgreSQL, Valkey, and Prometheus keep their upstream images.
+`camply serve backend` applies database migrations unless `SKIP_MIGRATIONS=1`; frontend and worker commands do not migrate. Compose waits for the backend's post-migration health check before starting workers or beat. Its scheduler runs `camply serve beat --sync-providers` to enqueue the initial catalog sync before starting beat. Bare `camply serve beat` does not enqueue a startup sync; the option preserves the task's ten-minute expiry and exits on dispatch failure. Set `CAMPLY_VERSION` to select the image tag in Compose. PostgreSQL, Valkey, and Prometheus keep their upstream images.
 
 Outside Docker, standalone and backend serving require `camply[server]`, and worker/beat require `camply[distributed]`. The frontend requires system Nginx and a prepared wheel with built assets. Launchers check dependencies before startup and use the CLI's Python environment. Help remains available with only the base package installed.
 

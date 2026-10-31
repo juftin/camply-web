@@ -17,6 +17,7 @@ import pytest
         (["camply", "serve", "backend"], False, False),
         (["camply", "serve", "worker"], False, False),
         (["camply", "serve", "beat"], False, False),
+        (["camply", "serve", "beat", "--sync-providers"], False, False),
         (["gunicorn", "camply.server.app:app"], False, True),
         (["celery", "worker"], True, False),
         (["celery", "beat"], True, False),

@@ -91,6 +91,21 @@ CAMPLY_BACKEND_URL=http://api.internal:9000 camply serve frontend
 
 Use an origin without a trailing slash to retain `/api/`: `/api/health` forwards to `http://api.internal:9000/api/health`. A URL with a URI path uses [Nginx's normal prefix replacement rules](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass). Restart the frontend after changing the variable. Browser requests continue to use the frontend's same-origin `/api/` endpoint.
 
+## Distributed startup
+
+`camply serve backend` finishes database migrations before launching the API. Compose workers
+and beat depend on the backend's health check as well as healthy PostgreSQL and Valkey, so they
+cannot process tasks against a schema still being migrated. Kubernetes deployments should make
+worker/beat startup wait for the migrated API's health endpoint or an explicit migration Job;
+a database TCP check alone does not establish schema readiness.
+
+Compose runs `camply serve beat --sync-providers`. The opt-in flag enqueues
+`camply.catalog.sync_all_providers` with a ten-minute expiry before replacing the CLI with Celery
+beat. Dispatch uses the same Python environment as the CLI, and a nonzero dispatch exit stops
+startup. Bare `camply serve beat` keeps its existing schedule without dispatching an initial sync.
+The flag requests work asynchronously; it does not wait for provider ingestion to finish.
+Workers and beat never apply database migrations, including when the sync flag is set.
+
 ## Process shutdown
 
 Serving commands use process replacement (`exec`) to run in the foreground. Gunicorn, Celery worker/beat, and Nginx retain their native signal handling and child-process management. Bare `camply serve` runs Uvicorn in the main thread with one worker, so its normal shutdown invokes application lifespan cleanup: stop local scheduling, drain/cancel background work, and close database resources.

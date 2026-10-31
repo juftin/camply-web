@@ -9,6 +9,7 @@ import importlib.util
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 from importlib.resources import files
@@ -170,15 +171,41 @@ def serve_worker(args: tuple[str, ...]) -> None:
 
 
 @serve.command(name="beat", context_settings={"ignore_unknown_options": True})
+@click.option(
+    "--sync-providers",
+    is_flag=True,
+    help="Enqueue an initial provider catalog sync before starting the scheduler.",
+)
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
-def serve_beat(args: tuple[str, ...]) -> None:
-    """Schedule background tasks; forward arguments to Celery beat."""
-    _worker_process("beat", args)
+def serve_beat(sync_providers: bool, args: tuple[str, ...]) -> None:
+    """Schedule background tasks; optionally enqueue a provider sync before exec."""
+    _worker_process("beat", args, sync_providers=sync_providers)
 
 
-def _worker_process(command: str, args: tuple[str, ...]) -> None:
-    """Replace the CLI with a distributed process without importing worker code."""
+def _worker_process(
+    command: str, args: tuple[str, ...], *, sync_providers: bool = False
+) -> None:
+    """Check dependencies, optionally dispatch a sync, then exec the distributed role."""
     _require_modules("distributed", ("celery", "redis", "prometheus_client"))
+    if sync_providers:
+        try:
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "celery",
+                    "-A",
+                    "camply.worker.celery_app",
+                    "call",
+                    "camply.catalog.sync_all_providers",
+                    "--expires=600",
+                ],
+                check=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            raise click.ClickException(
+                f"Could not enqueue provider sync (exit status {exc.returncode})."
+            ) from exc
     os.execv(
         sys.executable,
         [

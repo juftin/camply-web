@@ -204,6 +204,45 @@ def test_worker_only_registration(install: Callable[[str], Installation]) -> Non
     """)
 
 
+@pytest.mark.parametrize("sync_providers", [False, True])
+def test_installed_beat_provider_sync(
+    install: Callable[[str], Installation], sync_providers: bool
+) -> None:
+    """Distributed-only artifacts enqueue the optional sync before replacing the CLI."""
+    install("distributed").run(
+        f"        sync_providers = {sync_providers!r}\n"
+        + """
+        import sys
+        from unittest.mock import Mock, patch
+        from click.testing import CliRunner
+        from camply.cli.main import cli
+
+        calls = Mock()
+        calls.attach_mock(Mock(), 'dispatch')
+        calls.attach_mock(Mock(side_effect=SystemExit(0)), 'execute')
+        arguments = ['serve', 'beat', '--schedule', '/tmp/synthetic-beat']
+        if sync_providers:
+            arguments.append('--sync-providers')
+        with patch('subprocess.run', calls.dispatch), patch('os.execv', calls.execute):
+            result = CliRunner().invoke(cli, arguments)
+        assert result.exit_code == 0, result.output
+        assert [entry[0] for entry in calls.mock_calls] == (
+            ['dispatch', 'execute'] if sync_providers else ['execute']
+        )
+        if sync_providers:
+            calls.dispatch.assert_called_once_with(
+                [sys.executable, '-m', 'celery', '-A', 'camply.worker.celery_app',
+                 'call', 'camply.catalog.sync_all_providers', '--expires=600'],
+                check=True,
+            )
+        assert calls.execute.call_args.args[0] == sys.executable
+        assert calls.execute.call_args.args[1][-2:] == ['--schedule', '/tmp/synthetic-beat']
+        assert '--sync-providers' not in calls.execute.call_args.args[1]
+        assert not any(name.startswith('camply.server') for name in sys.modules)
+        """
+    )
+
+
 def test_missing_optional_entrypoints(install: Callable[[str], Installation]) -> None:
     """Base users receive actionable hints when selecting optional runtime capabilities."""
     install("").run("""

@@ -3,7 +3,7 @@
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import pytest
 from click.testing import CliRunner
@@ -240,6 +240,11 @@ def test_backend_migration_ownership(
         ),
         (["serve", "worker"], "distributed", ("celery", "redis", "prometheus_client")),
         (["serve", "beat"], "distributed", ("celery", "redis", "prometheus_client")),
+        (
+            ["serve", "beat", "--sync-providers"],
+            "distributed",
+            ("celery", "redis", "prometheus_client"),
+        ),
     ],
 )
 def test_python_roles_check_dependencies_before_side_effects(
@@ -253,8 +258,10 @@ def test_python_roles_check_dependencies_before_side_effects(
 
     upgrade = Mock()
     execute = Mock()
+    dispatch = Mock()
     monkeypatch.setattr(migration, "upgrade", upgrade)
     monkeypatch.setattr("os.execv", execute)
+    monkeypatch.setattr("subprocess.run", dispatch)
     monkeypatch.setattr("shutil.which", lambda name: f"/unrelated/bin/{name}")
     for missing in modules:
         monkeypatch.setattr(
@@ -267,6 +274,7 @@ def test_python_roles_check_dependencies_before_side_effects(
         assert missing in result.stderr
         upgrade.assert_not_called()
         execute.assert_not_called()
+        dispatch.assert_not_called()
 
 
 def test_frontend_explains_missing_nginx(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -328,3 +336,90 @@ def test_frontend_serve_renders_packaged_configuration(
     assert "${CAMPLY_BACKEND_URL}" not in captured["server"]
     assert "/etc/nginx/conf.d/" not in captured["main"]
     assert "pid nginx.pid;" in captured["main"]
+
+
+@pytest.mark.parametrize("sync_providers", [False, True])
+def test_beat_optionally_dispatches_provider_sync(
+    monkeypatch: pytest.MonkeyPatch, sync_providers: bool
+) -> None:
+    """Enqueue the expiring sync before exec only when explicitly requested."""
+    calls = Mock()
+    calls.attach_mock(Mock(), "dispatch")
+    calls.attach_mock(Mock(side_effect=SystemExit(0)), "execute")
+    monkeypatch.setattr("subprocess.run", calls.dispatch)
+    monkeypatch.setattr("os.execv", calls.execute)
+    args = ["serve", "beat", "--schedule", "/tmp/synthetic-schedule"]
+    if sync_providers:
+        args.append("--sync-providers")
+
+    result = CliRunner().invoke(cli, args)
+
+    assert result.exit_code == 0, result.output
+    expected = []
+    if sync_providers:
+        expected.append(
+            call.dispatch(
+                [
+                    sys.executable,
+                    "-m",
+                    "celery",
+                    "-A",
+                    "camply.worker.celery_app",
+                    "call",
+                    "camply.catalog.sync_all_providers",
+                    "--expires=600",
+                ],
+                check=True,
+            )
+        )
+    expected.append(
+        call.execute(
+            sys.executable,
+            [
+                sys.executable,
+                "-m",
+                "celery",
+                "-A",
+                "camply.worker.celery_app",
+                "beat",
+                "-l",
+                "info",
+                "--schedule",
+                "/tmp/synthetic-schedule",
+            ],
+        )
+    )
+    assert calls.mock_calls == expected
+
+
+def test_beat_stops_when_provider_dispatch_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A broker dispatch failure is visible and cannot silently start the scheduler."""
+    execute = Mock()
+    monkeypatch.setattr("os.execv", execute)
+    monkeypatch.setattr(
+        "subprocess.run", Mock(side_effect=subprocess.CalledProcessError(1, "celery"))
+    )
+
+    result = CliRunner().invoke(cli, ["serve", "beat", "--sync-providers"])
+
+    assert result.exit_code == 1, result.output
+    assert "provider sync" in result.stderr
+    execute.assert_not_called()
+
+
+def test_beat_help_needs_no_distributed_extra(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The startup sync flag is discoverable without loading optional runtimes."""
+    monkeypatch.setattr("importlib.util.find_spec", lambda name: None)
+    dispatch = Mock()
+    execute = Mock()
+    monkeypatch.setattr("subprocess.run", dispatch)
+    monkeypatch.setattr("os.execv", execute)
+
+    result = CliRunner().invoke(cli, ["serve", "beat", "--help"])
+
+    assert result.exit_code == 0, result.output
+    assert "--sync-providers" in result.output
+    dispatch.assert_not_called()
+    execute.assert_not_called()

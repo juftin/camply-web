@@ -546,10 +546,18 @@ test("distributed Compose retains services, persistent storage, and API relation
     "serve",
     "worker",
   ]);
-  assert.match(
-    config.services["celery-beat"].command.join(" "),
-    /sync_all_providers.*&& exec camply serve beat/,
-  );
+  assert.deepEqual(config.services["celery-beat"].command, [
+    "camply",
+    "serve",
+    "beat",
+    "--sync-providers",
+  ]);
+  for (const name of ["celery-worker", "celery-beat"]) {
+    assert.equal(
+      config.services[name].depends_on.backend.condition,
+      "service_healthy",
+    );
+  }
   assert.equal(
     config.services.frontend.depends_on.backend.condition,
     "service_healthy",

@@ -33,3 +33,13 @@ Retain process replacement and native signal handlers. Configure Compose to send
 ## Downstream API upstream
 
 Read `CAMPLY_BACKEND_URL` in the frontend launcher, defaulting to `http://backend:8000` when unset or empty. Render only its explicit template placeholder as a quoted Nginx value, preserving existing proxy variables/settings. Forward the override through Compose, verify default/custom URLs in CLI and isolated installations, and check real Nginx proxy routing with a synthetic upstream. Document native `proxy_pass` URI semantics.
+
+## Distributed startup ordering and initial sync
+
+Compose workers and beat must wait for the backend health check, which only becomes available
+after its migration step. Verify dependency rendering to prevent processing against an old or
+empty schema. Add an opt-in `camply serve beat --sync-providers` option that dispatches the existing
+catalog task with a ten-minute expiry through the CLI interpreter before process replacement.
+Keep default beat startup free of dispatch, native argument forwarding, base-only help, and
+optional dependency checks. A failed dispatch must stop startup. Cover these contracts with CLI,
+entrypoint, clean-installation, and release regressions; verify fresh-database startup ordering.

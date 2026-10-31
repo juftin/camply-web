@@ -104,6 +104,8 @@ services:
     <<: *camply
     command: ["camply", "serve", "worker"]
     depends_on:
+      backend:
+        condition: service_healthy
       db:
         condition: service_healthy
       valkey:
@@ -133,8 +135,10 @@ services:
 
   celery-beat:
     <<: *camply
-    command: sh -c "celery -A camply.worker.celery_app call camply.catalog.sync_all_providers --expires=600 && exec camply serve beat"
+    command: ["camply", "serve", "beat", "--sync-providers"]
     depends_on:
+      backend:
+        condition: service_healthy
       db:
         condition: service_healthy
       valkey:
