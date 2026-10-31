@@ -14,8 +14,9 @@
 
 ## Constitution check
 
-No application dependencies or internal module boundaries change. Python scripts
-use only the standard library. All verification is exposed through Task. Tests
+No application dependencies or internal module boundaries change. The wait script
+uses the standard library; the migration wrapper uses PostgreSQL/Alembic dependencies
+already installed in the image. All verification is exposed through Task. Tests
 cover startup failures and upgrade identity as well as user-facing configuration.
 
 ## OCI publication
@@ -47,3 +48,17 @@ cover startup failures and upgrade identity as well as user-facing configuration
 
 No new runtime dependencies or infrastructure controllers are introduced. Helm's
 schema validates values; the optional ServiceMonitor requires an existing CRD.
+
+## Review fixes
+
+1. Reproduce rollback migration failures and missing Prometheus scrape reload with
+   rendered-manifest regressions before changing templates.
+2. Record successful Job identities in the target database after Alembic finishes.
+   Recreated rollback Jobs reuse these checkpoints across Helm 3/4 and GitOps
+   pruning; fresh databases always run migrations. Keep existing read-only RBAC.
+3. Hash the rendered Prometheus configuration to restart it when worker scraping
+   changes, without restarting it just because worker replica counts change.
+4. Extend the source-image lifecycle smoke with a synthetic newer database
+   revision, failed-upgrade recovery, and rollback that recreates the original Job
+   while reusing its database checkpoint and preserving database contents. Run
+   Helm 3/4 and project checks before updating the PR.

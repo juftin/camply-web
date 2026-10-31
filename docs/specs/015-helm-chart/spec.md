@@ -37,5 +37,8 @@ instructions through NOTES, and provide a read-only `helm test` connection check
 
 Run the kind lifecycle test in CI against a source-built image. Verify migration
 ordering, a successful upgrade with preserved database data, and failed-upgrade
-startup blocking. Keep autoscaling, disruption budgets, and policy presets outside
-this increment.
+startup blocking, and rollback against a newer backward-compatible schema without
+rerunning older migrations. Record successful migration checkpoints in the target
+database so rollback survives Job pruning under Helm 3/4 and GitOps. Restart bundled Prometheus whenever its
+rendered scrape configuration changes. Keep autoscaling, disruption budgets, and
+policy presets outside this increment.

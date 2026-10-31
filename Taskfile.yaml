@@ -27,7 +27,7 @@ tasks:
           CLI_ARGS: tests/helm {{.CLI_ARGS}}
 
   helm:smoke:
-    desc: Verify migration ordering and failed upgrades in a disposable kind cluster
+    desc: Verify migration ordering, failed upgrades, and rollback in a disposable kind cluster
     cmd: CAMPLY_HELM_SMOKE=1 task helm:test -- {{.CLI_ARGS}}
 
   helm:package:

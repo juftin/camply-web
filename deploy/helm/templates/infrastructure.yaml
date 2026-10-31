@@ -2,6 +2,10 @@
 {{- range $role := list "postgresql" "valkey" "prometheus" -}}
 {{- $config := index $root.Values $role -}}
 {{- if $config.enabled }}
+{{- $checksum := toJson $config | sha256sum -}}
+{{- if eq $role "prometheus" -}}
+{{- $checksum = include (print $root.Template.BasePath "/prometheus.yaml") $root | sha256sum -}}
+{{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -19,7 +23,7 @@ spec:
   template:
     metadata:
       labels: {{ include "camply.selector" (dict "root" $root "role" $role) | nindent 8 }}
-      annotations: {{ mergeOverwrite (deepCopy $root.Values.podAnnotations) (deepCopy $config.podAnnotations) (dict "checksum/config" (toJson $config | sha256sum)) | toYaml | nindent 8 }}
+      annotations: {{ mergeOverwrite (deepCopy $root.Values.podAnnotations) (deepCopy $config.podAnnotations) (dict "checksum/config" $checksum) | toYaml | nindent 8 }}
     spec:
       automountServiceAccountToken: false
       securityContext: {{ toYaml $config.podSecurityContext | nindent 8 }}

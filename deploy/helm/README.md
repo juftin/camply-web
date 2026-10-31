@@ -52,7 +52,8 @@ default; local HTTP password sessions require `CAMPLY_SESSION_COOKIE_SECURE=fals
 
 ## Migration ordering and upgrades
 
-A regular Job runs `python -m camply.db.migration` after waiting for PostgreSQL.
+A regular Job runs the packaged Alembic migrations through a checkpoint wrapper
+after waiting for PostgreSQL.
 Every new backend, worker, and beat pod has an init container that reads that
 specific Job and waits for its `Complete=True` condition. A failed Job or timed
 out wait stops startup. Worker and beat additionally wait for the broker's TCP
@@ -81,12 +82,23 @@ rendering reruns migrations when the image/configuration/chart version changes.
 When reusing a mutable image tag, explicitly bump `migrations.revision` on every
 new build. Pin versions/digests for reproducible upgrades and rollbacks.
 
-The Job is retained for the lifetime of this release revision, allowing scaled
-or restarted pods to pass the same barrier. Do not configure a Job TTL or delete
-the completed Job. On a failed migration, inspect `kubectl logs job/JOB_NAME`,
-correct the problem, and bump `migrations.revision` to create a new Job. The Job
-has a 600-second deadline and three retries by default; waiting init containers
-allow 900 seconds. Helm should have a longer timeout.
+The wrapper creates a small `camply_helm_migrations` bookkeeping table in the
+target database and records the exact Job name only after Alembic succeeds.
+Jobs remain ordinary release resources and can be pruned on upgrade. A rollback
+recreates its original Job, which recognizes its database checkpoint and completes
+without asking an older image to resolve a newer Alembic revision. Backend,
+worker, and beat still wait for that recreated Job's `Complete=True` condition.
+No extra Kubernetes API permissions or retained Jobs are needed.
+
+Checkpoints belong to the database and should be included in its backups. A fresh
+database has no checkpoints and always runs migrations. Do not remove checkpoint
+rows needed by releases still available for rollback. The current Job remains
+available for scaled or restarted pods; do not configure a Job TTL or delete it
+while its release is deployed. On a failed migration, inspect
+`kubectl logs job/JOB_NAME`, correct the problem, and bump `migrations.revision`
+to create a new Job. Failed migrations never record success. The Job has a
+600-second deadline and three retries by default; waiting init containers allow
+900 seconds. Helm should have a longer timeout.
 
 A dedicated namespaced Role permits only `get` on the current migration Job.
 Only waiting init containers mount a projected service-account token and CA;
@@ -184,7 +196,8 @@ health endpoints/CLI. Frontend shutdown sends Nginx `SIGQUIT`; all roles receive
 a 60-second termination grace period. API/worker Prometheus multiprocess data
 lives in per-pod `/tmp` emptyDir storage. Optional Prometheus retains 30 days of
 metrics and discovers individual API/worker replicas through headless Services;
-no Kubernetes discovery RBAC is needed. An external Prometheus can scrape the
+changes to its rendered scrape configuration restart Prometheus automatically.
+No Kubernetes discovery RBAC is needed. An external Prometheus can scrape the
 same `FULLNAME-backend-metrics` and `FULLNAME-worker-metrics` Services. Backend
 and worker replicas, resources, container security context, and per-component
 pod security contexts are configurable. Beat and backing services remain single
@@ -213,7 +226,7 @@ existing data. The new migration gate replaces reliance on Argo CD sync waves.
 
 ```sh
 task helm:test       # strict lint, rendered-manifest matrix, and gate behavior
-task helm:smoke      # disposable kind cluster: install, upgrade, and migration failure
+task helm:smoke      # disposable kind cluster: install, upgrade, failure, and rollback
 task helm:package    # dist/camply-web-0.1.0.tgz
 ```
 
@@ -221,7 +234,8 @@ The smoke test requires Docker, kind, and kubectl. It builds the application fro
 this checkout, loads that image into a test-owned cluster, disables registry pulls
 for the application, and uses synthetic credentials with initial provider sync
 disabled. It verifies migration ordering, `helm test`, a successful upgrade with
-preserved PostgreSQL data, and failed-migration startup blocking. Set
+preserved PostgreSQL data, failed-migration startup blocking, and rollback using
+database checkpoints despite a newer database revision. Set
 `CAMPLY_HELM_TEST_IMAGE=repository:tag` to reuse an already built local image.
 The test deletes its own cluster and any application image it built; diagnostic
 resources/logs remain under `tmp/camply-helm-*`. It never prunes other Docker data.
@@ -317,8 +331,9 @@ helm test camply -n camply --logs
 
 The test Pod checks backend readiness and, when enabled, the frontend's `/api`
 proxy. It uses the same application image without a service-account token or
-application credentials, performs no writes, and is removed after success.
-Failed test Pods remain available for logs. Set `tests.enabled=false` to omit
+application credentials, and performs no writes. Test Pods remain available for
+logs until the next `helm test`, which replaces them. This also preserves logs
+for `helm test --logs` on Helm 3. Set `tests.enabled=false` to omit
 this hook when managing connection checks separately. API readiness verifies the
 database connection; the test does not claim to verify provider access or successful
 background task processing.

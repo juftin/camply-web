@@ -41,7 +41,12 @@ def test_default_stack_and_migration_barrier() -> None:
     assert "helm.sh/hook" not in job["metadata"].get("annotations", {})
     assert "ttlSecondsAfterFinished" not in job["spec"]
     migration = job["spec"]["template"]["spec"]["containers"][0]
-    assert migration["command"] == ["python", "-m", "camply.db.migration"]
+    assert migration["command"] == ["python", "/startup/migrate.py"]
+    assert migration["args"] == ["--job", job["metadata"]["name"]]
+    assert {"name": "startup", "mountPath": "/startup", "readOnly": True} in (
+        migration["volumeMounts"]
+    )
+    assert "migrate.py" in resource(items, "ConfigMap", "-startup")["data"]
     deployments = [item for item in items if item["kind"] == "Deployment"]
     assert len(deployments) == 7
     for role in ("backend", "worker", "beat"):
@@ -79,6 +84,13 @@ def test_migration_identity_and_rollout() -> None:
     assert job_name(render("--set", "migrations.revision=2")) != original
     # template --is-upgrade changes flags, but its synthetic Release.Revision stays 1.
     assert job_name(render("--is-upgrade")) == original
+
+
+def test_migration_checkpoints_need_no_retained_jobs_or_api_writes() -> None:
+    """Database-backed checkpoints allow ordinary Job pruning and read-only RBAC."""
+    job = next(item for item in render() if item["kind"] == "Job")
+    assert "helm.sh/resource-policy" not in job["metadata"].get("annotations", {})
+    assert job["spec"]["template"]["spec"]["automountServiceAccountToken"] is False
 
 
 @pytest.mark.parametrize(
@@ -169,6 +181,26 @@ def test_metrics_scrape_each_replica() -> None:
     jobs = {job["job_name"]: job for job in prometheus["scrape_configs"]}
     assert jobs["camply-backend"]["dns_sd_configs"][0]["type"] == "A"
     assert jobs["camply-worker"]["dns_sd_configs"][0]["port"] == 8001
+
+
+def test_prometheus_rolls_out_when_worker_scraping_changes() -> None:
+    """Enabling workers reloads scrape configuration; scaling DNS targets needs no reload."""
+    disabled = render("--set", "worker.enabled=false")
+    enabled = render("--set", "worker.enabled=true")
+    scaled = render("--set", "worker.replicas=2")
+    assert (
+        resource(disabled, "ConfigMap", "-prometheus")["data"]
+        != resource(enabled, "ConfigMap", "-prometheus")["data"]
+    )
+    pods = [
+        resource(items, "Deployment", "-prometheus")["spec"]["template"]
+        for items in (disabled, enabled, scaled)
+    ]
+    assert (
+        pods[0]["metadata"]["annotations"]["checksum/config"]
+        != pods[1]["metadata"]["annotations"]["checksum/config"]
+    )
+    assert pods[1] == pods[2]
 
 
 def test_long_release_names_remain_valid() -> None:
@@ -302,6 +334,9 @@ def test_install_notes_and_helm_connection_test() -> None:
     assert "CAMPLY_AUTH_MODE" in notes
     hook = resource(render(), "Pod", "-connection-test")
     assert hook["metadata"]["annotations"]["helm.sh/hook"] == "test"
+    assert hook["metadata"]["annotations"]["helm.sh/hook-delete-policy"] == (
+        "before-hook-creation"
+    )
     assert hook["spec"]["automountServiceAccountToken"] is False
     assert "/api/health" in " ".join(hook["spec"]["containers"][0]["args"])
     assert not any(i["kind"] == "Pod" for i in render("--set", "tests.enabled=false"))

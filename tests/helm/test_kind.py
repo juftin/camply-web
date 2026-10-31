@@ -1,4 +1,4 @@
-"""Exercise first-install migration ordering and failed upgrades in a disposable cluster."""
+"""Exercise migration ordering, failed upgrades, and rollback in a disposable cluster."""
 
 import json
 import os
@@ -118,8 +118,28 @@ def run(
     return result.stdout
 
 
-def test_migration_startup_and_failed_upgrade(cluster: dict[str, str]) -> None:
-    """A fresh schema precedes consumers; a failed upgrade starts no new consumers."""
+def database_query(cluster: dict[str, str], sql: str) -> str:
+    """Query the test-owned PostgreSQL database, failing on SQL errors."""
+    return run(
+        cluster,
+        "kubectl",
+        "exec",
+        "deployment/smoke-camply-postgresql",
+        "--",
+        "psql",
+        "-U",
+        "camply",
+        "-d",
+        "camply",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-Atc",
+        sql,
+    ).strip()
+
+
+def test_migration_startup_failed_upgrade_and_rollback(cluster: dict[str, str]) -> None:
+    """Gate startup and preserve newer database contents when recreating rollback Jobs."""
     secret = {
         "apiVersion": "v1",
         "kind": "Secret",
@@ -177,23 +197,12 @@ def test_migration_startup_and_failed_upgrade(cluster: dict[str, str]) -> None:
             >= completed
         )
     run(cluster, "helm", "test", "smoke", "--logs", "--timeout", "90s")
-    run(
+    database_query(
         cluster,
-        "kubectl",
-        "exec",
-        "deployment/smoke-camply-postgresql",
-        "--",
-        "psql",
-        "-U",
-        "camply",
-        "-d",
-        "camply",
-        "-v",
-        "ON_ERROR_STOP=1",
-        "-c",
         "CREATE TABLE helm_upgrade_proof (value integer); INSERT INTO helm_upgrade_proof VALUES (42);",
     )
     old_job = jobs[0]["metadata"]["name"]
+    old_uid = jobs[0]["metadata"]["uid"]
     run(
         cluster,
         "helm",
@@ -212,22 +221,14 @@ def test_migration_startup_and_failed_upgrade(cluster: dict[str, str]) -> None:
         j["metadata"]["name"] != old_job and j.get("status", {}).get("succeeded") == 1
         for j in upgraded
     )
-    proof = run(
-        cluster,
-        "kubectl",
-        "exec",
-        "deployment/smoke-camply-postgresql",
-        "--",
-        "psql",
-        "-U",
-        "camply",
-        "-d",
-        "camply",
-        "-Atc",
-        "SELECT value FROM helm_upgrade_proof",
-    )
-    assert proof.strip() == "42"
+    assert all(j["metadata"]["uid"] != old_uid for j in upgraded)
+    assert database_query(cluster, "SELECT value FROM helm_upgrade_proof") == "42"
     run(cluster, "helm", "test", "smoke", "--logs", "--timeout", "90s")
+    database_query(
+        cluster,
+        "ALTER TABLE helm_upgrade_proof ADD COLUMN future_column integer DEFAULT 7; "
+        "UPDATE alembic_version SET version_num = 'future_helm_revision';",
+    )
     run(
         cluster,
         "helm",
@@ -264,3 +265,28 @@ def test_migration_startup_and_failed_upgrade(cluster: dict[str, str]) -> None:
                 "running" not in s["state"] and "terminated" not in s["state"]
                 for s in pod["status"].get("containerStatuses", [])
             )
+    run(
+        cluster,
+        "helm",
+        "rollback",
+        "smoke",
+        "1",
+        "--wait",
+        "--wait-for-jobs",
+        "--timeout",
+        "5m",
+        timeout=360,
+    )
+    restored = json.loads(
+        run(cluster, "kubectl", "get", f"job/{old_job}", "-o", "json")
+    )
+    assert restored["metadata"]["uid"] != old_uid
+    assert restored["status"]["succeeded"] == 1
+    assert database_query(cluster, "SELECT version_num FROM alembic_version") == (
+        "future_helm_revision"
+    )
+    assert database_query(
+        cluster, "SELECT value, future_column FROM helm_upgrade_proof"
+    ) == ("42|7")
+    assert database_query(cluster, "SELECT count(*) FROM camply_helm_migrations") == "2"
+    run(cluster, "helm", "test", "smoke", "--logs", "--timeout", "90s")

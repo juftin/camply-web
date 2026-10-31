@@ -6,6 +6,8 @@ metadata:
 data:
   wait.py: |
     {{- .Files.Get "files/wait.py" | nindent 4 }}
+  migrate.py: |
+    {{- .Files.Get "files/migrate.py" | nindent 4 }}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -72,11 +74,14 @@ spec:
         - name: migrate
           image: {{ include "camply.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: [python, -m, camply.db.migration]
+          command: [python, /startup/migrate.py]
+          args: [--job, {{ include "camply.migrationName" . }}]
           env: {{ include "camply.env" (dict "root" . "role" "backend" "config" .Values.backend) | nindent 12 }}
           envFrom: {{ concat .Values.envFrom .Values.backend.envFrom | toYaml | nindent 12 }}
           securityContext: {{ toYaml .Values.securityContext | nindent 12 }}
           resources: {{ toYaml .Values.migrations.resources | nindent 12 }}
+          volumeMounts:
+            - {name: startup, mountPath: /startup, readOnly: true}
       volumes:
         - name: startup
           configMap:
