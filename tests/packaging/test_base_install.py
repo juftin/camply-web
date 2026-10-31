@@ -89,6 +89,7 @@ def test_frontend_serve_finds_assets_without_server(
             assert (expected / 'assets').is_dir()
             assert 'try_files $uri $uri/ /index.html;' in server
             assert 'proxy_pass "http://synthetic-api.invalid:9000";' in server
+            assert 'proxy_ssl_server_name on;' in server
             raise SystemExit(0)
 
         with patch('shutil.which', return_value='/synthetic/nginx'), patch('os.execv', side_effect=execute):

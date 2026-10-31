@@ -91,6 +91,8 @@ CAMPLY_BACKEND_URL=http://api.internal:9000 camply serve frontend
 
 Use an origin without a trailing slash to retain `/api/`: `/api/health` forwards to `http://api.internal:9000/api/health`. A URL with a URI path uses [Nginx's normal prefix replacement rules](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass). Restart the frontend after changing the variable. Browser requests continue to use the frontend's same-origin `/api/` endpoint.
 
+HTTPS upstreams receive their configured hostname as TLS SNI, allowing connections to servers that require it. Run `task backend:nginx:test` to verify the packaged Nginx configuration against synthetic HTTP and SNI-required HTTPS upstreams. The test requires Docker and OpenSSL, uses `nginx:stable-alpine` by default, and accepts `CAMPLY_NGINX_SMOKE_IMAGE` to reuse another locally available Nginx image. CI runs it alongside the runtime health smoke.
+
 ## Distributed startup
 
 `camply serve backend` finishes database migrations before launching the API. Compose workers

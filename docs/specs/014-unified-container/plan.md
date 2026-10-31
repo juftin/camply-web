@@ -34,6 +34,8 @@ Retain process replacement and native signal handlers. Configure Compose to send
 
 Read `CAMPLY_BACKEND_URL` in the frontend launcher, defaulting to `http://backend:8000` when unset or empty. Render only its explicit template placeholder as a quoted Nginx value, preserving existing proxy variables/settings. Forward the override through Compose, verify default/custom URLs in CLI and isolated installations, and check real Nginx proxy routing with a synthetic upstream. Document native `proxy_pass` URI semantics.
 
+Enable `proxy_ssl_server_name` so HTTPS upstreams receive their hostname during TLS negotiation. Add an opt-in Docker/OpenSSL regression with synthetic HTTP and SNI-required HTTPS servers, check forwarded URI/Host and frontend health, and run it through Task and the existing runtime smoke CI job. Confirm the HTTPS case fails before the fix, then verify both protocols and installed template contents after it.
+
 ## Distributed startup ordering and initial sync
 
 Compose workers and beat must wait for the backend health check, which only becomes available
