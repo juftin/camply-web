@@ -9,7 +9,7 @@ repos:
       - id: end-of-file-fixer
         exclude: mkdocs.yaml
       - id: check-yaml
-        exclude: ^(mkdocs\.yaml|pnpm-lock\.yaml)$
+        exclude: ^(mkdocs\.yaml|pnpm-lock\.yaml|deploy/helm/templates/.*)$
       - id: check-yaml
         name: check pnpm lock YAML documents
         files: ^pnpm-lock\.yaml$

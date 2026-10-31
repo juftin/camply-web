@@ -101,6 +101,12 @@ cannot process tasks against a schema still being migrated. Kubernetes deploymen
 worker/beat startup wait for the migrated API's health endpoint or an explicit migration Job;
 a database TCP check alone does not establish schema readiness.
 
+The [Helm chart](../../deploy/helm/README.md) provides a revision-specific migration
+Job and init-container gates for the backend, worker, and beat. It supports bundled
+or external PostgreSQL/Valkey/Prometheus, configurable PVCs, Ingress, and Gateway API.
+Use `task helm:test` for rendering/gate checks and `task helm:smoke` for a disposable
+kind installation and failed-upgrade verification.
+
 Compose runs `camply serve beat --sync-providers`. The opt-in flag enqueues
 `camply.catalog.sync_all_providers` with a ten-minute expiry before replacing the CLI with Celery
 beat. Dispatch uses the same Python environment as the CLI, and a nonzero dispatch exit stops
@@ -120,7 +126,7 @@ Workers and beat never apply database migrations, including when the sync flag i
 
 Each probe prints `healthy` and exits 0 on success; an unhealthy service exits 1 with a short diagnostic on stderr. Invalid CLI usage exits 2. The probes do not migrate databases or dispatch application tasks. HTTP and beat checks work with the base package; the worker check requires `camply[distributed]`. Beat PID checks require Unix. Help never requires optional runtime dependencies. Run each local probe in the same container and environment as its serving role.
 
-HTTP probes accept `--url` for a custom listener and `--timeout` for the network timeout (5 seconds by default). They require a 2xx status, reject redirects, and ignore environment HTTP proxies. For example, `camply serve healthcheck --url http://127.0.0.1:9000/api/health` matches standalone serving on port 9000. An init container can use `camply serve healthcheck backend --url http://backend:8000/api/health` to wait for the API. The distributed API endpoint reports HTTP liveness; it does not verify PostgreSQL or Valkey. Standalone additionally checks its SQLite connection and local runner. Frontend checks only Nginx, independently of its upstream. Keep separate infrastructure/readiness probes when database or broker availability matters.
+HTTP probes accept `--url` for a custom listener and `--timeout` for the network timeout (5 seconds by default). They require a 2xx status, reject redirects, and ignore environment HTTP proxies. For example, `camply serve healthcheck --url http://127.0.0.1:9000/api/health` matches standalone serving on port 9000. An init container can use `camply serve healthcheck backend --url http://backend:8000/api/health` to wait for the API. The backend endpoint verifies its database with a two-second query budget and returns HTTP 503 when unavailable. Standalone additionally checks its local runner. `/api/ping` checks API responsiveness independently of the database and is the Helm chart's liveness endpoint. Frontend checks only Nginx, independently of its upstream. Keep separate broker probes when Valkey availability matters.
 
 The worker probe uses the current Python environment to run Celery inspection, requests a reply from exactly one named worker, and enforces a subprocess deadline with `--timeout` (5 seconds by default). Another healthy replica cannot satisfy the default local probe. If serving with a custom `--hostname`, pass its expanded node name via `camply serve healthcheck worker --destination custom@hostname`. Worker remote control must be enabled. A busy solo pool can delay control replies; size the timeout accordingly or use the default prefork pool. This checks worker control responsiveness and broker connectivity, rather than completion of an application task.
 

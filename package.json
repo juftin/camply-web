@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "vite --config src/frontend/vite.config.ts --host 0.0.0.0",
     "build": "node node_modules/@typescript/native/bin/tsc --project src/frontend/tsconfig.json --noEmit && node node_modules/@typescript/native/bin/tsc --project src/frontend/functions/tsconfig.json --noEmit && vite build --config src/frontend/vite.config.ts",
-    "lint": "oxlint -c src/frontend/.oxlintrc.json src/frontend --report-unused-disable-directives --max-warnings 0 && oxfmt -c src/frontend/.oxfmtrc.json --ignore-path src/frontend/.oxfmtignore --check .",
-    "fix": "oxlint -c src/frontend/.oxlintrc.json src/frontend --fix && oxfmt -c src/frontend/.oxfmtrc.json --ignore-path src/frontend/.oxfmtignore .",
+    "lint": "oxlint -c src/frontend/.oxlintrc.json src/frontend --report-unused-disable-directives --max-warnings 0 && oxfmt -c src/frontend/.oxfmtrc.json --ignore-path src/frontend/.oxfmtignore --ignore-path .oxfmtignore --check .",
+    "fix": "oxlint -c src/frontend/.oxlintrc.json src/frontend --fix && oxfmt -c src/frontend/.oxfmtrc.json --ignore-path src/frontend/.oxfmtignore --ignore-path .oxfmtignore .",
     "preview": "vite preview --config src/frontend/vite.config.ts",
     "typecheck": "node node_modules/@typescript/native/bin/tsc --project src/frontend/tsconfig.json --noEmit && node node_modules/@typescript/native/bin/tsc --project src/frontend/functions/tsconfig.json --noEmit",
     "test": "vitest --config src/frontend/vite.config.ts",
@@ -18,7 +18,7 @@
     "snapshot": "tsx src/frontend/tooling/run-snapshots.ts",
     "snapshot:update": "tsx src/frontend/tooling/run-snapshots.ts --update",
     "snapshot:check": "tsx src/frontend/tooling/run-snapshots.ts --check",
-    "format": "cd ${INIT_CWD} && oxfmt -c src/frontend/.oxfmtrc.json --ignore-path src/frontend/.oxfmtignore"
+    "format": "cd ${INIT_CWD} && oxfmt -c src/frontend/.oxfmtrc.json --ignore-path src/frontend/.oxfmtignore --ignore-path .oxfmtignore"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.29.0",
