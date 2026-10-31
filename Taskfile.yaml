@@ -135,14 +135,14 @@ tasks:
       - task: frontend:fix
 
   build:
-    desc: Build the camply Image for All Application Roles
+    desc: Build the camply-web Image for All Application Roles
     cmd: docker buildx bake --file docker-compose.yaml backend
     env:
       CAMPLY_VERSION:
         sh: uv version --short
 
   publish:
-    desc: Publish the Versioned camply Image to GHCR
+    desc: Publish the Versioned camply-web Image to GHCR
     cmds:
       - task: publish:images
         vars:
@@ -158,7 +158,7 @@ tasks:
       RELEASE_VERSION: "{{.RELEASE_VERSION}}"
 
   publish:latest:
-    desc: Publish the Latest camply Image from a Successful Main Build
+    desc: Publish the Latest camply-web Image from a Successful Main Build
     cmds:
       - task: publish:images
         vars:

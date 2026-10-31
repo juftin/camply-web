@@ -93,7 +93,7 @@ def serve(ctx: click.Context, host: str | None, port: int | None) -> None:
 @serve.command(name="frontend")
 def serve_frontend() -> None:
     """Serve bundled assets and proxy /api to CAMPLY_BACKEND_URL using Nginx."""
-    executable = _executable("nginx", hint="Install Nginx or use the camply image.")
+    executable = _executable("nginx", hint="Install Nginx or use the camply-web image.")
     directory = Path(__file__).resolve().parents[1] / "server" / "static"
     if not (directory / "index.html").is_file():
         raise click.ClickException(

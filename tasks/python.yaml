@@ -84,7 +84,7 @@ tasks:
       - task: docker
 
   docker:
-    desc: Build the Shared camply Docker Image
+    desc: Build the Shared camply-web Docker Image
     cmds:
       - task: :build
 

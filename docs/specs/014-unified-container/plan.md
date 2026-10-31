@@ -3,7 +3,7 @@
 1. Locate bundled assets internally from the CLI's package path, checking for `index.html`; verify absolute paths in rendered Nginx configuration and clean base installations.
 2. Retain the shared wheel build, install Nginx alongside Python in one final `camply` stage, and render package-owned Nginx templates at runtime using the installed static root.
 3. Reuse the same Compose image/build configuration for API, frontend, worker, and beat. Let the backend launcher own API migrations, keep frontend/worker startup independent, and use `camply serve backend` as the default.
-4. Build and publish one image through the existing Compose backend Bake target, preserving task namespaces and release aliases. Build once in CI and retain both required Docker check names; the frontend check must fail unless the shared image build succeeded.
+4. Build and publish `ghcr.io/juftin/camply-web` through the existing Compose backend Bake target, preserving task namespaces and release aliases. Reserve `ghcr.io/juftin/camply` for the future repository migration and new version series. Build once in CI and retain both required Docker check names; the frontend check must fail unless the shared image build succeeded.
 5. Verify role dispatch, release plans, lint/types, installed artifacts, and container HTTP behavior; update current deployment documentation and the global checklist.
 
 ## Constitution check

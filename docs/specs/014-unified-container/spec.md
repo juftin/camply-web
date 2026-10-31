@@ -1,8 +1,8 @@
-# Shared camply container
+# Shared camply-web container
 
 ## Requirements
 
-- Publish one application image, `ghcr.io/juftin/camply`, containing Python, Nginx, the complete installed wheel, and all runtime extras.
+- Publish one application image, `ghcr.io/juftin/camply-web`, containing Python, Nginx, the complete installed wheel, and all runtime extras.
 - Run API, frontend, Celery worker, and beat as separate containers from this image using command overrides. Preserve the API default command.
 - Locate bundled frontend assets internally in `camply serve frontend` without importing server dependencies. Report missing bundled assets clearly.
 - Configure Nginx to serve that directory directly, preserving SPA fallback, asset caching, health checks, and the API proxy.

@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   publish:
-    name: Camply Image
+    name: Camply Web Image
     if: >-
       github.repository == 'juftin/camply-web' &&
       (github.event_name == 'push' ||

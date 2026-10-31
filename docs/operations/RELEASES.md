@@ -6,7 +6,7 @@ Releases use the Gitmoji/semantic-release infrastructure from [cookiecutter-pyth
 
 Every push to `main` starts `.github/workflows/release.yaml`. It calls the entire existing CI workflow, including lint, types, tests, OpenAPI drift, live smoke checks, snapshot gallery verification, visual snapshots, and Docker builds. After all checks succeed, semantic-release analyzes commits and creates a release when appropriate. Publication runs only in `juftin/camply-web`; pull requests and manually dispatched CI runs only validate changes.
 
-`.github/workflows/publish.yaml` listens for native `release: published` events. It validates the stable full-version tag, checks out that exact tag, stamps the application version, and publishes the shared `camply` image. When semantic-release finishes without a release, `release.yaml` calls this same publisher at the successful main SHA to update `latest` only. Release-producing commits build images once, through the release event. The exec success hook writes a runner-local marker used to skip the latest-only fallback.
+`.github/workflows/publish.yaml` listens for native `release: published` events. It validates the stable full-version tag, checks out that exact tag, stamps the application version, and publishes the shared `camply-web` image. When semantic-release finishes without a release, `release.yaml` calls this same publisher at the successful main SHA to update `latest` only. Release-producing commits build images once, through the release event. The exec success hook writes a runner-local marker used to skip the latest-only fallback.
 
 Release runs are serialized without cancelling an active run. Image publication is serialized separately across both entrypoints. GitHub may replace a pending run with a newer push; semantic-release considers all unreleased commits on `main`.
 
@@ -64,9 +64,11 @@ The highest bump wins. Squash-merged PR titles must retain the appropriate Gitmo
 
 ## Images
 
-| Image                   | Tags for version 1.2.3                                |
-| ----------------------- | ----------------------------------------------------- |
-| `ghcr.io/juftin/camply` | `v1`, `v1.2.3`, `<seven-character-git-sha>`, `latest` |
+This repository publishes `ghcr.io/juftin/camply-web`. Reserve `ghcr.io/juftin/camply` for the future migration to `juftin/camply` and its new version series. This image rename retains the current repository's release history and version rules.
+
+| Image                       | Tags for version 1.2.3                                |
+| --------------------------- | ----------------------------------------------------- |
+| `ghcr.io/juftin/camply-web` | `v1`, `v1.2.3`, `<seven-character-git-sha>`, `latest` |
 
 One image includes Python, Nginx, and every application runtime extra. Compose runs the API, frontend, Celery workers, and beat as separate containers using this same image. The default command is `camply serve backend`; frontend, workers, and beat select `camply serve frontend`, `camply serve worker`, and `camply serve beat`. The frontend launcher renders package-owned Nginx templates at startup and automatically locates and serves the bundled frontend assets, with a same-origin `/api` proxy. The image carries OCI source, source-revision, and version labels and uses one `camply` GitHub Actions build cache.
 

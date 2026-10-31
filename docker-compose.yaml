@@ -1,7 +1,7 @@
 name: "camply"
 
 x-camply: &camply
-  image: ghcr.io/juftin/camply:${CAMPLY_VERSION:-local}
+  image: ghcr.io/juftin/camply-web:${CAMPLY_VERSION:-local}
   stop_signal: SIGTERM
   stop_grace_period: 1m
   build:

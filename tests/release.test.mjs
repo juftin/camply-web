@@ -263,10 +263,10 @@ for (const [version, major] of [
     assert.deepEqual(plan.group.default.targets, ["backend"]);
     const target = plan.target.backend;
     assert.deepEqual(target.tags, [
-      `ghcr.io/juftin/camply:${major}`,
-      `ghcr.io/juftin/camply:v${version}`,
-      "ghcr.io/juftin/camply:0123456",
-      `ghcr.io/juftin/camply:latest`,
+      `ghcr.io/juftin/camply-web:${major}`,
+      `ghcr.io/juftin/camply-web:v${version}`,
+      "ghcr.io/juftin/camply-web:0123456",
+      `ghcr.io/juftin/camply-web:latest`,
     ]);
     assert.equal(target.labels["org.opencontainers.image.version"], version);
     assert.equal(
@@ -292,7 +292,7 @@ test("main builds publish latest without changing numbered release tags", (t) =>
   assert.equal(result.status, 0, result.stderr);
   const plan = JSON.parse(result.stdout);
   const target = plan.target.backend;
-  assert.deepEqual(target.tags, [`ghcr.io/juftin/camply:latest`]);
+  assert.deepEqual(target.tags, [`ghcr.io/juftin/camply-web:latest`]);
   assert.equal(
     target.labels["org.opencontainers.image.version"],
     "sha-0123456789abcdef",
@@ -500,7 +500,7 @@ test("distributed Compose retains services, persistent storage, and API relation
   ]);
   for (const name of ["backend", "celery-worker", "celery-beat"]) {
     const service = config.services[name];
-    assert.equal(service.image, "ghcr.io/juftin/camply:local");
+    assert.equal(service.image, "ghcr.io/juftin/camply-web:local");
     assert.equal(service.build.context, root.replace(/\/$/, ""));
     assert.equal(service.build.target, "camply");
     assert.equal(service.environment.CAMPLY_DB_HOST, "db");
