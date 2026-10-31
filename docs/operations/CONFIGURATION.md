@@ -106,6 +106,26 @@ startup. Bare `camply serve beat` keeps its existing schedule without dispatchin
 The flag requests work asynchronously; it does not wait for provider ingestion to finish.
 Workers and beat never apply database migrations, including when the sync flag is set.
 
+## Service health checks
+
+| Command                             | Default check                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
+| `camply serve healthcheck`          | Standalone `http://127.0.0.1:8000/api/health`                                   |
+| `camply serve healthcheck backend`  | API `http://127.0.0.1:8000/api/health`                                          |
+| `camply serve healthcheck frontend` | Nginx `http://127.0.0.1:8080/healthz`                                           |
+| `camply serve healthcheck worker`   | Directed Celery ping to `celery@<local hostname>` through the configured broker |
+| `camply serve healthcheck beat`     | Fresh heartbeat from a live local scheduler PID                                 |
+
+Each probe prints `healthy` and exits 0 on success; an unhealthy service exits 1 with a short diagnostic on stderr. Invalid CLI usage exits 2. The probes do not migrate databases or dispatch application tasks. HTTP and beat checks work with the base package; the worker check requires `camply[distributed]`. Beat PID checks require Unix. Help never requires optional runtime dependencies. Run each local probe in the same container and environment as its serving role.
+
+HTTP probes accept `--url` for a custom listener and `--timeout` for the network timeout (5 seconds by default). They require a 2xx status, reject redirects, and ignore environment HTTP proxies. For example, `camply serve healthcheck --url http://127.0.0.1:9000/api/health` matches standalone serving on port 9000. An init container can use `camply serve healthcheck backend --url http://backend:8000/api/health` to wait for the API. The distributed API endpoint reports HTTP liveness; it does not verify PostgreSQL or Valkey. Standalone additionally checks its SQLite connection and local runner. Frontend checks only Nginx, independently of its upstream. Keep separate infrastructure/readiness probes when database or broker availability matters.
+
+The worker probe uses the current Python environment to run Celery inspection, requests a reply from exactly one named worker, and enforces a subprocess deadline with `--timeout` (5 seconds by default). Another healthy replica cannot satisfy the default local probe. If serving with a custom `--hostname`, pass its expanded node name via `camply serve healthcheck worker --destination custom@hostname`. Worker remote control must be enabled. A busy solo pool can delay control replies; size the timeout accordingly or use the default prefork pool. This checks worker control responsiveness and broker connectivity, rather than completion of an application task.
+
+`camply serve beat` uses a persistent Celery scheduler that atomically writes its PID and timestamp after each completed scheduling tick. Its default maximum sleep is 30 seconds. The probe checks that PID and requires a timestamp no more than 60 seconds old. Set `CAMPLY_BEAT_HEALTH_FILE` on both serving and probing processes to override the default `camply-beat-health.json` under Python's temporary directory, or pass `--heartbeat-file` to the probe. The directory must be writable by beat; keep the marker local to one beat instance and its PID namespace. Startup clears old state and clean shutdown removes the marker. A forced kill leaves a marker that fails the PID check. Use `--max-age` to adjust the freshness window when forwarding a larger `--max-interval` to beat. Replacing beat's `--scheduler` disables this heartbeat unless the replacement implements the same contract. A fresh marker confirms scheduler-loop progress, not successful broker publication or worker task execution.
+
+Compose configures these probes per role, with a 10-second outer timeout and startup grace periods. The shared image has no role-specific Dockerfile `HEALTHCHECK`; standalone or other downstream deployments should select the matching command. Kubernetes can use these commands as exec probes or retain the same HTTP endpoints as in [the downstream deployment example](https://github.com/juftin/home-ops/pull/257). Run `task backend:healthcheck:test` for real worker targeting, broker-loss detection, beat stall detection, and shutdown verification; CI runs the same smoke test.
+
 ## Process shutdown
 
 Serving commands use process replacement (`exec`) to run in the foreground. Gunicorn, Celery worker/beat, and Nginx retain their native signal handling and child-process management. Bare `camply serve` runs Uvicorn in the main thread with one worker, so its normal shutdown invokes application lifespan cleanup: stop local scheduling, drain/cancel background work, and close database resources.

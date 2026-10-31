@@ -88,6 +88,8 @@ Backend and worker commands forward extra arguments to Gunicorn or Celery, for e
 
 Frontend serving requires system Nginx with `/etc/nginx/mime.types`, as installed in the image. Set `CAMPLY_BACKEND_URL` to choose the API upstream; it defaults to `http://backend:8000`. For example, `CAMPLY_BACKEND_URL=http://api.internal:9000 camply serve frontend` proxies `/api/` to that server. Compose forwards the same variable. Use an origin without a trailing slash to preserve the `/api/` path. The frontend listens on port 8080, renders the two package-owned templates under a writable temporary directory, and runs Nginx in the foreground without modifying `/etc/nginx`. Nginx config resources live in `src/camply/cli/nginx/`.
 
+Health probes follow the same roles: `camply serve healthcheck` checks standalone, and `camply serve healthcheck backend`, `frontend`, `worker`, or `beat` checks that service. They print `healthy` and exit 0 on success, or exit 1 with a diagnostic. Compose uses these commands for all four application services. HTTP probes accept `--url` and `--timeout`; the worker probe targets the local Celery node through Valkey, and beat checks a scheduler-loop heartbeat. See [healthcheck configuration](docs/operations/CONFIGURATION.md#service-health-checks) for probe semantics and overrides. Run `task backend:healthcheck:test` to verify real worker and beat probes with a disposable Valkey container.
+
 ```text
 /
 ├── pyproject.toml, uv.lock, package.json, pnpm-lock.yaml

@@ -151,6 +151,7 @@ def test_runtime_help_and_missing_dependencies(
             (['serve', 'backend'], 'camply[server]'),
             (['serve', 'worker'], 'camply[distributed]'),
             (['serve', 'beat'], 'camply[distributed]'),
+            (['serve', 'healthcheck', 'worker'], 'camply[distributed]'),
         ):
             help_result = CliRunner().invoke(cli, [*command, '--help'])
             assert help_result.exit_code == 0, help_result.output
@@ -160,4 +161,36 @@ def test_runtime_help_and_missing_dependencies(
             assert result.exit_code == 1, result.output
             assert hint in result.stderr, result.stderr
         assert not any(name.startswith(('camply.server', 'camply.worker', 'camply.db', 'camply.providers')) for name in sys.modules)
+    """)
+
+
+def test_healthchecks_without_optional_runtimes(
+    install: Callable[[str], Installation],
+) -> None:
+    """Base installs can probe HTTP and beat state without bootstrapping any service."""
+    install("").run("""
+        import json
+        import os
+        import sys
+        import time
+        from contextlib import nullcontext
+        from pathlib import Path
+        from unittest.mock import patch
+        import httpx
+        from click.testing import CliRunner
+        from camply.cli.main import cli
+
+        for role in ([], ['backend'], ['frontend'], ['worker'], ['beat']):
+            result = CliRunner().invoke(cli, ['serve', 'healthcheck', *role, '--help'])
+            assert result.exit_code == 0, result.output
+        for role in ([], ['backend'], ['frontend']):
+            with patch('httpx.stream', return_value=nullcontext(httpx.Response(200))):
+                result = CliRunner().invoke(cli, ['serve', 'healthcheck', *role])
+            assert result.exit_code == 0, result.output
+        path = Path.cwd() / 'synthetic-beat.json'
+        path.write_text(json.dumps({'pid': os.getpid(), 'timestamp': time.time()}))
+        result = CliRunner().invoke(cli, ['serve', 'healthcheck', 'beat', '--heartbeat-file', str(path)])
+        assert result.exit_code == (1 if os.name == 'nt' else 0), result.output
+        path.unlink()
+        assert not any(name.startswith(('camply.server', 'camply.worker', 'camply.providers', 'camply.db')) for name in sys.modules)
     """)

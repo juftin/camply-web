@@ -562,14 +562,20 @@ test("distributed Compose retains services, persistent storage, and API relation
     config.services.frontend.depends_on.backend.condition,
     "service_healthy",
   );
-  assert.equal(
-    config.services.backend.healthcheck.test.at(-1),
-    "http://localhost:8000/api/health",
-  );
-  assert.equal(
-    config.services.frontend.healthcheck.test.at(-1),
-    "http://localhost:8080/healthz",
-  );
+  for (const [name, role] of Object.entries({
+    backend: "backend",
+    frontend: "frontend",
+    "celery-worker": "worker",
+    "celery-beat": "beat",
+  })) {
+    assert.deepEqual(config.services[name].healthcheck.test, [
+      "CMD",
+      "camply",
+      "serve",
+      "healthcheck",
+      role,
+    ]);
+  }
   assert.ok(
     config.services.prometheus.volumes.some(
       (volume) =>

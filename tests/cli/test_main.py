@@ -160,6 +160,9 @@ def test_frontend_serve_rejects_missing_assets(
                 "beat",
                 "-l",
                 "info",
+                "--scheduler",
+                "camply.worker.scheduler:HealthScheduler",
+                "--max-interval=30",
                 "--schedule",
                 "/tmp/synthetic-schedule",
             ],
@@ -168,6 +171,7 @@ def test_frontend_serve_rejects_missing_assets(
 )
 def test_runtime_commands_replace_the_process(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
     command: list[str],
     module: str,
     arguments: list[str],
@@ -177,6 +181,9 @@ def test_runtime_commands_replace_the_process(
 
     monkeypatch.delenv("SKIP_MIGRATIONS", raising=False)
     monkeypatch.setenv("PATH", "")
+    heartbeat = tmp_path / "beat.json"
+    heartbeat.write_text("synthetic previous heartbeat")
+    monkeypatch.setenv("CAMPLY_BEAT_HEALTH_FILE", str(heartbeat))
     upgrade = Mock()
     execute = Mock(side_effect=SystemExit(0))
     monkeypatch.setattr(migration, "upgrade", upgrade)
@@ -189,6 +196,7 @@ def test_runtime_commands_replace_the_process(
         sys.executable, [sys.executable, "-m", module, *arguments]
     )
     assert upgrade.call_count == (1 if command[1] == "backend" else 0)
+    assert heartbeat.exists() == (command[1] != "beat")
 
 
 @pytest.mark.parametrize("skip", [False, True])
@@ -340,10 +348,11 @@ def test_frontend_serve_renders_packaged_configuration(
 
 @pytest.mark.parametrize("sync_providers", [False, True])
 def test_beat_optionally_dispatches_provider_sync(
-    monkeypatch: pytest.MonkeyPatch, sync_providers: bool
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, sync_providers: bool
 ) -> None:
     """Enqueue the expiring sync before exec only when explicitly requested."""
     calls = Mock()
+    monkeypatch.setenv("CAMPLY_BEAT_HEALTH_FILE", str(tmp_path / "beat.json"))
     calls.attach_mock(Mock(), "dispatch")
     calls.attach_mock(Mock(side_effect=SystemExit(0)), "execute")
     monkeypatch.setattr("subprocess.run", calls.dispatch)
@@ -384,6 +393,9 @@ def test_beat_optionally_dispatches_provider_sync(
                 "beat",
                 "-l",
                 "info",
+                "--scheduler",
+                "camply.worker.scheduler:HealthScheduler",
+                "--max-interval=30",
                 "--schedule",
                 "/tmp/synthetic-schedule",
             ],
@@ -394,9 +406,11 @@ def test_beat_optionally_dispatches_provider_sync(
 
 def test_beat_stops_when_provider_dispatch_fails(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     """A broker dispatch failure is visible and cannot silently start the scheduler."""
     execute = Mock()
+    monkeypatch.setenv("CAMPLY_BEAT_HEALTH_FILE", str(tmp_path / "beat.json"))
     monkeypatch.setattr("os.execv", execute)
     monkeypatch.setattr(
         "subprocess.run", Mock(side_effect=subprocess.CalledProcessError(1, "celery"))

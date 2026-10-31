@@ -20,4 +20,12 @@
 
 ## Acceptance
 
+### Per-role health checks
+
+- Provide `camply serve healthcheck` for standalone and `camply serve healthcheck backend/frontend/worker/beat` for individual roles. Return 0 for healthy and 1 for unhealthy, with concise diagnostics and no migrations or task dispatch.
+- Probe existing HTTP endpoints: standalone/backend `/api/health` on loopback port 8000, frontend `/healthz` on port 8080. Support explicit URL and network timeout options, reject redirects/errors, and avoid environment HTTP proxies.
+- Probe exactly the local Celery worker by default, with an explicit destination override and a bounded broker round trip. Other healthy workers must not mask a failed target.
+- Monitor beat with an atomic heartbeat written by its scheduler loop, checking freshness and PID liveness. Keep heartbeat generation independent of task due times; detect stopped/stalled schedulers. Support an alternate heartbeat file and freshness threshold.
+- Preserve base-only help/HTTP/file checks and require the distributed extra only for worker broker checks. Adopt the probes in Compose, and verify real worker/beat processes against a disposable broker in CI.
+
 Render Compose and publication plans to verify one application image and build configuration across roles. Verify CLI behavior in clean base-package installations, entrypoint dispatch, and real Nginx HTTP responses from the shared runtime. The final image runs as `camply` and contains no Node tooling.

@@ -90,6 +90,13 @@ def test_http_cli_serves_and_shuts_down(
                     assert client.get('/api/nonexistent').status_code == 404
                 with sqlite3.connect(os.environ['CAMPLY_DB_HOST']) as database:
                     assert database.execute('SELECT version_num FROM alembic_version').fetchone()
+                health_role = [] if role == 'standalone' else ['backend']
+                probe = subprocess.run(
+                    [str(Path(sys.executable).with_name('camply')), 'serve', 'healthcheck',
+                     *health_role, '--url', f'http://127.0.0.1:{port}/api/health'],
+                    check=True, capture_output=True, text=True, timeout=10,
+                )
+                assert probe.stdout.strip() == 'healthy'
                 if force:
                     process.kill()
                 else:
@@ -189,6 +196,9 @@ def test_worker_only_registration(install: Callable[[str], Installation]) -> Non
         assert all(importlib.util.find_spec(name) is None for name in ('fastapi', 'uvicorn', 'psycopg', 'sentry_sdk', 'pytest'))
         with patch.object(socket.socket, 'connect', side_effect=AssertionError('Unexpected broker connection')):
             from camply.worker.celery_app import celery_app
+            from camply.worker.scheduler import HealthScheduler
+            from celery.beat import PersistentScheduler
+            assert issubclass(HealthScheduler, PersistentScheduler)
             celery_app.loader.import_default_modules()
             tasks = {name for name in celery_app.tasks if name.startswith('camply.')}
             assert tasks == {
@@ -209,7 +219,8 @@ def test_installed_beat_provider_sync(
     install: Callable[[str], Installation], sync_providers: bool
 ) -> None:
     """Distributed-only artifacts enqueue the optional sync before replacing the CLI."""
-    install("distributed").run(
+    installation = install("distributed")
+    installation.run(
         f"        sync_providers = {sync_providers!r}\n"
         + """
         import sys
@@ -239,7 +250,12 @@ def test_installed_beat_provider_sync(
         assert calls.execute.call_args.args[1][-2:] == ['--schedule', '/tmp/synthetic-beat']
         assert '--sync-providers' not in calls.execute.call_args.args[1]
         assert not any(name.startswith('camply.server') for name in sys.modules)
-        """
+        """,
+        settings={
+            "CAMPLY_BEAT_HEALTH_FILE": str(
+                installation.directory / "synthetic-beat.json"
+            )
+        },
     )
 
 

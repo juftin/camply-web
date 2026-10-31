@@ -74,7 +74,7 @@ services:
       CAMPLY_HEARTBEAT_INTERVAL: ${CAMPLY_HEARTBEAT_INTERVAL:-300}
       CAMPLY_TARGET_COOLDOWN: ${CAMPLY_TARGET_COOLDOWN:-55}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "camply", "serve", "healthcheck", "backend"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -131,6 +131,12 @@ services:
       CAMPLY_NOTIFICATION_MODE: ${CAMPLY_NOTIFICATION_MODE:-summary}
       CAMPLY_APP_URL: ${CAMPLY_APP_URL:-http://localhost:5173}
       SKIP_MIGRATIONS: "1"
+    healthcheck:
+      test: ["CMD", "camply", "serve", "healthcheck", "worker"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     restart: unless-stopped
 
   celery-beat:
@@ -161,6 +167,12 @@ services:
       CAMPLY_TARGET_COOLDOWN: ${CAMPLY_TARGET_COOLDOWN:-55}
       PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
       CAMPLY_PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
+    healthcheck:
+      test: ["CMD", "camply", "serve", "healthcheck", "beat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     restart: unless-stopped
 
   prometheus:
@@ -201,7 +213,7 @@ services:
     ports:
       - "${FRONTEND_PORT:-80}:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      test: ["CMD", "camply", "serve", "healthcheck", "frontend"]
       interval: 30s
       timeout: 10s
       retries: 3

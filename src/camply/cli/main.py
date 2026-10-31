@@ -5,7 +5,6 @@ The ``camply`` console script resolves to :func:`cli`. Subcommands are
 registered on this group as the CLI grows.
 """
 
-import importlib.util
 import json
 import os
 import shutil
@@ -18,6 +17,8 @@ from pathlib import Path
 import click
 
 from camply.__about__ import __application__, __version__
+from camply.cli.healthcheck import beat_health_path, healthcheck
+from camply.cli.runtime import require_modules
 
 
 @click.group(
@@ -49,18 +50,9 @@ def _executable(name: str, *, hint: str) -> str:
     return executable
 
 
-def _require_modules(extra: str, modules: tuple[str, ...]) -> None:
-    """Reject incomplete runtime extras in this interpreter before startup side effects."""
-    missing = [name for name in modules if importlib.util.find_spec(name) is None]
-    if missing:
-        raise click.ClickException(
-            f"Missing runtime dependencies: {', '.join(missing)}. Install camply[{extra}]."
-        )
-
-
 def _require_server(*modules: str) -> None:
     """Check shared server dependencies plus any role-specific Python modules."""
-    _require_modules(
+    require_modules(
         "server",
         (
             "fastapi",
@@ -179,14 +171,32 @@ def serve_worker(args: tuple[str, ...]) -> None:
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def serve_beat(sync_providers: bool, args: tuple[str, ...]) -> None:
     """Schedule background tasks; optionally enqueue a provider sync before exec."""
-    _worker_process("beat", args, sync_providers=sync_providers)
+    _worker_process(
+        "beat",
+        (
+            "--scheduler",
+            "camply.worker.scheduler:HealthScheduler",
+            "--max-interval=30",
+            *args,
+        ),
+        sync_providers=sync_providers,
+    )
 
 
 def _worker_process(
     command: str, args: tuple[str, ...], *, sync_providers: bool = False
 ) -> None:
     """Check dependencies, optionally dispatch a sync, then exec the distributed role."""
-    _require_modules("distributed", ("celery", "redis", "prometheus_client"))
+    require_modules("distributed", ("celery", "redis", "prometheus_client"))
+    if command == "beat":
+        path = beat_health_path()
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as exc:
+            raise click.ClickException(
+                "Cannot prepare the beat heartbeat file."
+            ) from exc
+        os.environ["CAMPLY_BEAT_HEALTH_FILE"] = str(path)
     if sync_providers:
         try:
             subprocess.run(
@@ -220,3 +230,6 @@ def _worker_process(
             *args,
         ],
     )
+
+
+serve.add_command(healthcheck)

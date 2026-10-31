@@ -43,3 +43,11 @@ catalog task with a ten-minute expiry through the CLI interpreter before process
 Keep default beat startup free of dispatch, native argument forwarding, base-only help, and
 optional dependency checks. A failed dispatch must stop startup. Cover these contracts with CLI,
 entrypoint, clean-installation, and release regressions; verify fresh-database startup ordering.
+
+## Per-role health checks
+
+1. Add a base-only CLI healthcheck module registered beneath `serve`; reuse HTTP endpoint semantics from home-ops PR 257, with URL/timeout options and exit-status tests.
+2. Share runtime dependency validation between serving and health probes. Use a bounded Celery inspect subprocess addressed to the local worker rather than a cluster-wide ping.
+3. Extend Celery's persistent scheduler with an atomic PID/timestamp heartbeat after each completed tick. Default the CLI scheduler sleep to at most 30 seconds and freshness to 60 seconds; remove the marker on clean shutdown and reject dead/stale markers.
+4. Replace Compose HTTP probes and add worker/beat health checks. Verify mocked failure modes, installed HTTP checks, and real worker/beat startup, target isolation, stalled-loop detection, and shutdown using a disposable Valkey instance.
+5. Run quality and full-suite checks; update runtime documentation, the feature checklist, and the existing PR. Keep provider-sync behavior outside this healthcheck change.

@@ -135,6 +135,11 @@ tasks:
     cmds:
       - uv run --all-extras -- celery -A camply.worker.celery_app worker -l info -Q celery --concurrency=2
 
+  healthcheck:test:
+    desc: Verify CLI health probes with isolated Valkey, workers, and beat
+    cmds:
+      - CAMPLY_HEALTHCHECK_SMOKE=1 task backend:test -- tests/worker/test_healthcheck_smoke.py -s
+
   worker:beat:
     desc: Run Celery Beat Scheduler in Development Mode
     deps: [sync]

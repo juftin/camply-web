@@ -79,6 +79,15 @@ jobs:
         env:
           PACKAGING_PYTHON: "3.14"
 
+  runtime-health-smoke:
+    name: Runtime Health Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-backend
+      - run: task backend:healthcheck:test
+
   backend-compatibility:
     name: Backend Minimum Python (3.11)
     runs-on: ubuntu-latest
