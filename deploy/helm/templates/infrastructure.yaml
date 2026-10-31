@@ -1,0 +1,99 @@
+{{- $root := . -}}
+{{- range $role := list "postgresql" "valkey" "prometheus" -}}
+{{- $config := index $root.Values $role -}}
+{{- if $config.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "camply.fullname" $root }}-{{ $role }}
+  labels:
+    {{- include "camply.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $role }}
+  annotations: {{ mergeOverwrite (deepCopy $root.Values.annotations) (deepCopy $config.annotations) | toYaml | nindent 4 }}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {{ include "camply.selector" (dict "root" $root "role" $role) | nindent 6 }}
+  template:
+    metadata:
+      labels: {{ include "camply.selector" (dict "root" $root "role" $role) | nindent 8 }}
+      annotations: {{ mergeOverwrite (deepCopy $root.Values.podAnnotations) (deepCopy $config.podAnnotations) (dict "checksum/config" (toJson $config | sha256sum)) | toYaml | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {{ toYaml $config.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ $root.Values.terminationGracePeriodSeconds }}
+      {{- include "camply.scheduling" $root | nindent 6 }}
+      containers:
+        - name: {{ $role }}
+          image: {{ $config.image.repository }}:{{ $config.image.tag }}
+          imagePullPolicy: {{ $config.image.pullPolicy }}
+          securityContext: {{ default $root.Values.securityContext $config.securityContext | toYaml | nindent 12 }}
+          resources: {{ toYaml $config.resources | nindent 12 }}
+          {{- if eq $role "postgresql" }}
+          env:
+            - {name: POSTGRES_USER, value: {{ $root.Values.database.username | quote }}}
+            - {name: POSTGRES_DB, value: {{ $root.Values.database.name | quote }}}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $root.Values.database.existingSecret }}
+                  key: {{ $root.Values.database.passwordKey }}
+            - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
+          {{- else if eq $role "valkey" }}
+          args: {{ toYaml $config.args | nindent 12 }}
+          {{- else }}
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time={{ $config.retention }}
+          {{- end }}
+          ports:
+            - name: service
+              containerPort: {{ if eq $role "postgresql" }}5432{{ else if eq $role "valkey" }}6379{{ else }}9090{{ end }}
+          {{- $check := dict -}}
+          {{- if eq $role "postgresql" -}}
+          {{- $check = dict "exec" (dict "command" (list "pg_isready" "-U" $root.Values.database.username "-d" $root.Values.database.name)) -}}
+          {{- else if eq $role "valkey" -}}
+          {{- $check = dict "exec" (dict "command" (list "valkey-cli" "ping")) -}}
+          {{- else -}}
+          {{- $check = dict "httpGet" (dict "path" "/-/healthy" "port" "service") -}}
+          {{- end }}
+          startupProbe:
+            {{- toYaml $check | nindent 12 }}
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
+          livenessProbe:
+            {{- toYaml $check | nindent 12 }}
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            {{- if eq $role "prometheus" }}
+            httpGet: {path: /-/ready, port: service}
+            {{- else }}
+            {{- toYaml $check | nindent 12 }}
+            {{- end }}
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: {{ if eq $role "postgresql" }}/var/lib/postgresql/data{{ else if eq $role "valkey" }}/data{{ else }}/prometheus{{ end }}
+            {{- if eq $role "prometheus" }}
+            - name: config
+              mountPath: /etc/prometheus
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: data
+          {{- include "camply.storage" (merge (dict "name" (printf "%s-%s" (include "camply.fullname" $root) $role)) $config.persistence) | nindent 10 }}
+        {{- if eq $role "prometheus" }}
+        - name: config
+          configMap:
+            name: {{ include "camply.fullname" $root }}-prometheus
+        {{- end }}
+{{- end }}
+{{- end }}

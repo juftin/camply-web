@@ -101,6 +101,12 @@ cannot process tasks against a schema still being migrated. Kubernetes deploymen
 worker/beat startup wait for the migrated API's health endpoint or an explicit migration Job;
 a database TCP check alone does not establish schema readiness.
 
+The [Helm chart](../../deploy/helm/README.md) provides a revision-specific migration
+Job and init-container gates for the backend, worker, and beat. It supports bundled
+or external PostgreSQL/Valkey/Prometheus, configurable PVCs, Ingress, and Gateway API.
+Use `task helm:test` for rendering/gate checks and `task helm:smoke` for a disposable
+kind installation and failed-upgrade verification.
+
 Compose runs `camply serve beat --sync-providers`. The opt-in flag enqueues
 `camply.catalog.sync_all_providers` with a ten-minute expiry before replacing the CLI with Celery
 beat. Dispatch uses the same Python environment as the CLI, and a nonzero dispatch exit stops

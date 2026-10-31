@@ -19,6 +19,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  helm-checks:
+    name: Helm ${{ matrix.helm }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        helm: [v3.19.0, v4.3.0]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-backend
+      - name: Install Helm
+        env:
+          HELM_VERSION: ${{ matrix.helm }}
+        run: |
+          curl -fsSLo /tmp/helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          tar -xzf /tmp/helm.tar.gz -C /tmp
+          install /tmp/linux-amd64/helm "$HOME/.local/bin/helm"
+      - run: task helm:test
+
   release-checks:
     name: Release Configuration
     runs-on: ubuntu-latest

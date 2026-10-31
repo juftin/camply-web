@@ -1,0 +1,240 @@
+nameOverride: camply
+fullnameOverride: ""
+
+# Pin a version or digest for reproducible upgrades. All four roles and migrations
+# use this same image. Bump migrations.revision when reusing a mutable image tag.
+image:
+  repository: ghcr.io/juftin/camply-web
+  # Empty uses Chart.appVersion; published charts pin the matching release image.
+  tag: ""
+  digest: ""
+  pullPolicy: Always
+imagePullSecrets: []
+
+# Non-secret environment values, or Kubernetes valueFrom mappings. Per-role env
+# overrides these values; chart-owned connection and migration variables are reserved.
+env:
+  CAMPLY_ENVIRONMENT: production
+  CAMPLY_DEBUG: "false"
+  CAMPLY_AUTH_MODE: none
+  CAMPLY_SESSION_COOKIE_SECURE: "true"
+  CAMPLY_HEARTBEAT_INTERVAL: "300"
+  CAMPLY_TARGET_COOLDOWN: "55"
+envFrom: []
+annotations: {}
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+terminationGracePeriodSeconds: 60
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: [ALL]
+
+migrations:
+  # Change to force a fresh Job in GitOps or after a failed migration.
+  revision: "1"
+  activeDeadlineSeconds: 600
+  backoffLimit: 3
+  waitTimeoutSeconds: 900
+  resources:
+    requests:
+      cpu: 20m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+
+frontend:
+  enabled: true
+  replicas: 1
+  args: [camply, serve, frontend]
+  env: {}
+  envFrom: []
+  annotations: {}
+  podAnnotations: {}
+  podSecurityContext:
+    { runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, fsGroup: 1000 }
+  service:
+    type: ClusterIP
+    port: 8080
+    annotations: {}
+  resources:
+    requests: { cpu: 10m, memory: 64Mi }
+    limits: { memory: 256Mi }
+
+backend:
+  replicas: 1
+  args: [camply, serve, backend]
+  env:
+    GUNICORN_WORKERS: "2"
+  envFrom: []
+  annotations: {}
+  podAnnotations: {}
+  podSecurityContext:
+    { runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, fsGroup: 1000 }
+  service:
+    type: ClusterIP
+    port: 8000
+    annotations: {}
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { memory: 1Gi }
+
+worker:
+  enabled: true
+  replicas: 1
+  args: [camply, serve, worker]
+  env: {}
+  envFrom: []
+  annotations: {}
+  podAnnotations: {}
+  podSecurityContext:
+    { runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, fsGroup: 1000 }
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { memory: 1Gi }
+
+beat:
+  enabled: true
+  # Always one replica with Recreate to prevent overlapping schedulers.
+  args: [camply, serve, beat, --sync-providers]
+  env: {}
+  envFrom: []
+  annotations: {}
+  podAnnotations: {}
+  podSecurityContext:
+    { runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, fsGroup: 1000 }
+  resources:
+    requests: { cpu: 20m, memory: 128Mi }
+    limits: { memory: 512Mi }
+
+# Connection settings apply to both bundled and external PostgreSQL.
+database:
+  host: "" # Required when postgresql.enabled=false.
+  port: 5432
+  username: camply
+  name: camply
+  existingSecret: camply-db
+  passwordKey: POSTGRES_PASSWORD
+
+postgresql:
+  enabled: true
+  image:
+    {
+      repository: docker.io/library/postgres,
+      tag: "17",
+      pullPolicy: IfNotPresent,
+    }
+  annotations: {}
+  podAnnotations: {}
+  podSecurityContext: { fsGroup: 999, fsGroupChangePolicy: OnRootMismatch }
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: [ALL]
+      add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { memory: 1Gi }
+  persistence:
+    enabled: true
+    existingClaim: ""
+    # null: cluster default; "-": no storage class; otherwise a class name.
+    storageClass: null
+    accessModes: [ReadWriteOnce]
+    size: 10Gi
+    retain: true
+    annotations: {}
+
+valkey:
+  enabled: true
+  # Set url or existingSecret when using an external broker (redis:// or rediss://).
+  url: ""
+  existingSecret: ""
+  urlKey: CAMPLY_VALKEY_URL
+  image:
+    {
+      repository: docker.io/valkey/valkey,
+      tag: 9-alpine,
+      pullPolicy: IfNotPresent,
+    }
+  args: [valkey-server, --save, "60", "1", --loglevel, warning]
+  annotations: {}
+  podAnnotations: {}
+  podSecurityContext:
+    { runAsNonRoot: true, runAsUser: 999, runAsGroup: 999, fsGroup: 999 }
+  resources:
+    requests: { cpu: 20m, memory: 64Mi }
+    limits: { memory: 256Mi }
+  persistence:
+    enabled: true
+    existingClaim: ""
+    storageClass: null
+    accessModes: [ReadWriteOnce]
+    size: 2Gi
+    retain: true
+    annotations: {}
+
+prometheus:
+  enabled: true
+  externalUrl: ""
+  image:
+    {
+      repository: docker.io/prom/prometheus,
+      tag: v3.15.1,
+      pullPolicy: IfNotPresent,
+    }
+  retention: 30d
+  annotations: {}
+  podAnnotations: {}
+  podSecurityContext:
+    {
+      runAsNonRoot: true,
+      runAsUser: 65534,
+      runAsGroup: 65534,
+      fsGroup: 65534,
+      fsGroupChangePolicy: OnRootMismatch,
+    }
+  resources:
+    requests: { cpu: 10m, memory: 64Mi }
+    limits: { memory: 512Mi }
+  persistence:
+    enabled: true
+    existingClaim: ""
+    storageClass: null
+    accessModes: [ReadWriteOnce]
+    size: 5Gi
+    retain: true
+    annotations: {}
+
+# Any networking.k8s.io/v1 controller: nginx, Traefik, HAProxy, Tailscale, etc.
+# API traffic is proxied by the frontend, including when only / is supported.
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: [camply.example.com]
+  tls: []
+
+# HTTPRoute works with Envoy Gateway, Cilium, Traefik, and other Gateway API controllers.
+route:
+  enabled: false
+  annotations: {}
+  hostnames: [camply.example.com]
+  parentRefs: []
+  filters: []
+
+# Optional Gateway creation; otherwise attach route.parentRefs to existing Gateways.
+gateway:
+  enabled: false
+  className: ""
+  annotations: {}
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+
+# Optional controller-specific resources (e.g. ExternalSecret or Envoy policies).
+# Emitted literally, so external-secrets template expressions remain intact.
+extraObjects: []
