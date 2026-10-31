@@ -142,6 +142,7 @@ def test_runtime_help_and_missing_dependencies(
         from camply.cli.main import cli
 
         for command, hint in (
+            (['serve'], 'camply[server]'),
             (['serve', 'frontend'], 'Nginx'),
             (['serve', 'backend'], 'camply[server]'),
             (['serve', 'worker'], 'camply[distributed]'),

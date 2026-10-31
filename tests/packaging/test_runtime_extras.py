@@ -7,6 +7,69 @@ import pytest
 from .conftest import Installation
 
 
+def test_standalone_cli_serves_complete_app(
+    install: Callable[[str], Installation],
+) -> None:
+    """Bare serving starts the installed UI, API, SQLite, and local runtime."""
+    installation = install("server")
+    installation.run(
+        """
+        import socket
+        import sqlite3
+        import subprocess
+        import sys
+        import tempfile
+        import time
+        from pathlib import Path
+        import httpx
+
+        with socket.socket() as listener:
+            listener.bind(('127.0.0.1', 0))
+            port = listener.getsockname()[1]
+        with tempfile.TemporaryFile() as log:
+            process = subprocess.Popen(
+                [str(Path(sys.executable).with_name('camply')), 'serve', '--port', str(port)],
+                stdout=log, stderr=subprocess.STDOUT,
+            )
+            try:
+                ready = False
+                with httpx.Client(base_url=f'http://127.0.0.1:{port}', timeout=1) as client:
+                    for attempt in range(150):
+                        if process.poll() is not None:
+                            break
+                        try:
+                            ready = client.get('/api/health').is_success
+                        except httpx.TransportError:
+                            pass
+                        if ready:
+                            break
+                        time.sleep(0.1)
+                    if not ready:
+                        log.seek(0)
+                        raise AssertionError(log.read().decode())
+                    home = client.get('/')
+                    assert home.is_success and 'text/html' in home.headers['content-type']
+                    assert client.get('/scans/synthetic', headers={'Accept': 'text/html'}).text == home.text
+                    assert client.get('/api/admin/operations').json()['runtime_mode'] == 'standalone'
+                    assert client.get('/metrics').status_code == 404
+                    assert client.get('/api/nonexistent').status_code == 404
+                import os
+                with sqlite3.connect(os.environ['CAMPLY_DB_HOST']) as database:
+                    assert database.execute('SELECT version_num FROM alembic_version').fetchone()
+                process.terminate()
+                process.wait(timeout=10)
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.wait(timeout=10)
+        """,
+        settings={
+            "CAMPLY_DB_HOST": str(installation.directory / "standalone-cli.sqlite"),
+            "CAMPLY_RUNTIME_MODE": "distributed",
+        },
+    )
+
+
 def test_server_only_routes_and_operations(
     install: Callable[[str], Installation],
 ) -> None:

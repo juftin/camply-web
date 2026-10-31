@@ -20,6 +20,8 @@ task standalone:run
 
 Open <http://127.0.0.1:8000>. Use **Sync Providers** in Admin Operations to load the catalog. Configure the Pushover application token and each user's key to receive alerts. The default authentication mode signs in as a shared administrator; select session or Auth0 authentication before sharing an instance. See [configuration](docs/operations/CONFIGURATION.md) and the [standalone guide](docs/development/DEVELOPER_GUIDE.md#standalone-runtime).
 
+An installed `camply[server]` package starts the complete standalone application with `camply serve`. Override the listener with `camply serve --host 0.0.0.0 --port 9000`. Explicit `camply serve frontend`, `backend`, `worker`, and `beat` subcommands run individual roles.
+
 Standalone uses one process on one host, with persisted scans and pending alerts. Historical monitoring charts require the distributed deployment. `task standalone:run` uses `build/frontend` as its default development UI; an explicit `CAMPLY_FRONTEND_DIR` selects another absolute asset directory.
 
 ## Build and install the complete application
@@ -41,10 +43,10 @@ Install the actual wheel path into a uv-managed environment with the desired ext
 
 ```bash
 uv pip install 'dist/camply-0.1.0-py3-none-any.whl[server]'
-python -m camply.server.standalone
+camply serve
 ```
 
-Substitute the artifact version and run the installed environment's interpreter. Installed standalone applications use package-owned assets by default. `CAMPLY_FRONTEND_DIR` remains an optional absolute override. SQLite storage defaults to the platform's camply application-data directory; set `CAMPLY_DB_HOST` to an absolute writable path to choose another location.
+Substitute the artifact version and run the installed environment's `camply` executable. Installed standalone applications use package-owned assets by default. `CAMPLY_FRONTEND_DIR` remains an optional absolute override. SQLite storage defaults to the platform's camply application-data directory; set `CAMPLY_DB_HOST` to an absolute writable path to choose another location.
 
 | Installation          | Capabilities                                                                                        |
 | --------------------- | --------------------------------------------------------------------------------------------------- |
@@ -68,12 +70,13 @@ Vite serves development UI on port 5173 and proxies `/api` to the backend on por
 
 Build the shared image with `task build`. The default command is `camply serve backend`; Compose selects the other roles with command overrides:
 
-| Role      | Command in the `camply` image    |
-| --------- | -------------------------------- |
-| API       | `camply serve backend` (default) |
-| Frontend  | `camply serve frontend`          |
-| Worker    | `camply serve worker`            |
-| Scheduler | `camply serve beat`              |
+| Role       | Command in the `camply` image    |
+| ---------- | -------------------------------- |
+| Standalone | `camply serve`                   |
+| API        | `camply serve backend` (default) |
+| Frontend   | `camply serve frontend`          |
+| Worker     | `camply serve worker`            |
+| Scheduler  | `camply serve beat`              |
 
 `camply serve backend` applies database migrations unless `SKIP_MIGRATIONS=1`; frontend and worker commands do not migrate. Compose retains its initial provider-sync dispatch before starting beat. Set `CAMPLY_VERSION` to select the image tag in Compose. PostgreSQL, Valkey, and Prometheus keep their upstream images.
 

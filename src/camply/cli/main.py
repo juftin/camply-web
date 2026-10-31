@@ -5,9 +5,11 @@ The ``camply`` console script resolves to :func:`cli`. Subcommands are
 registered on this group as the CLI grows.
 """
 
+import importlib.util
 import json
 import os
 import shutil
+import sys
 import tempfile
 from importlib.resources import files
 from pathlib import Path
@@ -46,9 +48,29 @@ def _executable(name: str, *, hint: str) -> str:
     return executable
 
 
-@cli.group()
-def serve() -> None:
-    """Run the frontend, backend, worker, or scheduler as a foreground process."""
+@cli.group(invoke_without_command=True)
+@click.option("--host", help="Standalone bind address (default: 127.0.0.1).")
+@click.option(
+    "--port", type=click.IntRange(1, 65535), help="Standalone port (default: 8000)."
+)
+@click.pass_context
+def serve(ctx: click.Context, host: str | None, port: int | None) -> None:
+    """Serve the standalone app, or select an individual application role."""
+    if ctx.invoked_subcommand is not None:
+        if host is not None or port is not None:
+            raise click.UsageError(
+                "--host and --port apply to standalone serving; omit the subcommand."
+            )
+        return
+    if importlib.util.find_spec("uvicorn") is None:
+        raise click.ClickException("Standalone serving requires camply[server].")
+    args = [sys.executable, "-m", "camply.server.standalone"]
+    if host is not None:
+        args.extend(["--host", host])
+    if port is not None:
+        args.extend(["--port", str(port)])
+    os.environ["CAMPLY_RUNTIME_MODE"] = "standalone"
+    os.execv(sys.executable, args)
 
 
 @serve.command(name="frontend")

@@ -12,6 +12,7 @@
 - Provide `camply serve frontend`, `camply serve backend`, `camply serve worker`, and `camply serve beat` as foreground process launchers. Keep optional runtime imports out of CLI startup, report missing executables clearly, and forward backend/worker runtime arguments.
 - Package both Nginx configurations with the CLI and render the installed static path into a writable per-process runtime directory. The API upstream remains the Compose service `backend:8000`.
 - Preserve API migrations, worker/beat migration skipping, runtime directory setup, and Compose's initial provider-sync dispatch before beat.
+- Bare `camply serve` starts the existing standalone launcher: bundled UI, API, SQLite migrations, and local background work in one process. Support standalone `--host`/`--port` options and require the `server` extra without importing optional runtimes for help or explicit subcommands.
 
 ## Acceptance
 

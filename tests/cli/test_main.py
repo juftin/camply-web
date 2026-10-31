@@ -47,6 +47,55 @@ def test_serve_namespace_lists_all_roles() -> None:
         assert role in result.output
 
 
+@pytest.mark.parametrize("args", [[], ["--host", "0.0.0.0", "--port", "9000"]])
+def test_serve_defaults_to_standalone(
+    monkeypatch: pytest.MonkeyPatch, args: list[str]
+) -> None:
+    """Bare serving reuses the standalone launcher in the current Python environment."""
+    monkeypatch.setenv("CAMPLY_RUNTIME_MODE", "distributed")
+    execute = Mock(side_effect=SystemExit(0))
+    monkeypatch.setattr("os.execv", execute)
+
+    result = CliRunner().invoke(cli, ["serve", *args])
+
+    assert result.exit_code == 0, result.output
+    execute.assert_called_once_with(
+        sys.executable,
+        [sys.executable, "-m", "camply.server.standalone", *args],
+    )
+    import os
+
+    assert os.environ["CAMPLY_RUNTIME_MODE"] == "standalone"
+
+
+def test_serve_requires_server_extra(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Missing server dependencies fail before starting the standalone runtime."""
+    from unittest.mock import patch
+
+    monkeypatch.setattr("os.execv", Mock(side_effect=AssertionError("Unexpected exec")))
+    with patch("importlib.util.find_spec", return_value=None):
+        result = CliRunner().invoke(cli, ["serve"])
+
+    assert result.exit_code == 1
+    assert "camply[server]" in result.stderr
+
+
+@pytest.mark.parametrize(
+    "args", [["--port", "0"], ["--port", "9000", "backend"], ["unknown"]]
+)
+def test_serve_rejects_ambiguous_or_invalid_arguments(
+    monkeypatch: pytest.MonkeyPatch, args: list[str]
+) -> None:
+    """Invalid or misplaced standalone arguments cannot silently start another role."""
+    execute = Mock()
+    monkeypatch.setattr("os.execv", execute)
+
+    result = CliRunner().invoke(cli, ["serve", *args])
+
+    assert result.exit_code == 2, result.output
+    execute.assert_not_called()
+
+
 def test_module_execution_reports_version() -> None:
     """``python -m camply.cli`` resolves to the same entrypoint."""
     result = subprocess.run(

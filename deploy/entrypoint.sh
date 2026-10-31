@@ -8,7 +8,8 @@ case "${1:-}" in
         ;;
     camply)
         case "${2:-}:${3:-}" in
-            serve:backend|serve:worker|serve:beat) ;;
+            serve:frontend) exec "${@}" ;;
+            serve:*) ;;
             *) exec "${@}" ;;
         esac
         ;;

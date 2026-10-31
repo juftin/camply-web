@@ -11,6 +11,8 @@ import pytest
     ("command", "skip_migrations", "migrates"),
     [
         (["nginx", "-g", "daemon off;"], False, False),
+        (["camply", "serve"], False, False),
+        (["camply", "serve", "--port", "9000"], False, False),
         (["camply", "serve", "frontend"], False, False),
         (["camply", "serve", "backend"], False, False),
         (["camply", "serve", "worker"], False, False),
@@ -50,9 +52,5 @@ def test_role_dispatch(
     if migrates:
         expected = [str(tmp_path / "python"), "-m", "camply.db.migration", *expected]
     assert calls == expected
-    if command[:2] == ["camply", "serve"] and command[2] in {
-        "backend",
-        "worker",
-        "beat",
-    }:
+    if command[:2] == ["camply", "serve"] and command[2:3] != ["frontend"]:
         assert (tmp_path / ".local/share/camply").is_dir()

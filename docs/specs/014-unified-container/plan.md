@@ -17,3 +17,7 @@ The change keeps root manifests, the complete-wheel packaging contract, internal
 3. Launch Gunicorn, Nginx, and Celery with process replacement. The backend command applies migrations unless skipped; the shell entrypoint retains container directory preparation and raw-command compatibility.
 4. Switch Docker/Compose to the CLI commands, remove build-time Nginx rendering and gettext, and preserve Compose's provider synchronization before beat.
 5. Verify unit and installed-artifact behavior, real container roles and shutdown, then update the existing PR.
+
+## Default standalone serving
+
+Invoke the installed `camply.server.standalone` module with the current Python interpreter when `camply serve` has no subcommand. Forward standalone listener options, select standalone mode before process replacement, and retain the existing launcher's resource validation, migrations, and single-process scheduling. Explicit role subcommands and the distributed Docker/Compose default remain unchanged. Route the development standalone task through the CLI and verify bare invocation, missing extras, listener options, help, and real installed standalone HTTP behavior.

@@ -29,7 +29,7 @@ tasks:
       CAMPLY_RUNTIME_MODE: standalone
       CAMPLY_FRONTEND_DIR: '{{.CAMPLY_FRONTEND_DIR | default (printf "%s/build/frontend" .ROOT_DIR)}}'
     cmds:
-      - uv run --no-dev --extra server -- python -m camply.server.standalone {{.CLI_ARGS}}
+      - uv run --no-dev --extra server -- camply serve {{.CLI_ARGS}}
 
   standalone:test:
     desc: Verify a core-only installed build, real SQLite recovery, and Chromium
