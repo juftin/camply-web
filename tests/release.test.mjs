@@ -525,6 +525,13 @@ test("distributed Compose retains services, persistent storage, and API relation
       config.services.backend.build,
     );
   }
+  for (const name of ["backend", "frontend", "celery-worker", "celery-beat"]) {
+    assert.equal(config.services[name].stop_grace_period, "1m0s");
+  }
+  assert.equal(config.services.frontend.stop_signal, "SIGQUIT");
+  for (const name of ["backend", "celery-worker", "celery-beat"]) {
+    assert.equal(config.services[name].stop_signal, "SIGTERM");
+  }
   assert.deepEqual(config.services.frontend.command, [
     "camply",
     "serve",

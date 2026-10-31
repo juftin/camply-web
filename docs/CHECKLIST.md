@@ -212,6 +212,7 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/007-open-sour
 - [x] T4.2.11 Make bare `camply serve` launch the standalone UI/API/SQLite/local scheduler, preserving explicit role subcommands and verifying installed-package HTTP behavior.
 - [x] T4.2.12 Check each serving role's dependencies before side effects and launch Python runtimes in the CLI environment; verify missing/partial extras and unrelated `PATH` executables.
 - [x] T4.2.13 Preserve required backend/frontend Docker check names with a single shared image build, keeping current branch protection effective.
+- [x] T4.2.14 Preserve native serving signals; use graceful Nginx/Python stop signals and a one-minute Compose grace period, with installed HTTP shutdown and forced-termination regression tests.
 
 - [x] T4.2.2 Complete the pre-implementation Spec-Kit specification, clarification review, research, design/contracts, tasking, and consistency analysis for optional Python-served frontend assets, SQLite, and background work without Celery, Redis/Valkey, or Prometheus; see [standalone runtime plan](specs/007-standalone-runtime/plan.md).
 - [x] T4.2.3 Implement and verify the standalone runtime, minimal dependency installation, notification recovery, Python-served frontend, and service-free browser smoke tests while preserving the distributed stack; rebase onto current search/maps/results/release behavior and preserve both migration paths. Explicit regressions protect default API startup, Prometheus instrumentation, and Celery scan/alert dispatch from standalone behavior.

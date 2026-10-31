@@ -82,6 +82,8 @@ Build the shared image with `task build`. The default command is `camply serve b
 
 Outside Docker, standalone and backend serving require `camply[server]`, and worker/beat require `camply[distributed]`. The frontend requires system Nginx and a prepared wheel with built assets. Launchers check dependencies before startup and use the CLI's Python environment. Help remains available with only the base package installed.
 
+Serving commands replace the CLI process with the foreground runtime, preserving direct signal delivery. Compose sends `SIGTERM` to Python roles and `SIGQUIT` to Nginx, with one minute to stop before a forced kill. For Nginx outside Compose, use `docker run --stop-signal SIGQUIT --stop-timeout 60` or send `SIGQUIT` directly. See [shutdown behavior](docs/operations/CONFIGURATION.md#process-shutdown) for forced termination and host process groups.
+
 Backend and worker commands forward extra arguments to Gunicorn or Celery, for example `camply serve backend --bind 127.0.0.1:9000`, `camply serve worker --concurrency=2`, or `camply serve beat --schedule /tmp/camply-beat`. Backend serving requires `camply[server]`; worker commands require `camply[distributed]`. Each command replaces itself with the runtime process so container signals reach it directly.
 
 Frontend serving requires system Nginx with `/etc/nginx/mime.types`, as installed in the image, and a resolvable `backend:8000` API upstream. It listens on port 8080, renders the two package-owned templates under a writable temporary directory, and runs Nginx in the foreground without modifying `/etc/nginx`. Nginx config resources live in `src/camply/cli/nginx/`.

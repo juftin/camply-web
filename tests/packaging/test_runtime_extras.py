@@ -1,5 +1,6 @@
 """Exercise independently installed runtime extras without brokers or live services."""
 
+import sys
 from collections.abc import Callable
 
 import pytest
@@ -7,13 +8,38 @@ import pytest
 from .conftest import Installation
 
 
-def test_standalone_cli_serves_complete_app(
+@pytest.mark.parametrize(
+    ("role", "force"),
+    [
+        ("standalone", False),
+        pytest.param(
+            "standalone",
+            True,
+            marks=pytest.mark.skipif(
+                sys.platform == "win32", reason="SIGKILL requires Unix"
+            ),
+        ),
+        pytest.param(
+            "backend",
+            False,
+            marks=pytest.mark.skipif(
+                sys.platform == "win32", reason="Gunicorn requires Unix"
+            ),
+        ),
+    ],
+)
+def test_http_cli_serves_and_shuts_down(
     install: Callable[[str], Installation],
+    role: str,
+    force: bool,
 ) -> None:
-    """Bare serving starts the installed UI, API, SQLite, and local runtime."""
+    """HTTP runtimes handle SIGTERM cleanup and standalone receives SIGKILL directly."""
     installation = install("server")
     installation.run(
-        """
+        f"        role = {role!r}; force = {force!r}\n"
+        + """
+        import os
+        import signal
         import socket
         import sqlite3
         import subprocess
@@ -27,9 +53,13 @@ def test_standalone_cli_serves_complete_app(
             listener.bind(('127.0.0.1', 0))
             port = listener.getsockname()[1]
         with tempfile.TemporaryFile() as log:
+            arguments = ['--port', str(port)] if role == 'standalone' else [
+                'backend', '--bind', f'127.0.0.1:{port}', '--workers', '1',
+            ]
             process = subprocess.Popen(
-                [str(Path(sys.executable).with_name('camply')), 'serve', '--port', str(port)],
+                [str(Path(sys.executable).with_name('camply')), 'serve', *arguments],
                 stdout=log, stderr=subprocess.STDOUT,
+                start_new_session=os.name != 'nt',
             )
             try:
                 ready = False
@@ -47,24 +77,48 @@ def test_standalone_cli_serves_complete_app(
                     if not ready:
                         log.seek(0)
                         raise AssertionError(log.read().decode())
-                    home = client.get('/')
-                    assert home.is_success and 'text/html' in home.headers['content-type']
-                    assert client.get('/scans/synthetic', headers={'Accept': 'text/html'}).text == home.text
-                    assert client.get('/api/admin/operations').json()['runtime_mode'] == 'standalone'
-                    assert client.get('/metrics').status_code == 404
+                    if role == 'standalone':
+                        home = client.get('/')
+                        assert home.is_success and 'text/html' in home.headers['content-type']
+                        assert client.get('/scans/synthetic', headers={'Accept': 'text/html'}).text == home.text
+                        assert client.get('/metrics').status_code == 404
+                    else:
+                        assert client.get('/').status_code == 404
+                        assert client.get('/metrics').is_success
+                    runtime = 'standalone' if role == 'standalone' else 'distributed'
+                    assert client.get('/api/admin/operations').json()['runtime_mode'] == runtime
                     assert client.get('/api/nonexistent').status_code == 404
-                import os
                 with sqlite3.connect(os.environ['CAMPLY_DB_HOST']) as database:
                     assert database.execute('SELECT version_num FROM alembic_version').fetchone()
-                process.terminate()
+                if force:
+                    process.kill()
+                else:
+                    process.terminate()
                 process.wait(timeout=10)
+                log.seek(0)
+                output = log.read().decode()
+                if role == 'standalone' and os.name != 'nt':
+                    assert f'Started server process [{process.pid}]' in output, output
+                if force:
+                    assert process.returncode == -signal.SIGKILL, output
+                else:
+                    assert 'Application shutdown complete' in output, output
+                    if role == 'backend':
+                        assert 'Shutting down: Master' in output, output
+                with sqlite3.connect(os.environ['CAMPLY_DB_HOST']) as database:
+                    assert database.execute('PRAGMA integrity_check').fetchone() == ('ok',)
             finally:
+                if os.name != 'nt':
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
                 if process.poll() is None:
                     process.kill()
                     process.wait(timeout=10)
         """,
         settings={
-            "CAMPLY_DB_HOST": str(installation.directory / "standalone-cli.sqlite"),
+            "CAMPLY_DB_HOST": str(installation.directory / f"{role}-cli.sqlite"),
             "CAMPLY_RUNTIME_MODE": "distributed",
         },
     )

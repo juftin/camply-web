@@ -2,6 +2,8 @@ name: "camply"
 
 x-camply: &camply
   image: ghcr.io/juftin/camply:${CAMPLY_VERSION:-local}
+  stop_signal: SIGTERM
+  stop_grace_period: 1m
   build:
     context: .
     dockerfile: Dockerfile
@@ -189,6 +191,7 @@ services:
   frontend:
     <<: *camply
     command: ["camply", "serve", "frontend"]
+    stop_signal: SIGQUIT
     ports:
       - "${FRONTEND_PORT:-80}:8080"
     healthcheck:

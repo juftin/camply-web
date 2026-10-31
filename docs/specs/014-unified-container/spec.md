@@ -15,6 +15,7 @@
 - Bare `camply serve` starts the existing standalone launcher: bundled UI, API, SQLite migrations, and local background work in one process. Support standalone `--host`/`--port` options and require the `server` extra without importing optional runtimes for help or explicit subcommands.
 - Validate each Python role's runtime modules in the CLI interpreter before startup or migrations. Launch Gunicorn and Celery with that interpreter so unrelated executables on `PATH` cannot bypass missing extras or select another installation.
 - Preserve existing required backend/frontend Docker check names while performing a single shared image build. A failed, cancelled, or skipped shared build must not pass the frontend check.
+- Preserve foreground process ownership and native runtime signal handling. Compose must use graceful `SIGQUIT` for Nginx, `SIGTERM` for Python roles, and an explicit shutdown grace period; document that `SIGKILL` cannot perform cleanup and host supervisors must own child process groups.
 
 ## Acceptance
 

@@ -81,6 +81,14 @@ The campsite-details migration is required before starting the updated API/worke
 
 Standalone uses the existing positive `CAMPLY_HEARTBEAT_INTERVAL` (300 seconds) and `CAMPLY_TARGET_COOLDOWN` (55 seconds). No broker or Prometheus URL is queried; distributed settings continue to apply in distributed mode. Local admin history retains up to 1,000 attempts for 24 hours and clears on restart. Pending delivery is stored separately in SQLite. Both runtimes honor `CAMPLY_NOTIFICATION_MODE` (`summary` by default, or `direct`); summaries are revalidated and recounted before standalone delivery. Set `PUSHOVER_APP_TOKEN` and the current user's Pushover key for delivery. Missing credentials skip alerts rather than reporting success. Runtime selection does not enable login or invitation checks; configure authentication explicitly as below.
 
+## Process shutdown
+
+Serving commands use process replacement (`exec`) to run in the foreground. Gunicorn, Celery worker/beat, and Nginx retain their native signal handling and child-process management. Bare `camply serve` runs Uvicorn in the main thread with one worker, so its normal shutdown invokes application lifespan cleanup: stop local scheduling, drain/cancel background work, and close database resources.
+
+Compose sends `SIGTERM` to backend/worker/beat and `SIGQUIT` to frontend Nginx. Nginx treats `SIGTERM` as fast shutdown and `SIGQUIT` as graceful shutdown; changing the shared image's default stop signal would also affect Python roles. All application services have a one-minute `stop_grace_period`. For `docker run`, use `--stop-timeout 60`; add `--stop-signal SIGQUIT` for `camply serve frontend`. Extend the worker's Compose grace period when tasks need more than a minute to finish.
+
+`SIGKILL` cannot be caught, forwarded, or used for cleanup. Docker forcibly kills a container after its grace period, and in-flight requests/tasks can be interrupted. Outside containers, use a service manager that owns all descendant processes (for example [systemd with `KillMode=mixed`](https://www.freedesktop.org/software/systemd/man/latest/systemd.kill.html)): signal the master first for graceful shutdown, then kill the complete service if the grace period expires. Killing only a master PID does not generally guarantee all descendants stop. Process replacement avoids an extra launcher parent but does not change OS process-group semantics. These behaviors follow [Docker's stop policy](https://docs.docker.com/reference/cli/docker/container/stop/), [Nginx signal handling](https://nginx.org/en/docs/control.html), and [Celery shutdown semantics](https://docs.celeryq.dev/en/stable/userguide/workers.html#stopping-the-worker).
+
 ## 🔒 Authentication (Toggleable)
 
 The instance owner chooses `CAMPLY_AUTH_MODE`. `CAMPLY_ENVIRONMENT` does not select or override authentication. HTTP Basic authentication is never used; `basic` and the old `local` auth mode are rejected.

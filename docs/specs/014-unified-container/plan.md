@@ -25,3 +25,7 @@ Invoke the installed `camply.server.standalone` module with the current Python i
 ## Runtime dependency checks
 
 Check required modules using `importlib.util.find_spec` without importing optional runtimes. Share common server checks across standalone/backend and add Gunicorn-specific checks only for backend serving. Require Celery, Redis, and metrics modules for worker/beat. Replace the process with the current interpreter's `-m gunicorn` or `-m celery`; retain `PATH` lookup only for system Nginx. Verify partial extras fail before migrations, unrelated executables cannot bypass checks, and an installed backend launcher works with an empty `PATH`.
+
+## Shutdown behavior
+
+Retain process replacement and native signal handlers. Configure Compose to send `SIGQUIT` to Nginx and `SIGTERM` to Python roles, allowing one minute before forced termination. Verify live installed standalone/Gunicorn cleanup after `SIGTERM`, unchanged standalone PID ownership, direct `SIGKILL` termination, and SQLite integrity after termination. Document host process-group supervision and the limits of cleanup after forced kills.

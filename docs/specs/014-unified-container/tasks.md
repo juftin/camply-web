@@ -17,5 +17,6 @@
 - [x] Make bare `camply serve` start the standalone application, with listener options, existing resource validation/migrations/local scheduling, and installed-package HTTP coverage.
 - [x] Validate role dependencies before startup and run Python servers from the CLI interpreter; test partial extras, unrelated executables, and an installed backend with an empty `PATH`.
 - [x] Preserve both existing required Docker check names while building the shared image once; reject failed, cancelled, or skipped builds in the frontend check.
+- [x] Configure role-specific graceful shutdown signals and a one-minute Compose grace period; verify live HTTP cleanup, direct standalone SIGKILL/PID ownership, and SQLite integrity, and document host process-group supervision.
 
 Validation: CLI, entrypoint, installed-wheel/sdist resources, optional dependency boundaries, and rendered release/Compose plans passed. A shared runtime built from the real local wheel passed frontend/backend startup, API migrations and proxying, wheel-identical assets, SPA routes, worker/beat argument forwarding, non-root operation, and graceful shutdown. Lint, types, pre-commit hooks, and ShellCheck passed. The full source Docker build passed in CI; local Docker builds remain constrained by available storage.
