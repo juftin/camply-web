@@ -48,6 +48,31 @@ def _executable(name: str, *, hint: str) -> str:
     return executable
 
 
+def _require_modules(extra: str, modules: tuple[str, ...]) -> None:
+    """Reject incomplete runtime extras in this interpreter before startup side effects."""
+    missing = [name for name in modules if importlib.util.find_spec(name) is None]
+    if missing:
+        raise click.ClickException(
+            f"Missing runtime dependencies: {', '.join(missing)}. Install camply[{extra}]."
+        )
+
+
+def _require_server(*modules: str) -> None:
+    """Check shared server dependencies plus any role-specific Python modules."""
+    _require_modules(
+        "server",
+        (
+            "fastapi",
+            "uvicorn",
+            "orjson",
+            "jwt",
+            "cryptography",
+            "prometheus_client",
+            *modules,
+        ),
+    )
+
+
 @cli.group(invoke_without_command=True)
 @click.option("--host", help="Standalone bind address (default: 127.0.0.1).")
 @click.option(
@@ -62,8 +87,7 @@ def serve(ctx: click.Context, host: str | None, port: int | None) -> None:
                 "--host and --port apply to standalone serving; omit the subcommand."
             )
         return
-    if importlib.util.find_spec("uvicorn") is None:
-        raise click.ClickException("Standalone serving requires camply[server].")
+    _require_server()
     args = [sys.executable, "-m", "camply.server.standalone"]
     if host is not None:
         args.extend(["--host", host])
@@ -112,15 +136,17 @@ def serve_frontend() -> None:
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def serve_backend(args: tuple[str, ...]) -> None:
     """Migrate the database and serve the API; forward arguments to Gunicorn."""
-    executable = _executable("gunicorn", hint="Install camply[server].")
+    _require_server("gunicorn", "uvicorn_worker")
     if os.environ.get("SKIP_MIGRATIONS", "0") != "1":
         from camply.db.migration import upgrade
 
         upgrade()
     os.execv(
-        executable,
+        sys.executable,
         [
-            executable,
+            sys.executable,
+            "-m",
+            "gunicorn",
             "--config",
             "python:camply.server.gunicorn",
             *args,
@@ -145,8 +171,18 @@ def serve_beat(args: tuple[str, ...]) -> None:
 
 def _worker_process(command: str, args: tuple[str, ...]) -> None:
     """Replace the CLI with a distributed process without importing worker code."""
-    executable = _executable("celery", hint="Install camply[distributed].")
+    _require_modules("distributed", ("celery", "redis", "prometheus_client"))
     os.execv(
-        executable,
-        [executable, "-A", "camply.worker.celery_app", command, "-l", "info", *args],
+        sys.executable,
+        [
+            sys.executable,
+            "-m",
+            "celery",
+            "-A",
+            "camply.worker.celery_app",
+            command,
+            "-l",
+            "info",
+            *args,
+        ],
     )

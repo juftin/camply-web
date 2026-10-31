@@ -71,7 +71,11 @@ def test_installed_frontend_and_gunicorn(
         if os.name != 'nt':
             from camply.server import gunicorn
             assert gunicorn.worker_class == 'uvicorn_worker.UvicornWorker'
-            subprocess.run([str(Path(sys.executable).with_name('gunicorn')), '--check-config', '--config', 'python:camply.server.gunicorn', 'camply.server.app:app'], check=True, capture_output=True, text=True)
+            subprocess.run(
+                [str(Path(sys.executable).with_name('camply')), 'serve', 'backend', '--check-config'],
+                env={**os.environ, 'PATH': '', 'SKIP_MIGRATIONS': '1'},
+                check=True, capture_output=True, text=True,
+            )
         static = importlib.resources.files('camply.server').joinpath('static')
         assert static.joinpath('index.html').is_file()
         backend_config.runtime_mode = RuntimeMode.STANDALONE

@@ -150,7 +150,8 @@ def test_runtime_help_and_missing_dependencies(
         ):
             help_result = CliRunner().invoke(cli, [*command, '--help'])
             assert help_result.exit_code == 0, help_result.output
-            with patch.dict(os.environ, {'PATH': ''}):
+            unrelated = None if command == ['serve', 'frontend'] else '/unrelated/bin/runtime'
+            with patch.dict(os.environ, {'PATH': ''}), patch('shutil.which', return_value=unrelated):
                 result = CliRunner().invoke(cli, command)
             assert result.exit_code == 1, result.output
             assert hint in result.stderr, result.stderr

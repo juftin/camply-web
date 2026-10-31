@@ -123,7 +123,7 @@ def test_frontend_serve_rejects_missing_assets(
 
 
 @pytest.mark.parametrize(
-    ("command", "executable", "arguments"),
+    ("command", "module", "arguments"),
     [
         (
             ["serve", "backend", "--bind", "127.0.0.1:9000"],
@@ -169,14 +169,14 @@ def test_frontend_serve_rejects_missing_assets(
 def test_runtime_commands_replace_the_process(
     monkeypatch: pytest.MonkeyPatch,
     command: list[str],
-    executable: str,
+    module: str,
     arguments: list[str],
 ) -> None:
     """Each launcher preserves default behavior and forwards runtime arguments."""
     from camply.db import migration
 
     monkeypatch.delenv("SKIP_MIGRATIONS", raising=False)
-    monkeypatch.setattr("shutil.which", lambda name: f"/synthetic/bin/{name}")
+    monkeypatch.setenv("PATH", "")
     upgrade = Mock()
     execute = Mock(side_effect=SystemExit(0))
     monkeypatch.setattr(migration, "upgrade", upgrade)
@@ -185,8 +185,9 @@ def test_runtime_commands_replace_the_process(
     result = CliRunner().invoke(cli, command)
 
     assert result.exit_code == 0, result.output
-    path = f"/synthetic/bin/{executable}"
-    execute.assert_called_once_with(path, [path, *arguments])
+    execute.assert_called_once_with(
+        sys.executable, [sys.executable, "-m", module, *arguments]
+    )
     assert upgrade.call_count == (1 if command[1] == "backend" else 0)
 
 
@@ -198,7 +199,6 @@ def test_backend_migration_ownership(
     from camply.db import migration
 
     monkeypatch.setenv("SKIP_MIGRATIONS", "1" if skip else "0")
-    monkeypatch.setattr("shutil.which", lambda name: f"/synthetic/bin/{name}")
     upgrade = Mock()
     monkeypatch.setattr(migration, "upgrade", upgrade)
     monkeypatch.setattr("os.execv", Mock(side_effect=SystemExit(0)))
@@ -210,24 +210,73 @@ def test_backend_migration_ownership(
 
 
 @pytest.mark.parametrize(
-    ("command", "hint"),
+    ("command", "extra", "modules"),
     [
-        (["serve", "frontend"], "Nginx"),
-        (["serve", "backend"], "camply[server]"),
-        (["serve", "worker"], "camply[distributed]"),
-        (["serve", "beat"], "camply[distributed]"),
+        (
+            ["serve"],
+            "server",
+            (
+                "fastapi",
+                "uvicorn",
+                "orjson",
+                "jwt",
+                "cryptography",
+                "prometheus_client",
+            ),
+        ),
+        (
+            ["serve", "backend"],
+            "server",
+            (
+                "fastapi",
+                "uvicorn",
+                "orjson",
+                "jwt",
+                "cryptography",
+                "prometheus_client",
+                "gunicorn",
+                "uvicorn_worker",
+            ),
+        ),
+        (["serve", "worker"], "distributed", ("celery", "redis", "prometheus_client")),
+        (["serve", "beat"], "distributed", ("celery", "redis", "prometheus_client")),
     ],
 )
-def test_runtime_commands_explain_missing_executables(
-    monkeypatch: pytest.MonkeyPatch, command: list[str], hint: str
+def test_python_roles_check_dependencies_before_side_effects(
+    monkeypatch: pytest.MonkeyPatch,
+    command: list[str],
+    extra: str,
+    modules: tuple[str, ...],
 ) -> None:
-    """Missing runtime tools fail before resource setup or database migrations."""
+    """Partial extras fail before migrations even when unrelated executables exist."""
+    from camply.db import migration
+
+    upgrade = Mock()
+    execute = Mock()
+    monkeypatch.setattr(migration, "upgrade", upgrade)
+    monkeypatch.setattr("os.execv", execute)
+    monkeypatch.setattr("shutil.which", lambda name: f"/unrelated/bin/{name}")
+    for missing in modules:
+        monkeypatch.setattr(
+            "importlib.util.find_spec",
+            lambda name, missing=missing: None if name == missing else object(),
+        )
+        result = CliRunner().invoke(cli, command)
+        assert result.exit_code == 1, (missing, result.output)
+        assert f"camply[{extra}]" in result.stderr
+        assert missing in result.stderr
+        upgrade.assert_not_called()
+        execute.assert_not_called()
+
+
+def test_frontend_explains_missing_nginx(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The frontend requires a system Nginx installation rather than Python extras."""
     monkeypatch.setattr("shutil.which", lambda name: None)
 
-    result = CliRunner().invoke(cli, command)
+    result = CliRunner().invoke(cli, ["serve", "frontend"])
 
     assert result.exit_code == 1
-    assert hint in result.stderr
+    assert "Nginx" in result.stderr
 
 
 def test_frontend_serve_renders_packaged_configuration(

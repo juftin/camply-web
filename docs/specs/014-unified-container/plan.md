@@ -3,7 +3,7 @@
 1. Locate bundled assets internally from the CLI's package path, checking for `index.html`; verify absolute paths in rendered Nginx configuration and clean base installations.
 2. Retain the shared wheel build, install Nginx alongside Python in one final `camply` stage, and render package-owned Nginx templates at runtime using the installed static root.
 3. Reuse the same Compose image/build configuration for API, frontend, worker, and beat. Let the backend launcher own API migrations, keep frontend/worker startup independent, and use `camply serve backend` as the default.
-4. Build and publish one image through the existing Compose backend Bake target, preserving task namespaces and release aliases; consolidate Docker CI into one job.
+4. Build and publish one image through the existing Compose backend Bake target, preserving task namespaces and release aliases. Build once in CI and retain both required Docker check names; the frontend check must fail unless the shared image build succeeded.
 5. Verify role dispatch, release plans, lint/types, installed artifacts, and container HTTP behavior; update current deployment documentation and the global checklist.
 
 ## Constitution check
@@ -21,3 +21,7 @@ The change keeps root manifests, the complete-wheel packaging contract, internal
 ## Default standalone serving
 
 Invoke the installed `camply.server.standalone` module with the current Python interpreter when `camply serve` has no subcommand. Forward standalone listener options, select standalone mode before process replacement, and retain the existing launcher's resource validation, migrations, and single-process scheduling. Explicit role subcommands and the distributed Docker/Compose default remain unchanged. Route the development standalone task through the CLI and verify bare invocation, missing extras, listener options, help, and real installed standalone HTTP behavior.
+
+## Runtime dependency checks
+
+Check required modules using `importlib.util.find_spec` without importing optional runtimes. Share common server checks across standalone/backend and add Gunicorn-specific checks only for backend serving. Require Celery, Redis, and metrics modules for worker/beat. Replace the process with the current interpreter's `-m gunicorn` or `-m celery`; retain `PATH` lookup only for system Nginx. Verify partial extras fail before migrations, unrelated executables cannot bypass checks, and an installed backend launcher works with an empty `PATH`.

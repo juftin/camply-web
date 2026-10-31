@@ -13,6 +13,8 @@
 - Package both Nginx configurations with the CLI and render the installed static path into a writable per-process runtime directory. The API upstream remains the Compose service `backend:8000`.
 - Preserve API migrations, worker/beat migration skipping, runtime directory setup, and Compose's initial provider-sync dispatch before beat.
 - Bare `camply serve` starts the existing standalone launcher: bundled UI, API, SQLite migrations, and local background work in one process. Support standalone `--host`/`--port` options and require the `server` extra without importing optional runtimes for help or explicit subcommands.
+- Validate each Python role's runtime modules in the CLI interpreter before startup or migrations. Launch Gunicorn and Celery with that interpreter so unrelated executables on `PATH` cannot bypass missing extras or select another installation.
+- Preserve existing required backend/frontend Docker check names while performing a single shared image build. A failed, cancelled, or skipped shared build must not pass the frontend check.
 
 ## Acceptance
 

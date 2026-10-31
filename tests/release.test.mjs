@@ -449,6 +449,25 @@ test("one Python and Nginx image serves every application role", () => {
   }
 });
 
+test("required Docker checks share one build and reject unsuccessful build results", () => {
+  const ci = readFileSync(join(root, ".github/workflows/ci.yaml"), "utf8");
+  assert.match(ci, /backend-docker:\n    name: Backend Docker Build/);
+  assert.equal((ci.match(/uses: docker\/bake-action@/g) ?? []).length, 1);
+  const gate = ci.match(/  frontend-docker:\n([\s\S]*?)(?=\n  #|\n  [a-z])/)[1];
+  assert.match(gate, /name: Frontend Docker Build/);
+  assert.match(gate, /needs: \[backend-docker\]/);
+  assert.match(gate, /if: \$\{\{ always\(\) \}\}/);
+  assert.match(gate, /BUILD_RESULT: \$\{\{ needs\.backend-docker\.result \}\}/);
+  const script = gate.match(/run: (.+)/)[1];
+  for (const result of ["success", "failure", "cancelled", "skipped", ""]) {
+    const checked = spawnSync("bash", ["-c", script], {
+      encoding: "utf8",
+      env: { ...process.env, BUILD_RESULT: result },
+    });
+    assert.equal(checked.status === 0, result === "success", result);
+  }
+});
+
 test("distributed Compose retains services, persistent storage, and API relationships", () => {
   const rendered = spawnSync(
     "docker",
