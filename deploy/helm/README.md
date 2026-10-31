@@ -213,7 +213,7 @@ existing data. The new migration gate replaces reliance on Argo CD sync waves.
 
 ```sh
 task helm:test       # strict lint, rendered-manifest matrix, and gate behavior
-task helm:smoke      # disposable kind cluster: fresh install and failed upgrade
+task helm:smoke      # disposable kind cluster: install, upgrade, and migration failure
 task helm:package    # dist/camply-web-0.1.0.tgz
 ```
 
@@ -225,6 +225,14 @@ preserved PostgreSQL data, and failed-migration startup blocking. Set
 `CAMPLY_HELM_TEST_IMAGE=repository:tag` to reuse an already built local image.
 The test deletes its own cluster and any application image it built; diagnostic
 resources/logs remain under `tmp/camply-helm-*`. It never prunes other Docker data.
+
+Plan for at least 10 GB of free space in both Docker's filesystem and the host
+before running the smoke test. `docker system df` shows image, volume, and build-cache
+usage. A full Docker filesystem can fail the frontend install during the image
+build (including exit code 135), or prevent kind from pulling its node image with
+`no space left on device`. Free space using your Docker runtime's storage tools,
+then rerun the task. Unused build cache can be recreated; review any cleanup
+before removing images or volumes containing other projects' data.
 
 CI runs the lifecycle smoke after loading the existing Docker build, using the
 PR's image rather than a published image. Standard chart checks run against Helm

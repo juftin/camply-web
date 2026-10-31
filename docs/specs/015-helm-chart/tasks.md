@@ -47,3 +47,16 @@ notes, and the test hook. API contract checks, type checks, and core Kubernetes
 schema validation passed. The updated local lifecycle smoke was attempted, but
 the source-image build failed inside `pnpm install` with exit code 135 before
 cluster creation. CI now runs the same lifecycle checks against its built image.
+
+## Local cluster testing
+
+- [x] Diagnose local storage exhaustion and document smoke-test disk requirements.
+- [x] Initialize the CI lifecycle job's Task/Python environment before installing Helm/kind.
+- [x] Reproduce the missing CI setup with a regression, then verify the fix.
+- [ ] Complete the local Kubernetes lifecycle test after freeing sufficient disk space.
+
+Follow-up validation: `task fix`, `task lint`, `task check`, chart regressions
+(54 passed), Actionlint, and pre-commit passed. Full `task test` passed with 818
+backend tests, 68 packaging tests, 339 frontend tests, and release/Pages checks.
+The source image now builds and kind starts, but image import still exhausts
+local storage; the partial test-owned cluster was removed.

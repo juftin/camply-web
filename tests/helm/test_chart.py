@@ -363,12 +363,15 @@ def test_ci_lifecycle_uses_the_source_image() -> None:
         s for s in steps if s.get("uses", "").startswith("docker/bake-action@")
     )
     smoke = next(s for s in steps if s.get("run") == "task helm:smoke")
+    setup = next(s for s in steps if s.get("uses") == "./.github/actions/setup-backend")
+    tools = next(s for s in steps if "KIND_VERSION" in s.get("env", {}))
     assert build["with"]["load"] is True
     assert build["with"]["push"] is False
     assert smoke["env"]["CAMPLY_HELM_TEST_IMAGE"].endswith(
         build["env"]["CAMPLY_VERSION"]
     )
     assert steps.index(build) < steps.index(smoke)
+    assert steps.index(setup) < steps.index(tools) < steps.index(smoke)
 
 
 def test_notes_render_release_specific_commands(tmp_path: Path) -> None:

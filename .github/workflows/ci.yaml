@@ -145,6 +145,7 @@ jobs:
             *.cache-to=type=gha,mode=max,scope=camply
         env:
           CAMPLY_VERSION: ci-${{ github.sha }}
+      - uses: ./.github/actions/setup-backend
       - name: Install Helm and kind for lifecycle verification
         env:
           HELM_VERSION: v4.3.0
