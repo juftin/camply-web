@@ -46,6 +46,8 @@ migrations:
       memory: 512Mi
 
 frontend:
+  # Native Kubernetes Probe overrides; false disables a probe.
+  probes: {}
   enabled: true
   replicas: 1
   args: [camply, serve, frontend]
@@ -64,6 +66,8 @@ frontend:
     limits: { memory: 256Mi }
 
 backend:
+  # Native Kubernetes Probe overrides; false disables a probe.
+  probes: {}
   replicas: 1
   args: [camply, serve, backend]
   env:
@@ -82,6 +86,8 @@ backend:
     limits: { memory: 1Gi }
 
 worker:
+  # Native Kubernetes Probe overrides; false disables a probe.
+  probes: {}
   enabled: true
   replicas: 1
   args: [camply, serve, worker]
@@ -96,6 +102,8 @@ worker:
     limits: { memory: 1Gi }
 
 beat:
+  # Native Kubernetes Probe overrides; false disables a probe.
+  probes: {}
   enabled: true
   # Always one replica with Recreate to prevent overlapping schedulers.
   args: [camply, serve, beat, --sync-providers]
@@ -238,3 +246,15 @@ gateway:
 # Optional controller-specific resources (e.g. ExternalSecret or Envoy policies).
 # Emitted literally, so external-secrets template expressions remain intact.
 extraObjects: []
+
+# Requires an existing Prometheus Operator ServiceMonitor CRD.
+serviceMonitor:
+  enabled: false
+  labels: {}
+  annotations: {}
+  interval: 30s
+  scrapeTimeout: 10s
+
+# Read-only connectivity test invoked explicitly with helm test RELEASE.
+tests:
+  enabled: true

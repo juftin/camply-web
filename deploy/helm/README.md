@@ -217,10 +217,18 @@ task helm:smoke      # disposable kind cluster: fresh install and failed upgrade
 task helm:package    # dist/camply-web-0.1.0.tgz
 ```
 
-The smoke test requires Docker, kind, kubectl, and access to pull the application
-image. It uses synthetic credentials, disables initial provider sync, and
-creates/deletes its own cluster with an isolated kubeconfig. Standard chart
-checks run in CI against Helm 3 and 4; they do not need a cluster or credentials.
+The smoke test requires Docker, kind, and kubectl. It builds the application from
+this checkout, loads that image into a test-owned cluster, disables registry pulls
+for the application, and uses synthetic credentials with initial provider sync
+disabled. It verifies migration ordering, `helm test`, a successful upgrade with
+preserved PostgreSQL data, and failed-migration startup blocking. Set
+`CAMPLY_HELM_TEST_IMAGE=repository:tag` to reuse an already built local image.
+The test deletes its own cluster and any application image it built; diagnostic
+resources/logs remain under `tmp/camply-helm-*`. It never prunes other Docker data.
+
+CI runs the lifecycle smoke after loading the existing Docker build, using the
+PR's image rather than a published image. Standard chart checks run against Helm
+3 and 4 and need no cluster or credentials.
 
 Stable release publication runs `task helm:publish RELEASE_VERSION=1.2.3` in the
 existing publisher after the exact release tag's container image is available.
@@ -232,3 +240,77 @@ version tags rather than moving `latest` or major aliases. See
 [release operations](../../docs/operations/RELEASES.md#helm-chart) for permissions
 and recovery. Publication tests package the real chart and record the push without
 contacting a registry.
+
+## Configuration validation and probes
+
+`values.schema.json` checks values during Helm lint, rendering, install, and
+upgrade. Unknown chart settings, invalid replica counts/ports/access modes, and
+incomplete external-service or routing choices fail before installation. Native
+Kubernetes extension objects, environment variable names, and metadata keys remain
+open. The schema ships inside the OCI chart; it has no remote schema references.
+
+Each application role supports `probes.startup`, `probes.liveness`, and
+`probes.readiness`. Supply native Kubernetes Probe fields to override the defaults,
+or `false` to disable that probe. A supplied `exec`, `httpGet`, `tcpSocket`, or
+`grpc` handler replaces the default handler while retaining other default timings.
+
+```yaml
+backend:
+  probes:
+    startup:
+      failureThreshold: 90
+    readiness:
+      timeoutSeconds: 4
+worker:
+  probes:
+    liveness:
+      periodSeconds: 60
+```
+
+API liveness uses `/api/ping`, which is independent of dependencies. API readiness
+and startup use `/api/health`, which runs a database query with a two-second budget
+and returns HTTP 503 when unavailable. Standalone also checks its supervised local
+loops. Keeping these checks separate avoids restarting the API during a temporary
+database outage. Worker and beat retain their role-specific CLI health probes.
+
+## Existing Prometheus Operator installations
+
+Enable `serviceMonitor.enabled` to create one ServiceMonitor for the headless API
+and worker metrics Services. The existing Operator must already supply the
+`monitoring.coreos.com/v1` ServiceMonitor CRD and select the monitor's labels and
+namespace. The chart does not install CRDs or a monitoring controller.
+
+```yaml
+prometheus:
+  enabled: false
+  externalUrl: http://prometheus.monitoring.svc:9090
+serviceMonitor:
+  enabled: true
+  labels:
+    release: monitoring
+  interval: 30s
+  scrapeTimeout: 10s
+```
+
+Match `labels.release` to your Prometheus installation's selectors; that label is
+an example rather than a universal convention. Set `prometheus.externalUrl` so
+Camply can query its existing historical trends. The monitor scrapes individual
+pod endpoints using the Services' `metrics` port and omits workers when disabled.
+
+## Installation checks and troubleshooting
+
+Helm prints access, authentication, and migration troubleshooting instructions
+from `NOTES.txt`. They contain Secret references and settings guidance, never
+secret contents. After installation or upgrade, run:
+
+```sh
+helm test camply -n camply --logs
+```
+
+The test Pod checks backend readiness and, when enabled, the frontend's `/api`
+proxy. It uses the same application image without a service-account token or
+application credentials, performs no writes, and is removed after success.
+Failed test Pods remain available for logs. Set `tests.enabled=false` to omit
+this hook when managing connection checks separately. API readiness verifies the
+database connection; the test does not claim to verify provider access or successful
+background task processing.

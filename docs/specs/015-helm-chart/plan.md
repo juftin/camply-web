@@ -29,3 +29,21 @@ cover startup failures and upgrade identity as well as user-facing configuration
    publication, with a separate Helm registry login using the runtime GITHUB_TOKEN.
 4. Verify real package metadata and rendered images with a recorded registry push,
    invalid publication contexts, and release-only workflow ordering on Helm 3/4.
+
+## Operator experience implementation
+
+1. Write regressions for invalid values, probe overrides, ServiceMonitor selectors,
+   installation notes, Helm test resources, and readiness failure/liveness isolation.
+2. Add a static values schema; merge native probe overrides with defaults, supporting
+   explicit disablement and handler replacement. Check database readiness with a
+   bounded query through the existing overridable FastAPI session dependency.
+3. Add an opt-in ServiceMonitor, component labels on metrics Services, NOTES, and
+   a read-only test Pod using the same application image and no API credentials.
+4. Build/load a unique local image for kind smoke; extend the test with successful
+   upgrade/data survival and failure diagnostics. Reuse the existing CI image build
+   to execute the smoke test rather than creating another container build job.
+5. Verify both Helm versions, API contract drift, backend/frontend quality gates,
+   and the full test suite; update docs/checklist and the existing PR.
+
+No new runtime dependencies or infrastructure controllers are introduced. Helm's
+schema validates values; the optional ServiceMonitor requires an existing CRD.

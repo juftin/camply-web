@@ -24,7 +24,22 @@ def cluster(tmp_path: Path) -> Iterator[dict[str, str]]:
         assert shutil.which(executable), f"{executable} is required"
     name = f"camply-helm-{uuid.uuid4().hex[:8]}"
     env = {**os.environ, "KUBECONFIG": str(tmp_path / "kubeconfig")}
+    image = os.environ.get("CAMPLY_HELM_TEST_IMAGE", f"camply-helm-smoke:{name}")
+    env["CAMPLY_HELM_TEST_IMAGE"] = image
+    built_here = "CAMPLY_HELM_TEST_IMAGE" not in os.environ
     try:
+        if built_here:
+            run(
+                env,
+                "docker",
+                "build",
+                "--target",
+                "camply",
+                "--tag",
+                image,
+                str(ROOT),
+                timeout=600,
+            )
         subprocess.run(
             [
                 "kind",
@@ -41,14 +56,49 @@ def cluster(tmp_path: Path) -> Iterator[dict[str, str]]:
             check=True,
             timeout=240,
         )
+        run(env, "kind", "load", "docker-image", image, "--name", name)
         yield env
     finally:
+        report = ROOT / "tmp" / name
+        report.mkdir(parents=True, exist_ok=True)
+        for args, filename in [
+            (("kubectl", "get", "pods,jobs,pvc,events", "-o", "wide"), "resources.txt"),
+            (
+                (
+                    "kubectl",
+                    "logs",
+                    "-l",
+                    "app.kubernetes.io/instance=smoke",
+                    "--all-containers=true",
+                    "--prefix=true",
+                    "--tail=100",
+                    "--max-log-requests=20",
+                ),
+                "logs.txt",
+            ),
+        ]:
+            try:
+                result = subprocess.run(
+                    args,
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=30,
+                )
+                (report / filename).write_text(result.stdout + result.stderr)
+            except subprocess.TimeoutExpired:
+                (report / filename).write_text("Diagnostic collection timed out")
         subprocess.run(
             ["kind", "delete", "cluster", "--name", name],
             env=env,
             check=False,
             timeout=120,
         )
+        if built_here:
+            subprocess.run(
+                ["docker", "image", "rm", image], env=env, check=False, timeout=30
+            )
 
 
 def run(
@@ -77,9 +127,16 @@ def test_migration_startup_and_failed_upgrade(cluster: dict[str, str]) -> None:
         "stringData": {"POSTGRES_PASSWORD": "synthetic-helm-test-password"},
     }
     run(cluster, "kubectl", "apply", "-f", "-", data=json.dumps(secret))
+    repository, tag = cluster["CAMPLY_HELM_TEST_IMAGE"].rsplit(":", 1)
     options = [
         "smoke",
         str(ROOT / "deploy/helm"),
+        "--set-string",
+        f"image.repository={repository}",
+        "--set-string",
+        f"image.tag={tag}",
+        "--set",
+        "image.pullPolicy=Never",
         "--set",
         "prometheus.enabled=false",
         "--set",
@@ -119,6 +176,58 @@ def test_migration_startup_and_failed_upgrade(cluster: dict[str, str]) -> None:
             pod["status"]["containerStatuses"][0]["state"]["running"]["startedAt"]
             >= completed
         )
+    run(cluster, "helm", "test", "smoke", "--logs", "--timeout", "90s")
+    run(
+        cluster,
+        "kubectl",
+        "exec",
+        "deployment/smoke-camply-postgresql",
+        "--",
+        "psql",
+        "-U",
+        "camply",
+        "-d",
+        "camply",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        "CREATE TABLE helm_upgrade_proof (value integer); INSERT INTO helm_upgrade_proof VALUES (42);",
+    )
+    old_job = jobs[0]["metadata"]["name"]
+    run(
+        cluster,
+        "helm",
+        "upgrade",
+        *options,
+        "--set",
+        "migrations.revision=successful-upgrade",
+        "--wait",
+        "--wait-for-jobs",
+        "--timeout",
+        "5m",
+        timeout=360,
+    )
+    upgraded = json.loads(run(cluster, "kubectl", "get", "jobs", "-o", "json"))["items"]
+    assert any(
+        j["metadata"]["name"] != old_job and j.get("status", {}).get("succeeded") == 1
+        for j in upgraded
+    )
+    proof = run(
+        cluster,
+        "kubectl",
+        "exec",
+        "deployment/smoke-camply-postgresql",
+        "--",
+        "psql",
+        "-U",
+        "camply",
+        "-d",
+        "camply",
+        "-Atc",
+        "SELECT value FROM helm_upgrade_proof",
+    )
+    assert proof.strip() == "42"
+    run(cluster, "helm", "test", "smoke", "--logs", "--timeout", "90s")
     run(
         cluster,
         "helm",

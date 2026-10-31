@@ -83,21 +83,13 @@ spec:
           {{- else -}}
           {{- $check = dict "exec" (dict "command" (list "camply" "serve" "healthcheck" "beat")) -}}
           {{- end }}
-          startupProbe:
-            {{- toYaml $check | nindent 12 }}
-            periodSeconds: 5
-            timeoutSeconds: 10
-            failureThreshold: 60
-          livenessProbe:
-            {{- toYaml $check | nindent 12 }}
-            periodSeconds: 30
-            timeoutSeconds: 10
-            failureThreshold: 6
-          readinessProbe:
-            {{- toYaml $check | nindent 12 }}
-            periodSeconds: 10
-            timeoutSeconds: 10
-            failureThreshold: 3
+          {{- $liveness := deepCopy $check -}}
+          {{- if eq $role "backend" -}}
+          {{- $liveness = dict "httpGet" (dict "path" "/api/ping" "port" "http") -}}
+          {{- end }}
+          {{- include "camply.probe" (dict "name" "startupProbe" "default" (merge (dict "periodSeconds" 5 "timeoutSeconds" 10 "failureThreshold" 60) (deepCopy $check)) "override" (get $config.probes "startup")) | nindent 10 }}
+          {{- include "camply.probe" (dict "name" "livenessProbe" "default" (merge (dict "periodSeconds" 30 "timeoutSeconds" 10 "failureThreshold" 6) $liveness) "override" (get $config.probes "liveness")) | nindent 10 }}
+          {{- include "camply.probe" (dict "name" "readinessProbe" "default" (merge (dict "periodSeconds" 10 "timeoutSeconds" 10 "failureThreshold" 3) (deepCopy $check)) "override" (get $config.probes "readiness")) | nindent 10 }}
           volumeMounts:
             - {name: tmp, mountPath: /tmp}
       volumes:

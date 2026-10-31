@@ -129,7 +129,7 @@ jobs:
     name: Backend Docker Build
     needs: [backend-checks, frontend-checks]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -139,11 +139,31 @@ jobs:
           files: ./docker-compose.yaml
           targets: backend
           push: false
+          load: true
           set: |
             *.cache-from=type=gha,scope=camply
             *.cache-to=type=gha,mode=max,scope=camply
         env:
           CAMPLY_VERSION: ci-${{ github.sha }}
+      - name: Install Helm and kind for lifecycle verification
+        env:
+          HELM_VERSION: v4.3.0
+          KIND_VERSION: v0.33.0
+        run: |
+          curl -fsSLo /tmp/helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          tar -xzf /tmp/helm.tar.gz -C /tmp
+          install /tmp/linux-amd64/helm "$HOME/.local/bin/helm"
+          curl -fsSLo "$HOME/.local/bin/kind" "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          chmod +x "$HOME/.local/bin/kind"
+      - name: Verify Kubernetes install and upgrades against the source image
+        run: task helm:smoke
+        env:
+          CAMPLY_HELM_TEST_IMAGE: ghcr.io/juftin/camply-web:ci-${{ github.sha }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: helm-lifecycle
+          path: tmp/camply-helm-*/
 
   frontend-docker:
     name: Frontend Docker Build

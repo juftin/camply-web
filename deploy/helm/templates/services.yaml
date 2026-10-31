@@ -46,6 +46,7 @@ kind: Service
 metadata:
   name: {{ include "camply.fullname" $root }}-{{ $role }}-metrics
   labels: {{ include "camply.labels" $root | nindent 4 }}
+    camply.io/metrics: "true"
 spec:
   clusterIP: None
   selector: {{ include "camply.selector" (dict "root" $root "role" $role) | nindent 4 }}

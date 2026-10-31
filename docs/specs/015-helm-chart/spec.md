@@ -20,3 +20,22 @@ Stable application releases must publish the chart as `camply-web` to
 version and its default image is the matching `vMAJOR.MINOR.PATCH` image. The
 publisher must use the existing exact-tag release workflow, publish the image
 before the chart, and avoid chart publication on latest-only main builds.
+
+## Operator experience
+
+Validate chart values with JSON Schema, including known-key typo detection and
+external-service/routing requirements. Keep environment variables, annotations,
+and native Kubernetes extension objects open to user configuration.
+
+Expose per-role startup/readiness/liveness probe overrides, with API liveness
+using `/api/ping` and readiness using a bounded database check at `/api/health`.
+Retain standalone runner health checks and existing public health response shapes.
+
+Offer an opt-in Prometheus Operator ServiceMonitor using existing metrics Services,
+without installing CRDs or another Prometheus. Print install and troubleshooting
+instructions through NOTES, and provide a read-only `helm test` connection check.
+
+Run the kind lifecycle test in CI against a source-built image. Verify migration
+ordering, a successful upgrade with preserved database data, and failed-upgrade
+startup blocking. Keep autoscaling, disruption budgets, and policy presets outside
+this increment.

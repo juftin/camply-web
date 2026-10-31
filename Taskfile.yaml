@@ -28,7 +28,7 @@ tasks:
 
   helm:smoke:
     desc: Verify migration ordering and failed upgrades in a disposable kind cluster
-    cmd: CAMPLY_HELM_SMOKE=1 task helm:test
+    cmd: CAMPLY_HELM_SMOKE=1 task helm:test -- {{.CLI_ARGS}}
 
   helm:package:
     desc: Package the Camply Helm chart into dist

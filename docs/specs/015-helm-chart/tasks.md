@@ -30,3 +30,20 @@
 - `task helm:smoke` was attempted, but Docker could not pull the kind node image:
   `no space left on device`. The partial test-owned cluster was removed.
   Real cluster startup and failed-upgrade verification remain unverified locally.
+
+## Operator experience
+
+- [x] Add schema, probe, monitoring, notes/test, and readiness regressions.
+- [x] Implement schema validation and configurable probes.
+- [x] Make API readiness depend on the database while keeping liveness independent.
+- [x] Add ServiceMonitor, install notes, and a read-only Helm connection test.
+- [x] Run source-image lifecycle smoke in CI with upgrade/data preservation checks.
+- [x] Complete validation and update documentation and PR.
+
+Operator verification: the full `task test` passed (816 backend tests, 68 packaging
+tests, 339 frontend tests, release and Pages checks). Expanded Helm 3/4 regressions (54 passing on each version, cluster smoke skipped)
+cover schema failures, probe replacement/disablement, monitor selection, rendered
+notes, and the test hook. API contract checks, type checks, and core Kubernetes
+schema validation passed. The updated local lifecycle smoke was attempted, but
+the source-image build failed inside `pnpm install` with exit code 135 before
+cluster creation. CI now runs the same lifecycle checks against its built image.

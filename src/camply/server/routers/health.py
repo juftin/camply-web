@@ -2,12 +2,14 @@
 Health Check API
 """
 
+import asyncio
 import datetime
 from functools import partial
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from camply.db.config import db
 from camply.server.config import RuntimeMode, backend_config
@@ -36,19 +38,22 @@ def ping() -> ApiStatus:
 
 
 @health_router.get("/health")
-async def healthcheck(response: Response) -> ApiStatus:
-    """
-    API Health Check
-    """
-    if backend_config.runtime_mode == RuntimeMode.STANDALONE:
-        from camply.server.services.local_operations import runner
+async def healthcheck(
+    response: Response, session: AsyncSession = Depends(db.yield_session)
+) -> ApiStatus:
+    """Report database readiness and, in standalone mode, supervised loop health.
 
-        try:
-            async with db.get_session() as session:
-                await session.execute(text("SELECT 1"))
+    Bound the database query to two seconds and return HTTP 503 on failure. Keep
+    ``/api/ping`` independent of dependencies for Kubernetes liveness checks.
+    """
+    try:
+        async with asyncio.timeout(2):
+            await session.execute(text("SELECT 1"))
+        if backend_config.runtime_mode == RuntimeMode.STANDALONE:
+            from camply.server.services.local_operations import runner
+
             if runner is None or not runner.healthy:
                 response.status_code = 503
-        except Exception:
-            response.status_code = 503
-        return ApiStatus(status=response.status_code or 200)
-    return ApiStatus(status=200)
+    except Exception:
+        response.status_code = 503
+    return ApiStatus(status=response.status_code or 200)

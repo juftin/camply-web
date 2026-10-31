@@ -106,3 +106,21 @@ persistentVolumeClaim:
 emptyDir: {}
 {{- end }}
 {{- end -}}
+
+{{- define "camply.probe" -}}
+{{- if not (and (kindIs "bool" .override) (not .override)) -}}
+{{- $probe := deepCopy .default -}}
+{{- if kindIs "map" .override -}}
+{{- range $handler := list "httpGet" "exec" "tcpSocket" "grpc" -}}
+{{- if hasKey $.override $handler -}}
+{{- $_ := unset $probe "httpGet" -}}
+{{- $_ := unset $probe "exec" -}}
+{{- $_ := unset $probe "tcpSocket" -}}
+{{- $_ := unset $probe "grpc" -}}
+{{- end -}}
+{{- end -}}
+{{- $probe = mergeOverwrite $probe .override -}}
+{{- end }}
+{{ .name }}: {{ toYaml $probe | nindent 2 }}
+{{- end -}}
+{{- end -}}

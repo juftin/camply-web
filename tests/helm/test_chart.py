@@ -212,3 +212,193 @@ def test_reserved_environment_cannot_bypass_migrations() -> None:
     env = {e["name"]: e.get("value") for e in container["env"]}
     assert env["SKIP_MIGRATIONS"] == "1"
     assert env["CAMPLY_DB_HOST"] == "test-camply-postgresql"
+
+
+@pytest.mark.parametrize(
+    "setting",
+    [
+        "backned.replicas=2",
+        "backend.replicas=-1",
+        "backend.service=null",
+        "database.port=70000",
+        "backend.probes.readiness.timeoutSeconds=0",
+        "ingress.enabld=true",
+        "postgresql.persistence.accessModes={WrongMode}",
+    ],
+)
+def test_schema_rejects_operator_mistakes(setting: str) -> None:
+    """Schema errors identify invalid values before Kubernetes sees a manifest."""
+    result = subprocess.run(
+        [str(HELM), "template", "test", str(CHART), "--set", setting],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "schema" in result.stderr.lower()
+
+
+def test_probes_separate_readiness_and_allow_overrides() -> None:
+    """Dependency failures affect readiness, and native handler overrides replace defaults."""
+    items = render()
+    app = resource(items, "Deployment", "-backend")["spec"]["template"]["spec"][
+        "containers"
+    ][0]
+    assert app["livenessProbe"]["httpGet"]["path"] == "/api/ping"
+    assert app["readinessProbe"]["httpGet"]["path"] == "/api/health"
+    items = render(
+        "--set",
+        "backend.probes.startup=false",
+        "--set",
+        "backend.probes.readiness.timeoutSeconds=4",
+        "--set",
+        "backend.probes.liveness.exec.command={custom-check}",
+    )
+    app = resource(items, "Deployment", "-backend")["spec"]["template"]["spec"][
+        "containers"
+    ][0]
+    assert "startupProbe" not in app
+    assert app["readinessProbe"]["timeoutSeconds"] == 4
+    assert app["livenessProbe"]["exec"]["command"] == ["custom-check"]
+    assert "httpGet" not in app["livenessProbe"]
+
+
+def test_service_monitor_selects_metrics_services() -> None:
+    """Existing Prometheus installations discover both API and worker endpoints."""
+    items = render(
+        "--set",
+        "serviceMonitor.enabled=true",
+        "--set",
+        "serviceMonitor.labels.release=monitoring",
+        "--set",
+        "prometheus.enabled=false",
+    )
+    monitor = resource(items, "ServiceMonitor", "-metrics")
+    assert monitor["metadata"]["labels"]["release"] == "monitoring"
+    assert monitor["spec"]["namespaceSelector"] == {"matchNames": ["camply"]}
+    assert monitor["spec"]["endpoints"][0]["port"] == "metrics"
+    selector = monitor["spec"]["selector"]["matchLabels"]
+    selected = [
+        i
+        for i in items
+        if i["kind"] == "Service"
+        and all(i["metadata"]["labels"].get(k) == v for k, v in selector.items())
+    ]
+    assert {i["metadata"]["name"] for i in selected} == {
+        "test-camply-backend-metrics",
+        "test-camply-worker-metrics",
+    }
+    assert not any(
+        i["kind"] == "Deployment" and i["metadata"]["name"].endswith("-prometheus")
+        for i in items
+    )
+
+
+def test_install_notes_and_helm_connection_test() -> None:
+    """Helm users receive troubleshooting instructions and can test the installed release."""
+    notes = (CHART / "templates/NOTES.txt").read_text()
+    assert "helm test" in notes
+    assert "logs" in notes
+    assert "CAMPLY_AUTH_MODE" in notes
+    hook = resource(render(), "Pod", "-connection-test")
+    assert hook["metadata"]["annotations"]["helm.sh/hook"] == "test"
+    assert hook["spec"]["automountServiceAccountToken"] is False
+    assert "/api/health" in " ".join(hook["spec"]["containers"][0]["args"])
+    assert not any(i["kind"] == "Pod" for i in render("--set", "tests.enabled=false"))
+
+
+def test_schema_allows_native_extensions_and_rejects_conflicting_handlers(
+    tmp_path: Path,
+) -> None:
+    """Validation permits user metadata/env/native objects but rejects impossible probes."""
+    values = tmp_path / "values.yaml"
+    values.write_text(
+        yaml.safe_dump(
+            {
+                "env": {
+                    "CUSTOM_BOOLEAN": True,
+                    "CUSTOM_NUMBER": 2,
+                    "CUSTOM_SECRET": {
+                        "valueFrom": {
+                            "secretKeyRef": {"name": "synthetic", "key": "value"}
+                        }
+                    },
+                },
+                "podAnnotations": {"custom.example/annotation": "value"},
+                "extraObjects": [
+                    {
+                        "apiVersion": "v1",
+                        "kind": "ConfigMap",
+                        "metadata": {"name": "synthetic"},
+                        "data": {"custom": "value"},
+                    }
+                ],
+            }
+        )
+    )
+    assert render("-f", str(values))
+    result = subprocess.run(
+        [
+            str(HELM),
+            "template",
+            "test",
+            str(CHART),
+            "--set",
+            "backend.probes.liveness.exec.command={check}",
+            "--set",
+            "backend.probes.liveness.httpGet.path=/ping",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode != 0
+
+
+def test_ci_lifecycle_uses_the_source_image() -> None:
+    """The required Docker check verifies the locally built PR image in Kubernetes."""
+    ci = yaml.safe_load((ROOT / ".github/workflows/ci.yaml").read_text())
+    steps = ci["jobs"]["backend-docker"]["steps"]
+    build = next(
+        s for s in steps if s.get("uses", "").startswith("docker/bake-action@")
+    )
+    smoke = next(s for s in steps if s.get("run") == "task helm:smoke")
+    assert build["with"]["load"] is True
+    assert build["with"]["push"] is False
+    assert smoke["env"]["CAMPLY_HELM_TEST_IMAGE"].endswith(
+        build["env"]["CAMPLY_VERSION"]
+    )
+    assert steps.index(build) < steps.index(smoke)
+
+
+def test_notes_render_release_specific_commands(tmp_path: Path) -> None:
+    """Render the same notes offline on Helm 3/4 without install-time discovery."""
+    preview = tmp_path / "chart"
+    shutil.copytree(CHART, preview)
+    (preview / "notes-preview.txt").write_text(
+        (CHART / "templates/NOTES.txt").read_text()
+    )
+    (preview / "templates/notes-preview.yaml").write_text(
+        "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: notes-preview\ndata:\n"
+        '  notes: {{ tpl (.Files.Get "notes-preview.txt") . | quote }}\n'
+    )
+    result = subprocess.run(
+        [
+            str(HELM),
+            "template",
+            "operator-notes",
+            str(preview),
+            "--namespace",
+            "camply",
+            "--set",
+            "fullnameOverride=operator-notes",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    items = [item for item in yaml.safe_load_all(result.stdout) if item]
+    notes = resource(items, "ConfigMap", "notes-preview")["data"]["notes"]
+    assert "helm test operator-notes -n camply --logs" in notes
+    assert "svc/operator-notes-frontend 8080:8080" in notes
+    assert "logs job/operator-notes-migrate-" in notes
