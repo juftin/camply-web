@@ -29,7 +29,7 @@ tasks:
       CAMPLY_RUNTIME_MODE: standalone
       CAMPLY_FRONTEND_DIR: '{{.CAMPLY_FRONTEND_DIR | default (printf "%s/build/frontend" .ROOT_DIR)}}'
     cmds:
-      - uv run --no-dev --extra server -- python -m camply.server.standalone {{.CLI_ARGS}}
+      - uv run --no-dev --extra server -- camply serve {{.CLI_ARGS}}
 
   standalone:test:
     desc: Verify a core-only installed build, real SQLite recovery, and Chromium
@@ -135,16 +135,14 @@ tasks:
       - task: frontend:fix
 
   build:
-    desc: Build the Project Artifacts
-    cmd: docker buildx bake --file docker-compose.yaml backend frontend
+    desc: Build the camply-web Image for All Application Roles
+    cmd: docker buildx bake --file docker-compose.yaml backend
     env:
-      BACKEND_VERSION:
+      CAMPLY_VERSION:
         sh: uv version --short
-      FRONTEND_VERSION:
-        sh: node -p "require('./package.json').version"
 
   publish:
-    desc: Publish Versioned Backend and Frontend Images to GHCR
+    desc: Publish the Versioned camply-web Image to GHCR
     cmds:
       - task: publish:images
         vars:
@@ -160,7 +158,7 @@ tasks:
       RELEASE_VERSION: "{{.RELEASE_VERSION}}"
 
   publish:latest:
-    desc: Publish Latest Backend and Frontend Images from a Successful Main Build
+    desc: Publish the Latest camply-web Image from a Successful Main Build
     cmds:
       - task: publish:images
         vars:
@@ -275,18 +273,21 @@ tasks:
       RELEASE_VERSION='{{.RELEASE_VERSION}}'
       docker buildx bake --file docker-compose.yaml --file deploy/docker-bake.release.hcl --push
       --set '*.labels.org.opencontainers.image.version={{.IMAGE_VERSION}}'
-      --set '*.labels.org.opencontainers.image.revision={{.GITHUB_SHA | default "local"}}'
+      --set '*.labels.org.opencontainers.image.revision={{.GITHUB_SHA}}'
       --set '*.labels.org.opencontainers.image.source=https://github.com/juftin/camply-web'
-      --set 'backend.cache-from=type=gha,scope=backend'
-      --set 'backend.cache-to=type=gha,mode=max,scope=backend'
-      --set 'frontend.cache-from=type=gha,scope=frontend'
-      --set 'frontend.cache-to=type=gha,mode=max,scope=frontend'
-      --set 'frontend.args.CAMPLY_API_URL='
+      --set 'backend.cache-from=type=gha,scope=camply'
+      --set 'backend.cache-to=type=gha,mode=max,scope=camply'
       {{.CLI_ARGS}}
-      backend frontend
+      backend
+    requires:
+      vars: [GITHUB_SHA]
+    env:
+      GITHUB_SHA: "{{.GITHUB_SHA}}"
     preconditions:
       - sh: test "$CI" = true
         msg: Publishing requires CI=true and an authenticated GHCR session.
+      - sh: echo "$GITHUB_SHA" | LC_ALL=C grep -Eq '^[0-9a-f]{7,40}$'
+        msg: GITHUB_SHA must contain a Git revision of 7 to 40 lowercase hexadecimal characters.
 
   pre-commit-install:
     desc: Install Pre-Commit Hooks

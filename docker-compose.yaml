@@ -1,5 +1,20 @@
 name: "camply"
 
+x-camply: &camply
+  image: ghcr.io/juftin/camply-web:${CAMPLY_VERSION:-local}
+  stop_signal: SIGTERM
+  stop_grace_period: 1m
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: camply
+    args:
+      VITE_ENABLE_COMMUNITY_PAGES: ${VITE_ENABLE_COMMUNITY_PAGES:-false}
+      VITE_MAP_TILE_URL: ${VITE_MAP_TILE_URL:-}
+      VITE_MAP_ATTRIBUTION_TEXT: ${VITE_MAP_ATTRIBUTION_TEXT:-}
+      VITE_MAP_ATTRIBUTION_URL: ${VITE_MAP_ATTRIBUTION_URL:-}
+      VITE_MAP_MAX_NATIVE_ZOOM: ${VITE_MAP_MAX_NATIVE_ZOOM:-19}
+
 volumes:
   db_data:
     driver: local
@@ -25,11 +40,7 @@ services:
     restart: unless-stopped
 
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: backend
-    image: ghcr.io/juftin/camply-backend:${BACKEND_VERSION:-local}
+    <<: *camply
     depends_on:
       db:
         condition: service_healthy
@@ -63,7 +74,7 @@ services:
       CAMPLY_HEARTBEAT_INTERVAL: ${CAMPLY_HEARTBEAT_INTERVAL:-300}
       CAMPLY_TARGET_COOLDOWN: ${CAMPLY_TARGET_COOLDOWN:-55}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "camply", "serve", "healthcheck", "backend"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -90,13 +101,11 @@ services:
     restart: unless-stopped
 
   celery-worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: backend
-    image: ghcr.io/juftin/camply-backend:${BACKEND_VERSION:-local}
-    command: celery -A camply.worker.celery_app worker -l info -Q celery --concurrency=4
+    <<: *camply
+    command: ["camply", "serve", "worker"]
     depends_on:
+      backend:
+        condition: service_healthy
       db:
         condition: service_healthy
       valkey:
@@ -122,16 +131,20 @@ services:
       CAMPLY_NOTIFICATION_MODE: ${CAMPLY_NOTIFICATION_MODE:-summary}
       CAMPLY_APP_URL: ${CAMPLY_APP_URL:-http://localhost:5173}
       SKIP_MIGRATIONS: "1"
+    healthcheck:
+      test: ["CMD", "camply", "serve", "healthcheck", "worker"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     restart: unless-stopped
 
   celery-beat:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: backend
-    image: ghcr.io/juftin/camply-backend:${BACKEND_VERSION:-local}
-    command: sh -c "celery -A camply.worker.celery_app call camply.catalog.sync_all_providers --expires=600 && celery -A camply.worker.celery_app beat -l info"
+    <<: *camply
+    command: ["camply", "serve", "beat", "--sync-providers"]
     depends_on:
+      backend:
+        condition: service_healthy
       db:
         condition: service_healthy
       valkey:
@@ -154,6 +167,12 @@ services:
       CAMPLY_TARGET_COOLDOWN: ${CAMPLY_TARGET_COOLDOWN:-55}
       PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
       CAMPLY_PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
+    healthcheck:
+      test: ["CMD", "camply", "serve", "healthcheck", "beat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     restart: unless-stopped
 
   prometheus:
@@ -186,22 +205,15 @@ services:
     restart: unless-stopped
 
   frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: frontend
-      args:
-        - CAMPLY_API_URL=http://backend:8000/api
-        - VITE_ENABLE_COMMUNITY_PAGES=${VITE_ENABLE_COMMUNITY_PAGES:-false}
-        - VITE_MAP_TILE_URL=${VITE_MAP_TILE_URL:-}
-        - VITE_MAP_ATTRIBUTION_TEXT=${VITE_MAP_ATTRIBUTION_TEXT:-}
-        - VITE_MAP_ATTRIBUTION_URL=${VITE_MAP_ATTRIBUTION_URL:-}
-        - VITE_MAP_MAX_NATIVE_ZOOM=${VITE_MAP_MAX_NATIVE_ZOOM:-19}
-    image: ghcr.io/juftin/camply-frontend:${FRONTEND_VERSION:-local}
+    <<: *camply
+    command: ["camply", "serve", "frontend"]
+    environment:
+      CAMPLY_BACKEND_URL: ${CAMPLY_BACKEND_URL:-http://backend:8000}
+    stop_signal: SIGQUIT
     ports:
       - "${FRONTEND_PORT:-80}:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      test: ["CMD", "camply", "serve", "healthcheck", "frontend"]
       interval: 30s
       timeout: 10s
       retries: 3

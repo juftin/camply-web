@@ -79,6 +79,16 @@ jobs:
         env:
           PACKAGING_PYTHON: "3.14"
 
+  runtime-health-smoke:
+    name: Runtime Health Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-backend
+      - run: task backend:healthcheck:test
+      - run: task backend:nginx:test
+
   backend-compatibility:
     name: Backend Minimum Python (3.11)
     runs-on: ubuntu-latest
@@ -95,25 +105,38 @@ jobs:
       - run: task backend:test
       - run: task backend:packaging:test
 
+  # Preserve the existing required check names while building the image once.
   backend-docker:
     name: Backend Docker Build
-    needs: [backend-checks]
+    needs: [backend-checks, frontend-checks]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - name: Build backend image
+      - name: Build camply-web image
         uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7.5.0
         with:
           files: ./docker-compose.yaml
           targets: backend
           push: false
           set: |
-            *.cache-from=type=gha,scope=backend
-            *.cache-to=type=gha,mode=max,scope=backend
+            *.cache-from=type=gha,scope=camply
+            *.cache-to=type=gha,mode=max,scope=camply
         env:
-          BACKEND_VERSION: ci-${{ github.sha }}
+          CAMPLY_VERSION: ci-${{ github.sha }}
+
+  frontend-docker:
+    name: Frontend Docker Build
+    needs: [backend-docker]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Verify shared image build
+        env:
+          BUILD_RESULT: ${{ needs.backend-docker.result }}
+        run: test "$BUILD_RESULT" = success
 
   # ── Frontend ─────────────────────────────────────────────────────────────
 
@@ -212,24 +235,3 @@ jobs:
             tmp/snapshots/before/
             tmp/snapshot-gallery/
           if-no-files-found: ignore
-
-  frontend-docker:
-    name: Frontend Docker Build
-    needs: [frontend-checks]
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - name: Build frontend image
-        uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7.5.0
-        with:
-          files: ./docker-compose.yaml
-          targets: frontend
-          push: false
-          set: |
-            *.cache-from=type=gha,scope=frontend
-            *.cache-to=type=gha,mode=max,scope=frontend
-            frontend.args.CAMPLY_API_URL=
-        env:
-          FRONTEND_VERSION: ci-${{ github.sha }}

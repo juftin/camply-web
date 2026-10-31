@@ -1,10 +1,134 @@
 """Exercise independently installed runtime extras without brokers or live services."""
 
+import sys
 from collections.abc import Callable
 
 import pytest
 
 from .conftest import Installation
+
+
+@pytest.mark.parametrize(
+    ("role", "force"),
+    [
+        ("standalone", False),
+        pytest.param(
+            "standalone",
+            True,
+            marks=pytest.mark.skipif(
+                sys.platform == "win32", reason="SIGKILL requires Unix"
+            ),
+        ),
+        pytest.param(
+            "backend",
+            False,
+            marks=pytest.mark.skipif(
+                sys.platform == "win32", reason="Gunicorn requires Unix"
+            ),
+        ),
+    ],
+)
+def test_http_cli_serves_and_shuts_down(
+    install: Callable[[str], Installation],
+    role: str,
+    force: bool,
+) -> None:
+    """HTTP runtimes handle SIGTERM cleanup and standalone receives SIGKILL directly."""
+    installation = install("server")
+    installation.run(
+        f"        role = {role!r}; force = {force!r}\n"
+        + """
+        import os
+        import signal
+        import socket
+        import sqlite3
+        import subprocess
+        import sys
+        import tempfile
+        import time
+        from pathlib import Path
+        import httpx
+
+        with socket.socket() as listener:
+            listener.bind(('127.0.0.1', 0))
+            port = listener.getsockname()[1]
+        with tempfile.TemporaryFile() as log:
+            arguments = ['--port', str(port)] if role == 'standalone' else [
+                'backend', '--bind', f'127.0.0.1:{port}', '--workers', '1',
+            ]
+            process = subprocess.Popen(
+                [str(Path(sys.executable).with_name('camply')), 'serve', *arguments],
+                stdout=log, stderr=subprocess.STDOUT,
+                start_new_session=os.name != 'nt',
+            )
+            try:
+                ready = False
+                with httpx.Client(base_url=f'http://127.0.0.1:{port}', timeout=1) as client:
+                    for attempt in range(150):
+                        if process.poll() is not None:
+                            break
+                        try:
+                            ready = client.get('/api/health').is_success
+                        except httpx.TransportError:
+                            pass
+                        if ready:
+                            break
+                        time.sleep(0.1)
+                    if not ready:
+                        log.seek(0)
+                        raise AssertionError(log.read().decode())
+                    if role == 'standalone':
+                        home = client.get('/')
+                        assert home.is_success and 'text/html' in home.headers['content-type']
+                        assert client.get('/scans/synthetic', headers={'Accept': 'text/html'}).text == home.text
+                        assert client.get('/metrics').status_code == 404
+                    else:
+                        assert client.get('/').status_code == 404
+                        assert client.get('/metrics').is_success
+                    runtime = 'standalone' if role == 'standalone' else 'distributed'
+                    assert client.get('/api/admin/operations').json()['runtime_mode'] == runtime
+                    assert client.get('/api/nonexistent').status_code == 404
+                with sqlite3.connect(os.environ['CAMPLY_DB_HOST']) as database:
+                    assert database.execute('SELECT version_num FROM alembic_version').fetchone()
+                health_role = [] if role == 'standalone' else ['backend']
+                probe = subprocess.run(
+                    [str(Path(sys.executable).with_name('camply')), 'serve', 'healthcheck',
+                     *health_role, '--url', f'http://127.0.0.1:{port}/api/health'],
+                    check=True, capture_output=True, text=True, timeout=10,
+                )
+                assert probe.stdout.strip() == 'healthy'
+                if force:
+                    process.kill()
+                else:
+                    process.terminate()
+                process.wait(timeout=10)
+                log.seek(0)
+                output = log.read().decode()
+                if role == 'standalone' and os.name != 'nt':
+                    assert f'Started server process [{process.pid}]' in output, output
+                if force:
+                    assert process.returncode == -signal.SIGKILL, output
+                else:
+                    assert 'Application shutdown complete' in output, output
+                    if role == 'backend':
+                        assert 'Shutting down: Master' in output, output
+                with sqlite3.connect(os.environ['CAMPLY_DB_HOST']) as database:
+                    assert database.execute('PRAGMA integrity_check').fetchone() == ('ok',)
+            finally:
+                if os.name != 'nt':
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                if process.poll() is None:
+                    process.kill()
+                    process.wait(timeout=10)
+        """,
+        settings={
+            "CAMPLY_DB_HOST": str(installation.directory / f"{role}-cli.sqlite"),
+            "CAMPLY_RUNTIME_MODE": "distributed",
+        },
+    )
 
 
 def test_server_only_routes_and_operations(
@@ -72,6 +196,9 @@ def test_worker_only_registration(install: Callable[[str], Installation]) -> Non
         assert all(importlib.util.find_spec(name) is None for name in ('fastapi', 'uvicorn', 'psycopg', 'sentry_sdk', 'pytest'))
         with patch.object(socket.socket, 'connect', side_effect=AssertionError('Unexpected broker connection')):
             from camply.worker.celery_app import celery_app
+            from camply.worker.scheduler import HealthScheduler
+            from celery.beat import PersistentScheduler
+            assert issubclass(HealthScheduler, PersistentScheduler)
             celery_app.loader.import_default_modules()
             tasks = {name for name in celery_app.tasks if name.startswith('camply.')}
             assert tasks == {
@@ -85,6 +212,51 @@ def test_worker_only_registration(install: Callable[[str], Installation]) -> Non
             assert celery_app.conf.beat_schedule['sync-provider-catalogs-daily']['task'] == 'camply.catalog.sync_all_providers'
         assert not any(name.startswith('camply.server') for name in sys.modules)
     """)
+
+
+@pytest.mark.parametrize("sync_providers", [False, True])
+def test_installed_beat_provider_sync(
+    install: Callable[[str], Installation], sync_providers: bool
+) -> None:
+    """Distributed-only artifacts enqueue the optional sync before replacing the CLI."""
+    installation = install("distributed")
+    installation.run(
+        f"        sync_providers = {sync_providers!r}\n"
+        + """
+        import sys
+        from unittest.mock import Mock, patch
+        from click.testing import CliRunner
+        from camply.cli.main import cli
+
+        calls = Mock()
+        calls.attach_mock(Mock(), 'dispatch')
+        calls.attach_mock(Mock(side_effect=SystemExit(0)), 'execute')
+        arguments = ['serve', 'beat', '--schedule', '/tmp/synthetic-beat']
+        if sync_providers:
+            arguments.append('--sync-providers')
+        with patch('subprocess.run', calls.dispatch), patch('os.execv', calls.execute):
+            result = CliRunner().invoke(cli, arguments)
+        assert result.exit_code == 0, result.output
+        assert [entry[0] for entry in calls.mock_calls] == (
+            ['dispatch', 'execute'] if sync_providers else ['execute']
+        )
+        if sync_providers:
+            calls.dispatch.assert_called_once_with(
+                [sys.executable, '-m', 'celery', '-A', 'camply.worker.celery_app',
+                 'call', 'camply.catalog.sync_all_providers', '--expires=600'],
+                check=True,
+            )
+        assert calls.execute.call_args.args[0] == sys.executable
+        assert calls.execute.call_args.args[1][-2:] == ['--schedule', '/tmp/synthetic-beat']
+        assert '--sync-providers' not in calls.execute.call_args.args[1]
+        assert not any(name.startswith('camply.server') for name in sys.modules)
+        """,
+        settings={
+            "CAMPLY_BEAT_HEALTH_FILE": str(
+                installation.directory / "synthetic-beat.json"
+            )
+        },
+    )
 
 
 def test_missing_optional_entrypoints(install: Callable[[str], Installation]) -> None:

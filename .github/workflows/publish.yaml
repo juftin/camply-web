@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   publish:
-    name: Backend and Frontend Images
+    name: Camply Web Image
     if: >-
       github.repository == 'juftin/camply-web' &&
       (github.event_name == 'push' ||
@@ -75,7 +75,7 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
             core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL);
             core.exportVariable('ACTIONS_CACHE_SERVICE_V2', process.env.ACTIONS_CACHE_SERVICE_V2);
-      - name: Publish release images
+      - name: Publish release image
         if: steps.source.outputs.version != ''
         run: task publish
         env:

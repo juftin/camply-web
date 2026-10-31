@@ -251,7 +251,7 @@ for (const [version, major] of [
   ["1.2.3", "v1"],
   ["2.3.4", "v2"],
 ]) {
-  test(`release ${version} publishes its version, ${major}, and latest with a same-origin API`, (t) => {
+  test(`release ${version} publishes ${major}, v${version}, a seven-character SHA, and latest`, (t) => {
     const directory = fixture(t);
     const result = task(directory, ["publish", "--", "--print"], {
       CI: "true",
@@ -260,28 +260,26 @@ for (const [version, major] of [
     });
     assert.equal(result.status, 0, result.stderr);
     const plan = JSON.parse(result.stdout);
-    assert.deepEqual(plan.group.default.targets, ["backend", "frontend"]);
-    for (const name of ["backend", "frontend"]) {
-      const target = plan.target[name];
-      assert.deepEqual(target.tags, [
-        `ghcr.io/juftin/camply-${name}:${version}`,
-        `ghcr.io/juftin/camply-${name}:${major}`,
-        `ghcr.io/juftin/camply-${name}:latest`,
-      ]);
-      assert.equal(target.labels["org.opencontainers.image.version"], version);
-      assert.equal(
-        target.labels["org.opencontainers.image.revision"],
-        "0123456789abcdef",
-      );
-      assert.equal(
-        target.labels["org.opencontainers.image.source"],
-        "https://github.com/juftin/camply-web",
-      );
-      assert.equal(target.context, ".");
-      assert.equal(target.target, name);
-      assert.equal(target.dockerfile, "Dockerfile");
-    }
-    assert.equal(plan.target.frontend.args.CAMPLY_API_URL, "");
+    assert.deepEqual(plan.group.default.targets, ["backend"]);
+    const target = plan.target.backend;
+    assert.deepEqual(target.tags, [
+      `ghcr.io/juftin/camply-web:${major}`,
+      `ghcr.io/juftin/camply-web:v${version}`,
+      "ghcr.io/juftin/camply-web:0123456",
+      `ghcr.io/juftin/camply-web:latest`,
+    ]);
+    assert.equal(target.labels["org.opencontainers.image.version"], version);
+    assert.equal(
+      target.labels["org.opencontainers.image.revision"],
+      "0123456789abcdef",
+    );
+    assert.equal(
+      target.labels["org.opencontainers.image.source"],
+      "https://github.com/juftin/camply-web",
+    );
+    assert.equal(target.context, ".");
+    assert.equal(target.target, "camply");
+    assert.equal(target.dockerfile, "Dockerfile");
   });
 }
 
@@ -293,19 +291,16 @@ test("main builds publish latest without changing numbered release tags", (t) =>
   });
   assert.equal(result.status, 0, result.stderr);
   const plan = JSON.parse(result.stdout);
-  for (const name of ["backend", "frontend"]) {
-    const target = plan.target[name];
-    assert.deepEqual(target.tags, [`ghcr.io/juftin/camply-${name}:latest`]);
-    assert.equal(
-      target.labels["org.opencontainers.image.version"],
-      "sha-0123456789abcdef",
-    );
-    assert.equal(
-      target.labels["org.opencontainers.image.revision"],
-      "0123456789abcdef",
-    );
-  }
-  assert.equal(plan.target.frontend.args.CAMPLY_API_URL, "");
+  const target = plan.target.backend;
+  assert.deepEqual(target.tags, [`ghcr.io/juftin/camply-web:latest`]);
+  assert.equal(
+    target.labels["org.opencontainers.image.version"],
+    "sha-0123456789abcdef",
+  );
+  assert.equal(
+    target.labels["org.opencontainers.image.revision"],
+    "0123456789abcdef",
+  );
 });
 
 test("main publication requires CI and a source revision", (t) => {
@@ -320,6 +315,24 @@ test("main publication requires CI and a source revision", (t) => {
   }
 });
 
+test("release publication requires a valid Git revision for its SHA tag", (t) => {
+  const directory = fixture(t);
+  for (const revision of [
+    "",
+    "123456",
+    "not-a-git-sha",
+    "0123456; touch unexpected-file",
+  ]) {
+    const result = task(directory, ["publish", "--", "--print"], {
+      CI: "true",
+      RELEASE_VERSION: "1.2.3",
+      GITHUB_SHA: revision,
+    });
+    assert.notEqual(result.status, 0, revision);
+    assert.match(result.stderr, /GITHUB_SHA/);
+  }
+});
+
 test("publication requires CI and a stable release version", (t) => {
   const directory = fixture(t);
   for (const env of [
@@ -329,7 +342,10 @@ test("publication requires CI and a stable release version", (t) => {
     { CI: "true", RELEASE_VERSION: "latest" },
     { CI: "true", RELEASE_VERSION: "2.3.4-beta.1" },
   ]) {
-    const result = task(directory, ["publish", "--", "--print"], env);
+    const result = task(directory, ["publish", "--", "--print"], {
+      GITHUB_SHA: "0123456789abcdef",
+      ...env,
+    });
     assert.notEqual(result.status, 0, JSON.stringify(env));
     assert.match(result.stderr, /CI|RELEASE_VERSION/);
   }
@@ -414,17 +430,15 @@ test("semantic release signals publication only after preparing source assets", 
   assert.equal(marker(), true);
 });
 
-test("container definitions share one build and retain Node-free runtime users", () => {
+test("one Python and Nginx image serves every application role", () => {
   const dockerfile = readFileSync(join(root, "Dockerfile"), "utf8");
   assert.match(dockerfile, /AS application-build/i);
   assert.equal((dockerfile.match(/RUN uv build/g) ?? []).length, 1);
-  assert.match(dockerfile, /AS backend[\s\S]*USER camply/);
-  assert.match(dockerfile, /AS frontend[\s\S]*USER nginx/);
-  assert.match(dockerfile, /python:camply\.server\.gunicorn/);
-  assert.match(
-    dockerfile,
-    /COPY --from=application-build \/app\/build\/frontend/,
-  );
+  assert.match(dockerfile, /FROM python-base AS camply[\s\S]*USER camply/);
+  assert.match(dockerfile, /apt-get install[^\n]*nginx/);
+  assert.match(dockerfile, /CMD \["camply", "serve", "backend"\]/);
+  assert.doesNotMatch(dockerfile, /envsubst|gettext-base|COPY deploy\/nginx/);
+  assert.doesNotMatch(dockerfile, /FROM nginx|AS backend|AS frontend/);
   for (const file of [
     "backend/Dockerfile",
     "frontend/Dockerfile",
@@ -432,6 +446,25 @@ test("container definitions share one build and retain Node-free runtime users",
     "frontend/docker-compose.yaml",
   ]) {
     assert.equal(globSync(file, { cwd: root }).length, 0, file);
+  }
+});
+
+test("required Docker checks share one build and reject unsuccessful build results", () => {
+  const ci = readFileSync(join(root, ".github/workflows/ci.yaml"), "utf8");
+  assert.match(ci, /backend-docker:\n    name: Backend Docker Build/);
+  assert.equal((ci.match(/uses: docker\/bake-action@/g) ?? []).length, 1);
+  const gate = ci.match(/  frontend-docker:\n([\s\S]*?)(?=\n  #|\n  [a-z])/)[1];
+  assert.match(gate, /name: Frontend Docker Build/);
+  assert.match(gate, /needs: \[backend-docker\]/);
+  assert.match(gate, /if: \$\{\{ always\(\) \}\}/);
+  assert.match(gate, /BUILD_RESULT: \$\{\{ needs\.backend-docker\.result \}\}/);
+  const script = gate.match(/run: (.+)/)[1];
+  for (const result of ["success", "failure", "cancelled", "skipped", ""]) {
+    const checked = spawnSync("bash", ["-c", script], {
+      encoding: "utf8",
+      env: { ...process.env, BUILD_RESULT: result },
+    });
+    assert.equal(checked.status === 0, result === "success", result);
   }
 });
 
@@ -467,9 +500,9 @@ test("distributed Compose retains services, persistent storage, and API relation
   ]);
   for (const name of ["backend", "celery-worker", "celery-beat"]) {
     const service = config.services[name];
-    assert.equal(service.image, "ghcr.io/juftin/camply-backend:local");
+    assert.equal(service.image, "ghcr.io/juftin/camply-web:local");
     assert.equal(service.build.context, root.replace(/\/$/, ""));
-    assert.equal(service.build.target, "backend");
+    assert.equal(service.build.target, "camply");
     assert.equal(service.environment.CAMPLY_DB_HOST, "db");
     assert.equal(
       service.environment.CAMPLY_VALKEY_URL,
@@ -485,19 +518,64 @@ test("distributed Compose retains services, persistent storage, and API relation
       ),
     );
   }
-  assert.equal(config.services.frontend.build.target, "frontend");
+  for (const name of ["frontend", "celery-worker", "celery-beat"]) {
+    assert.equal(config.services[name].image, config.services.backend.image);
+    assert.deepEqual(
+      config.services[name].build,
+      config.services.backend.build,
+    );
+  }
+  for (const name of ["backend", "frontend", "celery-worker", "celery-beat"]) {
+    assert.equal(config.services[name].stop_grace_period, "1m0s");
+  }
+  assert.equal(config.services.frontend.stop_signal, "SIGQUIT");
+  assert.equal(
+    config.services.frontend.environment.CAMPLY_BACKEND_URL,
+    "http://backend:8000",
+  );
+  for (const name of ["backend", "celery-worker", "celery-beat"]) {
+    assert.equal(config.services[name].stop_signal, "SIGTERM");
+  }
+  assert.deepEqual(config.services.frontend.command, [
+    "camply",
+    "serve",
+    "frontend",
+  ]);
+  assert.deepEqual(config.services["celery-worker"].command, [
+    "camply",
+    "serve",
+    "worker",
+  ]);
+  assert.deepEqual(config.services["celery-beat"].command, [
+    "camply",
+    "serve",
+    "beat",
+    "--sync-providers",
+  ]);
+  for (const name of ["celery-worker", "celery-beat"]) {
+    assert.equal(
+      config.services[name].depends_on.backend.condition,
+      "service_healthy",
+    );
+  }
   assert.equal(
     config.services.frontend.depends_on.backend.condition,
     "service_healthy",
   );
-  assert.equal(
-    config.services.backend.healthcheck.test.at(-1),
-    "http://localhost:8000/api/health",
-  );
-  assert.equal(
-    config.services.frontend.healthcheck.test.at(-1),
-    "http://localhost:8080/healthz",
-  );
+  for (const [name, role] of Object.entries({
+    backend: "backend",
+    frontend: "frontend",
+    "celery-worker": "worker",
+    "celery-beat": "beat",
+  })) {
+    assert.deepEqual(config.services[name].healthcheck.test, [
+      "CMD",
+      "camply",
+      "serve",
+      "healthcheck",
+      role,
+    ]);
+  }
   assert.ok(
     config.services.prometheus.volumes.some(
       (volume) =>
@@ -505,5 +583,29 @@ test("distributed Compose retains services, persistent storage, and API relation
           "/deploy/monitoring/prometheus/prometheus.yml",
         ) && volume.read_only,
     ),
+  );
+});
+
+test("Compose passes a custom backend URL to the frontend", () => {
+  const backend = "http://synthetic-api.internal:9000";
+  const rendered = spawnSync(
+    "docker",
+    ["compose", "--env-file", "/dev/null", "config", "--format", "json"],
+    {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        PATH: process.env.PATH,
+        HOME: process.env.HOME,
+        COMPOSE_DISABLE_ENV_FILE: "1",
+        CAMPLY_BACKEND_URL: backend,
+      },
+    },
+  );
+  assert.equal(rendered.status, 0, rendered.stderr);
+  assert.equal(
+    JSON.parse(rendered.stdout).services.frontend.environment
+      .CAMPLY_BACKEND_URL,
+    backend,
   );
 });

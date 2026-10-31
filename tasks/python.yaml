@@ -84,11 +84,9 @@ tasks:
       - task: docker
 
   docker:
-    desc: Build Docker Image
-    cmd: docker buildx bake --file docker-compose.yaml backend
-    env:
-      BACKEND_VERSION:
-        sh: uv version --short
+    desc: Build the Shared camply-web Docker Image
+    cmds:
+      - task: :build
 
   version:
     desc: View / Set Project Version
@@ -136,6 +134,16 @@ tasks:
     deps: [sync]
     cmds:
       - uv run --all-extras -- celery -A camply.worker.celery_app worker -l info -Q celery --concurrency=2
+
+  healthcheck:test:
+    desc: Verify CLI health probes with isolated Valkey, workers, and beat
+    cmds:
+      - CAMPLY_HEALTHCHECK_SMOKE=1 task backend:test -- tests/worker/test_healthcheck_smoke.py -s
+
+  nginx:test:
+    desc: Verify packaged Nginx proxying to HTTP and SNI-required HTTPS upstreams
+    cmds:
+      - CAMPLY_NGINX_SMOKE=1 task backend:test -- tests/cli/test_nginx_smoke.py -s
 
   worker:beat:
     desc: Run Celery Beat Scheduler in Development Mode

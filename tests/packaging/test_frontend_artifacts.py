@@ -19,6 +19,8 @@ def test_complete_archive_contents(artifacts: dict[str, Path]) -> None:
             names = wheel.namelist()
             assert len(names) == len(set(names))
             assert "camply/server/static/index.html" in names
+            assert "camply/cli/nginx/nginx.conf" in names
+            assert "camply/cli/nginx/server.conf" in names
             assert "camply/server/gunicorn.py" in names
             assert any(
                 path.startswith("camply/server/static/assets/")
@@ -36,6 +38,8 @@ def test_complete_archive_contents(artifacts: dict[str, Path]) -> None:
             "package.json",
             "pnpm-lock.yaml",
             "src/frontend/main.tsx",
+            "src/camply/cli/nginx/nginx.conf",
+            "src/camply/cli/nginx/server.conf",
             "src/camply/server/static/index.html",
             "build/frontend-manifest.json",
         ):
@@ -67,7 +71,11 @@ def test_installed_frontend_and_gunicorn(
         if os.name != 'nt':
             from camply.server import gunicorn
             assert gunicorn.worker_class == 'uvicorn_worker.UvicornWorker'
-            subprocess.run([str(Path(sys.executable).with_name('gunicorn')), '--check-config', '--config', 'python:camply.server.gunicorn', 'camply.server.app:app'], check=True, capture_output=True, text=True)
+            subprocess.run(
+                [str(Path(sys.executable).with_name('camply')), 'serve', 'backend', '--check-config'],
+                env={**os.environ, 'PATH': '', 'SKIP_MIGRATIONS': '1'},
+                check=True, capture_output=True, text=True,
+            )
         static = importlib.resources.files('camply.server').joinpath('static')
         assert static.joinpath('index.html').is_file()
         backend_config.runtime_mode = RuntimeMode.STANDALONE

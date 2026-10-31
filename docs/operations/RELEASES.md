@@ -6,7 +6,7 @@ Releases use the Gitmoji/semantic-release infrastructure from [cookiecutter-pyth
 
 Every push to `main` starts `.github/workflows/release.yaml`. It calls the entire existing CI workflow, including lint, types, tests, OpenAPI drift, live smoke checks, snapshot gallery verification, visual snapshots, and Docker builds. After all checks succeed, semantic-release analyzes commits and creates a release when appropriate. Publication runs only in `juftin/camply-web`; pull requests and manually dispatched CI runs only validate changes.
 
-`.github/workflows/publish.yaml` listens for native `release: published` events. It validates the stable full-version tag, checks out that exact tag, stamps the application version, and publishes both images. When semantic-release finishes without a release, `release.yaml` calls this same publisher at the successful main SHA to update `latest` only. Release-producing commits build images once, through the release event. The exec success hook writes a runner-local marker used to skip the latest-only fallback.
+`.github/workflows/publish.yaml` listens for native `release: published` events. It validates the stable full-version tag, checks out that exact tag, stamps the application version, and publishes the shared `camply-web` image. When semantic-release finishes without a release, `release.yaml` calls this same publisher at the successful main SHA to update `latest` only. Release-producing commits build images once, through the release event. The exec success hook writes a runner-local marker used to skip the latest-only fallback.
 
 Release runs are serialized without cancelling an active run. Image publication is serialized separately across both entrypoints. GitHub may replace a pending run with a newer push; semantic-release considers all unreleased commits on `main`.
 
@@ -18,8 +18,8 @@ flowchart LR
     Source --> Release[App creates GitHub release]
     Release -->|release published| Tagged[Publish exact release tag]
     Analyze -->|No release| Main[Publish exact main SHA]
-    Tagged --> Versioned[Full version, major, and latest images]
-    Main --> Latest[Latest images only]
+    Tagged --> Versioned[Full version, major, and latest image tags]
+    Main --> Latest[Latest image tag only]
 ```
 
 The release preparation hook runs `task release:prepare RELEASE_VERSION=1.2.3` and `task dist`. Preparation stamps the single `camply` backend distribution, updates `uv.lock`, and sets the frontend package version. Those changes exist only in the runner; development version files remain unchanged in Git. The publisher repeats version preparation at the full release tag so installed application metadata matches the image version. Tags identify the exact source commit.
@@ -64,16 +64,19 @@ The highest bump wins. Squash-merged PR titles must retain the appropriate Gitmo
 
 ## Images
 
-| Image                            | Tags for version 1.2.3  |
-| -------------------------------- | ----------------------- |
-| `ghcr.io/juftin/camply-backend`  | `1.2.3`, `v1`, `latest` |
-| `ghcr.io/juftin/camply-frontend` | `1.2.3`, `v1`, `latest` |
+This repository publishes `ghcr.io/juftin/camply-web`. Reserve `ghcr.io/juftin/camply` for the future migration to `juftin/camply` and its new version series. This image rename retains the current repository's release history and version rules.
 
-The backend image also runs Celery workers and beat. Both images include OCI source, source-revision, and version labels and use separate GitHub Actions build caches. Frontend releases use a same-origin `/api` URL, preserving the existing Nginx proxy setup.
+| Image                       | Tags for version 1.2.3                                |
+| --------------------------- | ----------------------------------------------------- |
+| `ghcr.io/juftin/camply-web` | `v1`, `v1.2.3`, `<seven-character-git-sha>`, `latest` |
 
-`latest` advances on every successful `main` build, including documentation and CI changes. Builds without a semantic release retain development package versions and carry a `sha-<commit>` OCI version label. Release-producing builds publish version-stamped images that also update `latest`. A moving major tag such as `v1` advances only on stable releases within that major; a `2.0.0` release updates `v2` and leaves `v1` unchanged. Docker Bake maintains the image aliases, while the semantic-release plugin maintains the corresponding Git aliases.
+One image includes Python, Nginx, and every application runtime extra. Compose runs the API, frontend, Celery workers, and beat as separate containers using this same image. The default command is `camply serve backend`; frontend, workers, and beat select `camply serve frontend`, `camply serve worker`, and `camply serve beat`. The frontend launcher renders package-owned Nginx templates at startup and automatically locates and serves the bundled frontend assets, with a same-origin `/api` proxy. The image carries OCI source, source-revision, and version labels and uses one `camply` GitHub Actions build cache.
 
-Pin a full version or image digest when selecting an exact deployment version. The existing development Compose configuration builds local images; setting `BACKEND_VERSION`/`FRONTEND_VERSION` alone does not switch it to pulling released images.
+Each release publishes exactly four tags for that image. The SHA tag is the first seven characters of the checked-out release commit, without a prefix (for example `0123456`). Publication requires `GITHUB_SHA`; the workflow supplies the full checked-out revision and retains it in the OCI revision label.
+
+`latest` advances on every successful `main` build, including documentation and CI changes. Builds without a semantic release retain development package versions and carry a `sha-<commit>` OCI version label. Release-producing builds publish a version-stamped image that also updates `latest`. A moving major tag such as `v1` advances only on stable releases within that major; a `2.0.0` release updates `v2` and leaves `v1` unchanged. Docker Bake maintains the image aliases, while the semantic-release plugin maintains the corresponding Git aliases.
+
+Pin a full version or image digest when selecting an exact deployment version. The existing development Compose configuration builds local images; setting `CAMPLY_VERSION` alone does not switch it to pulling released images.
 
 ## Repository setup
 
@@ -94,12 +97,12 @@ Run `task release:test` to check exact release/main source selection and malform
 To inspect the current checkout's publication plan without building or pushing:
 
 ```bash
-CI=true RELEASE_VERSION=1.2.3 task publish -- --print
+CI=true RELEASE_VERSION=1.2.3 GITHUB_SHA=$(git rev-parse HEAD) task publish -- --print
 CI=true GITHUB_SHA=$(git rev-parse HEAD) task publish:latest -- --print
 ```
 
-After merging and configuring the App credentials, inspect the `release` and `publish` workflows, the GitHub release's wheel/sdist pair, both GHCR tags, and the matching Git major alias. Confirm the OCI revision label and major alias match the released full Git tag. Publishing to GitHub and GHCR is exercised only by the hosted workflow; local checks do not create releases.
+After merging and configuring the App credentials, inspect the `release` and `publish` workflows, the GitHub release's wheel/sdist pair, the GHCR image tags, and the matching Git major alias. Confirm the OCI revision label and major alias match the released full Git tag. Publishing to GitHub and GHCR is exercised only by the hosted workflow; local checks do not create releases.
 
-If CI or source builds fail before a Git tag exists, fix the failure and rerun the failed release workflow. If image publication fails, rerun the failed **publish** workflow: it checks out the same full tag and uses the same release version without rerunning semantic-release. Image tags are separate registry writes, so a failed run may have published one component; retrying completes publication. A GitHub release can therefore exist while its image publication is still running or has failed.
+If CI or source builds fail before a Git tag exists, fix the failure and rerun the failed release workflow. If image publication fails, rerun the failed **publish** workflow: it checks out the same full tag and uses the same release version without rerunning semantic-release. Retrying publishes the same image and completes any missing tags. A GitHub release can therefore exist while its image publication is still running or has failed.
 
 If semantic-release has already pushed the full Git tag but release creation or asset upload failed, complete the release in GitHub using that existing tag and build/upload any missing sdists from the tagged checkout with its release version. Publish the release using App or maintainer credentials to emit the native event. If the major-alias success hook fails, correct its tag permissions and move only that major alias to the verified full-version tag. Rerunning semantic-release alone will not repeat hooks for an already tagged release. Do not delete a published full-version tag to force a new release.

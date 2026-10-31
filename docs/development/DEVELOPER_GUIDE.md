@@ -28,7 +28,7 @@ See [backend installation](../../README.md) for artifact examples.
 
 API-only installs do not run scheduled scans: workers, beat, and Valkey/Redis
 remain required unless using the standalone runtime. The `camply` CLI (`camply.cli`) is an entrypoint with
-`--version` and `--help`; every prepared distribution includes the frontend, while extras select runtime dependencies. Import paths
+`--version`, `--help`, and `serve` for the complete standalone app, plus `serve frontend`/`serve backend`/`serve worker`/`serve beat` role launchers; every prepared distribution includes the frontend, while extras select runtime dependencies. The shared `camply-web` Docker image includes Python and Nginx, and `camply serve frontend` renders the package-owned Nginx configuration with the installed static root in a writable runtime directory. Set `CAMPLY_BACKEND_URL` to override its default `http://backend:8000` API upstream; Compose forwards this setting. Compose uses this image for the API, frontend, worker, and beat, selecting each role by command. Worker and beat startup wait for the API's post-migration health check. Compose uses `camply serve beat --sync-providers` to enqueue the initial provider sync through the CLI before starting beat; omit the flag to run only the scheduler. Import paths
 have moved from `backend.*`, `db.*`, `providers.*`, and `worker.*` to
 `camply.server.*`, `camply.db.*`, `camply.providers.*`, and `camply.worker.*`.
 
@@ -40,7 +40,7 @@ Set `CAMPLY_DB_HOST` to an absolute writable file path to choose storage. On mac
 
 For session login over local HTTP, set `CAMPLY_AUTH_MODE=session`, securely inject `CAMPLY_LOGIN_USERNAME`, `CAMPLY_LOGIN_PASSWORD`, and `CAMPLY_SESSION_SECRET`, set `CAMPLY_SESSION_COOKIE_SECURE=false`, and include the exact frontend origin in `CAMPLY_CORS_ORIGINS`. HTTPS deployments retain secure cookies. Auth0 callbacks must use the Python-served origin. Automatic shared-admin login remains the default.
 
-For installation outside the checkout, install the `camply` package with the `server` extra. Start with `CAMPLY_RUNTIME_MODE=standalone python -m camply.server.standalone`. No Vite or Node process is needed. To supply a separate prebuilt UI, set `CAMPLY_FRONTEND_DIR` to its absolute directory. Build assets before producing release wheels; normal editable backend installs do not require frontend assets.
+For installation outside the checkout, install the `camply` package with the `server` extra. Start with `camply serve`; it selects standalone mode automatically. Use `--host` and `--port` to override the default `127.0.0.1:8000` listener. No Vite or Node process is needed. To supply a separate prebuilt UI, set `CAMPLY_FRONTEND_DIR` to its absolute directory. Build assets before producing release wheels; normal editable backend installs do not require frontend assets.
 
 Alerts use the existing summary/direct modes. Standalone summary links default to the listener origin; set `CAMPLY_APP_URL` to the public URL (including any path prefix) behind HTTPS or a reverse proxy. Site details and map/search APIs use the shared SQLite-backed catalog and latest scan results.
 
@@ -108,7 +108,7 @@ If you change a FastAPI router:
 
 ### 4. Releases
 
-Pushes to `main` run the complete CI suite before the `release` workflow creates GitHub releases with the existing Renovate App. The separate `publish` workflow publishes backend/frontend images to GHCR from the released full-version tag, or from the successful main SHA when no release is needed. `latest` tracks successful `main` builds; Gitmoji-driven releases also publish full-version tags, moving Docker/Git major aliases such as `v1`, and the `camply` wheel and sdist as GitHub release assets. Use `task dist` to build the artifacts locally. See [release operations](../operations/RELEASES.md) for version rules, repository permissions, local verification, and failure recovery.
+Pushes to `main` run the complete CI suite before the `release` workflow creates GitHub releases with the existing Renovate App. The separate `publish` workflow publishes the shared `camply-web` image to GHCR from the released full-version tag, or from the successful main SHA when no release is needed. `latest` tracks successful `main` builds; Gitmoji-driven releases also publish full-version tags, moving Docker/Git major aliases such as `v1`, and the `camply` wheel and sdist as GitHub release assets. Use `task dist` to build the artifacts locally. See [release operations](../operations/RELEASES.md) for version rules, repository permissions, local verification, and failure recovery.
 
 ---
 

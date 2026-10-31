@@ -77,9 +77,64 @@ The campsite-details migration is required before starting the updated API/worke
 | `CAMPLY_RUNTIME_MODE` | `distributed` or `standalone`; independent of auth/environment | `distributed`                                                                 |
 | `CAMPLY_FRONTEND_DIR` | Absolute directory containing a built UI; standalone only      | Installed `camply/server/static`; development task uses root `build/frontend` |
 
-`task standalone:run` selects standalone, validates file-backed SQLite and assets, migrates, and binds to loopback; use `-- --host <address> --port <port>` to override the listener. `CAMPLY_DB_HOST` is the SQLite file path; the default comes from `platformdirs.user_data_dir("camply")`, including on macOS. `:memory:` and PostgreSQL are rejected by the standalone launcher. `WEB_CONCURRENCY`, `GUNICORN_WORKERS`, and `UVICORN_WORKERS` must be unset or `1`, and `GUNICORN_RELOAD` must be disabled. Never run multiple standalone instances against the same file. The launcher defaults `CAMPLY_APP_URL` to its HTTP listener for summary links; set it explicitly to your public HTTPS URL or path prefix when using a reverse proxy.
+`camply serve` (or `task standalone:run` in a checkout) selects standalone, validates file-backed SQLite and assets, migrates, and binds to loopback; use `camply serve --host <address> --port <port>` to override the listener, or pass the flags after `--` to the Task wrapper. `CAMPLY_DB_HOST` is the SQLite file path; the default comes from `platformdirs.user_data_dir("camply")`, including on macOS. `:memory:` and PostgreSQL are rejected by the standalone launcher. `WEB_CONCURRENCY`, `GUNICORN_WORKERS`, and `UVICORN_WORKERS` must be unset or `1`, and `GUNICORN_RELOAD` must be disabled. Never run multiple standalone instances against the same file. The launcher defaults `CAMPLY_APP_URL` to its HTTP listener for summary links; set it explicitly to your public HTTPS URL or path prefix when using a reverse proxy.
 
 Standalone uses the existing positive `CAMPLY_HEARTBEAT_INTERVAL` (300 seconds) and `CAMPLY_TARGET_COOLDOWN` (55 seconds). No broker or Prometheus URL is queried; distributed settings continue to apply in distributed mode. Local admin history retains up to 1,000 attempts for 24 hours and clears on restart. Pending delivery is stored separately in SQLite. Both runtimes honor `CAMPLY_NOTIFICATION_MODE` (`summary` by default, or `direct`); summaries are revalidated and recounted before standalone delivery. Set `PUSHOVER_APP_TOKEN` and the current user's Pushover key for delivery. Missing credentials skip alerts rather than reporting success. Runtime selection does not enable login or invitation checks; configure authentication explicitly as below.
+
+## Nginx frontend proxy
+
+`camply serve frontend` reads `CAMPLY_BACKEND_URL` at startup and renders it into the packaged Nginx `proxy_pass` directive. The default is `http://backend:8000` when the variable is unset or empty. Compose forwards this variable to the frontend container, and downstream deployments can pass it directly to the CLI or container environment.
+
+```bash
+CAMPLY_BACKEND_URL=http://api.internal:9000 camply serve frontend
+```
+
+Use an origin without a trailing slash to retain `/api/`: `/api/health` forwards to `http://api.internal:9000/api/health`. A URL with a URI path uses [Nginx's normal prefix replacement rules](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass). Restart the frontend after changing the variable. Browser requests continue to use the frontend's same-origin `/api/` endpoint.
+
+HTTPS upstreams receive their configured hostname as TLS SNI, allowing connections to servers that require it. Run `task backend:nginx:test` to verify the packaged Nginx configuration against synthetic HTTP and SNI-required HTTPS upstreams. The test requires Docker and OpenSSL, uses `nginx:stable-alpine` by default, and accepts `CAMPLY_NGINX_SMOKE_IMAGE` to reuse another locally available Nginx image. CI runs it alongside the runtime health smoke.
+
+## Distributed startup
+
+`camply serve backend` finishes database migrations before launching the API. Compose workers
+and beat depend on the backend's health check as well as healthy PostgreSQL and Valkey, so they
+cannot process tasks against a schema still being migrated. Kubernetes deployments should make
+worker/beat startup wait for the migrated API's health endpoint or an explicit migration Job;
+a database TCP check alone does not establish schema readiness.
+
+Compose runs `camply serve beat --sync-providers`. The opt-in flag enqueues
+`camply.catalog.sync_all_providers` with a ten-minute expiry before replacing the CLI with Celery
+beat. Dispatch uses the same Python environment as the CLI, and a nonzero dispatch exit stops
+startup. Bare `camply serve beat` keeps its existing schedule without dispatching an initial sync.
+The flag requests work asynchronously; it does not wait for provider ingestion to finish.
+Workers and beat never apply database migrations, including when the sync flag is set.
+
+## Service health checks
+
+| Command                             | Default check                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
+| `camply serve healthcheck`          | Standalone `http://127.0.0.1:8000/api/health`                                   |
+| `camply serve healthcheck backend`  | API `http://127.0.0.1:8000/api/health`                                          |
+| `camply serve healthcheck frontend` | Nginx `http://127.0.0.1:8080/healthz`                                           |
+| `camply serve healthcheck worker`   | Directed Celery ping to `celery@<local hostname>` through the configured broker |
+| `camply serve healthcheck beat`     | Fresh heartbeat from a live local scheduler PID                                 |
+
+Each probe prints `healthy` and exits 0 on success; an unhealthy service exits 1 with a short diagnostic on stderr. Invalid CLI usage exits 2. The probes do not migrate databases or dispatch application tasks. HTTP and beat checks work with the base package; the worker check requires `camply[distributed]`. Beat PID checks require Unix. Help never requires optional runtime dependencies. Run each local probe in the same container and environment as its serving role.
+
+HTTP probes accept `--url` for a custom listener and `--timeout` for the network timeout (5 seconds by default). They require a 2xx status, reject redirects, and ignore environment HTTP proxies. For example, `camply serve healthcheck --url http://127.0.0.1:9000/api/health` matches standalone serving on port 9000. An init container can use `camply serve healthcheck backend --url http://backend:8000/api/health` to wait for the API. The distributed API endpoint reports HTTP liveness; it does not verify PostgreSQL or Valkey. Standalone additionally checks its SQLite connection and local runner. Frontend checks only Nginx, independently of its upstream. Keep separate infrastructure/readiness probes when database or broker availability matters.
+
+The worker probe uses the current Python environment to run Celery inspection, requests a reply from exactly one named worker, and enforces a subprocess deadline with `--timeout` (5 seconds by default). Another healthy replica cannot satisfy the default local probe. If serving with a custom `--hostname`, pass its expanded node name via `camply serve healthcheck worker --destination custom@hostname`. Worker remote control must be enabled. A busy solo pool can delay control replies; size the timeout accordingly or use the default prefork pool. This checks worker control responsiveness and broker connectivity, rather than completion of an application task.
+
+`camply serve beat` uses a persistent Celery scheduler that atomically writes its PID and timestamp after each completed scheduling tick. Its default maximum sleep is 30 seconds. The probe checks that PID and requires a timestamp no more than 60 seconds old. Set `CAMPLY_BEAT_HEALTH_FILE` on both serving and probing processes to override the default `camply-beat-health.json` under Python's temporary directory, or pass `--heartbeat-file` to the probe. The directory must be writable by beat; keep the marker local to one beat instance and its PID namespace. Startup clears old state and clean shutdown removes the marker. A forced kill leaves a marker that fails the PID check. Use `--max-age` to adjust the freshness window when forwarding a larger `--max-interval` to beat. Replacing beat's `--scheduler` disables this heartbeat unless the replacement implements the same contract. A fresh marker confirms scheduler-loop progress, not successful broker publication or worker task execution.
+
+Compose configures these probes per role, with a 10-second outer timeout and startup grace periods. The shared image has no role-specific Dockerfile `HEALTHCHECK`; standalone or other downstream deployments should select the matching command. Kubernetes can use these commands as exec probes or retain the same HTTP endpoints as in [the downstream deployment example](https://github.com/juftin/home-ops/pull/257). Run `task backend:healthcheck:test` for real worker targeting, broker-loss detection, beat stall detection, and shutdown verification; CI runs the same smoke test.
+
+## Process shutdown
+
+Serving commands use process replacement (`exec`) to run in the foreground. Gunicorn, Celery worker/beat, and Nginx retain their native signal handling and child-process management. Bare `camply serve` runs Uvicorn in the main thread with one worker, so its normal shutdown invokes application lifespan cleanup: stop local scheduling, drain/cancel background work, and close database resources.
+
+Compose sends `SIGTERM` to backend/worker/beat and `SIGQUIT` to frontend Nginx. Nginx treats `SIGTERM` as fast shutdown and `SIGQUIT` as graceful shutdown; changing the shared image's default stop signal would also affect Python roles. All application services have a one-minute `stop_grace_period`. For `docker run`, use `--stop-timeout 60`; add `--stop-signal SIGQUIT` for `camply serve frontend`. Extend the worker's Compose grace period when tasks need more than a minute to finish.
+
+`SIGKILL` cannot be caught, forwarded, or used for cleanup. Docker forcibly kills a container after its grace period, and in-flight requests/tasks can be interrupted. Outside containers, use a service manager that owns all descendant processes (for example [systemd with `KillMode=mixed`](https://www.freedesktop.org/software/systemd/man/latest/systemd.kill.html)): signal the master first for graceful shutdown, then kill the complete service if the grace period expires. Killing only a master PID does not generally guarantee all descendants stop. Process replacement avoids an extra launcher parent but does not change OS process-group semantics. These behaviors follow [Docker's stop policy](https://docs.docker.com/reference/cli/docker/container/stop/), [Nginx signal handling](https://nginx.org/en/docs/control.html), and [Celery shutdown semantics](https://docs.celeryq.dev/en/stable/userguide/workers.html#stopping-the-worker).
 
 ## 🔒 Authentication (Toggleable)
 
@@ -177,13 +232,12 @@ The Admin UI provides native monitoring dashboards for usage trends, API latency
 
 These variables are primarily used in `docker-compose.yaml`.
 
-| Variable            | Description                   | Default  |
-| ------------------- | ----------------------------- | -------- |
-| `POSTGRES_USER`     | DB Username                   | `camply` |
-| `POSTGRES_PASSWORD` | DB Password                   | `camply` |
-| `POSTGRES_DB`       | DB Name                       | `camply` |
-| `BACKEND_VERSION`   | Docker image tag for backend  | `local`  |
-| `FRONTEND_VERSION`  | Docker image tag for frontend | `local`  |
+| Variable            | Description                    | Default  |
+| ------------------- | ------------------------------ | -------- |
+| `POSTGRES_USER`     | DB Username                    | `camply` |
+| `POSTGRES_PASSWORD` | DB Password                    | `camply` |
+| `POSTGRES_DB`       | DB Name                        | `camply` |
+| `CAMPLY_VERSION`    | Shared camply Docker image tag | `local`  |
 
 ## Optional Community Pages (Public Frontend Build Setting)
 
