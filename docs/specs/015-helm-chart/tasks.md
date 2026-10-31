@@ -16,20 +16,19 @@
 
 ## Verification
 
-- `task fix`, `task lint`, and `task check` passed.
-- `task backend:test`: 802 passed, 23 opt-in tests skipped.
-- `task frontend:test`: 339 passed.
-- `task release:test`: 15 passed.
-- Full `task test` passed, including 68 packaging tests and Pages configuration/bundling/HTTP verification.
-- Pre-commit hooks passed.
-- `task helm:test`: 41 passed, one opt-in cluster smoke skipped, on Helm 3.19.0 and 4.3.0.
-- `task backend:check -- tests/helm deploy/helm/files` passed.
-- Kubeconform accepted all 24 default Kubernetes resources; chart packaging passed.
+- `task fix`, `task lint`, `task check`, and pre-commit hooks passed.
+- Full `task test` passed: 818 backend tests (23 opt-in skips), 68 packaging tests,
+  339 frontend tests, 15 release checks, and Pages configuration/bundling/HTTP checks.
+- `task helm:test`: 54 passed, one opt-in cluster smoke skipped, on Helm 3.19.0 and 4.3.0.
+- `task helm:smoke`: all 55 tests passed locally on ARM64 with Helm 4.3.0 and
+  kind 0.33.0 / Kubernetes 1.37.0, using an image built from this checkout.
+  Verified migration ordering, both Helm connection tests, successful upgrade
+  with PostgreSQL data preservation (`SELECT value FROM helm_upgrade_proof` returned
+  `42`), and failed-migration startup blocking for backend, worker, and beat.
+- `task backend:check -- tests/helm deploy/helm/files` and API contract checks passed.
+- Kubeconform accepted all 25 default Kubernetes resources; chart packaging passed.
 - Actionlint accepted the workflow changes with its optional ShellCheck integration disabled.
 - Registry pushes were recorded locally; actual GHCR publication runs from the stable release workflow.
-- `task helm:smoke` was attempted, but Docker could not pull the kind node image:
-  `no space left on device`. The partial test-owned cluster was removed.
-  Real cluster startup and failed-upgrade verification remain unverified locally.
 
 ## Operator experience
 
@@ -40,23 +39,21 @@
 - [x] Run source-image lifecycle smoke in CI with upgrade/data preservation checks.
 - [x] Complete validation and update documentation and PR.
 
-Operator verification: the full `task test` passed (816 backend tests, 68 packaging
-tests, 339 frontend tests, release and Pages checks). Expanded Helm 3/4 regressions (54 passing on each version, cluster smoke skipped)
-cover schema failures, probe replacement/disablement, monitor selection, rendered
-notes, and the test hook. API contract checks, type checks, and core Kubernetes
-schema validation passed. The updated local lifecycle smoke was attempted, but
-the source-image build failed inside `pnpm install` with exit code 135 before
-cluster creation. CI now runs the same lifecycle checks against its built image.
+Operator verification: Helm 3/4 regressions cover schema failures, probe
+replacement/disablement, monitor selection, rendered notes, and the test hook.
+API readiness and liveness checks, full project checks, and the local source-image
+Kubernetes lifecycle smoke passed.
 
 ## Local cluster testing
 
 - [x] Diagnose local storage exhaustion and document smoke-test disk requirements.
 - [x] Initialize the CI lifecycle job's Task/Python environment before installing Helm/kind.
 - [x] Reproduce the missing CI setup with a regression, then verify the fix.
-- [ ] Complete the local Kubernetes lifecycle test after freeing sufficient disk space.
+- [x] Complete the local Kubernetes lifecycle test after freeing sufficient disk space.
 
-Follow-up validation: `task fix`, `task lint`, `task check`, chart regressions
-(54 passed), Actionlint, and pre-commit passed. Full `task test` passed with 818
-backend tests, 68 packaging tests, 339 frontend tests, and release/Pages checks.
-The source image now builds and kind starts, but image import still exhausts
-local storage; the partial test-owned cluster was removed.
+Follow-up validation: the source image builds and the complete local lifecycle
+smoke passed (55 tests, 135 seconds). Resource and log diagnostics are retained
+under `tmp/camply-helm-c756fd0e/`. The test-owned cluster was removed. The same lifecycle smoke also passed in
+[CI on AMD64](https://github.com/juftin/camply-web/actions/runs/41235448171); all
+checks in that run passed. Approved Docker cleanup preserved the existing
+running services while removing unused data.
