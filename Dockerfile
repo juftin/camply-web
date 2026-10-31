@@ -49,4 +49,4 @@ RUN mkdir -p ${HOME}/.local/share/camply && \
 USER camply
 EXPOSE 8000 8080
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["camply", "backend", "serve"]
+CMD ["camply", "serve", "backend"]

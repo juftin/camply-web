@@ -35,7 +35,7 @@ Using the project's interpreter, `python -m build` also works directly. It creat
 
 The sdist contains frontend source and prepared assets. Rebuilding its wheel and installing or running a prepared wheel require no Node or pnpm. Every wheel contains the UI, Python typing markers, Gunicorn configuration, and the full Alembic migration graph. The build does not stage generated assets into working source files.
 
-Run `camply frontend dir` to print the absolute path to the installed frontend assets. This command needs only the base package and reports an error for editable installs without bundled assets. The shared `camply` Docker image includes Python and Nginx. `camply frontend serve` renders its packaged Nginx configuration at startup with this directory as the static root.
+Run `camply frontend dir` to print the absolute path to the installed frontend assets. This command needs only the base package and reports an error for editable installs without bundled assets. The shared `camply` Docker image includes Python and Nginx. `camply serve frontend` renders its packaged Nginx configuration at startup with this directory as the static root.
 
 Install the actual wheel path into a uv-managed environment with the desired extras:
 
@@ -66,19 +66,19 @@ task dev
 
 Vite serves development UI on port 5173 and proxies `/api` to the backend on port 8000. Use `task compose:up` to run the whole distributed stack in containers. One root Dockerfile builds `ghcr.io/juftin/camply` for the API, Nginx, Celery worker, and beat; root Compose defines all services and preserves named volumes and `.data/camply` storage.
 
-Build the shared image with `task build`. The default command is `camply backend serve`; Compose selects the other roles with command overrides:
+Build the shared image with `task build`. The default command is `camply serve backend`; Compose selects the other roles with command overrides:
 
 | Role           | Command in the `camply` image    |
 | -------------- | -------------------------------- |
-| API            | `camply backend serve` (default) |
-| Frontend       | `camply frontend serve`          |
-| Worker         | `camply worker serve`            |
-| Scheduler      | `camply worker beat`             |
+| API            | `camply serve backend` (default) |
+| Frontend       | `camply serve frontend`          |
+| Worker         | `camply serve worker`            |
+| Scheduler      | `camply serve beat`              |
 | Asset location | `camply frontend dir`            |
 
-`camply backend serve` applies database migrations unless `SKIP_MIGRATIONS=1`; frontend and worker commands do not migrate. Compose retains its initial provider-sync dispatch before starting beat. Set `CAMPLY_VERSION` to select the image tag in Compose. PostgreSQL, Valkey, and Prometheus keep their upstream images.
+`camply serve backend` applies database migrations unless `SKIP_MIGRATIONS=1`; frontend and worker commands do not migrate. Compose retains its initial provider-sync dispatch before starting beat. Set `CAMPLY_VERSION` to select the image tag in Compose. PostgreSQL, Valkey, and Prometheus keep their upstream images.
 
-Backend and worker commands forward extra arguments to Gunicorn or Celery, for example `camply backend serve --bind 127.0.0.1:9000`, `camply worker serve --concurrency=2`, or `camply worker beat --schedule /tmp/camply-beat`. Backend serving requires `camply[server]`; worker commands require `camply[distributed]`. Each command replaces itself with the runtime process so container signals reach it directly.
+Backend and worker commands forward extra arguments to Gunicorn or Celery, for example `camply serve backend --bind 127.0.0.1:9000`, `camply serve worker --concurrency=2`, or `camply serve beat --schedule /tmp/camply-beat`. Backend serving requires `camply[server]`; worker commands require `camply[distributed]`. Each command replaces itself with the runtime process so container signals reach it directly.
 
 Frontend serving requires system Nginx with `/etc/nginx/mime.types`, as installed in the image, and a resolvable `backend:8000` API upstream. It listens on port 8080, renders the two package-owned templates under a writable temporary directory, and runs Nginx in the foreground without modifying `/etc/nginx`. Nginx config resources live in `src/camply/cli/nginx/`.
 

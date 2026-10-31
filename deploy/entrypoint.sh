@@ -7,8 +7,8 @@ case "${1:-}" in
         exec "${@}"
         ;;
     camply)
-        case "${2:-}" in
-            backend|worker) ;;
+        case "${2:-}:${3:-}" in
+            serve:backend|serve:worker|serve:beat) ;;
             *) exec "${@}" ;;
         esac
         ;;

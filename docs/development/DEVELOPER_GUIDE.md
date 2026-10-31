@@ -28,7 +28,7 @@ See [backend installation](../../README.md) for artifact examples.
 
 API-only installs do not run scheduled scans: workers, beat, and Valkey/Redis
 remain required unless using the standalone runtime. The `camply` CLI (`camply.cli`) is an entrypoint with
-`--version`, `--help`, `frontend dir` (the absolute path to bundled static assets), and `frontend serve`/`backend serve`/`worker serve`/`worker beat` role launchers; every prepared distribution includes the frontend, while extras select runtime dependencies. The shared `camply` Docker image includes Python and Nginx, and `camply frontend serve` renders the package-owned Nginx configuration with the installed static root in a writable runtime directory. Compose uses this image for the API, frontend, worker, and beat, selecting each role by command. Import paths
+`--version`, `--help`, `frontend dir` (the absolute path to bundled static assets), and `serve frontend`/`serve backend`/`serve worker`/`serve beat` role launchers; every prepared distribution includes the frontend, while extras select runtime dependencies. The shared `camply` Docker image includes Python and Nginx, and `camply serve frontend` renders the package-owned Nginx configuration with the installed static root in a writable runtime directory. Compose uses this image for the API, frontend, worker, and beat, selecting each role by command. Import paths
 have moved from `backend.*`, `db.*`, `providers.*`, and `worker.*` to
 `camply.server.*`, `camply.db.*`, `camply.providers.*`, and `camply.worker.*`.
 

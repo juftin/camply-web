@@ -40,7 +40,7 @@ def cli(ctx: click.Context) -> None:
 
 @cli.group()
 def frontend() -> None:
-    """Locate or serve the frontend bundled with the installed distribution."""
+    """Locate the frontend bundled with the installed distribution."""
 
 
 @frontend.command(name="dir")
@@ -67,8 +67,13 @@ def _executable(name: str, *, hint: str) -> str:
     return executable
 
 
-@frontend.command(name="serve")
-def frontend_serve() -> None:
+@cli.group()
+def serve() -> None:
+    """Run the frontend, backend, worker, or scheduler as a foreground process."""
+
+
+@serve.command(name="frontend")
+def serve_frontend() -> None:
     """Serve bundled assets and proxy /api to backend:8000 using Nginx."""
     executable = _executable("nginx", hint="Install Nginx or use the camply image.")
     directory = _frontend_directory()
@@ -98,14 +103,9 @@ def frontend_serve() -> None:
         )
 
 
-@cli.group()
-def backend() -> None:
-    """Run the separate API server using the server extra."""
-
-
-@backend.command(name="serve", context_settings={"ignore_unknown_options": True})
+@serve.command(name="backend", context_settings={"ignore_unknown_options": True})
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
-def backend_serve(args: tuple[str, ...]) -> None:
+def serve_backend(args: tuple[str, ...]) -> None:
     """Migrate the database and serve the API; forward arguments to Gunicorn."""
     executable = _executable("gunicorn", hint="Install camply[server].")
     if os.environ.get("SKIP_MIGRATIONS", "0") != "1":
@@ -124,21 +124,16 @@ def backend_serve(args: tuple[str, ...]) -> None:
     )
 
 
-@cli.group()
-def worker() -> None:
-    """Run distributed workers and scheduling using the distributed extra."""
-
-
-@worker.command(name="serve", context_settings={"ignore_unknown_options": True})
+@serve.command(name="worker", context_settings={"ignore_unknown_options": True})
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
-def worker_serve(args: tuple[str, ...]) -> None:
+def serve_worker(args: tuple[str, ...]) -> None:
     """Consume background tasks; forward arguments to the Celery worker."""
     _worker_process("worker", ("-Q", "celery", "--concurrency=4", *args))
 
 
-@worker.command(name="beat", context_settings={"ignore_unknown_options": True})
+@serve.command(name="beat", context_settings={"ignore_unknown_options": True})
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
-def worker_beat(args: tuple[str, ...]) -> None:
+def serve_beat(args: tuple[str, ...]) -> None:
     """Schedule background tasks; forward arguments to Celery beat."""
     _worker_process("beat", args)
 

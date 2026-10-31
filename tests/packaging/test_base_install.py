@@ -133,10 +133,10 @@ def test_runtime_help_and_missing_dependencies(
         from camply.cli.main import cli
 
         for command, hint in (
-            (['frontend', 'serve'], 'Nginx'),
-            (['backend', 'serve'], 'camply[server]'),
-            (['worker', 'serve'], 'camply[distributed]'),
-            (['worker', 'beat'], 'camply[distributed]'),
+            (['serve', 'frontend'], 'Nginx'),
+            (['serve', 'backend'], 'camply[server]'),
+            (['serve', 'worker'], 'camply[distributed]'),
+            (['serve', 'beat'], 'camply[distributed]'),
         ):
             help_result = CliRunner().invoke(cli, [*command, '--help'])
             assert help_result.exit_code == 0, help_result.output

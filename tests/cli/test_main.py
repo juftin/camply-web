@@ -38,6 +38,15 @@ def test_bare_invocation_prints_help() -> None:
     assert f"Usage: {__application__}" in result.output
 
 
+def test_serve_namespace_lists_all_roles() -> None:
+    """The serve group advertises each runtime under one namespace."""
+    result = CliRunner().invoke(cli, ["serve", "--help"])
+
+    assert result.exit_code == 0, result.output
+    for role in ("frontend", "backend", "worker", "beat"):
+        assert role in result.output
+
+
 def test_module_execution_reports_version() -> None:
     """``python -m camply.cli`` resolves to the same entrypoint."""
     result = subprocess.run(
@@ -84,7 +93,7 @@ def test_frontend_dir_rejects_missing_assets(
     ("command", "executable", "arguments"),
     [
         (
-            ["backend", "serve", "--bind", "127.0.0.1:9000"],
+            ["serve", "backend", "--bind", "127.0.0.1:9000"],
             "gunicorn",
             [
                 "--config",
@@ -95,7 +104,7 @@ def test_frontend_dir_rejects_missing_assets(
             ],
         ),
         (
-            ["worker", "serve", "--concurrency=2"],
+            ["serve", "worker", "--concurrency=2"],
             "celery",
             [
                 "-A",
@@ -110,7 +119,7 @@ def test_frontend_dir_rejects_missing_assets(
             ],
         ),
         (
-            ["worker", "beat", "--schedule", "/tmp/synthetic-schedule"],
+            ["serve", "beat", "--schedule", "/tmp/synthetic-schedule"],
             "celery",
             [
                 "-A",
@@ -145,7 +154,7 @@ def test_runtime_commands_replace_the_process(
     assert result.exit_code == 0, result.output
     path = f"/synthetic/bin/{executable}"
     execute.assert_called_once_with(path, [path, *arguments])
-    assert upgrade.call_count == (1 if command[0] == "backend" else 0)
+    assert upgrade.call_count == (1 if command[1] == "backend" else 0)
 
 
 @pytest.mark.parametrize("skip", [False, True])
@@ -161,7 +170,7 @@ def test_backend_migration_ownership(
     monkeypatch.setattr(migration, "upgrade", upgrade)
     monkeypatch.setattr("os.execv", Mock(side_effect=SystemExit(0)))
 
-    result = CliRunner().invoke(cli, ["backend", "serve"])
+    result = CliRunner().invoke(cli, ["serve", "backend"])
 
     assert result.exit_code == 0, result.output
     assert upgrade.call_count == (0 if skip else 1)
@@ -170,10 +179,10 @@ def test_backend_migration_ownership(
 @pytest.mark.parametrize(
     ("command", "hint"),
     [
-        (["frontend", "serve"], "Nginx"),
-        (["backend", "serve"], "camply[server]"),
-        (["worker", "serve"], "camply[distributed]"),
-        (["worker", "beat"], "camply[distributed]"),
+        (["serve", "frontend"], "Nginx"),
+        (["serve", "backend"], "camply[server]"),
+        (["serve", "worker"], "camply[distributed]"),
+        (["serve", "beat"], "camply[distributed]"),
     ],
 )
 def test_runtime_commands_explain_missing_executables(
@@ -211,7 +220,7 @@ def test_frontend_serve_renders_packaged_configuration(
 
     monkeypatch.setattr("os.execv", execute)
 
-    result = CliRunner().invoke(cli, ["frontend", "serve"])
+    result = CliRunner().invoke(cli, ["serve", "frontend"])
 
     assert result.exit_code == 0, result.output
     assert captured["args"][-2:] == ["-g", "daemon off;"]
