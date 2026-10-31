@@ -10,7 +10,7 @@
 - Preserve external PostgreSQL, Valkey, and Prometheus services, application storage, frontend build settings, and release tag/version rules.
 - Publish each release under four image tags: the major version (`v1`), full version (`v1.2.3`), seven-character release commit SHA, and `latest`.
 - Provide `camply serve frontend`, `camply serve backend`, `camply serve worker`, and `camply serve beat` as foreground process launchers. Keep optional runtime imports out of CLI startup, report missing executables clearly, and forward backend/worker runtime arguments.
-- Package both Nginx configurations with the CLI and render the installed static path into a writable per-process runtime directory. The API upstream remains the Compose service `backend:8000`.
+- Package both Nginx configurations with the CLI and render the installed static path into a writable per-process runtime directory. Read the API upstream from `CAMPLY_BACKEND_URL`, defaulting to `http://backend:8000` when unset or empty; expose the override through Compose as well.
 - Preserve API migrations, worker/beat migration skipping, runtime directory setup, and Compose's initial provider-sync dispatch before beat.
 - Bare `camply serve` starts the existing standalone launcher: bundled UI, API, SQLite migrations, and local background work in one process. Support standalone `--host`/`--port` options and require the `server` extra without importing optional runtimes for help or explicit subcommands.
 - Validate each Python role's runtime modules in the CLI interpreter before startup or migrations. Launch Gunicorn and Celery with that interpreter so unrelated executables on `PATH` cannot bypass missing extras or select another installation.

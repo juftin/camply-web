@@ -67,7 +67,8 @@ def test_frontend_serve_finds_assets_without_server(
     install: Callable[[str], Installation],
 ) -> None:
     """Base installs render Nginx configuration using their own packaged assets."""
-    install("").run("""
+    install("").run(
+        """
         import json
         import sys
         from pathlib import Path
@@ -87,6 +88,7 @@ def test_frontend_serve_finds_assets_without_server(
             assert (expected / 'index.html').is_file()
             assert (expected / 'assets').is_dir()
             assert 'try_files $uri $uri/ /index.html;' in server
+            assert 'proxy_pass "http://synthetic-api.invalid:9000";' in server
             raise SystemExit(0)
 
         with patch('shutil.which', return_value='/synthetic/nginx'), patch('os.execv', side_effect=execute):
@@ -94,7 +96,9 @@ def test_frontend_serve_finds_assets_without_server(
         assert result.exit_code == 0, result.output
         assert result.output == ''
         assert not any(name.startswith(('camply.server', 'camply.worker', 'camply.providers', 'camply.db')) for name in sys.modules)
-    """)
+    """,
+        settings={"CAMPLY_BACKEND_URL": "http://synthetic-api.invalid:9000"},
+    )
 
 
 def test_installed_migrations_preserve_history(

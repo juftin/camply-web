@@ -81,6 +81,16 @@ The campsite-details migration is required before starting the updated API/worke
 
 Standalone uses the existing positive `CAMPLY_HEARTBEAT_INTERVAL` (300 seconds) and `CAMPLY_TARGET_COOLDOWN` (55 seconds). No broker or Prometheus URL is queried; distributed settings continue to apply in distributed mode. Local admin history retains up to 1,000 attempts for 24 hours and clears on restart. Pending delivery is stored separately in SQLite. Both runtimes honor `CAMPLY_NOTIFICATION_MODE` (`summary` by default, or `direct`); summaries are revalidated and recounted before standalone delivery. Set `PUSHOVER_APP_TOKEN` and the current user's Pushover key for delivery. Missing credentials skip alerts rather than reporting success. Runtime selection does not enable login or invitation checks; configure authentication explicitly as below.
 
+## Nginx frontend proxy
+
+`camply serve frontend` reads `CAMPLY_BACKEND_URL` at startup and renders it into the packaged Nginx `proxy_pass` directive. The default is `http://backend:8000` when the variable is unset or empty. Compose forwards this variable to the frontend container, and downstream deployments can pass it directly to the CLI or container environment.
+
+```bash
+CAMPLY_BACKEND_URL=http://api.internal:9000 camply serve frontend
+```
+
+Use an origin without a trailing slash to retain `/api/`: `/api/health` forwards to `http://api.internal:9000/api/health`. A URL with a URI path uses [Nginx's normal prefix replacement rules](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass). Restart the frontend after changing the variable. Browser requests continue to use the frontend's same-origin `/api/` endpoint.
+
 ## Process shutdown
 
 Serving commands use process replacement (`exec`) to run in the foreground. Gunicorn, Celery worker/beat, and Nginx retain their native signal handling and child-process management. Bare `camply serve` runs Uvicorn in the main thread with one worker, so its normal shutdown invokes application lifespan cleanup: stop local scheduling, drain/cancel background work, and close database resources.

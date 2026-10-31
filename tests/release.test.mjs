@@ -529,6 +529,10 @@ test("distributed Compose retains services, persistent storage, and API relation
     assert.equal(config.services[name].stop_grace_period, "1m0s");
   }
   assert.equal(config.services.frontend.stop_signal, "SIGQUIT");
+  assert.equal(
+    config.services.frontend.environment.CAMPLY_BACKEND_URL,
+    "http://backend:8000",
+  );
   for (const name of ["backend", "celery-worker", "celery-beat"]) {
     assert.equal(config.services[name].stop_signal, "SIGTERM");
   }
@@ -565,5 +569,29 @@ test("distributed Compose retains services, persistent storage, and API relation
           "/deploy/monitoring/prometheus/prometheus.yml",
         ) && volume.read_only,
     ),
+  );
+});
+
+test("Compose passes a custom backend URL to the frontend", () => {
+  const backend = "http://synthetic-api.internal:9000";
+  const rendered = spawnSync(
+    "docker",
+    ["compose", "--env-file", "/dev/null", "config", "--format", "json"],
+    {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        PATH: process.env.PATH,
+        HOME: process.env.HOME,
+        COMPOSE_DISABLE_ENV_FILE: "1",
+        CAMPLY_BACKEND_URL: backend,
+      },
+    },
+  );
+  assert.equal(rendered.status, 0, rendered.stderr);
+  assert.equal(
+    JSON.parse(rendered.stdout).services.frontend.environment
+      .CAMPLY_BACKEND_URL,
+    backend,
   );
 });

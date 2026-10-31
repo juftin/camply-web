@@ -99,7 +99,7 @@ def serve(ctx: click.Context, host: str | None, port: int | None) -> None:
 
 @serve.command(name="frontend")
 def serve_frontend() -> None:
-    """Serve bundled assets and proxy /api to backend:8000 using Nginx."""
+    """Serve bundled assets and proxy /api to CAMPLY_BACKEND_URL using Nginx."""
     executable = _executable("nginx", hint="Install Nginx or use the camply image.")
     directory = Path(__file__).resolve().parents[1] / "server" / "static"
     if not (directory / "index.html").is_file():
@@ -116,6 +116,13 @@ def serve_frontend() -> None:
             .read_text()
             .replace(
                 "${CAMPLY_FRONTEND_DIR}", json.dumps(str(directory), ensure_ascii=False)
+            )
+            .replace(
+                "${CAMPLY_BACKEND_URL}",
+                json.dumps(
+                    os.environ.get("CAMPLY_BACKEND_URL") or "http://backend:8000",
+                    ensure_ascii=False,
+                ),
             )
         )
         config.write_text(

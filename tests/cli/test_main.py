@@ -279,10 +279,23 @@ def test_frontend_explains_missing_nginx(monkeypatch: pytest.MonkeyPatch) -> Non
     assert "Nginx" in result.stderr
 
 
+@pytest.mark.parametrize(
+    "backend_url",
+    [
+        None,
+        "",
+        "http://api.example.invalid:9000",
+        "https://api.example.invalid/base/api/",
+    ],
+)
 def test_frontend_serve_renders_packaged_configuration(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, backend_url: str | None
 ) -> None:
-    """Nginx receives quoted resource paths while its own variables survive rendering."""
+    """Render the selected upstream and quoted paths while preserving Nginx variables."""
+    if backend_url is None:
+        monkeypatch.delenv("CAMPLY_BACKEND_URL", raising=False)
+    else:
+        monkeypatch.setenv("CAMPLY_BACKEND_URL", backend_url)
     package = tmp_path / "installed package" / "camply"
     static = package / "server" / "static"
     static.mkdir(parents=True)
@@ -310,5 +323,8 @@ def test_frontend_serve_renders_packaged_configuration(
     assert f'root "{static.resolve()}";' in captured["server"]
     assert "try_files $uri $uri/ /index.html;" in captured["server"]
     assert "proxy_set_header Host $host;" in captured["server"]
+    expected = backend_url or "http://backend:8000"
+    assert f'proxy_pass "{expected}";' in captured["server"]
+    assert "${CAMPLY_BACKEND_URL}" not in captured["server"]
     assert "/etc/nginx/conf.d/" not in captured["main"]
     assert "pid nginx.pid;" in captured["main"]

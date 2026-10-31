@@ -191,6 +191,8 @@ services:
   frontend:
     <<: *camply
     command: ["camply", "serve", "frontend"]
+    environment:
+      CAMPLY_BACKEND_URL: ${CAMPLY_BACKEND_URL:-http://backend:8000}
     stop_signal: SIGQUIT
     ports:
       - "${FRONTEND_PORT:-80}:8080"

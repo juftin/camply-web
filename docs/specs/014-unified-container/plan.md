@@ -29,3 +29,7 @@ Check required modules using `importlib.util.find_spec` without importing option
 ## Shutdown behavior
 
 Retain process replacement and native signal handlers. Configure Compose to send `SIGQUIT` to Nginx and `SIGTERM` to Python roles, allowing one minute before forced termination. Verify live installed standalone/Gunicorn cleanup after `SIGTERM`, unchanged standalone PID ownership, direct `SIGKILL` termination, and SQLite integrity after termination. Document host process-group supervision and the limits of cleanup after forced kills.
+
+## Downstream API upstream
+
+Read `CAMPLY_BACKEND_URL` in the frontend launcher, defaulting to `http://backend:8000` when unset or empty. Render only its explicit template placeholder as a quoted Nginx value, preserving existing proxy variables/settings. Forward the override through Compose, verify default/custom URLs in CLI and isolated installations, and check real Nginx proxy routing with a synthetic upstream. Document native `proxy_pass` URI semantics.
