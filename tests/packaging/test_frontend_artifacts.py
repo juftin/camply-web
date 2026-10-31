@@ -19,6 +19,8 @@ def test_complete_archive_contents(artifacts: dict[str, Path]) -> None:
             names = wheel.namelist()
             assert len(names) == len(set(names))
             assert "camply/server/static/index.html" in names
+            assert "camply/cli/nginx/nginx.conf" in names
+            assert "camply/cli/nginx/server.conf" in names
             assert "camply/server/gunicorn.py" in names
             assert any(
                 path.startswith("camply/server/static/assets/")
@@ -36,6 +38,8 @@ def test_complete_archive_contents(artifacts: dict[str, Path]) -> None:
             "package.json",
             "pnpm-lock.yaml",
             "src/frontend/main.tsx",
+            "src/camply/cli/nginx/nginx.conf",
+            "src/camply/cli/nginx/server.conf",
             "src/camply/server/static/index.html",
             "build/frontend-manifest.json",
         ):

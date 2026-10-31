@@ -100,7 +100,7 @@ services:
 
   celery-worker:
     <<: *camply
-    command: celery -A camply.worker.celery_app worker -l info -Q celery --concurrency=4
+    command: ["camply", "worker", "serve"]
     depends_on:
       db:
         condition: service_healthy
@@ -131,7 +131,7 @@ services:
 
   celery-beat:
     <<: *camply
-    command: sh -c "celery -A camply.worker.celery_app call camply.catalog.sync_all_providers --expires=600 && celery -A camply.worker.celery_app beat -l info"
+    command: sh -c "celery -A camply.worker.celery_app call camply.catalog.sync_all_providers --expires=600 && exec camply worker beat"
     depends_on:
       db:
         condition: service_healthy
@@ -188,7 +188,7 @@ services:
 
   frontend:
     <<: *camply
-    command: ["nginx", "-g", "daemon off;"]
+    command: ["camply", "frontend", "serve"]
     ports:
       - "${FRONTEND_PORT:-80}:8080"
     healthcheck:

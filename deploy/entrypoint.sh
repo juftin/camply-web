@@ -3,8 +3,14 @@
 set -e
 
 case "${1:-}" in
-    nginx|camply)
+    nginx)
         exec "${@}"
+        ;;
+    camply)
+        case "${2:-}" in
+            backend|worker) ;;
+            *) exec "${@}" ;;
+        esac
         ;;
 esac
 
@@ -30,7 +36,7 @@ if [ -n "${PROMETHEUS_MULTIPROC_DIR}" ]; then
     mkdir -p "${PROMETHEUS_MULTIPROC_DIR}"
 fi
 
-if [ "${SKIP_MIGRATIONS:-0}" != "1" ]; then
+if [ "${1:-}" != "camply" ] && [ "${SKIP_MIGRATIONS:-0}" != "1" ]; then
     python -m camply.db.migration
 fi
 

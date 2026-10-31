@@ -8,4 +8,10 @@
 - [x] Update release regressions, deployment documentation, and the global checklist.
 - [x] Complete final checks and shared-container smoke verification.
 
-Validation: `task test`, `task lint`, `task check`, changed-file pre-commit hooks, and Actionlint passed. A shared runtime built from the locally prepared wheel passed CLI, worker/beat command, default API/migration, and Nginx static/SPA/health/API-proxy checks as the non-root `camply` user. The full source Docker build hit local storage exhaustion during frontend dependency installation; its runtime stages were verified separately with that real wheel.
+- [x] Add frontend/backend/worker serve and worker beat command behavior coverage.
+- [x] Package and render Nginx configuration at runtime, replacing the CLI process with foreground Nginx.
+- [x] Add backend and worker process launchers while preserving migration and initialization behavior.
+- [x] Adopt role commands in Docker/Compose and update installation/deployment documentation.
+- [x] Verify the role launchers, package resources, runtime smoke, and quality gates; update the PR.
+
+Validation: CLI, entrypoint, installed-wheel/sdist resources, optional dependency boundaries, and rendered release/Compose plans passed. A shared runtime built from the real local wheel passed frontend/backend startup, API migrations and proxying, wheel-identical assets, SPA routes, worker/beat argument forwarding, non-root operation, and graceful shutdown. Lint, types, pre-commit hooks, and ShellCheck passed. The full source Docker build remains subject to the documented local storage limitation.

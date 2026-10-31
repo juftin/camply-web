@@ -5,6 +5,11 @@ The ``camply`` console script resolves to :func:`cli`. Subcommands are
 registered on this group as the CLI grows.
 """
 
+import json
+import os
+import shutil
+import tempfile
+from importlib.resources import files
 from pathlib import Path
 
 import click
@@ -35,15 +40,113 @@ def cli(ctx: click.Context) -> None:
 
 @cli.group()
 def frontend() -> None:
-    """Locate the frontend bundled with the installed distribution."""
+    """Locate or serve the frontend bundled with the installed distribution."""
 
 
 @frontend.command(name="dir")
 def frontend_dir() -> None:
     """Print the absolute directory of the packaged static assets."""
+    click.echo(str(_frontend_directory()))
+
+
+def _frontend_directory() -> Path:
+    """Resolve prepared frontend assets without importing the server runtime."""
     directory = Path(__file__).resolve().parents[1] / "server" / "static"
     if not (directory / "index.html").is_file():
         raise click.ClickException(
             "Frontend assets are missing. Install a prepared camply wheel."
         )
-    click.echo(str(directory))
+    return directory
+
+
+def _executable(name: str, *, hint: str) -> str:
+    """Find a runtime executable before performing startup side effects."""
+    executable = shutil.which(name)
+    if executable is None:
+        raise click.ClickException(f"{name} is required. {hint}")
+    return executable
+
+
+@frontend.command(name="serve")
+def frontend_serve() -> None:
+    """Serve bundled assets and proxy /api to backend:8000 using Nginx."""
+    executable = _executable("nginx", hint="Install Nginx or use the camply image.")
+    directory = _frontend_directory()
+    templates = files("camply.cli").joinpath("nginx")
+    with tempfile.TemporaryDirectory(prefix="camply-nginx-") as temporary:
+        runtime = Path(temporary).resolve()
+        server = runtime / "server.conf"
+        config = runtime / "nginx.conf"
+        server.write_text(
+            templates.joinpath("server.conf")
+            .read_text()
+            .replace(
+                "${CAMPLY_FRONTEND_DIR}", json.dumps(str(directory), ensure_ascii=False)
+            )
+        )
+        config.write_text(
+            templates.joinpath("nginx.conf")
+            .read_text()
+            .replace(
+                "${CAMPLY_NGINX_SERVER_CONFIG}",
+                json.dumps(str(server), ensure_ascii=False),
+            )
+        )
+        os.execv(
+            executable,
+            [executable, "-p", f"{runtime}/", "-c", str(config), "-g", "daemon off;"],
+        )
+
+
+@cli.group()
+def backend() -> None:
+    """Run the separate API server using the server extra."""
+
+
+@backend.command(name="serve", context_settings={"ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def backend_serve(args: tuple[str, ...]) -> None:
+    """Migrate the database and serve the API; forward arguments to Gunicorn."""
+    executable = _executable("gunicorn", hint="Install camply[server].")
+    if os.environ.get("SKIP_MIGRATIONS", "0") != "1":
+        from camply.db.migration import upgrade
+
+        upgrade()
+    os.execv(
+        executable,
+        [
+            executable,
+            "--config",
+            "python:camply.server.gunicorn",
+            *args,
+            "camply.server.app:app",
+        ],
+    )
+
+
+@cli.group()
+def worker() -> None:
+    """Run distributed workers and scheduling using the distributed extra."""
+
+
+@worker.command(name="serve", context_settings={"ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def worker_serve(args: tuple[str, ...]) -> None:
+    """Consume background tasks; forward arguments to the Celery worker."""
+    _worker_process("worker", ("-Q", "celery", "--concurrency=4", *args))
+
+
+@worker.command(name="beat", context_settings={"ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
+def worker_beat(args: tuple[str, ...]) -> None:
+    """Schedule background tasks; forward arguments to Celery beat."""
+    _worker_process("beat", args)
+
+
+def _worker_process(command: str, args: tuple[str, ...]) -> None:
+    """Replace the CLI with a distributed process without importing worker code."""
+    executable = _executable("celery", hint="Install camply[distributed].")
+    os.execv(
+        executable,
+        [executable, "-A", "camply.worker.celery_app", command, "-l", "info", *args],
+    )

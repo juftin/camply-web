@@ -31,7 +31,7 @@ RUN uv build --out-dir dist
 
 FROM python-base AS camply
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl nginx gettext-base && \
+    apt-get install -y --no-install-recommends curl nginx && \
     rm -rf /var/lib/apt/lists/* && \
     addgroup --system --gid 1000 camply && \
     adduser --system --uid 1000 --gid 1000 camply
@@ -41,18 +41,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY --from=application-build /app/dist/ /app/dist/
 RUN uv pip install --no-deps /app/dist/*.whl && rm -rf /app/dist
 COPY deploy/entrypoint.sh /app/entrypoint.sh
-COPY deploy/nginx.conf /app/nginx.conf.template
-COPY deploy/nginx.main.conf /etc/nginx/nginx.conf
 ENV PATH="/app/.venv/bin:${PATH}" \
     HOME=/home/camply
-RUN CAMPLY_FRONTEND_DIR="$(camply frontend dir)" && \
-    export CAMPLY_FRONTEND_DIR && \
-    envsubst '${CAMPLY_FRONTEND_DIR}' < /app/nginx.conf.template > /etc/nginx/conf.d/default.conf && \
-    rm /app/nginx.conf.template && \
-    mkdir -p ${HOME}/.local/share/camply && \
+RUN mkdir -p ${HOME}/.local/share/camply && \
     chown camply:camply /app && \
     chown -R camply:camply ${HOME}
 USER camply
 EXPOSE 8000 8080
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["gunicorn", "--config", "python:camply.server.gunicorn", "camply.server.app:app"]
+CMD ["camply", "backend", "serve"]

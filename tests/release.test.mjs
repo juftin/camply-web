@@ -436,8 +436,8 @@ test("one Python and Nginx image serves every application role", () => {
   assert.equal((dockerfile.match(/RUN uv build/g) ?? []).length, 1);
   assert.match(dockerfile, /FROM python-base AS camply[\s\S]*USER camply/);
   assert.match(dockerfile, /apt-get install[^\n]*nginx/);
-  assert.match(dockerfile, /python:camply\.server\.gunicorn/);
-  assert.match(dockerfile, /camply frontend dir/);
+  assert.match(dockerfile, /CMD \["camply", "backend", "serve"\]/);
+  assert.doesNotMatch(dockerfile, /envsubst|gettext-base|COPY deploy\/nginx/);
   assert.doesNotMatch(dockerfile, /FROM nginx|AS backend|AS frontend/);
   for (const file of [
     "backend/Dockerfile",
@@ -507,17 +507,18 @@ test("distributed Compose retains services, persistent storage, and API relation
     );
   }
   assert.deepEqual(config.services.frontend.command, [
-    "nginx",
-    "-g",
-    "daemon off;",
+    "camply",
+    "frontend",
+    "serve",
+  ]);
+  assert.deepEqual(config.services["celery-worker"].command, [
+    "camply",
+    "worker",
+    "serve",
   ]);
   assert.match(
-    config.services["celery-worker"].command.join(" "),
-    /celery.*worker/,
-  );
-  assert.match(
     config.services["celery-beat"].command.join(" "),
-    /celery.*beat/,
+    /sync_all_providers.*&& exec camply worker beat/,
   );
   assert.equal(
     config.services.frontend.depends_on.backend.condition,

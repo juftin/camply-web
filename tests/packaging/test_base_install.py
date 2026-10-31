@@ -119,3 +119,30 @@ def test_installed_migrations_preserve_history(
                 if scenario == 'earlier':
                     assert connection.execute(sa.text('SELECT name FROM providers WHERE id=9001')).scalar_one() == 'Synthetic Provider'
     """)
+
+
+def test_runtime_help_and_missing_dependencies(
+    install: Callable[[str], Installation],
+) -> None:
+    """Base installs expose launcher help and useful errors without runtime imports."""
+    install("").run("""
+        import os
+        import sys
+        from unittest.mock import patch
+        from click.testing import CliRunner
+        from camply.cli.main import cli
+
+        for command, hint in (
+            (['frontend', 'serve'], 'Nginx'),
+            (['backend', 'serve'], 'camply[server]'),
+            (['worker', 'serve'], 'camply[distributed]'),
+            (['worker', 'beat'], 'camply[distributed]'),
+        ):
+            help_result = CliRunner().invoke(cli, [*command, '--help'])
+            assert help_result.exit_code == 0, help_result.output
+            with patch.dict(os.environ, {'PATH': ''}):
+                result = CliRunner().invoke(cli, command)
+            assert result.exit_code == 1, result.output
+            assert hint in result.stderr, result.stderr
+        assert not any(name.startswith(('camply.server', 'camply.worker', 'camply.db', 'camply.providers')) for name in sys.modules)
+    """)

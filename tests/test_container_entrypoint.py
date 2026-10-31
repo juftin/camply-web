@@ -12,6 +12,10 @@ import pytest
     [
         (["nginx", "-g", "daemon off;"], False, False),
         (["camply", "frontend", "dir"], False, False),
+        (["camply", "frontend", "serve"], False, False),
+        (["camply", "backend", "serve"], False, False),
+        (["camply", "worker", "serve"], False, False),
+        (["camply", "worker", "beat"], False, False),
         (["gunicorn", "camply.server.app:app"], False, True),
         (["celery", "worker"], True, False),
         (["celery", "beat"], True, False),
@@ -20,7 +24,7 @@ import pytest
 def test_role_dispatch(
     tmp_path: Path, command: list[str], skip_migrations: bool, migrates: bool
 ) -> None:
-    """Independent roles preserve arguments and only the API runs migrations."""
+    """Preserve arguments and directory setup while CLI commands own their migrations."""
     entrypoint = Path(__file__).resolve().parents[1] / "deploy" / "entrypoint.sh"
     executable = tmp_path / "record"
     executable.write_text('#!/bin/sh\nprintf "%s\\n" "$0" "$@" >> "$CALL_LOG"\n')
@@ -47,3 +51,5 @@ def test_role_dispatch(
     if migrates:
         expected = [str(tmp_path / "python"), "-m", "camply.db.migration", *expected]
     assert calls == expected
+    if command[:2] in (["camply", "backend"], ["camply", "worker"]):
+        assert (tmp_path / ".local/share/camply").is_dir()
