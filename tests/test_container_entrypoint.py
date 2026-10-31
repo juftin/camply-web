@@ -11,7 +11,6 @@ import pytest
     ("command", "skip_migrations", "migrates"),
     [
         (["nginx", "-g", "daemon off;"], False, False),
-        (["camply", "frontend", "dir"], False, False),
         (["camply", "serve", "frontend"], False, False),
         (["camply", "serve", "backend"], False, False),
         (["camply", "serve", "worker"], False, False),

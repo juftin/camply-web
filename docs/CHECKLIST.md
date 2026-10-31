@@ -206,7 +206,7 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/007-open-sour
 - [x] T4.2.5 Verify base/server/worker installations and sdist-rebuilt wheels outside the checkout; integrate packaging checks into Task/CI and document migration/deployment limitations.
 - [x] T4.2.6 Enforce internal layers, runtime independence, lightweight root imports, and optional dependency boundaries using Import Linter; integrate lint/pre-commit and verify intentional violations fail.
 - [x] T4.2.7 Add the `camply.cli` package and base `camply` console script (`--version`/`--help`, `python -m camply.cli`), constrained by Import Linter to base dependencies as a sibling of `server`/`worker`; verify unit, boundary, and isolated-install coverage. Subcommands are future work.
-- [x] T4.2.8 Add `camply frontend dir` to locate installed static assets without server dependencies, and serve that directory with Nginx in one shared `camply` image for API, frontend, worker, and beat; unify Compose, release publishing, and CI builds. See the [shared container plan](specs/014-unified-container/plan.md).
+- [x] T4.2.8 Locate installed static assets internally without server dependencies, and serve them with Nginx in one shared `camply` image for API, frontend, worker, and beat; unify Compose, release publishing, and CI builds. See the [shared container plan](specs/014-unified-container/plan.md).
 - [x] T4.2.9 Tag each shared-image release with `vMAJOR`, `vMAJOR.MINOR.PATCH`, the seven-character release commit SHA, and `latest`.
 - [x] T4.2.10 Add `camply serve frontend`, `camply serve backend`, `camply serve worker`, and `camply serve beat`, package Nginx templates with the CLI, and preserve migrations, process signals, and Compose scheduler initialization.
 

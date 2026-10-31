@@ -59,30 +59,14 @@ def test_module_execution_reports_version() -> None:
     assert result.stdout == f"{__application__}, version {__version__}\n"
 
 
-def test_frontend_dir_prints_absolute_asset_path(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """The path is shell-friendly and independent of the current directory."""
-    package = tmp_path / "installed package" / "camply"
-    static = package / "server" / "static"
-    static.mkdir(parents=True)
-    (static / "index.html").write_text("synthetic frontend")
-    monkeypatch.setattr(camply.cli.main, "__file__", str(package / "cli" / "main.py"))
-    monkeypatch.chdir(tmp_path)
-
-    result = CliRunner().invoke(cli, ["frontend", "dir"])
-
-    assert result.exit_code == 0, result.output
-    assert result.output == f"{static.resolve()}\n"
-
-
-def test_frontend_dir_rejects_missing_assets(
+def test_frontend_serve_rejects_missing_assets(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Editable installs without a prepared UI report a useful error on stderr."""
     monkeypatch.setattr(camply.cli.main, "__file__", str(tmp_path / "cli" / "main.py"))
+    monkeypatch.setattr("shutil.which", lambda name: "/synthetic/bin/nginx")
 
-    result = CliRunner().invoke(cli, ["frontend", "dir"])
+    result = CliRunner().invoke(cli, ["serve", "frontend"])
 
     assert result.exit_code == 1
     assert result.stdout == ""
@@ -206,6 +190,7 @@ def test_frontend_serve_renders_packaged_configuration(
     static.mkdir(parents=True)
     (static / "index.html").write_text("synthetic frontend")
     monkeypatch.setattr(camply.cli.main, "__file__", str(package / "cli" / "main.py"))
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("shutil.which", lambda name: "/synthetic/bin/nginx")
     captured: dict[str, str | list[str]] = {}
 

@@ -35,7 +35,7 @@ Using the project's interpreter, `python -m build` also works directly. It creat
 
 The sdist contains frontend source and prepared assets. Rebuilding its wheel and installing or running a prepared wheel require no Node or pnpm. Every wheel contains the UI, Python typing markers, Gunicorn configuration, and the full Alembic migration graph. The build does not stage generated assets into working source files.
 
-Run `camply frontend dir` to print the absolute path to the installed frontend assets. This command needs only the base package and reports an error for editable installs without bundled assets. The shared `camply` Docker image includes Python and Nginx. `camply serve frontend` renders its packaged Nginx configuration at startup with this directory as the static root.
+The shared `camply` Docker image includes Python and Nginx. `camply serve frontend` locates its bundled assets automatically and renders the packaged Nginx configuration at startup. Editable installs without bundled assets report a clear error when serving the frontend.
 
 Install the actual wheel path into a uv-managed environment with the desired extras:
 
@@ -68,13 +68,12 @@ Vite serves development UI on port 5173 and proxies `/api` to the backend on por
 
 Build the shared image with `task build`. The default command is `camply serve backend`; Compose selects the other roles with command overrides:
 
-| Role           | Command in the `camply` image    |
-| -------------- | -------------------------------- |
-| API            | `camply serve backend` (default) |
-| Frontend       | `camply serve frontend`          |
-| Worker         | `camply serve worker`            |
-| Scheduler      | `camply serve beat`              |
-| Asset location | `camply frontend dir`            |
+| Role      | Command in the `camply` image    |
+| --------- | -------------------------------- |
+| API       | `camply serve backend` (default) |
+| Frontend  | `camply serve frontend`          |
+| Worker    | `camply serve worker`            |
+| Scheduler | `camply serve beat`              |
 
 `camply serve backend` applies database migrations unless `SKIP_MIGRATIONS=1`; frontend and worker commands do not migrate. Compose retains its initial provider-sync dispatch before starting beat. Set `CAMPLY_VERSION` to select the image tag in Compose. PostgreSQL, Valkey, and Prometheus keep their upstream images.
 

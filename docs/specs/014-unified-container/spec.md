@@ -4,7 +4,7 @@
 
 - Publish one application image, `ghcr.io/juftin/camply`, containing Python, Nginx, the complete installed wheel, and all runtime extras.
 - Run API, frontend, Celery worker, and beat as separate containers from this image using command overrides. Preserve the API default command.
-- Add `camply frontend dir` to print the absolute installed static directory without server dependencies or startup side effects. Report missing bundled assets clearly.
+- Locate bundled frontend assets internally in `camply serve frontend` without importing server dependencies. Report missing bundled assets clearly.
 - Configure Nginx to serve that directory directly, preserving SPA fallback, asset caching, health checks, and the API proxy.
 - Nginx and informational CLI commands must start without database migrations. The backend launcher owns API migrations and the existing worker/beat skip setting.
 - Preserve external PostgreSQL, Valkey, and Prometheus services, application storage, frontend build settings, and release tag/version rules.

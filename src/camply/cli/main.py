@@ -38,27 +38,6 @@ def cli(ctx: click.Context) -> None:
         click.echo(ctx.get_help())
 
 
-@cli.group()
-def frontend() -> None:
-    """Locate the frontend bundled with the installed distribution."""
-
-
-@frontend.command(name="dir")
-def frontend_dir() -> None:
-    """Print the absolute directory of the packaged static assets."""
-    click.echo(str(_frontend_directory()))
-
-
-def _frontend_directory() -> Path:
-    """Resolve prepared frontend assets without importing the server runtime."""
-    directory = Path(__file__).resolve().parents[1] / "server" / "static"
-    if not (directory / "index.html").is_file():
-        raise click.ClickException(
-            "Frontend assets are missing. Install a prepared camply wheel."
-        )
-    return directory
-
-
 def _executable(name: str, *, hint: str) -> str:
     """Find a runtime executable before performing startup side effects."""
     executable = shutil.which(name)
@@ -76,7 +55,11 @@ def serve() -> None:
 def serve_frontend() -> None:
     """Serve bundled assets and proxy /api to backend:8000 using Nginx."""
     executable = _executable("nginx", hint="Install Nginx or use the camply image.")
-    directory = _frontend_directory()
+    directory = Path(__file__).resolve().parents[1] / "server" / "static"
+    if not (directory / "index.html").is_file():
+        raise click.ClickException(
+            "Frontend assets are missing. Install a prepared camply wheel."
+        )
     templates = files("camply.cli").joinpath("nginx")
     with tempfile.TemporaryDirectory(prefix="camply-nginx-") as temporary:
         runtime = Path(temporary).resolve()

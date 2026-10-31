@@ -1,6 +1,6 @@
 # Implementation plan
 
-1. Locate bundled assets from the CLI's package path, checking for `index.html`; verify absolute, shell-friendly output and clean base installations.
+1. Locate bundled assets internally from the CLI's package path, checking for `index.html`; verify absolute paths in rendered Nginx configuration and clean base installations.
 2. Retain the shared wheel build, install Nginx alongside Python in one final `camply` stage, and render package-owned Nginx templates at runtime using the installed static root.
 3. Reuse the same Compose image/build configuration for API, frontend, worker, and beat. Let the backend launcher own API migrations, keep frontend/worker startup independent, and use `camply serve backend` as the default.
 4. Build and publish one image through the existing Compose backend Bake target, preserving task namespaces and release aliases; consolidate Docker CI into one job.

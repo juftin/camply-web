@@ -63,27 +63,36 @@ def test_population_help_is_offline(install: Callable[[str], Installation]) -> N
     """)
 
 
-def test_frontend_dir_is_available_without_server(
+def test_frontend_serve_finds_assets_without_server(
     install: Callable[[str], Installation],
 ) -> None:
-    """Base installations expose the real bundled UI without importing the server."""
+    """Base installs render Nginx configuration using their own packaged assets."""
     install("").run("""
-        import subprocess
+        import json
         import sys
         from pathlib import Path
+        from unittest.mock import patch
         import camply
         from camply.cli.main import cli
         from click.testing import CliRunner
 
-        expected = Path(camply.__file__).parent / 'server' / 'static'
-        result = subprocess.run([str(Path(sys.executable).with_name('camply')), 'frontend', 'dir'],
-                                check=True, capture_output=True, text=True)
-        assert result.stdout == str(expected.resolve()) + '\\n'
-        assert result.stderr == ''
-        assert (Path(result.stdout.strip()) / 'index.html').is_file()
-        invoked = CliRunner().invoke(cli, ['frontend', 'dir'])
-        assert invoked.exit_code == 0, invoked.output
-        assert invoked.output == result.stdout
+        expected = (Path(camply.__file__).parent / 'server' / 'static').resolve()
+
+        def execute(executable: str, args: list[str]) -> None:
+            '''Check rendered configuration before replacing the process.'''
+            assert executable == '/synthetic/nginx'
+            config = Path(args[args.index('-c') + 1])
+            server = config.with_name('server.conf').read_text()
+            assert 'root ' + json.dumps(str(expected), ensure_ascii=False) + ';' in server
+            assert (expected / 'index.html').is_file()
+            assert (expected / 'assets').is_dir()
+            assert 'try_files $uri $uri/ /index.html;' in server
+            raise SystemExit(0)
+
+        with patch('shutil.which', return_value='/synthetic/nginx'), patch('os.execv', side_effect=execute):
+            result = CliRunner().invoke(cli, ['serve', 'frontend'])
+        assert result.exit_code == 0, result.output
+        assert result.output == ''
         assert not any(name.startswith(('camply.server', 'camply.worker', 'camply.providers', 'camply.db')) for name in sys.modules)
     """)
 
