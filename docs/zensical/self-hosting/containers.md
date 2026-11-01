@@ -4,13 +4,13 @@ The distributed deployment runs the API, frontend, worker, and scheduler as sepa
 
 ## Docker Compose
 
-Install Docker with Compose and [Task](https://taskfile.dev/installation/), then run from the checkout root:
+Install Docker with Compose and Git, then run:
 
 ```bash
 git clone https://github.com/juftin/camply-web.git
 cd camply-web
 cp docs/examples/.env.example .env
-task compose:up
+docker compose up -d --build
 ```
 
 This builds the application image locally and starts the full stack. Open <http://localhost> (port 80 by default, configurable with `FRONTEND_PORT`). The API is available on port 8000. The scheduler queues the initial provider catalog sync after the API's migrations and health check succeed.
@@ -18,14 +18,14 @@ This builds the application image locally and starts the full stack. Open <http:
 Edit `.env` for your instance. Set `CAMPLY_APP_URL` to the address you actually use, such as `http://localhost`, so alert links open the correct frontend. Set `PUSHOVER_APP_TOKEN` and each user's key for alerts. Compose defaults to automatic administrator login; configure [authentication](../configuration.md#authentication) before exposing it to other users.
 
 ```bash
-task compose:ps
-task compose:logs
-task compose:down
+docker compose ps
+docker compose logs -f
+docker compose down
 ```
 
-PostgreSQL, Valkey, and Prometheus use named Docker volumes; application data also uses `.data/camply`. `task compose:down` preserves volumes. Back up persistent data before upgrading or removing volumes.
+PostgreSQL, Valkey, and Prometheus use named Docker volumes; application data also uses `.data/camply`. `docker compose down` preserves volumes. Back up persistent data before upgrading or removing volumes.
 
-The shared application image is `ghcr.io/juftin/camply-web`. The checkout's Compose tasks build it locally; published version tags are available for custom deployments. See the [runtime and image reference](https://github.com/juftin/camply-web/blob/main/docs/operations/RUNNING.md#develop-from-the-repository-root) for role commands, startup ordering, and shutdown behavior.
+The shared application image is `ghcr.io/juftin/camply-web`. The command above builds it locally; published version tags are available for custom deployments. See the [runtime and image reference](https://github.com/juftin/camply-web/blob/main/docs/operations/RUNNING.md#develop-from-the-repository-root) for role commands, startup ordering, and shutdown behavior.
 
 ## Kubernetes with Helm
 

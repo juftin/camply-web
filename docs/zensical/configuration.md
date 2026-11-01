@@ -1,6 +1,6 @@
 # Configure your instance
 
-camply reads environment variables. For checkout workflows, copy `docs/examples/.env.example` to `.env` and edit it, then run `UV_ENV_FILE=.env task standalone:run` to load it. For an installed package, export the variables in your shell or use `uv run --no-project --env-file .env camply serve`. Docker Compose reads `.env` automatically for its configured overrides. See the [complete configuration reference](https://github.com/juftin/camply-web/blob/main/docs/operations/CONFIGURATION.md) for all settings and runtime-specific behavior.
+camply reads environment variables. Export settings in your shell before running `camply serve`, or save them in `.env` and run `uv tool run --env-file .env camply serve`. Docker Compose reads `.env` automatically for its configured overrides; start from `docs/examples/.env.example` in the checkout. See the [complete configuration reference](https://github.com/juftin/camply-web/blob/main/docs/operations/CONFIGURATION.md) for all settings and runtime-specific behavior.
 
 ## Authentication
 

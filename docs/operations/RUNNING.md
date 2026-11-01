@@ -4,7 +4,14 @@ Detailed runtime, distribution, and deployment reference. For a quick start, see
 
 ## Run without backing services
 
-The standalone runtime serves the UI, API, and background polling in one Python process. From a checkout:
+The standalone runtime serves the UI, API, and background polling in one Python process. Install from GitHub with uv (Git, Node.js 24, and the pinned pnpm are needed to build the bundled UI):
+
+```bash
+uv tool install git+https://github.com/juftin/camply-web --with 'camply[server]' --python 3.14
+camply serve
+```
+
+For development from a checkout, contributors can use:
 
 ```bash
 task standalone:install

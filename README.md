@@ -10,14 +10,11 @@
 
 ## Run camply yourself
 
-Run the web app, API, and background checks on your machine with Python and SQLite. From a checkout, with [Python 3.14, uv, Node.js 24, pnpm, and Task installed](docs/development/DEVELOPER_GUIDE.md#-prerequisites):
+Install from GitHub with [uv](https://docs.astral.sh/uv/). The Git install builds the web app, so it also needs Git, Node.js 24, and pnpm (see [installation prerequisites](docs/zensical/self-hosting/standalone.md#install-from-github)).
 
 ```bash
-git clone https://github.com/juftin/camply-web.git
-cd camply-web
-task standalone:install
-task standalone:build
-task standalone:run
+uv tool install git+https://github.com/juftin/camply-web --with 'camply[server]' --python 3.14
+camply serve
 ```
 
 Open <http://127.0.0.1:8000> and use **Sync Providers** in Admin Operations to load the campground catalog. Set up Pushover to receive alerts. The default login uses a shared administrator account; [configure authentication](docs/zensical/configuration.md) before sharing your instance.
@@ -28,12 +25,6 @@ See the [standalone guide](docs/zensical/self-hosting/standalone.md) for install
 
 Start with the [camply docs](https://juftin.com/camply-web/) for using the app, configuration, and self-hosting ([browse the source](docs/zensical/index.md)). Contributors can follow the [developer guide](docs/development/DEVELOPER_GUIDE.md); detailed [runtime and packaging](docs/operations/RUNNING.md) and [architecture](docs/architecture/ARCHITECTURE_DEEP_DIVE.md) references are also available.
 
-Preview the Zensical documentation locally at <http://127.0.0.1:8001>:
-
-```bash
-task docs:serve
-```
-
-`task docs:build` generates the static site in `build/docs`. Both commands need only uv and Task; see [working on the docs](docs/zensical/development.md#working-on-the-docs).
+To edit or preview the documentation, see [working on the docs](docs/zensical/development.md#working-on-the-docs).
 
 Licensed under [PolyForm Noncommercial 1.0.0](LICENSE).

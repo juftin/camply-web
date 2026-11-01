@@ -2,30 +2,28 @@
 
 Standalone camply serves the web app, API, and background polling in one Python process. It stores your catalog, scans, and pending alerts in SQLite. This is the simplest setup for a personal instance.
 
-## Run from a checkout
+## Install from GitHub
 
-Install Python 3.14, [uv](https://docs.astral.sh/uv/), Node.js 24, the pnpm version pinned in `package.json`, and [Task](https://taskfile.dev/installation/). Enable pnpm with `corepack enable`; install Corepack first if your Node installation does not include it.
+Install [uv](https://docs.astral.sh/uv/), Git, Node.js 24, and pnpm 12.15.0 (the version pinned in `package.json`). The Git install builds the bundled web app, so Node and pnpm must be available during installation. uv can install Python 3.14 automatically.
 
 ```bash
-git clone https://github.com/juftin/camply-web.git
-cd camply-web
-task standalone:install
-task standalone:build
-task standalone:run
+uv tool install git+https://github.com/juftin/camply-web --with 'camply[server]' --python 3.14
+camply serve
 ```
 
 Open <http://127.0.0.1:8000>. Use **Sync Providers** in Admin Operations to import the campground catalog, then [create a scan](../using-camply.md). Configure [Pushover](../configuration.md#notifications) to receive alerts.
 
-Docker, PostgreSQL, and Valkey are not required for this workflow. Internet access is needed for catalog imports, availability checks, and notifications.
+The `server` extra installs the dependencies needed to serve the app. uv installs camply in an isolated tool environment and exposes the `camply` command on your PATH. If your shell cannot find it, run `uv tool update-shell` and restart your shell.
+
+Docker, PostgreSQL, and Valkey are not required for this workflow. Internet access is needed for catalog imports, availability checks, and notifications. Node and pnpm are not needed to run the installed app.
 
 ## Run a prepared wheel
 
-If you have a built camply wheel, install it into a Python environment with the `server` extra. Package consumers need Python 3.11 or later. For example, from the directory containing the downloaded wheel:
+If you have a prepared camply wheel, install it with uv from the directory containing the downloaded file:
 
 ```bash
-uv venv --python 3.14
-uv pip install './camply-0.1.0-py3-none-any.whl[server]'
-uv run --no-project camply serve
+uv tool install './camply-0.1.0-py3-none-any.whl[server]' --python 3.14
+camply serve
 ```
 
 Replace the wheel filename with your actual artifact. Prepared wheels include the web app, so Node and pnpm are only needed when building from source. See [building and installing distributions](https://github.com/juftin/camply-web/blob/main/docs/operations/RUNNING.md#build-and-install-the-complete-application) for the full artifact workflow.
@@ -40,12 +38,12 @@ Stop camply before copying the database for a backup, or use SQLite's online bac
 
 The default authentication mode signs everyone in as a shared administrator. [Set up session or Auth0 login](../configuration.md#authentication) before making the app available to others.
 
-To change the listener from a checkout:
+To change the listener:
 
 ```bash
-task standalone:run -- --host 0.0.0.0 --port 8000
+camply serve --host 0.0.0.0 --port 8000
 ```
 
-With an installed package, use `camply serve --host 0.0.0.0 --port 8000`. For HTTPS hosting, place the listener behind a reverse proxy and set `CAMPLY_APP_URL` to the public URL so notification links point to your instance.
+For HTTPS hosting, place the listener behind a reverse proxy and set `CAMPLY_APP_URL` to the public URL so notification links point to your instance.
 
 Standalone supports personal and small-instance workloads. Historical monitoring charts use the [distributed deployment](containers.md). For scheduling, recovery, and health-check details, see the [runtime reference](https://github.com/juftin/camply-web/blob/main/docs/operations/CONFIGURATION.md#runtime-selection).

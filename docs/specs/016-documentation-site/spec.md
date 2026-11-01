@@ -9,6 +9,7 @@
 ## Requirements
 
 - Keep the README concise, with the hosted app, local setup, self-hosting options, documentation links, and license.
+- Use GitHub installation with `uv tool install` and `camply serve` in user guides; reserve Task commands for contributor workflows.
 - Author the site under `docs/zensical`, with clear navigation for users, operators, and contributors.
 - Preserve existing technical references and useful details removed from the README.
 - Manage the documentation dependency with uv and expose local build/preview commands through Task.

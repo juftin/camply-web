@@ -4,6 +4,8 @@ Use root `zensical.toml` with `docs_dir = "docs/zensical"` and generated output 
 
 Move the README's runtime and packaging reference into `docs/operations/RUNNING.md`, fixing relative links and inbound installation pointers. Write concise site guides that link to existing architectural and operational references on GitHub rather than copying them. Keep the existing reference paths stable.
 
+User setup installs directly from GitHub with `uv tool install`, selects the `server` dependencies and Python 3.14, then starts with `camply serve`. Document Git/Node/pnpm as source-build prerequisites, use Docker Compose directly in hosting instructions, and keep Task commands in contributor documentation.
+
 Use Zensical's built-in navigation, search, code blocks, and light/dark theme. Verify with a strict build, a generated HTML link/asset audit, and a local HTTP preview check.
 
 Follow [cookiecutter-python's release workflow](https://github.com/juftin/cookiecutter-python/blob/main/.github/workflows/release.yaml): use pinned `juftin/actions/taskfile` and `juftin/actions/github-pages` actions, passing `build/docs` explicitly. Add a documentation CI job for pull requests and reusable main CI; publish only after that CI passes on `main`, independently of semantic-release output. Limit Pages/OIDC write permissions to the deployment job and serialize deployments through the `github-pages` environment. Set the site's canonical URL to `https://juftin.com/camply-web/`, following the owner's existing Pages domain.
