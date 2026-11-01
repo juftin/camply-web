@@ -25,11 +25,11 @@ cover startup failures and upgrade identity as well as user-facing configuration
    existing Kubernetes resource names and selectors remain stable.
 2. Default image tags to Chart.appVersion when not explicitly overridden. Package
    release charts with version `MAJOR.MINOR.PATCH` and appVersion `vMAJOR.MINOR.PATCH`.
-3. Add a CI-only stable-version Task that packages and pushes to
-   `oci://ghcr.io/juftin/charts`. Invoke it after the existing exact-release image
-   publication, with a separate Helm registry login using the runtime GITHUB_TOKEN.
-4. Verify real package metadata and rendered images with a recorded registry push,
-   invalid publication contexts, and release-only workflow ordering on Helm 3/4.
+3. Add a CI-only Task that packages variants and publishes OCI tags to
+   `oci://ghcr.io/juftin/charts` after matching images, using ORAS with the existing
+   Docker login and runtime GITHUB_TOKEN for release and main publication.
+4. Verify real package metadata and rendered images with recorded registry writes,
+   invalid contexts, upload failures, and image-before-chart ordering on Helm 3/4.
 
 ## Operator experience implementation
 
@@ -62,3 +62,19 @@ schema validates values; the optional ServiceMonitor requires an existing CRD.
    revision, failed-upgrade recovery, and rollback that recreates the original Job
    while reusing its database checkpoint and preserving database contents. Run
    Helm 3/4 and project checks before updating the PR.
+
+## Matching OCI chart and image tags
+
+1. Package separate chart variants with appVersion equal to each upstream image
+   tag: full release, major alias, short SHA, and latest. Preserve `1.2.3` as an
+   alias of `v1.2.3` for existing consumers. On main builds publish SHA/latest only.
+2. Keep Chart.version semantic: the release version, or `0.0.0-sha-<short-sha>`
+   for main builds. Use ORAS with Helm config/content media types to publish
+   arbitrary OCI aliases, using the existing Docker registry credentials.
+3. Validate CI, stable release versions, and revisions before packaging. Upload
+   charts only after image publication succeeds, and propagate upload failures.
+4. Verify real archives/renders for every tag, invalid contexts, upload failures,
+   image publication plans, and workflow ordering. Verify OCI installs by digest
+   with Helm 3 and 4; document resolving aliases with ORAS to bypass Helm CLI
+   semantic version tag filtering. No runtime dependencies or application
+   architecture changes.

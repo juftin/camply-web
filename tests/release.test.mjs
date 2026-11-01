@@ -283,7 +283,7 @@ for (const [version, major] of [
   });
 }
 
-test("main builds publish latest without changing numbered release tags", (t) => {
+test("main builds publish SHA and latest without changing numbered release tags", (t) => {
   const result = task(fixture(t), ["publish:latest", "--", "--print"], {
     CI: "true",
     GITHUB_SHA: "0123456789abcdef",
@@ -292,7 +292,10 @@ test("main builds publish latest without changing numbered release tags", (t) =>
   assert.equal(result.status, 0, result.stderr);
   const plan = JSON.parse(result.stdout);
   const target = plan.target.backend;
-  assert.deepEqual(target.tags, [`ghcr.io/juftin/camply-web:latest`]);
+  assert.deepEqual(target.tags, [
+    "ghcr.io/juftin/camply-web:0123456",
+    "ghcr.io/juftin/camply-web:latest",
+  ]);
   assert.equal(
     target.labels["org.opencontainers.image.version"],
     "sha-0123456789abcdef",

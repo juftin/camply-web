@@ -10,7 +10,7 @@
 
 - [x] Rename chart to `camply-web` while preserving default resource names.
 - [x] Package stable release versions with matching image defaults and add GHCR publication.
-- [x] Run chart publication only after the exact release image succeeds; use runtime credentials.
+- [x] Run chart publication only after matching images succeed; use runtime credentials.
 - [x] Add archive/render, invalid-context, and workflow publication regressions.
 - [x] Verify publication checks on Helm 3/4 and update operator documentation.
 
@@ -80,3 +80,27 @@ contained exactly two successful entries; the failed migration added none.
 Prometheus regressions verify that worker enablement changes the pod checksum,
 while scaling replicas leaves it unchanged. Full project checks and pre-commit
 passed (824 backend, 68 packaging, 339 frontend tests, release and Pages checks).
+
+## Matching OCI chart and image tags
+
+- [x] Audit chart/image publication and specify matching tag behavior.
+- [x] Package/publish matching release, major, SHA, and latest chart variants.
+- [x] Publish SHA/latest images and charts after successful main builds.
+- [x] Verify archives, images, invalid contexts, failures, workflow ordering, and OCI pulls.
+- [x] Update operator/release documentation and the global checklist.
+
+Tag verification: `task helm:test` passed on Helm 3.19.0 and 4.3.0 (71 passed,
+one opt-in cluster smoke skipped), including real ORAS OCI layouts and Helm
+installs by digest for all aliases. `task check`, `task lint`, targeted publisher
+lint/types, and Actionlint passed. Release checks (15), backend tests (835, with
+23 opt-in skips), packaging tests (68), and Pages checks passed. The default
+`task test` run reached the frontend and hit the existing Auth0 notification
+navigation timeout; it recurred in the parallel frontend rerun. The isolated
+App file passed (29), and the complete frontend suite passed with
+`task frontend:test -- --maxWorkers=2` (339). No frontend files were changed.
+GHCR writes remain confined to the hosted publisher.
+
+PR verification: the complete `VITEST_MAX_WORKERS=2 task test` command passed,
+including release, backend, packaging, frontend, and Pages checks. Helm 3/4 checks
+and pre-commit hooks also passed. A screenshot of the actual Helm test output is
+recorded in [publication evidence](evidence/chart-publication-checks.png).
