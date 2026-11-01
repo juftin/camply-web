@@ -19,6 +19,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Build and verify documentation
+        uses: juftin/actions/taskfile@5a54b64fe07d8de40f92676cae6b56c565ec28b2 # v1.4.0
+        with:
+          checkout: true
+          setup-uv: true
+          task: docs:check
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
   helm-checks:
     name: Helm ${{ matrix.helm }}
     runs-on: ubuntu-latest

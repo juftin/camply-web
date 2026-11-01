@@ -2,6 +2,8 @@
 
 This guide walks you through setting up the `camply` development environment.
 
+For an introduction and hosting guides, start with the [camply documentation](../zensical/index.md). Preview the Zensical site with `task docs:serve`, or build it with `task docs:build`; see [working on the docs](../zensical/development.md#working-on-the-docs).
+
 ## 📋 Prerequisites
 
 - **Python 3.14** (package supports Python >=3.11; compatibility is tested explicitly) (Managed via [uv](https://github.com/astral-sh/uv))
@@ -24,7 +26,7 @@ The backend is one `camply` distribution with internal `server`, `db`,
 consumers can select `server`, `distributed`, `postgres`, and `sentry`
 independently. Base provides providers, SQLite, the `camply` command, and
 `populate-database`.
-See [backend installation](../../README.md) for artifact examples.
+See [backend installation](../operations/RUNNING.md#build-and-install-the-complete-application) for artifact examples.
 
 API-only installs do not run scheduled scans: workers, beat, and Valkey/Redis
 remain required unless using the standalone runtime. The `camply` CLI (`camply.cli`) is an entrypoint with

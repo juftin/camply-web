@@ -1,0 +1,43 @@
+[project]
+site_name = "camply"
+site_url = "https://juftin.com/camply-web/"
+site_description = "Find a campsite. Get notified when a stay opens up."
+repo_url = "https://github.com/juftin/camply-web"
+repo_name = "juftin/camply-web"
+edit_uri = "edit/main/docs/zensical/"
+docs_dir = "docs/zensical"
+site_dir = "build/docs"
+dev_addr = "127.0.0.1:8001"
+strict = true
+nav = [
+  { Home = "index.md" },
+  { "Using camply" = "using-camply.md" },
+  { "Self-hosting" = [
+    { Standalone = "self-hosting/standalone.md" },
+    { "Docker and Kubernetes" = "self-hosting/containers.md" }
+  ] },
+  { Configuration = "configuration.md" },
+  { Development = "development.md" },
+  { Reference = "reference.md" }
+]
+
+[project.theme]
+language = "en"
+font = false
+logo = "assets/camply.svg"
+favicon = "assets/camply.svg"
+features = ["navigation.sections", "navigation.footer", "content.code.copy"]
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "teal"
+accent = "amber"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "teal"
+accent = "amber"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to light mode"

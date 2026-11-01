@@ -21,6 +21,36 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yaml
 
+  docs:
+    name: Publish Documentation
+    needs: [ci]
+    if: github.repository == 'juftin/camply-web'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Build documentation
+        uses: juftin/actions/taskfile@5a54b64fe07d8de40f92676cae6b56c565ec28b2 # v1.4.0
+        with:
+          checkout: true
+          setup-uv: true
+          task: docs:build
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: juftin/actions/github-pages@5a54b64fe07d8de40f92676cae6b56c565ec28b2 # v1.4.0
+        with:
+          path: build/docs
+
   release:
     name: GitHub Release
     needs: [ci]

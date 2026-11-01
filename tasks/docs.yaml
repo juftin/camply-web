@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+tasks:
+  install:
+    desc: Install only the documentation dependencies
+    cmd: uv sync --locked --only-group docs
+
+  build:
+    desc: Build the Zensical documentation into build/docs
+    cmd: uv run --locked --only-group docs -- zensical build --strict {{.CLI_ARGS}}
+
+  serve:
+    desc: Preview documentation at http://127.0.0.1:8001
+    cmd: uv run --locked --only-group docs -- zensical serve {{.CLI_ARGS}}
+
+  check:
+    desc: Build documentation and verify rendered links and Pages publishing
+    cmds:
+      - task: build
+      - uv run --locked --only-group docs -- python -m unittest discover -s tests/docs -v

@@ -16,7 +16,7 @@ API-only installs retain scan management, but scheduled checks need workers,
 beat, and Valkey/Redis. Missing distributed support makes operations reads
 unavailable and task detail/dispatch return authorized HTTP 503 responses.
 A configured Sentry DSN needs the `sentry` extra; PostgreSQL engine creation
-needs `postgres`. See [backend installation](../../README.md).
+needs `postgres`. See [backend installation](RUNNING.md#build-and-install-the-complete-application).
 
 ## ⚙️ Core Configuration
 

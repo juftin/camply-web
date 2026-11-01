@@ -24,6 +24,7 @@ function fixture(t, { sources = false } = {}) {
     "Taskfile.yaml",
     "tasks/python.yaml",
     "tasks/frontend.yaml",
+    "tasks/docs.yaml",
     "pyproject.toml",
     "uv.lock",
     "package.json",

@@ -14,6 +14,7 @@ Release runs are serialized without cancelling an active run. Artifact publicati
 flowchart LR
     Push[Push to main] --> CI[Complete CI suite]
     CI --> Analyze[Analyze Gitmoji commits]
+    CI --> Docs[Publish Zensical docs to GitHub Pages]
     Analyze -->|Release needed| Source[Stamp versions and build wheel/sdist]
     Source --> Release[App creates GitHub release]
     Release -->|release published| Tagged[Publish exact release tag]
@@ -33,6 +34,7 @@ Builds complete before release creation; no PyPI upload is configured. The
 standalone sdist includes frontend inputs and prepared UI, its README, license,
 typing marker, installed Gunicorn configuration, and the full Alembic migration
 graph. Its wheel can be rebuilt without JavaScript tooling or repository siblings.
+
 Checkout/release builds require Node 24 and the root package-manager pin; all
 artifact-building CI jobs install that toolchain before running the build hook.
 Python metadata supports >=3.11; primary development, CI, Docker, and release
@@ -49,6 +51,12 @@ shapes are preserved. Apply the existing database migration chain before
 restarting processes; revision identities are retained. Rollback restores the
 previous code/images and does not rewrite database history. Application
 hosting, rollout, and database migrations remain separate operator tasks.
+
+## Documentation
+
+The same main-branch workflow publishes the Zensical site after CI succeeds, independently of whether semantic-release creates an application release. It builds with `task docs:build` and publishes `build/docs` with the pinned `juftin/actions/github-pages` action, following [cookiecutter-python](https://github.com/juftin/cookiecutter-python/blob/main/.github/workflows/release.yaml). Pull requests only build and verify the site with `task docs:check`.
+
+The site is configured for <https://juftin.com/camply-web/>. Before the first deployment, a repository administrator must select **Settings → Pages → Build and deployment → Source: GitHub Actions**. Publishing uses the `github-pages` environment and job-scoped `pages: write` / `id-token: write` permissions with the standard `GITHUB_TOKEN`; no extra secret is needed. If setup is missing, enable Pages and rerun the failed documentation job.
 
 ## Version rules
 
