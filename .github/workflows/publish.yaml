@@ -15,12 +15,12 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: publish-images
+  group: publish-artifacts
   cancel-in-progress: false
 
 jobs:
   publish:
-    name: Camply Web Image
+    name: Camply Web Image and Helm Chart
     if: >-
       github.repository == 'juftin/camply-web' &&
       (github.event_name == 'push' ||
@@ -86,3 +86,21 @@ jobs:
         run: task publish:latest
         env:
           GITHUB_SHA: ${{ steps.revision.outputs.sha }}
+      - name: Install Helm for chart publication
+        if: steps.source.outputs.version != ''
+        env:
+          HELM_VERSION: v4.3.0
+        run: |
+          curl -fsSLo /tmp/helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          tar -xzf /tmp/helm.tar.gz -C /tmp
+          install /tmp/linux-amd64/helm "$HOME/.local/bin/helm"
+      - name: Log Helm in to GHCR
+        if: steps.source.outputs.version != ''
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | helm registry login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Publish release Helm chart
+        if: steps.source.outputs.version != ''
+        run: task helm:publish
+        env:
+          RELEASE_VERSION: ${{ steps.source.outputs.version }}

@@ -53,7 +53,10 @@ export interface paths {
         };
         /**
          * Healthcheck
-         * @description API Health Check
+         * @description Report database readiness and, in standalone mode, supervised loop health.
+         *
+         *     Bound the database query to two seconds and return HTTP 503 on failure. Keep
+         *     ``/api/ping`` independent of dependencies for Kubernetes liveness checks.
          */
         get: operations["healthcheck_api_health_get"];
         put?: never;

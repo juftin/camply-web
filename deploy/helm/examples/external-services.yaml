@@ -1,0 +1,17 @@
+postgresql:
+  enabled: false
+database:
+  host: postgres.example.internal
+  port: 5432
+  username: camply
+  name: camply
+  existingSecret: camply-postgres
+valkey:
+  enabled: false
+  existingSecret: camply-broker
+prometheus:
+  enabled: false
+  externalUrl: http://prometheus.monitoring.svc:9090
+envFrom:
+  - secretRef:
+      name: camply-runtime

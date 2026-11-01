@@ -58,6 +58,12 @@ Substitute the artifact version and run the installed environment's `camply` exe
 
 Extras select dependencies; all installations receive the same application files. The existing full stack selects `server,distributed,postgres,sentry`. API-only serving does not start scheduled scans unless standalone mode is selected.
 
+## Kubernetes
+
+Deploy the distributed stack with the [Helm chart](deploy/helm/README.md).
+It includes migration startup gates, optional PostgreSQL/Valkey/Prometheus,
+Ingress or Gateway API routing, and configurable PVCs or external services.
+
 ## Develop from the repository root
 
 ```bash

@@ -41,10 +41,12 @@ def test_local_overview_and_disabled_trends(
                 ),
             ):
                 await runner.start()
-                monkeypatch.setattr(health, "db", database)
-                assert (
-                    await health.healthcheck(Response(status_code=200))
-                ).status == 200
+                async with database.get_session() as session:
+                    assert (
+                        await health.healthcheck(
+                            Response(status_code=200), session=session
+                        )
+                    ).status == 200
                 overview = await operations.get_operations_overview()
                 assert overview.runtime_mode == "standalone"
                 assert overview.broker_connected is None
@@ -61,9 +63,12 @@ def test_local_overview_and_disabled_trends(
                 ).total == 1
                 runner.tasks[0].cancel()
                 await asyncio.gather(runner.tasks[0], return_exceptions=True)
-                assert (
-                    await health.healthcheck(Response(status_code=200))
-                ).status == 503
+                async with database.get_session() as session:
+                    assert (
+                        await health.healthcheck(
+                            Response(status_code=200), session=session
+                        )
+                    ).status == 503
                 assert (
                     await operations.get_operations_overview()
                 ).scheduler_status == "failed"

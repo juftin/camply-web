@@ -1,0 +1,32 @@
+Camply is installed in namespace {{ .Release.Namespace }}.
+
+{{- if .Values.ingress.enabled }}
+Ingress hosts: {{ join ", " .Values.ingress.hosts }}
+{{- else if .Values.route.enabled }}
+Gateway API hosts: {{ join ", " .Values.route.hostnames }}
+{{- else if .Values.frontend.enabled }}
+Access locally:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "camply.fullname" . }}-frontend 8080:{{ .Values.frontend.service.port }}
+  Open http://localhost:8080
+{{- else }}
+Access the API locally:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "camply.fullname" . }}-backend 8000:{{ .Values.backend.service.port }}
+{{- end }}
+
+CAMPLY_AUTH_MODE defaults to none (shared administrator access).
+Confirm backend.env/envFrom authentication settings or gateway authentication before public exposure.
+For password sessions, configure login credentials and a session signing Secret.
+
+Verify connectivity:
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }} --logs
+
+If application pods remain in Init, inspect migrations first:
+  kubectl -n {{ .Release.Namespace }} logs job/{{ include "camply.migrationName" . }} --all-containers=true
+  kubectl -n {{ .Release.Namespace }} describe job/{{ include "camply.migrationName" . }}
+A failed migration blocks new backend, worker, and beat processes. After fixing it,
+bump migrations.revision and upgrade. Keep the completed Job for future pod restarts.
+
+{{- if .Values.serviceMonitor.enabled }}
+ServiceMonitor is enabled. An existing Prometheus Operator must select its labels
+and namespace. This chart does not install the ServiceMonitor CRD.
+{{- end }}

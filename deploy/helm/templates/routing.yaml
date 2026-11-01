@@ -1,0 +1,77 @@
+{{- if and (or .Values.ingress.enabled .Values.route.enabled) (not .Values.frontend.enabled) -}}
+{{- fail "ingress and route require frontend.enabled=true" -}}
+{{- end -}}
+{{- if and .Values.gateway.enabled (not .Values.route.enabled) -}}
+{{- fail "gateway.enabled requires route.enabled=true" -}}
+{{- end -}}
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "camply.fullname" . }}-app
+  labels: {{ include "camply.labels" . | nindent 4 }}
+  annotations: {{ toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- $root := . -}}
+    {{- range .Values.ingress.hosts }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "camply.fullname" $root }}-frontend
+                port:
+                  number: {{ $root.Values.frontend.service.port }}
+    {{- end }}
+{{- end }}
+{{- if .Values.gateway.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "camply.fullname" . }}-gateway
+  labels: {{ include "camply.labels" . | nindent 4 }}
+  annotations: {{ toYaml .Values.gateway.annotations | nindent 4 }}
+spec:
+  gatewayClassName: {{ required "gateway.className is required when creating a Gateway" .Values.gateway.className }}
+  listeners: {{ toYaml .Values.gateway.listeners | nindent 4 }}
+{{- end }}
+{{- if .Values.route.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "camply.fullname" . }}-app
+  labels: {{ include "camply.labels" . | nindent 4 }}
+  annotations: {{ toYaml .Values.route.annotations | nindent 4 }}
+spec:
+  hostnames: {{ toYaml .Values.route.hostnames | nindent 4 }}
+  parentRefs:
+    {{- if .Values.route.parentRefs }}
+    {{- toYaml .Values.route.parentRefs | nindent 4 }}
+    {{- else if .Values.gateway.enabled }}
+    - name: {{ include "camply.fullname" . }}-gateway
+    {{- else }}
+    {{- fail "route.parentRefs is required when not creating a Gateway" }}
+    {{- end }}
+  rules:
+    {{- range $path, $role := dict "/api" "backend" "/" "frontend" }}
+    - matches:
+        - path: {type: PathPrefix, value: {{ $path | quote }}}
+      {{- with $.Values.route.filters }}
+      filters: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      backendRefs:
+        - name: {{ include "camply.fullname" $ }}-{{ $role }}
+          port: {{ (index $.Values $role).service.port }}
+    {{- end }}
+{{- end }}

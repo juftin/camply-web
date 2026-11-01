@@ -1,0 +1,2 @@
+# Helm Go templates are validated by helm lint.
+deploy/helm/templates/**

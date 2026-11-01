@@ -1,0 +1,27 @@
+{{- $root := . -}}
+{{- range $role := list "postgresql" "valkey" "prometheus" -}}
+{{- $config := index $root.Values $role -}}
+{{- if and $config.enabled $config.persistence.enabled (not $config.persistence.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "camply.fullname" $root }}-{{ $role }}
+  labels: {{ include "camply.labels" $root | nindent 4 }}
+  {{- $annotations := deepCopy $config.persistence.annotations -}}
+  {{- if $config.persistence.retain -}}
+  {{- $_ := set $annotations "helm.sh/resource-policy" "keep" -}}
+  {{- end }}
+  annotations: {{ toYaml $annotations | nindent 4 }}
+spec:
+  accessModes: {{ toYaml $config.persistence.accessModes | nindent 4 }}
+  {{- if eq $config.persistence.storageClass "-" }}
+  storageClassName: ""
+  {{- else if $config.persistence.storageClass }}
+  storageClassName: {{ $config.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $config.persistence.size }}
+{{- end }}
+{{- end }}

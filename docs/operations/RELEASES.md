@@ -6,9 +6,9 @@ Releases use the Gitmoji/semantic-release infrastructure from [cookiecutter-pyth
 
 Every push to `main` starts `.github/workflows/release.yaml`. It calls the entire existing CI workflow, including lint, types, tests, OpenAPI drift, live smoke checks, snapshot gallery verification, visual snapshots, and Docker builds. After all checks succeed, semantic-release analyzes commits and creates a release when appropriate. Publication runs only in `juftin/camply-web`; pull requests and manually dispatched CI runs only validate changes.
 
-`.github/workflows/publish.yaml` listens for native `release: published` events. It validates the stable full-version tag, checks out that exact tag, stamps the application version, and publishes the shared `camply-web` image. When semantic-release finishes without a release, `release.yaml` calls this same publisher at the successful main SHA to update `latest` only. Release-producing commits build images once, through the release event. The exec success hook writes a runner-local marker used to skip the latest-only fallback.
+`.github/workflows/publish.yaml` listens for native `release: published` events. It validates the stable full-version tag, checks out that exact tag, stamps the application version, and publishes the shared `camply-web` image followed by the versioned `camply-web` Helm chart. When semantic-release finishes without a release, `release.yaml` calls this same publisher at the successful main SHA to update `latest` only. Release-producing commits build images once, through the release event. The exec success hook writes a runner-local marker used to skip the latest-only fallback.
 
-Release runs are serialized without cancelling an active run. Image publication is serialized separately across both entrypoints. GitHub may replace a pending run with a newer push; semantic-release considers all unreleased commits on `main`.
+Release runs are serialized without cancelling an active run. Artifact publication is serialized separately across both entrypoints. GitHub may replace a pending run with a newer push; semantic-release considers all unreleased commits on `main`.
 
 ```mermaid
 flowchart LR
@@ -19,6 +19,7 @@ flowchart LR
     Release -->|release published| Tagged[Publish exact release tag]
     Analyze -->|No release| Main[Publish exact main SHA]
     Tagged --> Versioned[Full version, major, and latest image tags]
+    Versioned --> Chart[Versioned camply-web OCI chart]
     Main --> Latest[Latest image tag only]
 ```
 
@@ -78,12 +79,47 @@ Each release publishes exactly four tags for that image. The SHA tag is the firs
 
 Pin a full version or image digest when selecting an exact deployment version. The existing development Compose configuration builds local images; setting `CAMPLY_VERSION` alone does not switch it to pulling released images.
 
+## Helm chart
+
+Stable releases also publish `oci://ghcr.io/juftin/charts/camply-web`. The chart
+version matches the application release without the `v` prefix (`1.2.3`), and its
+appVersion selects the corresponding image (`v1.2.3`). The chart name is
+`camply-web` for the current repository; `nameOverride: camply` preserves Kubernetes
+resource names and selectors. Explicit `image.tag` or `image.digest` values still
+override the packaged default.
+
+The publisher installs Helm, authenticates it to GHCR through `--password-stdin`
+with the job's runtime `GITHUB_TOKEN`, and runs `task helm:publish` only after the
+release image succeeds. The task validates `CI=true` and a stable release version,
+then packages and pushes `dist/camply-web-1.2.3.tgz`. Packaging overrides metadata
+in the archive without editing chart source files. Latest-only main builds publish
+no chart; Helm OCI versions have no `latest` or moving-major alias.
+
+Provision the namespace and database Secret as described in the
+[chart guide](../../deploy/helm/README.md), then install a published release:
+
+```sh
+helm upgrade --install camply oci://ghcr.io/juftin/charts/camply-web \
+  --version 1.2.3 --namespace camply --create-namespace \
+  -f my-values.yaml --wait --wait-for-jobs --timeout 15m
+```
+
+`task helm:test` verifies archive metadata, pinned images, release-only workflow
+ordering, and invalid publication contexts. Tests intercept the registry push;
+local verification does not upload artifacts. `task helm:package` produces a
+development archive, or accepts `-- --version 1.2.3 --app-version v1.2.3` to inspect
+a release package locally. Hosted publication requires package write access to
+`juftin/charts/camply-web`; configure its Actions access and visibility separately
+from the container image package. If chart publication fails after the image
+succeeds, rerun the same **publish** workflow to retry the exact release. Do not
+create or delete release tags to retry an upload.
+
 ## Repository setup
 
 - Enable GitHub Actions and allow the pinned actions used by these workflows.
 - Reuse the GitHub App configured in [juftin/renovate](https://github.com/juftin/renovate/blob/main/.github/workflows/renovate.yaml). Install it on `camply-web` with **Contents: read and write** and **Workflows: read and write**, matching Renovate's documented App setup. Make `APP_ID` and `APP_PRIVATE_KEY` available as Actions secrets in this repository. Secrets stored only in the Renovate repository are not automatically available here. Never copy private keys into source files or logs.
 - The release job mints a short-lived installation token scoped to this repository with Contents and Workflows write permissions. Workflows permission allows moving Git major aliases across commits that change workflow files. It uses that token for semantic-release, ensuring GitHub emits the release event. Missing credentials fail explicitly; there is no `GITHUB_TOKEN` fallback that would suppress publishing. No new App or personal access token is needed.
-- Allow the publisher's `GITHUB_TOKEN` to write packages. It reads source and pushes GHCR images; it does not need repository write permission or App credentials.
+- Allow the publisher's `GITHUB_TOKEN` to write packages. It reads source and pushes GHCR images and Helm charts; it does not need repository write permission or App credentials.
 - For existing GHCR packages, grant `camply-web` write access under each package's **Manage Actions access** settings. Choose package visibility separately if anonymous pulls are desired.
 - If repository rules restrict version tags, allow the GitHub App to create full-version tags and create or update moving major aliases. It does not push commits to `main`.
 - Keep existing CI checks required for pull requests. `release.yaml` calls the unchanged CI jobs under a `ci` job; inspect the resulting check names after the first push before changing branch rules.
@@ -101,7 +137,7 @@ CI=true RELEASE_VERSION=1.2.3 GITHUB_SHA=$(git rev-parse HEAD) task publish -- -
 CI=true GITHUB_SHA=$(git rev-parse HEAD) task publish:latest -- --print
 ```
 
-After merging and configuring the App credentials, inspect the `release` and `publish` workflows, the GitHub release's wheel/sdist pair, the GHCR image tags, and the matching Git major alias. Confirm the OCI revision label and major alias match the released full Git tag. Publishing to GitHub and GHCR is exercised only by the hosted workflow; local checks do not create releases.
+After merging and configuring the App credentials, inspect the `release` and `publish` workflows, the GitHub release's wheel/sdist pair, the GHCR image tags, the matching version at `ghcr.io/juftin/charts/camply-web`, and the matching Git major alias. Confirm the OCI revision label and major alias match the released full Git tag. Publishing to GitHub and GHCR is exercised only by the hosted workflow; local checks do not create releases.
 
 If CI or source builds fail before a Git tag exists, fix the failure and rerun the failed release workflow. If image publication fails, rerun the failed **publish** workflow: it checks out the same full tag and uses the same release version without rerunning semantic-release. Retrying publishes the same image and completes any missing tags. A GitHub release can therefore exist while its image publication is still running or has failed.
 
