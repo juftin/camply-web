@@ -4,6 +4,8 @@ This guide walks you through setting up the `camply` development environment.
 
 For an introduction and hosting guides, start with the [camply documentation](../zensical/index.md). Preview the Zensical site with `task docs:serve`, or build it with `task docs:build`; see [working on the docs](../zensical/development.md#working-on-the-docs).
 
+Production frontend builds also generate the docs into the static bundle at `/docs/`, linked from the app footer. Frontend-only builds need uv for the locked, isolated docs environment. Python builds declare Zensical as a build dependency; installed wheels serve the prepared docs without a generator. Source distributions retain docs sources and prepared assets so rebuilding them requires no frontend or docs generation.
+
 ## 📋 Prerequisites
 
 - **Python 3.14** (package supports Python >=3.11; compatibility is tested explicitly) (Managed via [uv](https://github.com/astral-sh/uv))

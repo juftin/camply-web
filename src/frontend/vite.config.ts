@@ -4,16 +4,52 @@ import path from "path";
 import fs from "fs";
 import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
+import { spawnSync } from "node:child_process";
 
 function syncRootBuild(): Plugin {
+  let output = "";
   let isDistBuild = false;
   return {
     name: "sync-root-build",
+    apply: "build",
     configResolved(config) {
+      output = path.resolve(config.root, config.build.outDir);
       isDistBuild =
         config.build.outDir === path.resolve(import.meta.dirname, "dist");
     },
     closeBundle() {
+      const root = path.resolve(import.meta.dirname, "../..");
+      const python = process.env.CAMPLY_BUILD_PYTHON;
+      const result = spawnSync(
+        python || "uv",
+        [
+          ...(python
+            ? ["-m", "zensical"]
+            : [
+                "run",
+                "--locked",
+                "--isolated",
+                "--only-group",
+                "docs",
+                "--",
+                "zensical",
+              ]),
+          "build",
+          "--strict",
+        ],
+        { cwd: root, stdio: "inherit" },
+      );
+      if (result.error || result.status !== 0) {
+        throw new Error(
+          "Documentation build failed; the app bundle is incomplete.",
+          {
+            cause: result.error,
+          },
+        );
+      }
+      fs.cpSync(path.join(root, "build/docs"), path.join(output, "docs"), {
+        recursive: true,
+      });
       if (!isDistBuild) return;
       const dist = path.resolve(import.meta.dirname, "dist");
       if (fs.existsSync(dist)) {

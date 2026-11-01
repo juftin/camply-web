@@ -15,6 +15,10 @@
 - Manage the documentation dependency with uv and expose local build/preview commands through Task.
 - Keep generated output ignored and publish the built site to GitHub Pages after successful main-branch CI, following `juftin/cookiecutter-python`.
 - Build and verify documentation on pull requests without deploying it; document the one-time GitHub Pages setup.
+- Include the generated Zensical site under `docs/` in every production frontend bundle and Python distribution. Zensical is a build dependency, never a runtime dependency.
+- Serve documentation pages, search, and assets at `/docs/` in standalone and Nginx deployments. Missing documentation must return 404 instead of the app's SPA entry point.
+- Link to the bundled documentation from the app footer, respecting the frontend base path.
+- Preserve prepared-sdist rebuilding without Node, pnpm, or documentation generation; include docs inputs in archive integrity checks.
 
 ## Acceptance
 

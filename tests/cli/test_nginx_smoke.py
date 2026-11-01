@@ -92,6 +92,10 @@ def test_packaged_nginx_proxies_upstream(tmp_path: Path, use_tls: bool) -> None:
         stack.callback(thread.join, timeout=5)
         stack.callback(upstream.shutdown)
         templates = Path(__file__).resolve().parents[2] / "src/camply/cli/nginx"
+        (tmp_path / "docs/guide").mkdir(parents=True)
+        (tmp_path / "docs/index.html").write_text("camply documentation")
+        (tmp_path / "docs/guide/index.html").write_text("installation guide")
+        (tmp_path / "docs/search.json").write_text('{"docs": []}')
         (tmp_path / "nginx.conf").write_text(
             (templates / "nginx.conf")
             .read_text()
@@ -152,6 +156,13 @@ def test_packaged_nginx_proxies_upstream(tmp_path: Path, use_tls: bool) -> None:
                 time.sleep(0.1)
             else:
                 raise AssertionError(_command(["docker", "logs", container]))
+            redirect = client.get("/docs", follow_redirects=False)
+            assert redirect.status_code == 301
+            assert redirect.headers["location"].endswith("/docs/")
+            assert client.get("/docs/").text == "camply documentation"
+            assert client.get("/docs/guide/").text == "installation guide"
+            assert client.get("/docs/search.json").json() == {"docs": []}
+            assert client.get("/docs/missing/").status_code == 404
             response = client.get(
                 "/api/health", headers={"Host": "frontend.example.invalid"}
             )

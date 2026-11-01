@@ -23,7 +23,7 @@ See the [standalone guide](docs/zensical/self-hosting/standalone.md) for install
 
 ## Documentation
 
-Start with the [camply docs](https://juftin.com/camply-web/) for using the app, configuration, and self-hosting ([browse the source](docs/zensical/index.md)). Contributors can follow the [developer guide](docs/development/DEVELOPER_GUIDE.md); detailed [runtime and packaging](docs/operations/RUNNING.md) and [architecture](docs/architecture/ARCHITECTURE_DEEP_DIVE.md) references are also available.
+Start with the [camply docs](https://camply.juftin.dev/docs/) for using the app, configuration, and self-hosting ([browse the source](docs/zensical/index.md)). Every installation includes documentation at `/docs/`, linked from the app footer. Contributors can follow the [developer guide](docs/development/DEVELOPER_GUIDE.md); detailed [runtime and packaging](docs/operations/RUNNING.md) and [architecture](docs/architecture/ARCHITECTURE_DEEP_DIVE.md) references are also available.
 
 To edit or preview the documentation, see [working on the docs](docs/zensical/development.md#working-on-the-docs).
 

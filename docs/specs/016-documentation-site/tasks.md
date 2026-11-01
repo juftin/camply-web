@@ -9,6 +9,10 @@
 - [x] Add pull-request documentation checks and CI-gated main-branch Pages publishing using the cookiecutter-python example.
 - [x] Verify publishing boundaries and built links/assets; document the Pages setup and site URL.
 - [x] Replace user-facing Task setup with a verified GitHub `uv tool install` and `camply serve`; use direct Docker Compose commands and keep Task in contributor guides.
+- [x] Bundle Zensical output in the frontend build and declare isolated build dependencies.
+- [x] Preserve complete wheel/sdist builds, archive validation, Docker inputs, and generator-free prepared-archive rebuilds.
+- [x] Serve `/docs/` in Python and Nginx, with a footer link and real documentation 404s.
+- [x] Verify bundled pages/assets, deployment paths, footer navigation, and runtime dependency isolation.
 
 ## Validation
 
@@ -19,6 +23,7 @@
 - `task docs:check` passes both publishing-boundary and rendered-site regression tests; Actionlint validates the modified workflows.
 - Full local gates pass with Python 3.14 and Node 24: `task lint`, `task check`, and `task test` (15 release tests, 828 backend tests, 68 packaging tests, 339 frontend tests, and 10 Pages proxy tests; 23 opt-in backend smoke tests skipped).
 - User-install follow-up: install from the public Git URL in an isolated uv tool directory with `--with 'camply[server]' --python 3.14`; verify the bundled UI, SQLite migrations, HTTP API, and CLI healthcheck. The updated strict docs build and link/publishing checks pass.
+- Bundled-docs follow-up: `task lint`, `task check`, and `task test` pass, including 833 backend tests, 69 packaging tests, the footer component test, and real local Cloudflare Pages serving. A real Nginx process verifies the packaged templates' directory redirects, nested docs, search/assets, and missing-page 404s. Prepared wheels serve docs without Zensical installed; documentation tampering invalidates sdists.
 
 ## Visual evidence
 

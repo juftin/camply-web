@@ -1,6 +1,6 @@
 [project]
 site_name = "camply"
-site_url = "https://juftin.com/camply-web/"
+site_url = "https://camply.juftin.dev/docs/"
 site_description = "Find a campsite. Get notified when a stay opens up."
 repo_url = "https://github.com/juftin/camply-web"
 repo_name = "juftin/camply-web"

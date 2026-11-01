@@ -17,7 +17,7 @@ def test_base_imports_and_metadata(install: Callable[[str], Installation]) -> No
         from camply.db.config import db
         from camply.providers import PROVIDERS
 
-        for module in ('fastapi', 'uvicorn', 'celery', 'redis', 'psycopg', 'sentry_sdk', 'pytest', 'importlinter', 'grimp'):
+        for module in ('fastapi', 'uvicorn', 'celery', 'redis', 'psycopg', 'sentry_sdk', 'pytest', 'importlinter', 'grimp', 'zensical'):
             assert importlib.util.find_spec(module) is None, module
         assert not any(name.startswith(('camply.server', 'camply.worker')) for name in sys.modules)
         distribution = metadata.distribution('camply')

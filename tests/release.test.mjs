@@ -28,6 +28,7 @@ function fixture(t, { sources = false } = {}) {
     "pyproject.toml",
     "uv.lock",
     "package.json",
+    "zensical.toml",
     "docker-compose.yaml",
     "deploy/docker-bake.release.hcl",
     ".python-version",
@@ -39,7 +40,12 @@ function fixture(t, { sources = false } = {}) {
     cpSync(join(root, file), join(directory, file));
   }
   if (sources) {
-    for (const file of ["src", "pnpm-lock.yaml", "pnpm-workspace.yaml"]) {
+    for (const file of [
+      "src",
+      "docs/zensical",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+    ]) {
       cpSync(join(root, file), join(directory, file), { recursive: true });
     }
   }

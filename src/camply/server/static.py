@@ -27,6 +27,7 @@ class FrontendFiles(StaticFiles):
                 exc.status_code != HTTP_404_NOT_FOUND
                 or Path(path).suffix
                 or path.startswith("assets/")
+                or (parts and parts[0] == "docs")
                 or (path not in {"", "."} and not navigation)
             ):
                 raise
@@ -41,4 +42,8 @@ class FrontendFiles(StaticFiles):
 
 def attach_frontend(app: FastAPI, directory: Path) -> None:
     """Mount the built frontend after API routers without starting runtime work."""
-    app.mount("/", FrontendFiles(directory=directory, check_dir=False), name="frontend")
+    app.mount(
+        "/",
+        FrontendFiles(directory=directory, check_dir=False, html=True),
+        name="frontend",
+    )

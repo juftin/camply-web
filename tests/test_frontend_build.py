@@ -35,6 +35,9 @@ def project(tmp_path: Path) -> Path:
     frontend = tmp_path / "src/frontend"
     frontend.mkdir(parents=True, exist_ok=True)
     (frontend / "main.tsx").write_text("synthetic frontend")
+    docs = tmp_path / "docs/zensical"
+    docs.mkdir(parents=True)
+    (docs / "index.md").write_text("# Synthetic documentation")
     return tmp_path
 
 
@@ -60,6 +63,10 @@ def prepare(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
             assets.mkdir(parents=True)
             (assets / "map-worker.js").write_text("synthetic worker")
             (project / "build/frontend/index.html").write_text("synthetic page")
+            docs = project / "build/frontend/docs"
+            docs.mkdir()
+            (docs / "index.html").write_text("synthetic documentation")
+            (docs / "search.json").write_text('{"docs": []}')
 
     monkeypatch.setattr(hook_module.subprocess, "run", compile_assets)
     build_hook(project).initialize("standard", {"force_include": {}})
@@ -113,11 +120,27 @@ def test_checkout_always_rebuilds_and_maps_without_staging(
     assert not stale.exists()
     assert not (project / "src/camply/server/static").exists()
     manifest = json.loads((project / "build/frontend-manifest.json").read_text())
-    assert set(manifest["assets"]) == {"index.html", "assets/map-worker.js"}
+    assert set(manifest["assets"]) == {
+        "index.html",
+        "assets/map-worker.js",
+        "docs/index.html",
+        "docs/search.json",
+    }
 
 
 @pytest.mark.parametrize(
-    "corruption", ["none", "delete", "change", "extra", "input", "metadata", "path"]
+    "corruption",
+    [
+        "none",
+        "delete",
+        "change",
+        "extra",
+        "input",
+        "metadata",
+        "path",
+        "docs-input",
+        "docs-delete",
+    ],
 )
 def test_archive_integrity_without_javascript(
     project: Path, monkeypatch: pytest.MonkeyPatch, corruption: str
@@ -136,6 +159,10 @@ def test_archive_integrity_without_javascript(
         (assets / "unexpected.js").write_text("unexpected")
     elif corruption == "input":
         (project / "src/frontend/main.tsx").write_text("changed source")
+    elif corruption == "docs-input":
+        (project / "docs/zensical/index.md").write_text("changed documentation")
+    elif corruption == "docs-delete":
+        (assets / "docs/index.html").unlink()
     elif corruption == "metadata":
         (project / "package.json").write_text('{"version": "9.9.9"}')
     elif corruption == "path":

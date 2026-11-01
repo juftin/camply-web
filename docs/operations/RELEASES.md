@@ -54,9 +54,11 @@ hosting, rollout, and database migrations remain separate operator tasks.
 
 ## Documentation
 
-The same main-branch workflow publishes the Zensical site after CI succeeds, independently of whether semantic-release creates an application release. It builds with `task docs:build` and publishes `build/docs` with the pinned `juftin/actions/github-pages` action, following [cookiecutter-python](https://github.com/juftin/cookiecutter-python/blob/main/.github/workflows/release.yaml). Pull requests only build and verify the site with `task docs:check`.
+Every frontend and Python distribution build includes the Zensical documentation in the static bundle under `/docs/`, linked from the app footer. Zensical is a build dependency; deployed Python and Nginx instances serve the prepared HTML, search index, and assets without it. The primary documentation URL is <https://camply.juftin.dev/docs/>.
 
-The site is configured for <https://juftin.com/camply-web/>. Before the first deployment, a repository administrator must select **Settings → Pages → Build and deployment → Source: GitHub Actions**. Publishing uses the `github-pages` environment and job-scoped `pages: write` / `id-token: write` permissions with the standard `GITHUB_TOKEN`; no extra secret is needed. If setup is missing, enable Pages and rerun the failed documentation job.
+The main-branch workflow also publishes a GitHub Pages mirror after CI succeeds, independently of whether semantic-release creates an application release. It builds with `task docs:build` and publishes `build/docs` with the pinned `juftin/actions/github-pages` action, following [cookiecutter-python](https://github.com/juftin/cookiecutter-python/blob/main/.github/workflows/release.yaml). Pull requests build and verify the site with `task docs:check`.
+
+The mirror is available at <https://juftin.com/camply-web/>. Before its first deployment, a repository administrator must select **Settings → Pages → Build and deployment → Source: GitHub Actions**. Publishing uses the `github-pages` environment and job-scoped `pages: write` / `id-token: write` permissions with the standard `GITHUB_TOKEN`; no extra secret is needed. If setup is missing, enable Pages and rerun the failed documentation job. The app's bundled docs require no Pages configuration.
 
 ## Version rules
 

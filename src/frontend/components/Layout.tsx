@@ -24,6 +24,12 @@ export function Layout({ children }: LayoutProps) {
               <CamplyLogo height={32} />
             </Link>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-sm text-muted-foreground">
+              <a
+                href={`${import.meta.env.BASE_URL}docs/`}
+                className="hover:text-foreground"
+              >
+                Documentation
+              </a>
               <Link to="/faq" className="hover:text-foreground">
                 FAQ
               </Link>

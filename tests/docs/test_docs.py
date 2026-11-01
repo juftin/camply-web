@@ -51,7 +51,7 @@ class DocumentationTests(unittest.TestCase):
         publish = next(s for s in deploy["steps"] if s.get("id") == "deployment")
         config = tomllib.loads((ROOT / "zensical.toml").read_text())["project"]
         self.assertEqual(publish["with"]["path"], config["site_dir"])
-        self.assertEqual(config["site_url"], "https://juftin.com/camply-web/")
+        self.assertEqual(config["site_url"], "https://camply.juftin.dev/docs/")
         ci = yaml.safe_load((ROOT / ".github/workflows/ci.yaml").read_text())
         build = ci["jobs"]["docs"]["steps"][-1]
         self.assertEqual(build["with"]["task"], "docs:check")

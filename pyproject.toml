@@ -48,7 +48,7 @@ sentry = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "zensical>=0.0.74,<0.1"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
@@ -63,6 +63,8 @@ include = [
   "/src/camply",
   "/src/frontend",
   "/src/hatchling",
+  "/docs/zensical",
+  "/zensical.toml",
   "/README.md",
   "/LICENSE",
   "/package.json",
