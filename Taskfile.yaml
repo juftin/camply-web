@@ -37,21 +37,13 @@ tasks:
       - helm package deploy/helm --destination dist {{.CLI_ARGS}}
 
   helm:publish:
-    desc: Publish the versioned camply-web chart to GHCR
-    cmds:
-      - task: helm:package
-        vars:
-          CLI_ARGS: --version {{.RELEASE_VERSION}} --app-version v{{.RELEASE_VERSION}}
-      - helm push "dist/camply-web-${RELEASE_VERSION}.tgz" oci://ghcr.io/juftin/charts
+    desc: Publish camply-web chart tags with matching upstream image defaults
+    cmd: uv run --all-extras -- python deploy/publish_chart.py
     requires:
-      vars: [RELEASE_VERSION]
+      vars: [GITHUB_SHA]
     env:
-      RELEASE_VERSION: "{{.RELEASE_VERSION}}"
-    preconditions:
-      - sh: test "$CI" = true
-        msg: Chart publishing requires CI=true and an authenticated GHCR session.
-      - sh: echo "$RELEASE_VERSION" | LC_ALL=C grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
-        msg: RELEASE_VERSION must be a stable semantic version (for example 1.2.3).
+      RELEASE_VERSION: '{{.RELEASE_VERSION | default ""}}'
+      GITHUB_SHA: "{{.GITHUB_SHA}}"
 
   standalone:install:
     desc: Install core Python and frontend build dependencies without backing services

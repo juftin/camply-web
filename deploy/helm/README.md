@@ -14,16 +14,40 @@ or stored in chart defaults. To use another Secret, set `database.existingSecret
 and optionally `database.passwordKey`.
 
 Copy one of the examples into your own values file, replacing the example
-domain, secret references, and storage class. Stable releases publish the chart
-to `oci://ghcr.io/juftin/charts/camply-web`; chart version `1.2.3` selects the
-matching `ghcr.io/juftin/camply-web:v1.2.3` image by default. After publication,
-install a specific release with:
+domain, secret references, and storage class. Charts are published to
+`oci://ghcr.io/juftin/charts/camply-web`, with image defaults matching each OCI tag:
+
+| Chart tag                   | Default upstream image tag  | Updated by                          |
+| --------------------------- | --------------------------- | ----------------------------------- |
+| `v1`                        | `v1`                        | Stable releases in major 1          |
+| `v1.2.3`                    | `v1.2.3`                    | Release 1.2.3                       |
+| `<seven-character-git-sha>` | `<seven-character-git-sha>` | Releases and successful main builds |
+| `latest`                    | `latest`                    | Releases and successful main builds |
+
+The original `1.2.3` chart tag remains available and selects `v1.2.3`.
+Install a specific release with:
 
 ```sh
 helm upgrade --install camply oci://ghcr.io/juftin/charts/camply-web \
-  --version 1.2.3 --namespace camply --create-namespace \
+  --version v1.2.3 --namespace camply --create-namespace \
   -f my-values.yaml --wait --wait-for-jobs --timeout 15m
 ```
+
+Helm 3/4 filter tags through semantic version rules. To reliably select any OCI
+alias, including `latest` and Git SHAs, resolve it with ORAS and install that chart
+digest. For example, to select the chart whose default image is `latest`:
+
+```sh
+helm upgrade --install camply \
+  "oci://ghcr.io/juftin/charts/camply-web@$(oras resolve ghcr.io/juftin/charts/camply-web:latest)" \
+  --namespace camply --create-namespace \
+  -f my-values.yaml --wait --wait-for-jobs --timeout 15m
+```
+
+Replace `latest` in the resolve command with `v1`, `v1.2.3`, or the short SHA to
+select another tag. For GitOps, use a client that supports arbitrary OCI tags
+or supply the resolved chart digest. The chart digest fixes the chart content;
+moving upstream image tags still move. Set `image.digest` when the container image must also be immutable.
 
 For a source checkout, choose a published image tag or digest explicitly:
 
@@ -252,16 +276,17 @@ CI runs the lifecycle smoke after loading the existing Docker build, using the
 PR's image rather than a published image. Standard chart checks run against Helm
 3 and 4 and need no cluster or credentials.
 
-Stable release publication runs `task helm:publish RELEASE_VERSION=1.2.3` in the
-existing publisher after the exact release tag's container image is available.
-The task packages chart version `1.2.3` with appVersion `v1.2.3` and pushes it to
-GHCR without modifying source metadata. It requires `CI=true`, a stable semantic
-version, and an authenticated Helm registry session. Main builds that only update
-the image's `latest` tag do not publish charts. Helm OCI charts use semantic
-version tags rather than moving `latest` or major aliases. See
+Publication runs `task helm:publish` after the matching images are available.
+It requires `CI=true`, the checked-out `GITHUB_SHA`, Helm, ORAS, and an authenticated
+Docker registry session. Set `RELEASE_VERSION=1.2.3` for a stable release, or leave
+it empty for a successful main build. Each variant is packaged under
+`dist/helm/TAG/` with appVersion equal to its upstream image tag, without modifying
+source metadata. Chart.version remains semantic: `1.2.3` for release variants,
+`0.0.0-sha-<short-sha>` for main builds. ORAS publishes the registry aliases with
+Helm config/content media types, reusing Docker's GHCR credentials. See
 [release operations](../../docs/operations/RELEASES.md#helm-chart) for permissions
-and recovery. Publication tests package the real chart and record the push without
-contacting a registry.
+and recovery. Tests verify real packages and local OCI round trips without
+contacting GHCR.
 
 ## Configuration validation and probes
 

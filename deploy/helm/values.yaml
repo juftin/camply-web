@@ -5,7 +5,7 @@ fullnameOverride: ""
 # use this same image. Bump migrations.revision when reusing a mutable image tag.
 image:
   repository: ghcr.io/juftin/camply-web
-  # Empty uses Chart.appVersion; published charts pin the matching release image.
+  # Empty uses Chart.appVersion; each published chart tag selects its matching image tag.
   tag: ""
   digest: ""
   pullPolicy: Always

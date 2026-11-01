@@ -86,21 +86,20 @@ jobs:
         run: task publish:latest
         env:
           GITHUB_SHA: ${{ steps.revision.outputs.sha }}
-      - name: Install Helm for chart publication
-        if: steps.source.outputs.version != ''
+      - name: Install Helm and ORAS for chart publication
         env:
           HELM_VERSION: v4.3.0
+          ORAS_VERSION: 1.3.0
         run: |
           curl -fsSLo /tmp/helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
           tar -xzf /tmp/helm.tar.gz -C /tmp
           install /tmp/linux-amd64/helm "$HOME/.local/bin/helm"
-      - name: Log Helm in to GHCR
-        if: steps.source.outputs.version != ''
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: printf '%s' "$GHCR_TOKEN" | helm registry login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
-      - name: Publish release Helm chart
-        if: steps.source.outputs.version != ''
+          curl -fsSLo /tmp/oras.tar.gz "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
+          tar -xzf /tmp/oras.tar.gz -C /tmp oras
+          install /tmp/oras "$HOME/.local/bin/oras"
+      # ORAS reuses the Docker registry credentials established above.
+      - name: Publish matching Helm chart tags
         run: task helm:publish
         env:
           RELEASE_VERSION: ${{ steps.source.outputs.version }}
+          GITHUB_SHA: ${{ steps.revision.outputs.sha }}

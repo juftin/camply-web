@@ -16,10 +16,13 @@ Failures must keep new application processes stopped. Existing processes during
 rolling upgrades are not stopped; migrations must remain backwards compatible.
 
 Stable application releases must publish the chart as `camply-web` to
-`oci://ghcr.io/juftin/charts/camply-web`. The chart version matches the release
-version and its default image is the matching `vMAJOR.MINOR.PATCH` image. The
-publisher must use the existing exact-tag release workflow, publish the image
-before the chart, and avoid chart publication on latest-only main builds.
+`oci://ghcr.io/juftin/charts/camply-web`. Release charts expose `vMAJOR`,
+`vMAJOR.MINOR.PATCH`, the seven-character Git SHA, and `latest` OCI tags; each
+defaults to the identically tagged upstream image. Preserve the unprefixed semantic release tag for compatibility. Successful
+main builds without a release publish SHA and latest charts after those images.
+The publisher uses the checked-out source revision and valid semantic chart
+metadata; it never edits source chart metadata. Explicit image overrides remain
+supported.
 
 ## Operator experience
 

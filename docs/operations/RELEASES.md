@@ -6,7 +6,7 @@ Releases use the Gitmoji/semantic-release infrastructure from [cookiecutter-pyth
 
 Every push to `main` starts `.github/workflows/release.yaml`. It calls the entire existing CI workflow, including lint, types, tests, OpenAPI drift, live smoke checks, snapshot gallery verification, visual snapshots, and Docker builds. After all checks succeed, semantic-release analyzes commits and creates a release when appropriate. Publication runs only in `juftin/camply-web`; pull requests and manually dispatched CI runs only validate changes.
 
-`.github/workflows/publish.yaml` listens for native `release: published` events. It validates the stable full-version tag, checks out that exact tag, stamps the application version, and publishes the shared `camply-web` image followed by the versioned `camply-web` Helm chart. When semantic-release finishes without a release, `release.yaml` calls this same publisher at the successful main SHA to update `latest` only. Release-producing commits build images once, through the release event. The exec success hook writes a runner-local marker used to skip the latest-only fallback.
+`.github/workflows/publish.yaml` listens for native `release: published` events. It validates the stable full-version tag, checks out that exact tag, stamps the application version, and publishes the shared `camply-web` image followed by the versioned `camply-web` Helm chart. When semantic-release finishes without a release, `release.yaml` calls this same publisher at the successful main SHA to update the SHA and `latest` image/chart tags. Release-producing commits build images once, through the release event. The exec success hook writes a runner-local marker used to skip the main fallback.
 
 Release runs are serialized without cancelling an active run. Artifact publication is serialized separately across both entrypoints. GitHub may replace a pending run with a newer push; semantic-release considers all unreleased commits on `main`.
 
@@ -18,9 +18,10 @@ flowchart LR
     Source --> Release[App creates GitHub release]
     Release -->|release published| Tagged[Publish exact release tag]
     Analyze -->|No release| Main[Publish exact main SHA]
-    Tagged --> Versioned[Full version, major, and latest image tags]
-    Versioned --> Chart[Versioned camply-web OCI chart]
-    Main --> Latest[Latest image tag only]
+    Tagged --> Versioned[Full version, major, SHA, and latest images]
+    Versioned --> Chart[Matching camply-web OCI chart tags]
+    Main --> Latest[SHA and latest images]
+    Latest --> MainCharts[SHA and latest OCI charts]
 ```
 
 The release preparation hook runs `task release:prepare RELEASE_VERSION=1.2.3` and `task dist`. Preparation stamps the single `camply` backend distribution, updates `uv.lock`, and sets the frontend package version. Those changes exist only in the runner; development version files remain unchanged in Git. The publisher repeats version preparation at the full release tag so installed application metadata matches the image version. Tags identify the exact source commit.
@@ -75,44 +76,68 @@ One image includes Python, Nginx, and every application runtime extra. Compose r
 
 Each release publishes exactly four tags for that image. The SHA tag is the first seven characters of the checked-out release commit, without a prefix (for example `0123456`). Publication requires `GITHUB_SHA`; the workflow supplies the full checked-out revision and retains it in the OCI revision label.
 
-`latest` advances on every successful `main` build, including documentation and CI changes. Builds without a semantic release retain development package versions and carry a `sha-<commit>` OCI version label. Release-producing builds publish a version-stamped image that also updates `latest`. A moving major tag such as `v1` advances only on stable releases within that major; a `2.0.0` release updates `v2` and leaves `v1` unchanged. Docker Bake maintains the image aliases, while the semantic-release plugin maintains the corresponding Git aliases.
+SHA images and `latest` are published on every successful `main` build, including documentation and CI changes. Builds without a semantic release retain development package versions and carry a `sha-<commit>` OCI version label. Release-producing builds publish a version-stamped image that also updates `latest`. A moving major tag such as `v1` advances only on stable releases within that major; a `2.0.0` release updates `v2` and leaves `v1` unchanged. Docker Bake maintains the image aliases, while the semantic-release plugin maintains the corresponding Git aliases.
 
 Pin a full version or image digest when selecting an exact deployment version. The existing development Compose configuration builds local images; setting `CAMPLY_VERSION` alone does not switch it to pulling released images.
 
 ## Helm chart
 
-Stable releases also publish `oci://ghcr.io/juftin/charts/camply-web`. The chart
-version matches the application release without the `v` prefix (`1.2.3`), and its
-appVersion selects the corresponding image (`v1.2.3`). The chart name is
-`camply-web` for the current repository; `nameOverride: camply` preserves Kubernetes
-resource names and selectors. Explicit `image.tag` or `image.digest` values still
-override the packaged default.
+The publisher uploads `oci://ghcr.io/juftin/charts/camply-web` after the
+corresponding images succeed. Each stable release publishes chart tags `vMAJOR`,
+`vMAJOR.MINOR.PATCH`, the seven-character checked-out Git SHA, and `latest`.
+Each chart variant defaults to the identically tagged upstream image, including
+`latest` selecting `ghcr.io/juftin/camply-web:latest`. The unprefixed semantic tag
+(`1.2.3`) is retained for existing consumers and selects `v1.2.3`. Successful main
+builds without a release publish only SHA and latest images/charts; numbered
+release tags remain unchanged.
 
-The publisher installs Helm, authenticates it to GHCR through `--password-stdin`
-with the job's runtime `GITHUB_TOKEN`, and runs `task helm:publish` only after the
-release image succeeds. The task validates `CI=true` and a stable release version,
-then packages and pushes `dist/camply-web-1.2.3.tgz`. Packaging overrides metadata
-in the archive without editing chart source files. Latest-only main builds publish
-no chart; Helm OCI versions have no `latest` or moving-major alias.
+Chart metadata retains a valid semantic version (`1.2.3` for release variants,
+`0.0.0-sha-<short-sha>` for main builds), while appVersion records each variant's
+image tag. The chart name is `camply-web`; `nameOverride: camply` preserves resource
+names and selectors. Explicit `image.tag` and `image.digest` still override the
+packaged default. Source metadata is unchanged by packaging.
+
+The publisher installs Helm and ORAS, reuses the Docker login with the runtime
+`GITHUB_TOKEN`, and runs `task helm:publish` after image publication. The task
+validates `CI=true`, `GITHUB_SHA`, and an optional stable `RELEASE_VERSION`, then
+packages separate variants under `dist/helm/TAG/` and uploads them with Helm OCI
+config/content media types. ORAS supplies the registry aliases that `helm push`
+restricts to semantic versions. Upload failures fail the workflow.
 
 Provision the namespace and database Secret as described in the
 [chart guide](../../deploy/helm/README.md), then install a published release:
 
 ```sh
 helm upgrade --install camply oci://ghcr.io/juftin/charts/camply-web \
-  --version 1.2.3 --namespace camply --create-namespace \
+  --version v1.2.3 --namespace camply --create-namespace \
   -f my-values.yaml --wait --wait-for-jobs --timeout 15m
 ```
 
-`task helm:test` verifies archive metadata, pinned images, release-only workflow
-ordering, and invalid publication contexts. Tests intercept the registry push;
-local verification does not upload artifacts. `task helm:package` produces a
-development archive, or accepts `-- --version 1.2.3 --app-version v1.2.3` to inspect
-a release package locally. Hosted publication requires package write access to
-`juftin/charts/camply-web`; configure its Actions access and visibility separately
-from the container image package. If chart publication fails after the image
-succeeds, rerun the same **publish** workflow to retry the exact release. Do not
-create or delete release tags to retry an upload.
+For `latest`, major, or SHA aliases, resolve the exact chart digest to bypass
+Helm's semantic version tag filtering:
+
+```sh
+helm upgrade --install camply \
+  "oci://ghcr.io/juftin/charts/camply-web@$(oras resolve ghcr.io/juftin/charts/camply-web:latest)" \
+  --namespace camply --create-namespace \
+  -f my-values.yaml --wait --wait-for-jobs --timeout 15m
+```
+
+Replace `latest` with another desired chart tag. This fixes chart content; use
+`image.digest` to fix a moving image tag as well. See the
+[Helm OCI rules](https://docs.helm.sh/docs/v3/topics/registries/) and
+[ORAS push reference](https://oras.land/docs/commands/oras_push/).
+
+`task helm:test` verifies real archive metadata/rendered images for every tag,
+invalid contexts, upload failure propagation, and workflow ordering. With ORAS
+installed, it also publishes to local OCI layouts and installs every alias by
+digest through a read-only test registry with Helm 3/4. Tests do not contact GHCR.
+`task helm:package` still creates a development archive, or accepts
+`-- --version 1.2.3 --app-version v1.2.3` to inspect a release locally. Hosted
+publication requires package write access to `juftin/charts/camply-web`; configure
+its Actions access and visibility separately from the image package. If chart
+publication fails after the image succeeds, rerun the same **publish** workflow
+to complete its tags. Do not create or delete release tags to retry an upload.
 
 ## Repository setup
 
