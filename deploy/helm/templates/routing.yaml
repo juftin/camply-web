@@ -71,7 +71,10 @@ spec:
       filters: {{ toYaml . | nindent 8 }}
       {{- end }}
       backendRefs:
-        - name: {{ include "camply.fullname" $ }}-{{ $role }}
+        - group: ""
+          kind: Service
+          name: {{ include "camply.fullname" $ }}-{{ $role }}
           port: {{ (index $.Values $role).service.port }}
+          weight: 1
     {{- end }}
 {{- end }}

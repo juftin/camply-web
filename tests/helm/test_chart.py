@@ -101,6 +101,19 @@ def test_example_values(example: str) -> None:
     assert render("-f", str(CHART / "examples" / f"{example}.yaml"))
 
 
+@pytest.mark.parametrize("example", ["gateway", "home-ops"])
+def test_gateway_backend_references_include_api_defaults(example: str) -> None:
+    """Explicit API defaults prevent GitOps drift for both Service backends."""
+    route = resource(
+        render("-f", str(CHART / "examples" / f"{example}.yaml")), "HTTPRoute", "-app"
+    )
+    for rule in route["spec"]["rules"]:
+        for backend in rule["backendRefs"]:
+            assert backend["group"] == ""
+            assert backend["kind"] == "Service"
+            assert backend["weight"] == 1
+
+
 def test_ingress_and_gateway_backends() -> None:
     """Routes resolve release-specific services, supporting TLS and parent references."""
     items = render("-f", str(CHART / "examples/gateway.yaml"))
