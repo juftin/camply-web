@@ -24,6 +24,7 @@ function fixture(t, { sources = false } = {}) {
     "Taskfile.yaml",
     "tasks/python.yaml",
     "tasks/frontend.yaml",
+    "tasks/docs.yaml",
     "pyproject.toml",
     "uv.lock",
     "package.json",
@@ -38,7 +39,12 @@ function fixture(t, { sources = false } = {}) {
     cpSync(join(root, file), join(directory, file));
   }
   if (sources) {
-    for (const file of ["src", "pnpm-lock.yaml", "pnpm-workspace.yaml"]) {
+    for (const file of [
+      "src",
+      "docs/site",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+    ]) {
       cpSync(join(root, file), join(directory, file), { recursive: true });
     }
   }

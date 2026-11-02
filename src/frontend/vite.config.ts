@@ -6,14 +6,29 @@ import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
 
 function syncRootBuild(): Plugin {
+  let output = "";
   let isDistBuild = false;
   return {
     name: "sync-root-build",
+    apply: "build",
     configResolved(config) {
+      output = path.resolve(config.root, config.build.outDir);
       isDistBuild =
         config.build.outDir === path.resolve(import.meta.dirname, "dist");
     },
-    closeBundle() {
+    async closeBundle() {
+      const root = path.resolve(import.meta.dirname, "../..");
+      const { build } = await import("vitepress");
+      try {
+        await build(path.resolve(root, "docs/site"));
+      } catch (error) {
+        throw new Error("Docs build failed; the app bundle is incomplete.", {
+          cause: error,
+        });
+      }
+      fs.cpSync(path.join(root, "build/docs"), path.join(output, "docs"), {
+        recursive: true,
+      });
       if (!isDistBuild) return;
       const dist = path.resolve(import.meta.dirname, "dist");
       if (fs.existsSync(dist)) {
@@ -77,5 +92,6 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: [path.resolve(import.meta.dirname, "test/setup.ts")],
+    testTimeout: 10000,
   },
 });

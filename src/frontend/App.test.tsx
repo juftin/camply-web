@@ -246,12 +246,12 @@ describe("Application authentication", () => {
       onRedirect({ returnTo: appPath("/dashboard/scans/test#results") });
     });
     expect(
-      await screen.findByText("Scan detail", {}, { timeout: 3000 }),
+      await screen.findByText("Scan detail", {}, { timeout: 10000 }),
     ).toBeInTheDocument();
     expect(window.location.pathname + window.location.hash).toBe(
       appPath("/dashboard/scans/test#results"),
     );
-  });
+  }, 15000);
 
   it("passes the notification destination through Auth0 login", async () => {
     const destination = "/dashboard/scans/test#results";

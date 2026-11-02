@@ -2,6 +2,10 @@
 
 This guide walks you through setting up the `camply` development environment.
 
+For an introduction and hosting guides, start with the [camply documentation](../site/index.md). Preview the VitePress site with `task docs:serve`, or build it with `task docs:build`; see [working on the docs](../site/development.md#working-on-the-docs).
+
+Production frontend builds also generate the docs into the static bundle at `/docs/`, linked from the app footer. Frontend builds run VitePress directly via Node. Python builds bundle the static documentation; installed wheels serve the prepared docs without a generator. Source distributions retain docs sources and prepared assets so rebuilding them requires no frontend or docs generation.
+
 ## 📋 Prerequisites
 
 - **Python 3.14** (package supports Python >=3.11; compatibility is tested explicitly) (Managed via [uv](https://github.com/astral-sh/uv))
@@ -24,7 +28,7 @@ The backend is one `camply` distribution with internal `server`, `db`,
 consumers can select `server`, `distributed`, `postgres`, and `sentry`
 independently. Base provides providers, SQLite, the `camply` command, and
 `populate-database`.
-See [backend installation](../../README.md) for artifact examples.
+See [backend installation](../operations/RUNNING.md#build-and-install-the-complete-application) for artifact examples.
 
 API-only installs do not run scheduled scans: workers, beat, and Valkey/Redis
 remain required unless using the standalone runtime. The `camply` CLI (`camply.cli`) is an entrypoint with

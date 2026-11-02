@@ -3,6 +3,9 @@
 version: "3"
 
 includes:
+  docs:
+    taskfile: tasks/docs.yaml
+    dir: .
   frontend:
     taskfile: tasks/frontend.yaml
     dir: .

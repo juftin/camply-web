@@ -19,6 +19,9 @@ def test_complete_archive_contents(artifacts: dict[str, Path]) -> None:
             names = wheel.namelist()
             assert len(names) == len(set(names))
             assert "camply/server/static/index.html" in names
+            assert "camply/server/static/docs/index.html" in names
+            assert "camply/server/static/docs/using-camply.html" in names
+            assert "camply/server/static/docs/404.html" in names
             assert "camply/cli/nginx/nginx.conf" in names
             assert "camply/cli/nginx/server.conf" in names
             assert "camply/server/gunicorn.py" in names
@@ -38,6 +41,9 @@ def test_complete_archive_contents(artifacts: dict[str, Path]) -> None:
             "package.json",
             "pnpm-lock.yaml",
             "src/frontend/main.tsx",
+            "docs/site/.vitepress/config.ts",
+            "docs/site/index.md",
+            "src/camply/server/static/docs/index.html",
             "src/camply/cli/nginx/nginx.conf",
             "src/camply/cli/nginx/server.conf",
             "src/camply/server/static/index.html",
@@ -58,6 +64,7 @@ def test_installed_frontend_and_gunicorn(
     install("server").run("""
         import asyncio
         import importlib.resources
+        import importlib.util
         import os
         import re
         import subprocess
@@ -78,6 +85,7 @@ def test_installed_frontend_and_gunicorn(
             )
         static = importlib.resources.files('camply.server').joinpath('static')
         assert static.joinpath('index.html').is_file()
+        assert importlib.util.find_spec('zensical') is None
         backend_config.runtime_mode = RuntimeMode.STANDALONE
         attach_frontend(app, Path(str(static)))
 
@@ -95,11 +103,22 @@ def test_installed_frontend_and_gunicorn(
                     assert (await client.get('/assets/' + worker)).status_code == 200
                 assert (await client.get('/scans/synthetic', headers={'accept': 'text/html'})).text == home.text
                 assert (await client.get('/api/nonexistent')).status_code == 404
+                docs = await client.get('/docs/', headers={'accept': 'text/html'})
+                assert docs.status_code == 200
+                assert 'Find your next campsite' in docs.text
+                assert docs.text != home.text
+                assert (await client.get('/docs', follow_redirects=True)).text == docs.text
+                assert (await client.get('/docs/using-camply')).status_code == 200
+                assert (await client.get('/docs/camply.svg')).status_code == 200
+                assert (await client.get('/docs/404.html')).status_code == 200
+                assert (await client.get('/docs/missing/', headers={'accept': 'text/html'})).status_code == 404
         asyncio.run(exercise())
     """)
 
 
-@pytest.mark.parametrize("damage", ["missing-asset", "changed-asset", "changed-input"])
+@pytest.mark.parametrize(
+    "damage", ["missing-asset", "changed-asset", "changed-input", "changed-docs"]
+)
 def test_damaged_real_sdist_fails(
     artifacts: dict[str, Path], tmp_path: Path, damage: str
 ) -> None:
@@ -111,6 +130,8 @@ def test_damaged_real_sdist_fails(
         (root / "src/camply/server/static/index.html").unlink()
     elif damage == "changed-asset":
         (root / "src/camply/server/static/index.html").write_text("corrupted asset")
+    elif damage == "changed-docs":
+        (root / "docs/site/index.md").write_text("changed documentation")
     else:
         (root / "src/frontend/main.tsx").write_text("changed source input")
     result = subprocess.run(
@@ -120,6 +141,8 @@ def test_damaged_real_sdist_fails(
             "build",
             "--wheel",
             "--no-isolation",
+            # Prepared archives validate without importing the build-only generator.
+            "--skip-dependency-check",
             "--outdir",
             str(tmp_path / "dist"),
             str(root),

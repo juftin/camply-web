@@ -16,7 +16,7 @@ API-only installs retain scan management, but scheduled checks need workers,
 beat, and Valkey/Redis. Missing distributed support makes operations reads
 unavailable and task detail/dispatch return authorized HTTP 503 responses.
 A configured Sentry DSN needs the `sentry` extra; PostgreSQL engine creation
-needs `postgres`. See [backend installation](../../README.md).
+needs `postgres`. See [backend installation](RUNNING.md#build-and-install-the-complete-application).
 
 ## ⚙️ Core Configuration
 
@@ -173,6 +173,8 @@ Set `CAMPLY_AUTH_MODE=auth0`. All three of `CAMPLY_AUTH0_DOMAIN`, `CAMPLY_AUTH0_
 ### Cloudflare Pages frontend
 
 `src/frontend/wrangler.jsonc` defines Pages project `camply-81r`, compatibility date `2024-11-11`, and output `dist` relative to that configuration. Functions remain at `src/frontend/functions/api/[[path]].ts`. Root `task frontend:pages:check` validates an isolated local build/Function without credentials, and `task frontend:pages:dev` serves the built UI through Wrangler with `--cwd src/frontend`. The Vite development server retains its own `/api` proxy.
+
+The production and branch-preview bundles include documentation at `/docs/`, linked from the app footer on the same Pages origin. The frontend build runs VitePress directly via Node. The deployed Pages runtime needs neither Python nor documentation generators. The local Pages check verifies the docs index, nested page, search index, asset routing, and documentation 404s alongside the API Function.
 
 When migrating Git-integrated Pages, change the hosted project root to `src/frontend`, set its build command to `cd ../.. && pnpm install --frozen-lockfile && CAMPLY_STANDALONE_BUILD=1 VITE_API_URL=/api pnpm run build`, and use output `dist`. Root `package.json` pins Node 24 and pnpm 12.15.0; explicitly set `NODE_VERSION=24` and matching `PNPM_VERSION=12.15.0` in both production and preview build environments because those files are above the Pages project root. Preserve existing production/preview `CAMPLY_API_ORIGIN` and protected bindings when adopting file-based configuration. The Wrangler file does not update dashboard build-root settings or deploy automatically.
 

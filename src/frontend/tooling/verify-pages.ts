@@ -131,6 +131,17 @@ async function main(): Promise<void> {
     assert(ready, `Pages did not become ready: ${logs}`);
     const home = await fetch(base);
     assert.match(await home.text(), /<div id="root">/);
+    const docs = await fetch(`${base}/docs/`);
+    assert.equal(docs.status, 200);
+    assert.match(await docs.text(), /Find your next campsite/);
+    for (const route of [
+      "/docs/using-camply/",
+      "/docs/assets/camply.svg",
+      "/docs/404.html",
+    ]) {
+      assert.equal((await fetch(`${base}${route}`)).status, 200, route);
+    }
+    assert.equal((await fetch(`${base}/docs/missing/`)).status, 404);
     for (const route of ["/api", "/api/session?synthetic=true"]) {
       const response = await fetch(`${base}${route}`, {
         method: "POST",

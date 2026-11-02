@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tomllib
 from email.parser import Parser
 from pathlib import Path
@@ -15,7 +16,7 @@ from typing import Any
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 from hatchling.builders.sdist import SdistBuilder
 
-RECIPE = "camply-frontend-v1"
+RECIPE = "camply-frontend-v2"
 """Change this identity when the frontend build procedure changes."""
 PUBLIC_SETTINGS = (
     "VITE_ENABLE_COMMUNITY_PAGES",
@@ -33,6 +34,7 @@ ROOT_INPUTS = (
     "src/frontend/vite.config.ts",
     "src/frontend/tailwind.config.js",
     "src/hatchling/plugin.py",
+    "docs/site/.vitepress/config.ts",
 )
 """Root configuration whose contents determine the prepared frontend."""
 
@@ -58,6 +60,8 @@ def inventory(directory: Path) -> dict[str, str]:
         name.startswith("assets/") for name in files
     ):
         raise RuntimeError("Frontend build must produce index.html and emitted assets.")
+    if not {"docs/index.html", "docs/404.html"} <= files.keys():
+        raise RuntimeError("Frontend build must include generated documentation.")
     return files
 
 
@@ -68,7 +72,7 @@ def input_digest(root: Path, settings: dict[str, str]) -> str:
     paths.extend(
         Path(item.path)
         for item in SdistBuilder(str(root)).recurse_selected_project_files()
-        if item.relative_path.startswith("src/frontend/")
+        if item.relative_path.startswith(("src/frontend/", "docs/site/"))
         and not Path(item.relative_path).name.startswith((".env", ".dev.vars"))
     )
     inputs = {
@@ -138,7 +142,12 @@ class FrontendBuildHook(BuildHookInterface):
             for key, value in os.environ.items()
             if not key.startswith("VITE_")
         }
-        env.update(settings, CAMPLY_STANDALONE_BUILD="1", VITE_API_URL="/api")
+        env.update(
+            settings,
+            CAMPLY_STANDALONE_BUILD="1",
+            CAMPLY_BUILD_PYTHON=sys.executable,
+            VITE_API_URL="/api",
+        )
         if assets.exists():
             shutil.rmtree(assets)
         manifest_path.unlink(missing_ok=True)

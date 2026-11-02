@@ -15,7 +15,11 @@ def site(tmp_path: Path) -> TestClient:
     (tmp_path / "index.html").write_text("<html>synthetic app</html>")
     (tmp_path / "assets").mkdir()
     (tmp_path / "assets/app-123.js").write_text("export {}")
-    app = FastAPI()
+    (tmp_path / "docs/guide").mkdir(parents=True)
+    (tmp_path / "docs/index.html").write_text("<html>camply documentation</html>")
+    (tmp_path / "docs/guide/index.html").write_text("<html>installation guide</html>")
+    (tmp_path / "docs/search.json").write_text('{"docs": []}')
+    app = FastAPI(docs_url="/api/docs", redoc_url="/api/redoc")
 
     @app.get("/api/health")
     def health() -> dict[str, bool]:
@@ -60,3 +64,20 @@ def test_non_navigation_and_mutations(site: TestClient) -> None:
         site.get("/missing", headers={"Accept": "application/json"}).status_code == 404
     )
     assert site.post("/dashboard").status_code == 405
+
+
+def test_documentation_directory_pages_and_assets(site: TestClient) -> None:
+    """Documentation redirects to directory URLs and serves its own HTML."""
+    redirect = site.get("/docs", follow_redirects=False)
+    assert redirect.status_code in {301, 307}
+    assert redirect.headers["location"].endswith("/docs/")
+    assert site.get("/docs/").text == "<html>camply documentation</html>"
+    assert site.get("/docs/guide/").text == "<html>installation guide</html>"
+    assert site.get("/docs/search.json").json() == {"docs": []}
+    assert site.head("/docs/").status_code == 200
+
+
+@pytest.mark.parametrize("path", ["/docs/missing/", "/docs/missing.js"])
+def test_missing_documentation_never_becomes_spa(site: TestClient, path: str) -> None:
+    """Unknown docs URLs remain 404s for ordinary browser requests."""
+    assert site.get(path, headers={"Accept": "text/html"}).status_code == 404

@@ -63,6 +63,7 @@ include = [
   "/src/camply",
   "/src/frontend",
   "/src/hatchling",
+  "/docs/site",
   "/README.md",
   "/LICENSE",
   "/package.json",

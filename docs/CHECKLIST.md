@@ -226,3 +226,12 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/007-open-sour
 - [x] T4.1.5a Render explicit HTTPRoute backend reference defaults (`group`, `kind`, and `weight`) to prevent ArgoCD drift, with Gateway and home-ops rendering regressions.
 - [x] T4.1.5b Publish Helm OCI chart tags `vMAJOR`, `vMAJOR.MINOR.PATCH`, seven-character SHA, and `latest`, each selecting the matching upstream image tag; include SHA/latest images and charts on successful main builds, retain unprefixed release compatibility, and verify Helm 3/4 OCI installs by digest.
 - [ ] T4.1.6 Complete a full mobile-responsive audit of the UI.
+
+### Documentation
+
+- [x] Simplify the README around camply, the hosted app, local setup, and links to further documentation; preserve the runtime and packaging reference in [Running camply](operations/RUNNING.md).
+- [x] Add a VitePress site under `docs/site`, with usage, standalone, container hosting, configuration, development, and reference guides; provide `task docs:install`, `task docs:serve`, `task docs:build`, and `task docs:check`. Verify the build, generated links/assets, and local HTTP preview; see the [documentation plan](specs/016-documentation-site/plan.md).
+- [x] Follow cookiecutter-python's shared GitHub Pages action to publish `build/docs` after successful main CI, validate docs on PRs, configure the canonical site URL, and document one-time Pages enablement; add publishing-boundary/link regressions and retain the new Task include in release fixtures.
+- [x] Use `uv tool install` from GitHub and `camply serve` for user setup, include the required server dependencies and Python selection, use direct Docker Compose commands for hosting, and keep Task instructions in contributor workflows.
+- [x] Build documentation into every frontend bundle at `/docs/`, link it from the app footer, manage VitePress via `package.json`, and preserve docs sources/assets in wheel/sdist integrity checks. Serve documentation pages and real documentation 404s in Python, Nginx, and Cloudflare Pages previews; verify installed artifacts without the generator.
+- [x] Eliminate Python documentation build dependencies from frontend builds, Dockerfile frontend stage, and Cloudflare Pages, ensure unprivileged Nginx smoke environments run with proper file permissions, and maintain baseline visual snapshots for the footer docs link.

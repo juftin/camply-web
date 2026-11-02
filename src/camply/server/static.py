@@ -22,11 +22,18 @@ class FrontendFiles(StaticFiles):
         try:
             response = await super().get_response(path, scope)
         except HTTPException as exc:
+            if exc.status_code == HTTP_404_NOT_FOUND and not Path(path).suffix:
+                html_path = path.rstrip("/") + ".html"
+                try:
+                    return await super().get_response(html_path, scope)
+                except HTTPException:
+                    pass
             navigation = "text/html" in Headers(scope=scope).get("accept", "")
             if (
                 exc.status_code != HTTP_404_NOT_FOUND
                 or Path(path).suffix
                 or path.startswith("assets/")
+                or (parts and parts[0] == "docs")
                 or (path not in {"", "."} and not navigation)
             ):
                 raise
@@ -41,4 +48,8 @@ class FrontendFiles(StaticFiles):
 
 def attach_frontend(app: FastAPI, directory: Path) -> None:
     """Mount the built frontend after API routers without starting runtime work."""
-    app.mount("/", FrontendFiles(directory=directory, check_dir=False), name="frontend")
+    app.mount(
+        "/",
+        FrontendFiles(directory=directory, check_dir=False, html=True),
+        name="frontend",
+    )
