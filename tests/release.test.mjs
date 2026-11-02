@@ -28,7 +28,6 @@ function fixture(t, { sources = false } = {}) {
     "pyproject.toml",
     "uv.lock",
     "package.json",
-    "zensical.toml",
     "docker-compose.yaml",
     "deploy/docker-bake.release.hcl",
     ".python-version",
@@ -42,7 +41,7 @@ function fixture(t, { sources = false } = {}) {
   if (sources) {
     for (const file of [
       "src",
-      "docs/zensical",
+      "docs/site",
       "pnpm-lock.yaml",
       "pnpm-workspace.yaml",
     ]) {

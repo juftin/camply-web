@@ -20,8 +20,8 @@ def test_complete_archive_contents(artifacts: dict[str, Path]) -> None:
             assert len(names) == len(set(names))
             assert "camply/server/static/index.html" in names
             assert "camply/server/static/docs/index.html" in names
-            assert "camply/server/static/docs/using-camply/index.html" in names
-            assert "camply/server/static/docs/search.json" in names
+            assert "camply/server/static/docs/using-camply.html" in names
+            assert "camply/server/static/docs/404.html" in names
             assert "camply/cli/nginx/nginx.conf" in names
             assert "camply/cli/nginx/server.conf" in names
             assert "camply/server/gunicorn.py" in names
@@ -41,8 +41,8 @@ def test_complete_archive_contents(artifacts: dict[str, Path]) -> None:
             "package.json",
             "pnpm-lock.yaml",
             "src/frontend/main.tsx",
-            "zensical.toml",
-            "docs/zensical/index.md",
+            "docs/site/.vitepress/config.ts",
+            "docs/site/index.md",
             "src/camply/server/static/docs/index.html",
             "src/camply/cli/nginx/nginx.conf",
             "src/camply/cli/nginx/server.conf",
@@ -108,9 +108,9 @@ def test_installed_frontend_and_gunicorn(
                 assert 'Find your next campsite' in docs.text
                 assert docs.text != home.text
                 assert (await client.get('/docs', follow_redirects=True)).text == docs.text
-                assert (await client.get('/docs/using-camply/')).status_code == 200
-                assert (await client.get('/docs/assets/camply.svg')).status_code == 200
-                assert (await client.get('/docs/search.json')).status_code == 200
+                assert (await client.get('/docs/using-camply')).status_code == 200
+                assert (await client.get('/docs/camply.svg')).status_code == 200
+                assert (await client.get('/docs/404.html')).status_code == 200
                 assert (await client.get('/docs/missing/', headers={'accept': 'text/html'})).status_code == 404
         asyncio.run(exercise())
     """)
@@ -131,7 +131,7 @@ def test_damaged_real_sdist_fails(
     elif damage == "changed-asset":
         (root / "src/camply/server/static/index.html").write_text("corrupted asset")
     elif damage == "changed-docs":
-        (root / "docs/zensical/index.md").write_text("changed documentation")
+        (root / "docs/site/index.md").write_text("changed documentation")
     else:
         (root / "src/frontend/main.tsx").write_text("changed source input")
     result = subprocess.run(

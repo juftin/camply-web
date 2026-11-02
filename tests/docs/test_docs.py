@@ -1,5 +1,6 @@
 """Verify the documentation site and the Pages publication boundary."""
 
+import json
 import tomllib
 import unittest
 from html.parser import HTMLParser
@@ -33,25 +34,17 @@ class Page(HTMLParser):
 class DocumentationTests(unittest.TestCase):
     """Exercise rendered navigation and publishing configuration."""
 
-    def test_cloudflare_build_tool_matches_lock(self) -> None:
-        """Pages bootstraps the same generator as local isolated docs builds."""
-        lock = tomllib.loads((ROOT / "uv.lock").read_text())
-        version = next(p["version"] for p in lock["package"] if p["name"] == "zensical")
-        requirements = [
-            line.strip()
-            for line in (ROOT / "src/frontend/requirements.txt")
-            .read_text()
-            .splitlines()
-            if line.strip() and not line.startswith("#")
-        ]
-        self.assertEqual(requirements, [f"zensical=={version}"])
+    def test_documentation_tooling_and_dependencies(self) -> None:
+        """VitePress is managed through package.json with no Python docs dependencies."""
+        package = json.loads((ROOT / "package.json").read_text())
+        self.assertIn("vitepress", package["devDependencies"])
+        self.assertFalse((ROOT / "src/frontend/requirements.txt").exists())
+        self.assertFalse((ROOT / "zensical.toml").exists())
         project = tomllib.loads((ROOT / "pyproject.toml").read_text())
-        self.assertTrue(
-            any(r.startswith("zensical") for r in project["build-system"]["requires"])
-        )
-        self.assertFalse(
-            any(r.startswith("zensical") for r in project["project"]["dependencies"])
-        )
+        self.assertNotIn("zensical", str(project.get("build-system", {})))
+        self.assertNotIn("docs", project.get("dependency-groups", {}))
+        lock = tomllib.loads((ROOT / "uv.lock").read_text())
+        self.assertFalse(any(p["name"] == "zensical" for p in lock.get("package", [])))
 
     def test_pages_publishes_only_after_main_ci(self) -> None:
         """PRs build the docs; only successful main CI can publish them."""
@@ -69,12 +62,12 @@ class DocumentationTests(unittest.TestCase):
             deploy["environment"]["url"], "${{ steps.deployment.outputs.page_url }}"
         )
         publish = next(s for s in deploy["steps"] if s.get("id") == "deployment")
-        config = tomllib.loads((ROOT / "zensical.toml").read_text())["project"]
-        self.assertEqual(publish["with"]["path"], config["site_dir"])
-        self.assertEqual(config["site_url"], "https://camply.juftin.dev/docs/")
+        self.assertEqual(publish["with"]["path"], "build/docs")
         ci = yaml.safe_load((ROOT / ".github/workflows/ci.yaml").read_text())
-        build = ci["jobs"]["docs"]["steps"][-1]
-        self.assertEqual(build["with"]["task"], "docs:check")
+        docs_job = ci["jobs"]["docs"]
+        self.assertTrue(
+            any("task docs:check" in s.get("run", "") for s in docs_job["steps"])
+        )
         self.assertNotIn("pages", ci["permissions"])
 
     @unittest.skipUnless(
@@ -84,12 +77,10 @@ class DocumentationTests(unittest.TestCase):
         """Every generated page must have working local links and anchors."""
         directory = ROOT / "build/docs"
         pages = {path.resolve(): Page(path) for path in directory.rglob("*.html")}
-        source = ROOT / "docs/zensical"
+        source = ROOT / "docs/site"
         for markdown in source.rglob("*.md"):
-            route = markdown.relative_to(source).with_suffix("")
-            target = directory / route / "index.html"
-            if markdown.name == "index.md":
-                target = directory / route.with_suffix(".html")
+            route = markdown.relative_to(source).with_suffix(".html")
+            target = directory / route
             self.assertTrue(target.is_file(), f"Missing built page for {markdown}")
         for path, page in pages.items():
             if path.name == "404.html":
@@ -99,9 +90,13 @@ class DocumentationTests(unittest.TestCase):
                 if url.scheme or url.netloc:
                     continue
                 with self.subTest(page=path.relative_to(directory), link=link):
-                    target = (path.parent / unquote(url.path)).resolve()
-                    if not url.path:
+                    if url.path.startswith("/docs/"):
+                        rel = url.path.removeprefix("/docs/")
+                        target = directory / unquote(rel)
+                    elif not url.path:
                         target = path
+                    else:
+                        target = (path.parent / unquote(url.path)).resolve()
                     if target.is_dir():
                         target /= "index.html"
                     self.assertTrue(target.is_file(), f"Missing target: {target}")

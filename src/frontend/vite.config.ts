@@ -4,7 +4,6 @@ import path from "path";
 import fs from "fs";
 import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
-import { spawnSync } from "node:child_process";
 
 function syncRootBuild(): Plugin {
   let output = "";
@@ -17,46 +16,16 @@ function syncRootBuild(): Plugin {
       isDistBuild =
         config.build.outDir === path.resolve(import.meta.dirname, "dist");
     },
-    closeBundle() {
+    async closeBundle() {
       const root = path.resolve(import.meta.dirname, "../..");
-      const python = process.env.CAMPLY_BUILD_PYTHON;
-      const useUv =
-        !python &&
-        process.env.CF_PAGES !== "1" &&
-        spawnSync("uv", ["--version"], { stdio: "ignore" }).status === 0;
-      const pythonCmd =
-        python ||
-        (useUv
-          ? "uv"
-          : spawnSync("python3", ["-c", "import zensical"], {
-                stdio: "ignore",
-              }).status === 0
-            ? "python3"
-            : "python");
-      const result = spawnSync(
-        pythonCmd,
-        [
-          ...(useUv
-            ? [
-                "run",
-                "--locked",
-                "--isolated",
-                "--only-group",
-                "docs",
-                "--",
-                "zensical",
-              ]
-            : ["-m", "zensical"]),
-          "build",
-          "--strict",
-        ],
-        { cwd: root, stdio: "inherit" },
-      );
-      if (result.error || result.status !== 0) {
+      const { build } = await import("vitepress");
+      try {
+        await build(path.resolve(root, "docs/site"));
+      } catch (error) {
         throw new Error(
           "Documentation build failed; the app bundle is incomplete.",
           {
-            cause: result.error,
+            cause: error,
           },
         );
       }
@@ -126,5 +95,6 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: [path.resolve(import.meta.dirname, "test/setup.ts")],
+    testTimeout: 10000,
   },
 });

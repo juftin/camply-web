@@ -34,7 +34,7 @@ ROOT_INPUTS = (
     "src/frontend/vite.config.ts",
     "src/frontend/tailwind.config.js",
     "src/hatchling/plugin.py",
-    "zensical.toml",
+    "docs/site/.vitepress/config.ts",
 )
 """Root configuration whose contents determine the prepared frontend."""
 
@@ -60,7 +60,7 @@ def inventory(directory: Path) -> dict[str, str]:
         name.startswith("assets/") for name in files
     ):
         raise RuntimeError("Frontend build must produce index.html and emitted assets.")
-    if not {"docs/index.html", "docs/search.json"} <= files.keys():
+    if not {"docs/index.html", "docs/404.html"} <= files.keys():
         raise RuntimeError("Frontend build must include generated documentation.")
     return files
 
@@ -72,7 +72,7 @@ def input_digest(root: Path, settings: dict[str, str]) -> str:
     paths.extend(
         Path(item.path)
         for item in SdistBuilder(str(root)).recurse_selected_project_files()
-        if item.relative_path.startswith(("src/frontend/", "docs/zensical/"))
+        if item.relative_path.startswith(("src/frontend/", "docs/site/"))
         and not Path(item.relative_path).name.startswith((".env", ".dev.vars"))
     )
     inputs = {

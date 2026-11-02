@@ -35,8 +35,8 @@ def project(tmp_path: Path) -> Path:
     frontend = tmp_path / "src/frontend"
     frontend.mkdir(parents=True, exist_ok=True)
     (frontend / "main.tsx").write_text("synthetic frontend")
-    docs = tmp_path / "docs/zensical"
-    docs.mkdir(parents=True)
+    docs = tmp_path / "docs/site"
+    docs.mkdir(parents=True, exist_ok=True)
     (docs / "index.md").write_text("# Synthetic documentation")
     return tmp_path
 
@@ -66,7 +66,7 @@ def prepare(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
             docs = project / "build/frontend/docs"
             docs.mkdir()
             (docs / "index.html").write_text("synthetic documentation")
-            (docs / "search.json").write_text('{"docs": []}')
+            (docs / "404.html").write_text("synthetic 404")
 
     monkeypatch.setattr(hook_module.subprocess, "run", compile_assets)
     build_hook(project).initialize("standard", {"force_include": {}})
@@ -124,7 +124,7 @@ def test_checkout_always_rebuilds_and_maps_without_staging(
         "index.html",
         "assets/map-worker.js",
         "docs/index.html",
-        "docs/search.json",
+        "docs/404.html",
     }
 
 
@@ -160,7 +160,7 @@ def test_archive_integrity_without_javascript(
     elif corruption == "input":
         (project / "src/frontend/main.tsx").write_text("changed source")
     elif corruption == "docs-input":
-        (project / "docs/zensical/index.md").write_text("changed documentation")
+        (project / "docs/site/index.md").write_text("changed documentation")
     elif corruption == "docs-delete":
         (assets / "docs/index.html").unlink()
     elif corruption == "metadata":

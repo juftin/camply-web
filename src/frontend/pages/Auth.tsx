@@ -28,7 +28,7 @@ function Auth0Content() {
 
   // Restore the destination from the notification after signing in.
   React.useEffect(() => {
-    if (isReady && user) {
+    if (isReady && user && window.location.pathname.endsWith("/auth")) {
       navigate(returnTo, { replace: true });
     }
   }, [isReady, user, navigate, returnTo]);

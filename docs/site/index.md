@@ -17,6 +17,6 @@ camply finds availability; reservations are completed with the booking provider.
 
 These guides cover everyday use and setup. Detailed engineering and operations documents are linked from the [reference directory](reference.md).
 
-The site is built with [Zensical](https://zensical.org/). See [working on the docs](development.md#working-on-the-docs) to edit, build, or preview the documentation.
+The site is built with [VitePress](https://vitepress.dev/). See [working on the docs](development.md#working-on-the-docs) to edit, build, or preview the documentation.
 
 camply is licensed under [PolyForm Noncommercial 1.0.0](https://github.com/juftin/camply-web/blob/main/LICENSE).

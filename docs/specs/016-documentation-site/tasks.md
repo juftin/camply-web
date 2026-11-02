@@ -3,13 +3,13 @@
 - [x] Audit the README, setup tasks, runtime configuration, and existing reference docs.
 - [x] Define scope, implementation plan, and verification strategy.
 - [x] Simplify the README and preserve detailed runtime/packaging documentation.
-- [x] Add the Zensical site and local uv/Task workflows.
+- [x] Add the VitePress site and local Task workflows.
 - [x] Verify a strict build, generated links/assets, and local preview.
 - [x] Update the global checklist with the completed work and validation.
 - [x] Add pull-request documentation checks and CI-gated main-branch Pages publishing using the cookiecutter-python example.
 - [x] Verify publishing boundaries and built links/assets; document the Pages setup and site URL.
 - [x] Replace user-facing Task setup with a verified GitHub `uv tool install` and `camply serve`; use direct Docker Compose commands and keep Task in contributor guides.
-- [x] Bundle Zensical output in the frontend build and declare isolated build dependencies.
+- [x] Bundle VitePress output in the frontend build via Node without separate Python dependencies.
 - [x] Preserve complete wheel/sdist builds, archive validation, Docker inputs, and generator-free prepared-archive rebuilds.
 - [x] Serve `/docs/` in Python and Nginx, with a footer link and real documentation 404s.
 - [x] Verify bundled pages/assets, deployment paths, footer navigation, and runtime dependency isolation.

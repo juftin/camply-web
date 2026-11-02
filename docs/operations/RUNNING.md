@@ -1,6 +1,6 @@
 # Running and packaging camply
 
-Detailed runtime, distribution, and deployment reference. For a quick start, see the [camply documentation](../zensical/index.md).
+Detailed runtime, distribution, and deployment reference. For a quick start, see the [camply documentation](../site/index.md).
 
 ## Run without backing services
 

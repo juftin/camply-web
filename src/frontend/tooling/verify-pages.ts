@@ -137,7 +137,7 @@ async function main(): Promise<void> {
     for (const route of [
       "/docs/using-camply/",
       "/docs/assets/camply.svg",
-      "/docs/search.json",
+      "/docs/404.html",
     ]) {
       assert.equal((await fetch(`${base}${route}`)).status, 200, route);
     }

@@ -22,6 +22,12 @@ class FrontendFiles(StaticFiles):
         try:
             response = await super().get_response(path, scope)
         except HTTPException as exc:
+            if exc.status_code == HTTP_404_NOT_FOUND and not Path(path).suffix:
+                html_path = path.rstrip("/") + ".html"
+                try:
+                    return await super().get_response(html_path, scope)
+                except HTTPException:
+                    pass
             navigation = "text/html" in Headers(scope=scope).get("accept", "")
             if (
                 exc.status_code != HTTP_404_NOT_FOUND
