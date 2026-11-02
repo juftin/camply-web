@@ -16,7 +16,7 @@ describe("Layout", () => {
       </MemoryRouter>,
     );
     const link = within(screen.getByRole("contentinfo")).getByRole("link", {
-      name: "Documentation",
+      name: "Docs",
     });
     expect(link).toHaveAttribute("href", `${import.meta.env.BASE_URL}docs/`);
     expect(link).not.toHaveAttribute("data-discover");

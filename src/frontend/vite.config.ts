@@ -22,12 +22,9 @@ function syncRootBuild(): Plugin {
       try {
         await build(path.resolve(root, "docs/site"));
       } catch (error) {
-        throw new Error(
-          "Documentation build failed; the app bundle is incomplete.",
-          {
-            cause: error,
-          },
-        );
+        throw new Error("Docs build failed; the app bundle is incomplete.", {
+          cause: error,
+        });
       }
       fs.cpSync(path.join(root, "build/docs"), path.join(output, "docs"), {
         recursive: true,

@@ -1,15 +1,22 @@
 import { defineConfig } from "vitepress";
 
 export default defineConfig({
-  title: "camply",
+  title: "camply docs",
   description: "Find a campsite. Get notified when a stay opens up.",
   base: process.env.VITEPRESS_BASE || "/docs/",
   outDir: "../../build/docs",
   ignoreDeadLinks: [/^https?:\/\/localhost/, /^https?:\/\/127\.0\.0\.1/],
-  head: [["link", { rel: "icon", href: "/docs/camply.svg" }]],
+  head: [
+    ["link", { rel: "shortcut icon", href: "/docs/favicon.ico" }],
+    ["link", { rel: "icon", type: "image/svg+xml", href: "/docs/favicon.svg" }],
+  ],
   themeConfig: {
-    logo: "/camply.svg",
-    siteTitle: "camply",
+    logo: {
+      light: "/branding/camply-horizontal.svg",
+      dark: "/branding/camply-horizontal-dark.svg",
+      alt: "camply",
+    },
+    siteTitle: "Docs",
     nav: [
       { text: "Home", link: "/" },
       { text: "Using camply", link: "/using-camply" },

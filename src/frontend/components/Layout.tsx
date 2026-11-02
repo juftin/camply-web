@@ -28,7 +28,7 @@ export function Layout({ children }: LayoutProps) {
                 href={`${import.meta.env.BASE_URL}docs/`}
                 className="hover:text-foreground"
               >
-                Documentation
+                Docs
               </a>
               <Link to="/faq" className="hover:text-foreground">
                 FAQ

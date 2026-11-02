@@ -21,10 +21,10 @@ Open <http://127.0.0.1:8000> and use **Sync Providers** in Admin Operations to l
 
 See the [standalone guide](docs/site/self-hosting/standalone.md) for installation and storage, or self-host with [Docker Compose](docs/site/self-hosting/containers.md) or [Kubernetes/Helm](deploy/helm/README.md).
 
-## Documentation
+## Docs
 
-Start with the [camply docs](https://camply.juftin.dev/docs/) for using the app, configuration, and self-hosting ([browse the source](docs/site/index.md)). Every installation includes documentation at `/docs/`, linked from the app footer. Contributors can follow the [developer guide](docs/development/DEVELOPER_GUIDE.md); detailed [runtime and packaging](docs/operations/RUNNING.md) and [architecture](docs/architecture/ARCHITECTURE_DEEP_DIVE.md) references are also available.
+Start with the [camply docs](https://camply.juftin.dev/docs/) for using the app, configuration, and self-hosting ([browse the source](docs/site/index.md)). Every installation includes docs at `/docs/`, linked from the app footer. Contributors can follow the [developer guide](docs/development/DEVELOPER_GUIDE.md); detailed [runtime and packaging](docs/operations/RUNNING.md) and [architecture](docs/architecture/ARCHITECTURE_DEEP_DIVE.md) references are also available.
 
-To edit or preview the documentation, see [working on the docs](docs/site/development.md#working-on-the-docs).
+To edit or preview the docs, see [working on the docs](docs/site/development.md#working-on-the-docs).
 
 Licensed under [PolyForm Noncommercial 1.0.0](LICENSE).

@@ -1,4 +1,4 @@
-# More documentation
+# More docs
 
 These documents live in the repository and provide the detailed references behind the setup guides.
 
