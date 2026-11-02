@@ -18,7 +18,7 @@ export default defineConfig({
     },
     siteTitle: "Docs",
     nav: [
-      { text: "Home", link: "/" },
+      { text: "Overview", link: "/" },
       { text: "Using camply", link: "/using-camply" },
       {
         text: "Self-hosting",
@@ -27,9 +27,14 @@ export default defineConfig({
           { text: "Docker & Kubernetes", link: "/self-hosting/containers" },
         ],
       },
-      { text: "Configuration", link: "/configuration" },
-      { text: "Development", link: "/development" },
-      { text: "Reference", link: "/reference" },
+      {
+        text: "Reference",
+        items: [
+          { text: "Configuration", link: "/configuration" },
+          { text: "Development", link: "/development" },
+          { text: "Technical Reference", link: "/reference" },
+        ],
+      },
     ],
     sidebar: [
       {
