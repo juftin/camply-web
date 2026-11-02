@@ -24,9 +24,16 @@
 - Full local gates pass with Python 3.14 and Node 24: `task lint`, `task check`, and `task test` (15 release tests, 828 backend tests, 68 packaging tests, 339 frontend tests, and 10 Pages proxy tests; 23 opt-in backend smoke tests skipped).
 - User-install follow-up: install from the public Git URL in an isolated uv tool directory with `--with 'camply[server]' --python 3.14`; verify the bundled UI, SQLite migrations, HTTP API, and CLI healthcheck. The updated strict docs build and link/publishing checks pass.
 - Bundled-docs follow-up: `task lint`, `task check`, and `task test` pass, including 833 backend tests, 69 packaging tests, the footer component test, and real local Cloudflare Pages serving. A real Nginx process verifies the packaged templates' directory redirects, nested docs, search/assets, and missing-page 404s. Prepared wheels serve docs without Zensical installed; documentation tampering invalidates sdists.
+- Cloudflare follow-up: a clean Python environment installs `src/frontend/requirements.txt` and builds the full frontend without uv on PATH. Pages uses its Python renderer directly; the renderer-version regression and strict docs checks pass.
 
 ## Visual evidence
 
 ![Desktop documentation preview](evidence/desktop.png)
 
 ![Mobile documentation preview](evidence/mobile.png)
+
+![Installed app footer](evidence/app-footer.png)
+
+![Installed app footer on mobile](evidence/app-footer-mobile.png)
+
+![Bundled documentation served by the installed app](evidence/app-docs.png)

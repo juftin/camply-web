@@ -1,0 +1,3 @@
+# Cloudflare Pages installs these build-only tools before its frontend build.
+# Keep the renderer aligned with the version locked for the docs dependency group.
+zensical==0.0.74

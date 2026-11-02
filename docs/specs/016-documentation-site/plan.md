@@ -22,4 +22,6 @@ Extend the existing Vite build plugin to generate the strict Zensical site and c
 
 Include `zensical.toml` and `docs/zensical` in sdists, hash them alongside frontend inputs, and update the asset recipe. Prepared archives retain generated docs and validate them without rerunning generators. Docker copies docs sources into its build stage; frontend-only CI installs uv. Keep the existing separate Pages publication as a mirror and use `https://camply.juftin.dev/docs/` as the primary documentation URL.
 
+Cloudflare Pages installs its build-only renderer from `src/frontend/requirements.txt` and selects `python3 -m zensical` through `CF_PAGES`, including on images without uv or with an older uv version. A regression keeps the renderer version aligned with `uv.lock`. Verify this path with a frontend build whose PATH excludes uv, then check the deployed PR preview.
+
 Enable directory indexes in the Python static server and prevent missing `/docs/` routes from falling through to the SPA. Add a dedicated Nginx docs location with real 404s. The footer uses a normal anchor under Vite's base URL so the browser loads the separate static site. Verify directory redirects, nested pages/assets, unknown routes, wheel/sdist contents, dependency isolation, archive tampering, real Pages HTTP serving, and the footer link.

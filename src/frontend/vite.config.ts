@@ -20,12 +20,24 @@ function syncRootBuild(): Plugin {
     closeBundle() {
       const root = path.resolve(import.meta.dirname, "../..");
       const python = process.env.CAMPLY_BUILD_PYTHON;
+      const useUv =
+        !python &&
+        process.env.CF_PAGES !== "1" &&
+        spawnSync("uv", ["--version"], { stdio: "ignore" }).status === 0;
+      const pythonCmd =
+        python ||
+        (useUv
+          ? "uv"
+          : spawnSync("python3", ["-c", "import zensical"], {
+                stdio: "ignore",
+              }).status === 0
+            ? "python3"
+            : "python");
       const result = spawnSync(
-        python || "uv",
+        pythonCmd,
         [
-          ...(python
-            ? ["-m", "zensical"]
-            : [
+          ...(useUv
+            ? [
                 "run",
                 "--locked",
                 "--isolated",
@@ -33,7 +45,8 @@ function syncRootBuild(): Plugin {
                 "docs",
                 "--",
                 "zensical",
-              ]),
+              ]
+            : ["-m", "zensical"]),
           "build",
           "--strict",
         ],

@@ -33,6 +33,26 @@ class Page(HTMLParser):
 class DocumentationTests(unittest.TestCase):
     """Exercise rendered navigation and publishing configuration."""
 
+    def test_cloudflare_build_tool_matches_lock(self) -> None:
+        """Pages bootstraps the same generator as local isolated docs builds."""
+        lock = tomllib.loads((ROOT / "uv.lock").read_text())
+        version = next(p["version"] for p in lock["package"] if p["name"] == "zensical")
+        requirements = [
+            line.strip()
+            for line in (ROOT / "src/frontend/requirements.txt")
+            .read_text()
+            .splitlines()
+            if line.strip() and not line.startswith("#")
+        ]
+        self.assertEqual(requirements, [f"zensical=={version}"])
+        project = tomllib.loads((ROOT / "pyproject.toml").read_text())
+        self.assertTrue(
+            any(r.startswith("zensical") for r in project["build-system"]["requires"])
+        )
+        self.assertFalse(
+            any(r.startswith("zensical") for r in project["project"]["dependencies"])
+        )
+
     def test_pages_publishes_only_after_main_ci(self) -> None:
         """PRs build the docs; only successful main CI can publish them."""
         release = yaml.safe_load((ROOT / ".github/workflows/release.yaml").read_text())

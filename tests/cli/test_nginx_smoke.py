@@ -111,6 +111,9 @@ def test_packaged_nginx_proxies_upstream(tmp_path: Path, use_tls: bool) -> None:
                 json.dumps(f"{scheme}://host.docker.internal:{upstream.server_port}"),
             )
         )
+        tmp_path.chmod(0o755)
+        for item in tmp_path.rglob("*"):
+            item.chmod(0o755 if item.is_dir() else 0o644)
         container = _command(
             [
                 "docker",
@@ -133,7 +136,7 @@ def test_packaged_nginx_proxies_upstream(tmp_path: Path, use_tls: bool) -> None:
                 "-c",
                 "/review/nginx.conf",
                 "-g",
-                "daemon off;",
+                "daemon off; user root;",
             ]
         )
         stack.callback(

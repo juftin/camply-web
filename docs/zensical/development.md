@@ -48,7 +48,7 @@ The strict build writes the static site to ignored `build/docs`. Run `task docs:
 
 Every production frontend build generates the docs and includes them under `docs/` in the static bundle. The footer links to `/docs/` on the same instance. Python standalone, Nginx, and Cloudflare Pages serve the generated pages and assets directly, including nested documentation URLs.
 
-Frontend-only builds need uv, which runs the locked documentation dependencies in an isolated environment. Python wheel/sdist builds declare Zensical as a build dependency and pass their isolated build interpreter to Vite. Docker copies the documentation sources into its build stage. Zensical is not installed as an application runtime dependency.
+Frontend-only builds use uv to run the locked documentation dependencies in an isolated environment. Cloudflare Pages installs the build-only `src/frontend/requirements.txt` and can use `python3 -m zensical` when uv is unavailable. Python wheel/sdist builds declare Zensical as a build dependency and pass their isolated build interpreter to Vite. Docker copies the documentation sources into its build stage. Zensical is not installed as an application runtime dependency.
 
 Prepared wheels and source distributions include the generated docs. Rebuilding a prepared sdist validates the documentation inputs and assets without running Vite or Zensical; Node and pnpm are not needed for that rebuild. Vite's development server serves the React app; use the separate docs preview above when editing documentation.
 
