@@ -114,6 +114,8 @@ tasks:
 
   snapshot:check:
     summary: Verify UI Snapshots Match Baseline (Fails on Regressions)
+    env:
+      GITHUB_REPOSITORY: ""
     cmds:
       - pnpm run snapshot:check
     deps: [install]

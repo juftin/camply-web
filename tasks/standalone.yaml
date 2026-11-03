@@ -28,4 +28,4 @@ tasks:
     cmds:
       - task: :frontend:browser:install
       - task: build
-      - CAMPLY_STANDALONE_SMOKE=1 task :backend:test -- tests/server/integration/test_standalone_smoke.py -s
+      - CAMPLY_STANDALONE_SMOKE=1 task backend:test -- tests/server/integration/test_standalone_smoke.py -s

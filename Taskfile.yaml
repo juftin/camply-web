@@ -189,6 +189,8 @@ tasks:
 
   snapshot:check:
     summary: Verify UI Visual Snapshots Match Baselines (CI Gate)
+    env:
+      GITHUB_REPOSITORY: ""
     cmds:
       - task: frontend:browser:install
       - task: frontend:snapshot:check
