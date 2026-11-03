@@ -34,7 +34,7 @@ ROOT_INPUTS = (
     "src/frontend/vite.config.ts",
     "src/frontend/tailwind.config.js",
     "src/hatchling/plugin.py",
-    "docs/site/.vitepress/config.ts",
+    "docs/.vitepress/config.ts",
 )
 """Root configuration whose contents determine the prepared frontend."""
 
@@ -72,7 +72,7 @@ def input_digest(root: Path, settings: dict[str, str]) -> str:
     paths.extend(
         Path(item.path)
         for item in SdistBuilder(str(root)).recurse_selected_project_files()
-        if item.relative_path.startswith(("src/frontend/", "docs/site/"))
+        if item.relative_path.startswith(("src/frontend/", "docs/"))
         and not Path(item.relative_path).name.startswith((".env", ".dev.vars"))
     )
     inputs = {

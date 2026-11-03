@@ -20,7 +20,7 @@ function syncRootBuild(): Plugin {
       const root = path.resolve(import.meta.dirname, "../..");
       const { build } = await import("vitepress");
       try {
-        await build(path.resolve(root, "docs/site"));
+        await build(path.resolve(root, "docs"));
       } catch (error) {
         throw new Error("Docs build failed; the app bundle is incomplete.", {
           cause: error,

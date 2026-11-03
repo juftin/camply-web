@@ -55,7 +55,7 @@ remain separate work.
 ### 3. Discovery & UX
 
 - **Global Search**: Unified search across all providers (Recreation.gov, State Parks, etc.).
-- **Map-Based Discovery**: Explore offers MapLibre GL JS mapping across all filtered results, with bounded geographic groups and campground monitoring actions; detail maps share the keyless/configurable basemap. See the [mapping plan](specs/007-open-source-explore-maps/plan.md).
+- **Map-Based Discovery**: Explore offers MapLibre GL JS mapping across all filtered results, with bounded geographic groups and campground monitoring actions; detail maps share the keyless/configurable basemap. See the [mapping plan](specs/010-open-source-explore-maps/plan.md).
 - **Permit Monitoring**: Extend scanning logic to support Wilderness/Backcountry permits and Tours.
 
 ---
@@ -93,7 +93,7 @@ remain separate work.
 
 - [ ] **Providers**: Port `usedirect`, `going_to_camp`, `xanterra`.
 - [x] **ReserveCalifornia**: Port California State Parks availability and metadata to the current Tyler RDR API; preserve modern booking routes on the shared UseDirect ABC.
-- [x] **Shared UseDirect providers**: Implement independent metadata sync and availability for Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory. Alabama and Maricopa endpoint discovery remain pending; see [provider TODOs](specs/005-usedirect-providers/TODO.md).
+- [x] **Shared UseDirect providers**: Implement independent metadata sync and availability for Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory. Alabama and Maricopa endpoint discovery remain pending; see [provider TODOs](specs/007-usedirect-providers/TODO.md).
 - [ ] **Advanced Filters**: Implement RV length, electric, and accessibility filters in the worker.
 - [ ] **Permits**: Add support for scanning wilderness permit and tour availability.
 
@@ -129,4 +129,4 @@ remain separate work.
 
 ## Standalone runtime delivery
 
-Optional standalone now serves built React assets and the API from one Python process with SQLite, local polling/catalog refresh, and durable notification recovery. The distributed runtime remains the default. See the [implementation tasks](specs/007-standalone-runtime/tasks.md), [developer workflow](development/DEVELOPER_GUIDE.md#standalone-runtime), and [runtime constraints](operations/CONFIGURATION.md#runtime-selection).
+Optional standalone now serves built React assets and the API from one Python process with SQLite, local polling/catalog refresh, and durable notification recovery. The distributed runtime remains the default. See the [implementation tasks](specs/011-standalone-runtime/tasks.md), [developer workflow](development/DEVELOPER_GUIDE.md#standalone-runtime), and [runtime constraints](operations/CONFIGURATION.md#runtime-selection).

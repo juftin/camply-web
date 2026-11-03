@@ -1,6 +1,6 @@
 # Running and packaging camply
 
-Detailed runtime, distribution, and deployment reference. For a quick start, see the [camply documentation](../site/index.md).
+Detailed runtime, distribution, and deployment reference. For a quick start, see the [camply documentation](../index.md).
 
 ## Run without backing services
 
@@ -61,7 +61,7 @@ Extras select dependencies; all installations receive the same application files
 
 ## Kubernetes
 
-Deploy the distributed stack with the [Helm chart](../../deploy/helm/README.md).
+Deploy the distributed stack with the [Helm chart](https://github.com/juftin/camply-web/blob/main/deploy/helm/README.md).
 It includes migration startup gates, optional PostgreSQL/Valkey/Prometheus,
 Ingress or Gateway API routing, and configurable PVCs or external services.
 
@@ -138,4 +138,4 @@ task frontend:pages:dev
 
 These local commands need no Cloudflare authentication. The API proxy needs an externally supplied `CAMPLY_API_ORIGIN`; see [Pages configuration and operator migration](../operations/CONFIGURATION.md#cloudflare-pages-frontend) for production/preview bindings and hosted build-root settings. No deployment is performed by tests.
 
-See the [developer guide](../development/DEVELOPER_GUIDE.md), [architecture](../architecture/ARCHITECTURE_DEEP_DIVE.md), [release operations](../operations/RELEASES.md), and [feature 013](../specs/013-root-project-layout/plan.md).
+See the [developer guide](../development/DEVELOPER_GUIDE.md), [architecture](../architecture/ARCHITECTURE_DEEP_DIVE.md), [release operations](../operations/RELEASES.md), and [feature 013](../specs/019-root-project-layout/plan.md).

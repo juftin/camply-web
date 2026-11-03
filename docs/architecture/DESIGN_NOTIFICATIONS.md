@@ -84,7 +84,7 @@ The `send_notification_task` does the following:
 3. Calls `provider.send_alert(user_config, notification_dto)`.
 4. Records successful delivery in metrics. A `notification_history` table remains optional/future work.
 
-See the [implementation plan](../specs/009-campsite-alerts/plan.md) and [configuration](../operations/CONFIGURATION.md) for deployment settings and migration requirements.
+See the [implementation plan](../specs/014-campsite-alerts/plan.md) and [configuration](../operations/CONFIGURATION.md) for deployment settings and migration requirements.
 
 ---
 

@@ -17,7 +17,7 @@ RUN corepack enable pnpm && corepack prepare pnpm@12.15.0 --activate
 COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .python-version ./
 COPY src/ src/
-COPY docs/site/ docs/site/
+COPY docs/ docs/
 ARG VITE_ENABLE_COMMUNITY_PAGES=false
 ARG VITE_MAP_TILE_URL
 ARG VITE_MAP_ATTRIBUTION_TEXT

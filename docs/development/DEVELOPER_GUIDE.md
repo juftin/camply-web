@@ -2,7 +2,7 @@
 
 This guide walks you through setting up the `camply` development environment.
 
-For an introduction and hosting guides, start with the [camply documentation](../site/index.md). Preview the VitePress site with `task docs:serve`, or build it with `task docs:build`; see [working on the docs](../site/development.md#working-on-the-docs).
+For an introduction and hosting guides, start with the [camply documentation](../index.md). Preview the VitePress site with `task docs:serve`, or build it with `task docs:build`; see [working on the docs](../development.md#working-on-the-docs).
 
 Production frontend builds also generate the docs into the static bundle at `/docs/`, linked from the app footer. Frontend builds run VitePress directly via Node. Python builds bundle the static documentation; installed wheels serve the prepared docs without a generator. Source distributions retain docs sources and prepared assets so rebuilding them requires no frontend or docs generation.
 
@@ -199,7 +199,7 @@ Root `pyproject.toml`/`uv.lock` and `package.json`/`pnpm-lock.yaml` own the envi
 
 Run `uv run python -m build` after `task install`, or `python -m build` with the project interpreter. Standard checkout builds require Node 24 and pinned pnpm, install the frozen frontend dependency graph, and compile root-hosted `/api` assets. A missing toolchain or broken build is an error. The sdist contains rebuildable frontend inputs and prepared assets; its wheel can be rebuilt outside the repository without Node. Editable Python installs, dependency discovery, and Python-only checks do not compile the UI.
 
-Generated assets and their private integrity manifest live under ignored `build/`. Wheels receive `camply/server/static`; sdists receive `src/camply/server/static` and the inventory. These are archive mappings, not generated files in working Python source. Modifying archived frontend inputs or corrupting its assets invalidates reuse and requires a fresh source build with the documented toolchain. See the [packaging contract](../specs/013-root-project-layout/contracts/packaging.md).
+Generated assets and their private integrity manifest live under ignored `build/`. Wheels receive `camply/server/static`; sdists receive `src/camply/server/static` and the inventory. These are archive mappings, not generated files in working Python source. Modifying archived frontend inputs or corrupting its assets invalidates reuse and requires a fresh source build with the documented toolchain. See the [packaging contract](../specs/019-root-project-layout/contracts/packaging.md).
 
 ## Spec-Kit feature locations
 

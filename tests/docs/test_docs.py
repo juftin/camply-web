@@ -77,7 +77,7 @@ class DocumentationTests(unittest.TestCase):
         """Every generated page must have working local links and anchors."""
         directory = ROOT / "build/docs"
         pages = {path.resolve(): Page(path) for path in directory.rglob("*.html")}
-        source = ROOT / "docs/site"
+        source = ROOT / "docs"
         for markdown in source.rglob("*.md"):
             route = markdown.relative_to(source).with_suffix(".html")
             target = directory / route

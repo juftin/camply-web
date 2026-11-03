@@ -101,7 +101,7 @@ cannot process tasks against a schema still being migrated. Kubernetes deploymen
 worker/beat startup wait for the migrated API's health endpoint or an explicit migration Job;
 a database TCP check alone does not establish schema readiness.
 
-The [Helm chart](../../deploy/helm/README.md) provides a revision-specific migration
+The [Helm chart](https://github.com/juftin/camply-web/blob/main/deploy/helm/README.md) provides a revision-specific migration
 Job and init-container gates for the backend, worker, and beat. It supports bundled
 or external PostgreSQL/Valkey/Prometheus, configurable PVCs, Ingress, and Gateway API.
 Use `task helm:test` for rendering/gate checks and `task helm:smoke` for a disposable
