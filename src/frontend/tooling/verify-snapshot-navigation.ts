@@ -1,7 +1,13 @@
 /** Reproduce a snapshot navigation with a request that never completes. */
+import fs from "node:fs";
 import assert from "node:assert/strict";
 import { chromium, expect } from "@playwright/test";
 import { navigateToSnapshot } from "./snapshot-navigation";
+
+if (fs.existsSync("/tmp/camply-browser-deps/root/usr/lib/x86_64-linux-gnu")) {
+  process.env.LD_LIBRARY_PATH = `/tmp/camply-browser-deps/root/usr/lib/x86_64-linux-gnu:/tmp/camply-browser-deps/root/lib/x86_64-linux-gnu:${process.env.LD_LIBRARY_PATH || ""}`;
+  process.env.FONTCONFIG_PATH = "/tmp/camply-browser-deps";
+}
 
 async function main(): Promise<void> {
   const browser = await chromium.launch();

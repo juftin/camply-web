@@ -10,8 +10,9 @@ export async function navigateToSnapshot(
   const isSearch = pathname === "/search";
   const hasMap = isSearch || /^\/(campground|rec-area)\//.test(pathname);
   await page.goto(url, {
-    waitUntil: hasMap ? "domcontentloaded" : "networkidle",
+    waitUntil: "domcontentloaded",
   });
+  await page.locator("#root > *, main").first().waitFor();
   if (!hasMap) return;
 
   if (isSearch) {

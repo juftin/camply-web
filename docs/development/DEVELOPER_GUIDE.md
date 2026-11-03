@@ -140,13 +140,14 @@ The frontend uses Vite 8 (Rolldown), Vitest 5, Oxlint, Oxfmt, and native TypeScr
 
 ### UI Snapshots & Visual Regression
 
-- Run visual snapshots & compare against baselines: `task snapshot` (set `CAMPLY_SNAPSHOT_PORT=5197` to isolate a worktree from another dev server)
+- Run visual snapshots & compare against baselines: `task snapshot` (defaults to isolated port `5197`; filter scenarios with `task snapshot -- --filter=<name>`)
 - Update visual snapshot baselines: `task snapshot:update`
 - Verify snapshots match baselines (CI regression check): `task snapshot:check`
 - Rebuild the comparison gallery from saved screenshots: `task snapshot:report` (no Vite server or browser capture)
 - View visual report: `tmp/snapshots/REPORT.md` (Markdown index) or open `tmp/snapshots/report.html` directly in your browser
 - Verify snapshot navigation and the offline HTML viewer, and record desktop/mobile evidence: `task snapshot:verify` (requires Chromium via `task frontend:browser:install`)
 - Run component DOM snapshots: `task frontend:test` (or `task test`)
+- Configure parallel workers: set `CAMPLY_SNAPSHOT_CONCURRENCY=4` (defaults to available CPU cores up to 4)
 
 The HTML gallery offers **Side by side**, **Reveal slider**, and **Highlighted diff** views. Search names, descriptions, viewports or themes and filter Modified, Unchanged or New screenshots. The reveal slider works with the keyboard. New screenshots explicitly show that no baseline existed and disable comparison modes that need one. Different screenshot sizes are padded to a common canvas, preserving alignment without stretching either image.
 

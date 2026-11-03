@@ -10,6 +10,7 @@
 import fs from "fs";
 import path from "path";
 import http from "http";
+import os from "os";
 import { fileURLToPath } from "url";
 import { spawn, execSync, type ChildProcess } from "child_process";
 import { chromium, type Browser, type Page } from "@playwright/test";
@@ -21,6 +22,11 @@ import {
   recordSnapshot,
   type SnapshotResult,
 } from "./snapshot-report";
+
+if (fs.existsSync("/tmp/camply-browser-deps/root/usr/lib/x86_64-linux-gnu")) {
+  process.env.LD_LIBRARY_PATH = `/tmp/camply-browser-deps/root/usr/lib/x86_64-linux-gnu:/tmp/camply-browser-deps/root/lib/x86_64-linux-gnu:${process.env.LD_LIBRARY_PATH || ""}`;
+  process.env.FONTCONFIG_PATH = "/tmp/camply-browser-deps";
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,7 +44,8 @@ const DIFFS_DIR = path.resolve(SNAPSHOTS_DIR, "diffs");
 const REPORT_MD_PATH = path.resolve(SNAPSHOTS_DIR, "REPORT.md");
 const REPORT_HTML_PATH = path.resolve(SNAPSHOTS_DIR, "report.html");
 
-const PORT = Number(process.env.CAMPLY_SNAPSHOT_PORT || "5173");
+const DEFAULT_PORT = "5197";
+const PORT = Number(process.env.CAMPLY_SNAPSHOT_PORT || DEFAULT_PORT);
 const BASE_URL = `http://localhost:${PORT}`;
 
 /**
@@ -921,8 +928,16 @@ const MOCK_SEARCH_RESULTS = MOCK_SEARCH_ITEMS;
 function isServerRunning(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const req = http.get(`http://localhost:${port}/`, (res) => {
-      res.resume();
-      resolve(res.statusCode !== undefined);
+      let body = "";
+      res.on("data", (chunk) => {
+        body += chunk;
+      });
+      res.on("end", () => {
+        resolve(
+          res.statusCode === 200 &&
+            (body.includes("camply") || body.includes('<div id="root">')),
+        );
+      });
     });
     req.on("error", () => resolve(false));
     req.setTimeout(1000, () => {
@@ -983,7 +998,7 @@ async function ensureServerRunning(): Promise<ChildProcess | null> {
   const executable = isWin ? "pnpm.cmd" : "pnpm";
   const serverProcess = spawn(
     executable,
-    ["run", "dev", "--port", `${PORT}`, "--base", "/"],
+    ["run", "dev", "--port", `${PORT}`, "--strictPort", "--base", "/"],
     {
       cwd: FRONTEND_ROOT,
       stdio: "ignore",
@@ -1522,6 +1537,21 @@ async function main(): Promise<void> {
     return;
   }
 
+  const filterArg =
+    args.find((a) => a.startsWith("--filter="))?.slice(9) ||
+    (args.includes("-f") ? args[args.indexOf("-f") + 1] : undefined);
+
+  const scenariosToRun = filterArg
+    ? SCENARIOS.filter(
+        (s) => s.name.includes(filterArg) || s.route.includes(filterArg),
+      )
+    : SCENARIOS;
+
+  if (scenariosToRun.length === 0) {
+    console.error(`❌ No scenarios matched filter: "${filterArg}"`);
+    process.exit(1);
+  }
+
   // Ensure directories exist
   [SNAPSHOTS_DIR, BASELINES_DIR, CURRENT_DIR, DIFFS_DIR].forEach((dir) => {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -1544,46 +1574,67 @@ async function main(): Promise<void> {
       ],
     });
 
-    const context = await browser.newContext({
-      timezoneId: "UTC",
-      locale: "en-US",
-      deviceScaleFactor: 1,
-    });
-    const page = await context.newPage();
-    await page.clock.setFixedTime(new Date("2026-10-10T12:00:00Z"));
-
-    const results: SnapshotResult[] = [];
-    console.log(
-      `\n📸 Capturing and analyzing ${SCENARIOS.length} UI snapshot views...\n`,
+    const defaultConcurrency = Math.max(1, Math.min(os.cpus()?.length || 4, 4));
+    const concurrency = Math.max(
+      1,
+      Number(process.env.CAMPLY_SNAPSHOT_CONCURRENCY) || defaultConcurrency,
     );
 
-    for (const scenario of SCENARIOS) {
-      process.stdout.write(`  ⏳ Capturing [${scenario.name}]... `);
-      await preparePage(page, scenario);
+    const results: SnapshotResult[] = new Array(scenariosToRun.length);
+    console.log(
+      `\n📸 Capturing and analyzing ${scenariosToRun.length} UI snapshot views (concurrency: ${concurrency})...\n`,
+    );
 
-      const screenshotBuf = await page.screenshot({ fullPage: true });
-      const result = recordSnapshot(
-        SNAPSHOTS_DIR,
-        {
-          name: scenario.name,
-          description: scenario.description,
-          viewport: `${scenario.viewport.width}x${scenario.viewport.height}`,
-          theme: scenario.theme,
-        },
-        screenshotBuf,
-        { update: isUpdate, baselinesDir: BASELINES_DIR },
-      );
-      results.push(result);
-      console.log(
-        isUpdate
-          ? `🔄 UPDATED (${result.status.toLowerCase()})`
-          : result.status === "MODIFIED"
-            ? `⚠️ MODIFIED (${result.diffPercentage.toFixed(2)}% diff)`
-            : result.status === "NEW"
-              ? "🆕 NEW BASELINE"
-              : "✅ MATCH",
-      );
-    }
+    let nextIndex = 0;
+    const workerPromises = Array.from(
+      { length: Math.min(concurrency, scenariosToRun.length) },
+      async () => {
+        const context = await browser!.newContext({
+          timezoneId: "UTC",
+          locale: "en-US",
+          deviceScaleFactor: 1,
+        });
+        try {
+          while (true) {
+            const index = nextIndex++;
+            if (index >= scenariosToRun.length) break;
+            const scenario = scenariosToRun[index];
+            const prefix = `[${index + 1}/${scenariosToRun.length}]`;
+            const page = await context.newPage();
+            try {
+              await preparePage(page, scenario);
+              const screenshotBuf = await page.screenshot({ fullPage: true });
+              const result = recordSnapshot(
+                SNAPSHOTS_DIR,
+                {
+                  name: scenario.name,
+                  description: scenario.description,
+                  viewport: `${scenario.viewport.width}x${scenario.viewport.height}`,
+                  theme: scenario.theme,
+                },
+                screenshotBuf,
+                { update: isUpdate, baselinesDir: BASELINES_DIR },
+              );
+              results[index] = result;
+              const statusLabel = isUpdate
+                ? `🔄 UPDATED (${result.status.toLowerCase()})`
+                : result.status === "MODIFIED"
+                  ? `⚠️ MODIFIED (${result.diffPercentage.toFixed(2)}% diff)`
+                  : result.status === "NEW"
+                    ? "🆕 NEW BASELINE"
+                    : "✅ MATCH";
+              console.log(`  ${prefix} ${scenario.name}: ${statusLabel}`);
+            } finally {
+              await page.close();
+            }
+          }
+        } finally {
+          await context.close();
+        }
+      },
+    );
+
+    await Promise.all(workerPromises);
 
     writeReports(results);
 
