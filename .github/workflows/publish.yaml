@@ -103,3 +103,48 @@ jobs:
         env:
           RELEASE_VERSION: ${{ steps.source.outputs.version }}
           GITHUB_SHA: ${{ steps.revision.outputs.sha }}
+
+  pypi:
+    name: Camply Web Python Package
+    if: >-
+      github.repository == 'juftin/camply-web' &&
+      github.event_name == 'release' &&
+      !github.event.release.prerelease &&
+      !github.event.release.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: pypi
+      url: https://pypi.org/p/camply-web
+    steps:
+      - name: Resolve publication source
+        id: source
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            if (context.eventName === 'release') {
+              const tag = context.payload.release.tag_name;
+              if (!/^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(tag)) {
+                throw new Error('Publishing requires a stable vMAJOR.MINOR.PATCH release tag');
+              }
+              core.setOutput('ref', `refs/tags/${tag}`);
+              core.setOutput('version', tag.slice(1));
+            } else {
+              throw new Error('PyPI publication requires a release event');
+            }
+      - name: Checkout the exact publication source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.source.outputs.ref }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-backend
+      - uses: ./.github/actions/setup-frontend
+      - name: Stamp the released application version
+        run: task release:prepare
+        env:
+          RELEASE_VERSION: ${{ steps.source.outputs.version }}
+      - name: Publish Python package to PyPI
+        run: task publish:python

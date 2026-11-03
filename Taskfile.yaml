@@ -210,6 +210,13 @@ tasks:
     env:
       GITHUB_SHA: "{{.GITHUB_SHA}}"
 
+  publish:python:
+    desc: Publish the camply-web Package to PyPI
+    cmds:
+      - task: backend:publish
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
   release:prepare:
     desc: Stamp Release Versions in Backend and Frontend Build Metadata
     cmds:

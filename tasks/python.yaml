@@ -83,6 +83,13 @@ tasks:
     cmds:
       - task: docker
 
+  publish:
+    desc: Publish Wheel and Source Distribution to PyPI
+    cmds:
+      - task: :dist
+      - uv publish {{.CLI_ARGS}}
+    deps: [sync]
+
   docker:
     desc: Build the Shared camply-web Docker Image
     cmds:

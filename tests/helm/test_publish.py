@@ -33,7 +33,8 @@ def publisher(tmp_path: Path) -> tuple[Path, dict[str, str]]:
     binaries.mkdir()
     wrapper = binaries / "helm"
     wrapper.write_text(
-        '#!/bin/sh\nif [ "$1" = push ]; then exit 0; fi\nexec "$HELM_TEST_REAL" "$@"\n'
+        '#!/bin/sh\nif [ "$1" = push ]; then exit 0; fi\n'
+        'PATH="$HELM_TEST_ORIGINAL_PATH"\nexec "$HELM_TEST_REAL" "$@"\n'
     )
     wrapper.chmod(0o755)
     # Reuse pytest's Python/dependencies rather than installing into each fixture.
@@ -60,6 +61,7 @@ def publisher(tmp_path: Path) -> tuple[Path, dict[str, str]]:
     env = {
         **os.environ,
         "PATH": f"{binaries}{os.pathsep}{os.environ['PATH']}",
+        "HELM_TEST_ORIGINAL_PATH": os.environ["PATH"],
         "HELM_TEST_REAL": str(HELM),
         "HELM_TEST_PYTHON": sys.executable,
         "HELM_TEST_CALLS": str(tmp_path / "push-args"),
