@@ -1,6 +1,6 @@
 # Tasks: Optional standalone runtime
 
-**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/](contracts), [quickstart.md](quickstart.md).
+**Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/](contracts/runtime.md), [quickstart.md](quickstart.md).
 **Status**: All 43 tasks complete and verified against current main. See [review](review.md) and [current verification](quickstart.md#verification-evidence-2026-10-28).
 **Tests**: Required by FR-015 and the constitution. Add behavior tests before implementation and observe intended failures.
 **Format**: `- [ ] Tnnn [P?] [USn?] description with exact paths`. [P] means separate files with prerequisites already satisfied.

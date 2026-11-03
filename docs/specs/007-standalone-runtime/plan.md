@@ -2,7 +2,7 @@
 
 **Branch**: `rare-mole` | **Date**: 2026-10-13 | **Status**: Implemented and locally verified
 **Spec**: [spec.md](spec.md) | **Research**: [research.md](research.md)
-**Data**: [data-model.md](data-model.md) | **Contracts**: [contracts/](contracts)
+**Data**: [data-model.md](data-model.md) | **Contracts**: [contracts/](contracts/runtime.md)
 **Validation**: [quickstart.md](quickstart.md) | **Tasks**: [tasks.md](tasks.md)
 
 Add `CAMPLY_RUNTIME_MODE=standalone` alongside the default `distributed` mode.

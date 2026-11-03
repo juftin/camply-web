@@ -1,6 +1,6 @@
 # Running and packaging camply
 
-Detailed runtime, distribution, and deployment reference. For a quick start, see the [camply documentation](../site/index.md).
+Detailed runtime, distribution, and deployment reference. For a quick start, see the [camply documentation](../index.md).
 
 ## Run without backing services
 
@@ -61,7 +61,7 @@ Extras select dependencies; all installations receive the same application files
 
 ## Kubernetes
 
-Deploy the distributed stack with the [Helm chart](../../deploy/helm/README.md).
+Deploy the distributed stack with the [Helm chart](https://github.com/juftin/camply-web/blob/main/deploy/helm/README.md).
 It includes migration startup gates, optional PostgreSQL/Valkey/Prometheus,
 Ingress or Gateway API routing, and configurable PVCs or external services.
 

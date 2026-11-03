@@ -2,7 +2,7 @@
 
 This guide walks you through setting up the `camply` development environment.
 
-For an introduction and hosting guides, start with the [camply documentation](../site/index.md). Preview the VitePress site with `task docs:serve`, or build it with `task docs:build`; see [working on the docs](../site/development.md#working-on-the-docs).
+For an introduction and hosting guides, start with the [camply documentation](../index.md). Preview the VitePress site with `task docs:serve`, or build it with `task docs:build`; see [working on the docs](../development.md#working-on-the-docs).
 
 Production frontend builds also generate the docs into the static bundle at `/docs/`, linked from the app footer. Frontend builds run VitePress directly via Node. Python builds bundle the static documentation; installed wheels serve the prepared docs without a generator. Source distributions retain docs sources and prepared assets so rebuilding them requires no frontend or docs generation.
 

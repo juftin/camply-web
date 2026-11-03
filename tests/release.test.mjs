@@ -41,7 +41,7 @@ function fixture(t, { sources = false } = {}) {
   if (sources) {
     for (const file of [
       "src",
-      "docs/site",
+      "docs",
       "pnpm-lock.yaml",
       "pnpm-workspace.yaml",
     ]) {

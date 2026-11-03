@@ -35,7 +35,7 @@ def project(tmp_path: Path) -> Path:
     frontend = tmp_path / "src/frontend"
     frontend.mkdir(parents=True, exist_ok=True)
     (frontend / "main.tsx").write_text("synthetic frontend")
-    docs = tmp_path / "docs/site"
+    docs = tmp_path / "docs"
     docs.mkdir(parents=True, exist_ok=True)
     (docs / "index.md").write_text("# Synthetic documentation")
     return tmp_path
@@ -160,7 +160,7 @@ def test_archive_integrity_without_javascript(
     elif corruption == "input":
         (project / "src/frontend/main.tsx").write_text("changed source")
     elif corruption == "docs-input":
-        (project / "docs/site/index.md").write_text("changed documentation")
+        (project / "docs/index.md").write_text("changed documentation")
     elif corruption == "docs-delete":
         (assets / "docs/index.html").unlink()
     elif corruption == "metadata":

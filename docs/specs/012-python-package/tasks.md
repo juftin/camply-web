@@ -6,7 +6,7 @@
 
 Implementation and verification are complete. All tasks below have recorded
 evidence in [quickstart.md](quickstart.md#execution-results) and
-[research.md](research.md#baseline-and-implementation-evidence--2026-10-28).
+[research.md](research.md#baseline-and-implementation-evidence-—-2026-10-28).
 Tests cover packaging/optional-feature regressions in addition to the existing
 application suites. No task implements a Camply CLI or local scheduler.
 

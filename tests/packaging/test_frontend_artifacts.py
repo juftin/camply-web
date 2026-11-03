@@ -41,8 +41,8 @@ def test_complete_archive_contents(artifacts: dict[str, Path]) -> None:
             "package.json",
             "pnpm-lock.yaml",
             "src/frontend/main.tsx",
-            "docs/site/.vitepress/config.ts",
-            "docs/site/index.md",
+            "docs/.vitepress/config.ts",
+            "docs/index.md",
             "src/camply/server/static/docs/index.html",
             "src/camply/cli/nginx/nginx.conf",
             "src/camply/cli/nginx/server.conf",
@@ -131,7 +131,7 @@ def test_damaged_real_sdist_fails(
     elif damage == "changed-asset":
         (root / "src/camply/server/static/index.html").write_text("corrupted asset")
     elif damage == "changed-docs":
-        (root / "docs/site/index.md").write_text("changed documentation")
+        (root / "docs/index.md").write_text("changed documentation")
     else:
         (root / "src/frontend/main.tsx").write_text("changed source input")
     result = subprocess.run(

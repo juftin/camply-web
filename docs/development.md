@@ -34,7 +34,7 @@ task docs:install
 task docs:serve
 ```
 
-Open <http://127.0.0.1:8001>. VitePress rebuilds as you edit Markdown under `docs/site`. Navigation and theme settings live in `docs/site/.vitepress/config.ts`.
+Open <http://127.0.0.1:8001>. VitePress rebuilds as you edit Markdown under `docs`. Navigation and theme settings live in `docs/.vitepress/config.ts`.
 
 ```bash
 task docs:build

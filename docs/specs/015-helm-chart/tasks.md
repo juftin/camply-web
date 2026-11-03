@@ -103,4 +103,4 @@ GHCR writes remain confined to the hosted publisher.
 PR verification: the complete `VITEST_MAX_WORKERS=2 task test` command passed,
 including release, backend, packaging, frontend, and Pages checks. Helm 3/4 checks
 and pre-commit hooks also passed. A screenshot of the actual Helm test output is
-recorded in [publication evidence](evidence/chart-publication-checks.png).
+recorded in [publication evidence](https://github.com/juftin/camply-web/blob/main/docs/specs/015-helm-chart/evidence/chart-publication-checks.png).

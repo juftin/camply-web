@@ -115,7 +115,7 @@ config/content media types. ORAS supplies the registry aliases that `helm push`
 restricts to semantic versions. Upload failures fail the workflow.
 
 Provision the namespace and database Secret as described in the
-[chart guide](../../deploy/helm/README.md), then install a published release:
+[chart guide](https://github.com/juftin/camply-web/blob/main/deploy/helm/README.md), then install a published release:
 
 ```sh
 helm upgrade --install camply oci://ghcr.io/juftin/charts/camply-web \
