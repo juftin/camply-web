@@ -26,74 +26,118 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: build
+          - name: backend - docker build
             task: build
-          - name: check - format
-            task: check:format
+            buildx: true
+
+          - name: backend - format
+            task: backend:fmt:check
             install: true
             annotations_ruff: true
-          - name: check - lint
-            task: check:lint
+
+          - name: backend - lint
+            task: backend:lint
             install: true
             annotations_ruff: true
-          - name: check - types
-            task: check:types
+
+          - name: backend - type check
+            task: backend:check
             install: true
             annotations_mypy: true
-          - name: test - 3.11
-            task: test
+
+          - name: backend - test - 3.11
+            task: backend:test
             install: true
             run_on_push: true
             python: "3.11"
-          - name: test - 3.12
-            task: test
+
+          - name: backend - test - 3.12
+            task: backend:test
             install: true
             run_on_push: true
             python: "3.12"
-          - name: test - 3.13
-            task: test
+
+          - name: backend - test - 3.13
+            task: backend:test
             install: true
             run_on_push: true
             python: "3.13"
-          - name: test - 3.14
-            task: test
+            annotations_pytest: true
+            pytest_coverage: true
+
+          - name: backend - test - 3.14
+            task: backend:test
             install: true
             run_on_push: true
             python: "3.14"
+
+          - name: backend - packaging test
+            task: backend:packaging:test
+            install: true
+
+          - name: frontend - format
+            task: frontend:fmt:check
+            install: true
+
+          - name: frontend - lint
+            task: frontend:lint
+            install: true
+
+          - name: frontend - type check
+            task: frontend:check
+            install: true
+
+          - name: frontend - test
+            task: frontend:test
+            install: true
+            run_on_push: true
+
           - name: pre-commit
             task: pre-commit
             install: true
-          - name: MCP bundles
+            fetch_depth: 0
+
+          - name: mcp - bundle verify
             task: mcp:verify
             install: true
-          - name: docs
+
+          - name: docs - check
             task: docs:check
             install: true
-          - name: helm
+
+          - name: helm - chart test
             task: helm:test
             install: true
-          - name: release
-            task: release:test
-            install: true
-          - name: standalone
-            task: standalone:test
-            install: true
-          - name: api
-            task: api:check
-            install: true
-          - name: search - smoke
-            task: search:smoke
-            install: true
-          - name: maps - verify
-            task: maps:verify
-            install: true
-          - name: admin - smoke
-            task: admin:smoke
-            install: true
-          - name: helm - smoke
+
+          - name: helm - cluster smoke
             task: helm:smoke
             install: true
-          - name: ui - snapshots
+
+          - name: release - verification
+            task: release:test
+            install: true
+
+          - name: standalone - smoke
+            task: standalone:test
+            install: true
+
+          - name: api - contract check
+            task: api:check
+            install: true
+
+          - name: search - postgres smoke
+            task: search:smoke
+            install: true
+
+          - name: maps - browser verification
+            task: maps:verify
+            install: true
+
+          - name: admin - live smoke
+            task: admin:smoke
+            install: true
+
+          - name: ui - visual snapshots
             task: snapshot:check
             install: true
     steps:
@@ -104,13 +148,13 @@ jobs:
           task: ${{ matrix.task }}
           checkout: true
           install: ${{ matrix.install || false }}
-          fetch-depth: ${{ matrix.name == 'pre-commit' && '0' || '1' }}
+          fetch-depth: ${{ matrix.fetch_depth || '1' }}
           setup-uv: true
-          buildx: ${{ matrix.name == 'build' }}
+          buildx: ${{ matrix.buildx || false }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           annotations-ruff: ${{ matrix.annotations_ruff || false }}
           annotations-mypy: ${{ matrix.annotations_mypy || false }}
-          annotations-pytest: ${{ matrix.python == '3.13' }}
-          pytest-coverage: ${{ matrix.python == '3.13' && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork }}
+          annotations-pytest: ${{ matrix.annotations_pytest || false }}
+          pytest-coverage: ${{ matrix.pytest_coverage && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork || false }}
         env:
           UV_PYTHON: ${{ matrix.python || '' }}

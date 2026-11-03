@@ -254,7 +254,7 @@ test("runtime defaults and compatibility checks preserve the Python support poli
   );
   const ci = readFileSync(join(root, ".github/workflows/ci.yaml"), "utf8");
   assert.match(ci, /python: "3\.11"/);
-  assert.match(ci, /task: test/);
+  assert.match(ci, /task: backend:test/);
 });
 
 for (const [version, major] of [
@@ -464,8 +464,8 @@ test("one Python and Nginx image serves every application role", () => {
 
 test("required Docker checks share one build and reject unsuccessful build results", () => {
   const ci = readFileSync(join(root, ".github/workflows/ci.yaml"), "utf8");
-  assert.match(ci, /name: build\n\s+task: build/);
-  assert.match(ci, /buildx: \$\{\{ matrix\.name == 'build' \}\}/);
+  assert.match(ci, /name: backend - docker build\n\s+task: build/);
+  assert.match(ci, /buildx: \$\{\{ matrix\.buildx/);
 });
 
 test("distributed Compose retains services, persistent storage, and API relationships", () => {
