@@ -31,7 +31,7 @@
 - [x] T011 [US1] Add `backend/packages/backend/backend/standalone.py` to validate assets/storage, apply Alembic, and launch one loopback-bound Uvicorn worker without production reload or conflicting worker settings (FR-001/003/010/012).
 - [x] T012 [US1] Add standalone install/build/run Task workflows in `Taskfile.yaml`, `backend/Taskfile.yaml`, `frontend/Taskfile.yaml`, and root-base asset builds in `frontend/vite.config.ts`; configure packaged frontend assets and complete Alembic resources in `backend/packages/backend/pyproject.toml` and `backend/packages/db/pyproject.toml` and stage ignored assets/wheels without Docker or all-workspace sync (FR-002/007/010).
 - [x] T013 [US1] Add installed-artifact verification outside the checkout in `backend/packages/backend/tests/integration/test_standalone_smoke.py`; inspect installed dependencies, bundled assets, migrations, and saved-state persistence (FR-003/007/010/015, SC-001/002/007).
-- [x] T014 [US1] Run the US1 scenarios in `specs/007-standalone-runtime/quickstart.md` and T001/T005/T007/T008/T013 checks; record implementation evidence in the PR (SC-002/007).
+- [x] T014 [US1] Run the US1 scenarios in `specs/011-standalone-runtime/quickstart.md` and T001/T005/T007/T008/T013 checks; record implementation evidence in the PR (SC-002/007).
 
 **Checkpoint**: Standalone website/API/storage are independently usable; background detection is completed by US2.
 
@@ -51,7 +51,7 @@
 - [x] T023 [US2] Offload blocking archive/catalog parsing and chunk writes only where needed in `backend/packages/providers/providers/recreation_gov/provider.py` and existing provider helpers, preserving existing provider commit boundaries and short DB transactions (FR-013).
 - [x] T024 [US2] Add runner resource startup/shutdown and unhealthy readiness to `backend/packages/backend/backend/app.py` and `routers/health.py`; ensure API import/schema generation does not start work (FR-005/012/013).
 - [x] T025 [US2] Add real-HTTP timing/fault/eligibility/restart integration coverage in `backend/packages/backend/tests/integration/test_standalone_smoke.py`, with successful synthetic upstreams, no backlog, "delivery begins within 60 seconds" and "health responds within 2 seconds" criteria (FR-008/013/015, SC-003/004/005).
-- [x] T026 [US2] Run US2 scenarios in `specs/007-standalone-runtime/quickstart.md` and worker/integration checks, verifying one check for two subscribers and no lost committed pending intents (SC-001/003/004/005).
+- [x] T026 [US2] Run US2 scenarios in `specs/011-standalone-runtime/quickstart.md` and worker/integration checks, verifying one check for two subscribers and no lost committed pending intents (SC-001/003/004/005).
 
 **Checkpoint**: Standalone monitoring and alert recovery work end to end.
 
@@ -73,7 +73,7 @@
 
 - [x] T033 Update `README.md`, `docs/agents/CONFIGURATION.md`, `DEVELOPER_GUIDE.md`, `PLAN.md`, `ARCHITECTURE_DEEP_DIVE.md`, and data/notification/API blueprints for both modes, installation/artifacts, process limits, auth, and SQLite backup/restore (FR-003/010).
 - [x] T034 Add `standalone:test` to `Taskfile.yaml`, core-only CI to `.github/workflows/ci.yaml`, and real server/SQLite/Chromium smoke coverage in `backend/packages/backend/tests/integration/test_standalone_smoke.py`; use synthetic upstreams rather than browser API interception and retain distributed smoke (FR-007/015, SC-001/006/007).
-- [x] T035 Run `task fix`, `task lint`, `task check`, `task test`, `task api:check`, applicable pre-commit/snapshots, standalone smoke, and distributed `task admin:smoke`; record results against `specs/007-standalone-runtime/quickstart.md` (FR-015, SC-008).
+- [x] T035 Run `task fix`, `task lint`, `task check`, `task test`, `task api:check`, applicable pre-commit/snapshots, standalone smoke, and distributed `task admin:smoke`; record results against `specs/011-standalone-runtime/quickstart.md` (FR-015, SC-008).
 - [x] T036 Complete remaining quickstart acceptance scenarios and update `docs/agents/CHECKLIST.md` and this `tasks.md` only for actually completed implementation and checks (FR-010/015).
 
 ## Dependencies and execution order

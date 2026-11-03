@@ -43,7 +43,7 @@ an assertion that unimplemented behavior has passed tests.
 ## Planned project structure
 
 ```text
-specs/007-standalone-runtime/
+specs/011-standalone-runtime/
   spec.md, plan.md, research.md, data-model.md, quickstart.md, tasks.md
   contracts/runtime.md, contracts/admin-api.md
   checklists/requirements.md, checklists/runtime.md

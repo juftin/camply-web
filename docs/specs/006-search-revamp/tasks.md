@@ -20,7 +20,7 @@
 - [x] T3.2: Integrate campground discovery layout with interactive cards, badges, and filters.
 - [x] T3.3: Update `SearchBar` to navigate to `/search?q=...` on Enter while retaining fast autocomplete.
 - [x] T3.4: Write frontend tests for search page, filter interactions, and URL parameter syncing.
-- [x] T3.5: Complete all-results Explore mapping and the existing-map replacement through the [mapping follow-up](../007-open-source-explore-maps/tasks.md), including grouped-place Details and Monitor actions.
+- [x] T3.5: Complete all-results Explore mapping and the existing-map replacement through the [mapping follow-up](../010-open-source-explore-maps/tasks.md), including grouped-place Details and Monitor actions.
 
 ## Phase 4: Scan Creation & End-to-End Integration
 

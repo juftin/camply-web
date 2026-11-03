@@ -2,7 +2,7 @@
 
 **Feature Branch**: `unusual-mole`
 
-**Feature Directory**: `specs/007-open-source-explore-maps`
+**Feature Directory**: `specs/010-open-source-explore-maps`
 
 **Created**: 2026-10-13
 
@@ -152,7 +152,7 @@ As a visitor on a phone, using a keyboard, or experiencing a map outage, I want 
 
 ## Assumptions
 
-- Explore refers to the existing public `/search` page, currently a paginated list of campgrounds and recreation areas. This feature completes the map-discovery intent in [the search revamp spec](../004-search-revamp/spec.md).
+- Explore refers to the existing public `/search` page, currently a paginated list of campgrounds and recreation areas. This feature completes the map-discovery intent in [the search revamp spec](../006-search-revamp/spec.md).
 - The user confirmed that map discovery must cover all filtered matches. This requires a map-oriented representation beyond the current paginated list response; its contract and loading strategy belong in the implementation plan.
 - Open-source mapping means an open-source renderer with openly licensed basemap data and a keyless default. It does not promise free or unlimited third-party tile hosting. Operators may choose compatible hosted or self-hosted sources.
 - The user selected [MapLibre GL JS](https://maplibre.org/maplibre-gl-js/docs/) for the renderer. The default remains keyless OpenStreetMap raster tiles; the implementation keeps alternative/self-hosted raster configuration. Vector basemap styles and terrain are possible future extensions, outside this renderer migration.

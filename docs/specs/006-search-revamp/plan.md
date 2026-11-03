@@ -1,6 +1,6 @@
 # Implementation Plan - Search Revamp & Discovery
 
-**Mapping implementation**: The [mapping follow-up plan](../007-open-source-explore-maps/plan.md) defines the delivered MapLibre GL JS integration and bounded SQL map endpoints. It reuses current search predicates and requires no new geometry columns, spatial extension, or migration.
+**Mapping implementation**: The [mapping follow-up plan](../010-open-source-explore-maps/plan.md) defines the delivered MapLibre GL JS integration and bounded SQL map endpoints. It reuses current search predicates and requires no new geometry columns, spatial extension, or migration.
 
 ## Technical Architecture
 

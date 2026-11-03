@@ -1,7 +1,7 @@
 # Feature Specification: Root Project Layout and Complete Application Distributions
 
 **Feature Branch**: `innocent-lizard`
-**Feature Directory**: `docs/specs/013-root-project-layout`
+**Feature Directory**: `docs/specs/019-root-project-layout`
 **Created**: 2026-10-29
 **Status**: Specified; implementation planning complete; implementation not started
 **Baseline**: `origin/main` at `25c9763`, fetched and matched before specification

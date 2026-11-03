@@ -2,7 +2,7 @@
 
 **Branch**: `innocent-lizard` | **Date**: 2026-10-29 | **Spec**: [spec.md](spec.md)
 **Status**: Design complete; implementation not started
-**Input**: `docs/specs/013-root-project-layout/spec.md`
+**Input**: `docs/specs/019-root-project-layout/spec.md`
 **Baseline**: `origin/main` = `HEAD` = `25c9763`
 
 ## Summary
@@ -52,7 +52,7 @@ The current constitution is not silently treated as already amended. Implementat
 ### Documentation for this feature
 
 ```text
-docs/specs/013-root-project-layout/
+docs/specs/019-root-project-layout/
 ├── spec.md
 ├── plan.md
 ├── research.md

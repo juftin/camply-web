@@ -12,7 +12,7 @@
 - No dependency or schema changes are needed beyond seeding the provider.
 - Fixtures are synthetic and tests cover externally observable behavior and provider isolation.
 
-The subsequent [shared UseDirect implementation](../005-usedirect-providers/plan.md) extracts models and common scanning/ingestion into `providers.usedirect`, preserving California's ID and concrete-provider import path.
+The subsequent [shared UseDirect implementation](../007-usedirect-providers/plan.md) extracts models and common scanning/ingestion into `providers.usedirect`, preserving California's ID and concrete-provider import path.
 
 ## API research
 

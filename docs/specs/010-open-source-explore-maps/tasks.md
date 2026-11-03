@@ -1,6 +1,6 @@
 # Tasks: Open-Source Maps & Explore Map View
 
-**Input**: Design documents in `specs/007-open-source-explore-maps/`.
+**Input**: Design documents in `specs/010-open-source-explore-maps/`.
 
 **Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md), [data-model.md](data-model.md), [API contract](contracts/search-map-api.md), [UI/configuration contract](contracts/map-ui-and-configuration.md), and [quickstart.md](quickstart.md).
 
@@ -20,7 +20,7 @@
 
 **Purpose**: Establish a reproducible baseline and add the selected renderer without breaking existing maps.
 
-- [x] T001 Run `task install`, `task lint`, `task check`, `task test`, and `task api:check`; record the baseline and any pre-existing failures in `specs/007-open-source-explore-maps/validation.md`, without changing unrelated application behavior.
+- [x] T001 Run `task install`, `task lint`, `task check`, `task test`, and `task api:check`; record the baseline and any pre-existing failures in `specs/010-open-source-explore-maps/validation.md`, without changing unrelated application behavior.
 - [x] T002 Add Leaflet 1.9.4 and development-only `@types/leaflet` through pnpm in `frontend/package.json` and `frontend/pnpm-lock.yaml`; keep the Google packages until the replacement builds in T014.
 
 ## Phase 2: Foundational Prerequisites
@@ -53,7 +53,7 @@
 - [x] T012 [US1] Adapt `frontend/src/pages/Campground.tsx` and `frontend/src/pages/RecreationArea.tsx` to explicit primary/related location identities and the shared coordinate helpers; remove truthiness checks that reject zero, retain original coordinate metadata, and preserve detail content when the primary location cannot be mapped.
 - [x] T013 [US1] Wire public map build arguments through `frontend/Dockerfile` and `frontend/docker-compose.yaml`, document defaults/rebuild behavior in `.env.example` and `docs/agents/CONFIGURATION.md`, and verify custom source and attribution forwarding without reading operator secret files.
 - [x] T014 [US1] Remove `google-map-react` and `@types/google-map-react` through pnpm in `frontend/package.json` and `frontend/pnpm-lock.yaml`; remove obsolete Google key requirements/references from supported web setup, including `docs/agents/CONFIGURATION.md` and `.env.example` if present, after all call sites use Leaflet.
-- [x] T015 [US1] Run the US1 tests with `task frontend:test` and `task frontend:build:static`; inspect both detail maps with intercepted/local fixture tiles and record default/override attribution, valid-zero behavior, cleanup, and absence of Google runtime requests in `specs/007-open-source-explore-maps/validation.md`.
+- [x] T015 [US1] Run the US1 tests with `task frontend:test` and `task frontend:build:static`; inspect both detail maps with intercepted/local fixture tiles and record default/override attribution, valid-zero behavior, cleanup, and absence of Google runtime requests in `specs/010-open-source-explore-maps/validation.md`.
 
 **Checkpoint**: The replacement is independently usable on both detail pages. This is the smallest MVP; Explore discovery is delivered by US2.
 
@@ -85,7 +85,7 @@
 
 - [x] T028 [US2] Build `frontend/src/components/ExploreMap.tsx` on the shared `frontend/src/components/MapComponent.tsx`, rendering at most 512 location/group features with wrapped-world/polar helpers, a 150ms movement debounce, group zoom and always-available View places, captured viewport membership, explicit Load more, and no futile zoom loop for identical coordinates.
 - [x] T029 [US2] Integrate the Explore map in `frontend/src/pages/SearchPage.tsx`: always show map above list without view controls, share existing filters, fit global summary bounds only on initial load or filter changes, label global/visible/unmappable counts separately, preserve extent in parent state, clear obsolete selections, and distinguish successful empty states from loading/updating data.
-- [x] T030 [US2] Run the focused database/router/frontend suites and `task api:check`; record complete fixture membership, counts, cursor traversal, capped responses, no-current-page restriction, and filter/page/sort/pan behavior in `specs/007-open-source-explore-maps/validation.md`.
+- [x] T030 [US2] Run the focused database/router/frontend suites and `task api:check`; record complete fixture membership, counts, cursor traversal, capped responses, no-current-page restriction, and filter/page/sort/pan behavior in `specs/010-open-source-explore-maps/validation.md`.
 
 **Checkpoint**: Explore is geographically useful across the whole matching set, with bounded transfer and reachable individual places. Full Details/Monitor actions follow in US3; responsive and recovery acceptance follows in US4.
 
@@ -104,7 +104,7 @@
 
 - [x] T033 [US3] Extract the shared SearchResult-to-Campground conversion into `frontend/src/lib/maps.ts` and use it in `frontend/src/pages/SearchPage.tsx` and `frontend/src/components/ExploreMap.tsx`; retain provider/entity/external IDs, use nullish coordinate handling, and never turn a recreation area into a campground scan.
 - [x] T034 [US3] Implement React-rendered selected-location and member actions in `frontend/src/components/ExploreMap.tsx`, using ordinary router Details links and the existing `frontend/src/components/ScanForm.tsx` API; show name/provider/type/region, preserve map extent on form open/close, and use current access rules without bypasses or provider text interpolated into Leaflet HTML.
-- [x] T035 [US3] Run the US3 map/page/ScanForm tests and record correct provider destinations, all monitored selections, equivalent card actions, access-rule outcomes, and retained state in `specs/007-open-source-explore-maps/validation.md`.
+- [x] T035 [US3] Run the US3 map/page/ScanForm tests and record correct provider destinations, all monitored selections, equivalent card actions, access-rule outcomes, and retained state in `specs/010-open-source-explore-maps/validation.md`.
 
 **Checkpoint**: Places discovered outside the current list page are fully actionable, and recreation-area behavior remains distinct from campground monitoring.
 
@@ -126,7 +126,7 @@
 - [x] T040 [US4] Implement map-scoped initialization recovery in `frontend/src/components/MapComponent.tsx` and independent query/member/tile status and retry in `frontend/src/components/ExploreMap.tsx`; keep list and scan form outside the failure boundary, avoid interpreting failed data as zero matches, and offer refresh for catalog count changes without claiming cross-request snapshots.
 - [x] T041 [US4] Complete keyboard/touch controls and React-panel focus management in `frontend/src/components/ExploreMap.tsx`, `frontend/src/components/MapComponent.tsx`, and `frontend/src/index.css`; supply descriptive marker/group names, non-color identity cues, visible focus, no keyboard traps, and readable light/dark attribution while retaining equivalent list actions.
 - [x] T042 [US4] Extend `frontend/scripts/run-snapshots.ts` with path-specific search/map mocks, intercepted deterministic raster tiles registered before navigation, and 375px/1440px light/dark captures of detail maps, Explore groups/summaries, mobile stacking, and map failures; ensure broad existing search interceptors cannot shadow map responses.
-- [x] T043 [US4] Run US4 component/page tests and `task snapshot`, review rendered map states and diffs, update intended baselines using `task snapshot:update`, and run `task snapshot:check`; record results and any remaining manual browser checks in `specs/007-open-source-explore-maps/validation.md`.
+- [x] T043 [US4] Run US4 component/page tests and `task snapshot`, review rendered map states and diffs, update intended baselines using `task snapshot:update`, and run `task snapshot:check`; record results and any remaining manual browser checks in `specs/010-open-source-explore-maps/validation.md`.
 
 **Checkpoint**: All four story acceptance flows work with responsive navigation, accessible actions, and map-specific recovery. Live database/browser checks and release gates remain.
 
@@ -137,11 +137,11 @@
 - [x] T044 [P] Add live PostgreSQL integration coverage in `backend/packages/db/tests/integration/test_search_maps_postgres.py` and a `backend:maps:test-postgres` entrypoint in `backend/Taskfile.yaml`; provision/clean a dedicated disposable database with the existing schema and pg_trgm, inject synthetic credentials at runtime, exercise fuzzy/filter/window/grid/cursor parity, record query plans/timings, and fail explicitly rather than silently skip unavailable Docker/PostgreSQL.
 - [x] T045 [P] Add an opt-in isolated application harness in `backend/packages/backend/tests/integration/test_maps_smoke.py`, real-Leaflet interactions in `frontend/scripts/verify-maps.ts`, and the aggregate `maps:verify` task in `Taskfile.yaml`; seed exactly 5,000 matching places plus excluded controls, include >100 co-located members, use real map API requests and intercepted local tiles, clean resources on failure, and include T044's PostgreSQL entrypoint once available.
 - [x] T046 Wire `task maps:verify` into `.github/workflows/ci.yaml` with the required frontend/backend/browser/Docker setup and retained verification artifacts; ensure opt-in live tests do not accidentally run against developer databases during ordinary `task test`.
-- [x] T047 Run `task maps:verify` and record the complete 5,000-place discovery proof, <=512 viewport features, <=100 member responses, PostgreSQL query plans, browser/OS/hardware/fixture details, and timings under `frontend/tmp/` with a summary in `specs/007-open-source-explore-maps/validation.md`; enforce "within 3 seconds after search completion" for the initial usable map and "within 500 milliseconds" for location selection/group expansion, optimizing and remeasuring only if those targets fail.
+- [x] T047 Run `task maps:verify` and record the complete 5,000-place discovery proof, <=512 viewport features, <=100 member responses, PostgreSQL query plans, browser/OS/hardware/fixture details, and timings under `frontend/tmp/` with a summary in `specs/010-open-source-explore-maps/validation.md`; enforce "within 3 seconds after search completion" for the initial usable map and "within 500 milliseconds" for location selection/group expansion, optimizing and remeasuring only if those targets fail.
 - [x] T048 Extend `frontend/scripts/verify-maps.ts` to verify public source/attribution/native-zoom overrides, invalid configuration fallback, no Google requests, no application authorization/CSRF headers or private scan fields in tile requests, and static repository-subpath Details/Monitor navigation; run `task frontend:build:static` and `task frontend:docker` to verify public build-argument forwarding, using local fixture sources rather than public tile traffic.
 - [x] T049 Update `README.md`, `docs/agents/CONFIGURATION.md`, `docs/agents/DEVELOPER_GUIDE.md`, `docs/agents/DESIGN_API.md`, and `docs/agents/DESIGN_FRONTEND.md` for Leaflet, all three endpoints, independent list/map behavior, public build-time settings/rebuilds, attribution, external tile request privacy, source licensing/service limits, and alternative/self-hosted raster setup.
-- [x] T050 Execute the final gates from `specs/007-open-source-explore-maps/quickstart.md`: `task fix`, `task lint`, `task check`, `task test`, `task api:check`, `task maps:verify`, `task snapshot:check`, and `task pre-commit -- --all-files`; inspect formatter/hook changes and record actual results and remaining limitations in `specs/007-open-source-explore-maps/validation.md` without marking failed or unrun gates complete.
-- [x] T051 Reconcile all story acceptance scenarios and FR/SC mappings against `specs/007-open-source-explore-maps/validation.md`, mark only verified implementation items in this `specs/007-open-source-explore-maps/tasks.md`, and update T3.3 implementation/verification progress in `docs/agents/CHECKLIST.md` before proposing the completed feature.
+- [x] T050 Execute the final gates from `specs/010-open-source-explore-maps/quickstart.md`: `task fix`, `task lint`, `task check`, `task test`, `task api:check`, `task maps:verify`, `task snapshot:check`, and `task pre-commit -- --all-files`; inspect formatter/hook changes and record actual results and remaining limitations in `specs/010-open-source-explore-maps/validation.md` without marking failed or unrun gates complete.
+- [x] T051 Reconcile all story acceptance scenarios and FR/SC mappings against `specs/010-open-source-explore-maps/validation.md`, mark only verified implementation items in this `specs/010-open-source-explore-maps/tasks.md`, and update T3.3 implementation/verification progress in `docs/agents/CHECKLIST.md` before proposing the completed feature.
 
 - [x] T052 Apply the 2026-10-14 layout clarification: remove List/Map selection, always stack the map above the list, preserve filters/pagination/history, and verify desktop/mobile layout through unit, live-browser, and visual regression checks; align the spec and documentation.
 

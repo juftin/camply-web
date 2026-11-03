@@ -18,4 +18,4 @@ Endpoint failure does not establish that a park system is unavailable; its curre
 - [ ] Add individual campsite metadata persistence and an independent site-catalog ingestion path once the planned `campsites` schema exists.
 - [ ] Bootstrap metadata on worker startup or provide an explicit initial-ingestion deployment step. Automatic refresh currently requires Celery Beat and runs daily at midnight UTC.
 
-Other shared-worker findings are documented in [the California integration review](../004-reserve-california/review.md).
+Other shared-worker findings are documented in [the California integration review](../005-reserve-california/review.md).

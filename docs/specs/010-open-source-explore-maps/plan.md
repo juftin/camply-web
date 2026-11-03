@@ -2,7 +2,7 @@
 
 **Branch**: `unusual-mole` | **Date**: 2026-10-13 | **Spec**: [spec.md](spec.md)
 
-**Feature Directory**: `specs/007-open-source-explore-maps`
+**Feature Directory**: `specs/010-open-source-explore-maps`
 
 **Input**: The mapping specification and the user's confirmation that Explore must cover all filtered results, independently of list pagination.
 
@@ -53,7 +53,7 @@ No constitution exception is required. The constitution's older ESLint wording i
 ### Documentation (this feature)
 
 ```text
-specs/007-open-source-explore-maps/
+specs/010-open-source-explore-maps/
 ├── spec.md
 ├── plan.md
 ├── research.md

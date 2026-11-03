@@ -1,6 +1,6 @@
 # Search Revamp & Campground Discovery Specification
 
-**Mapping follow-up**: [Open-Source Maps & Explore Map View](../007-open-source-explore-maps/spec.md) completes geographic discovery and replaces the existing detail-page maps. Its map-specific requirements cover all filtered results, bounded discovery, source configuration, and monitoring actions.
+**Mapping follow-up**: [Open-Source Maps & Explore Map View](../010-open-source-explore-maps/spec.md) completes geographic discovery and replaces the existing detail-page maps. Its map-specific requirements cover all filtered results, bounded discovery, source configuration, and monitoring actions.
 
 ## User Stories
 

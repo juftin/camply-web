@@ -12,7 +12,7 @@ application suites. No task implements a Camply CLI or local scheduler.
 
 ## Phase 1: Baseline and Governance
 
-- [x] T001 Record baseline check outcomes on Python 3.11/3.14, SQLite migration behavior, API schema, task names, and existing entry points in `specs/012-python-package/research.md`; distinguish existing failures from migration regressions and the approved runtime-policy update.
+- [x] T001 Record baseline check outcomes on Python 3.11/3.14, SQLite migration behavior, API schema, task names, and existing entry points in `specs/018-python-package/research.md`; distinguish existing failures from migration regressions and the approved runtime-policy update.
 - [x] T002 Amend Principle IV in `.specify/memory/constitution.md` to require internal `camply` subpackages instead of workspace distributions; retain frontend/backend boundaries, document the Python 3.11 floor and 3.14 default, bump the constitution version, and update its sync impact report.
 
 ## Phase 2: Consolidation Foundation
@@ -29,7 +29,7 @@ combined runtime dependencies so optional-feature work is a distinct step.
 - [x] T008 Update `backend/Dockerfile`, `backend/entrypoint.sh`, `backend/docker-compose.yaml`, `.github/actions/setup-backend/action.yaml`, `.github/workflows/ci.yaml`, and path-dependent smoke/browser fixtures for the relocated project; set Docker and primary CI defaults to Python 3.14 while retaining the slim-bookworm image family and existing deployment/CI behavior.
 - [x] T009 Update root `Taskfile.yaml`, `.releaserc.json`, and `tests/release.test.mjs` so release preparation stamps one backend version plus frontend metadata and builds/attaches one wheel and one sdist; set fixture interpreter defaults to 3.14, retain image publication semantics, and omit PyPI publishing.
 - [x] T010 Relocate migration resources under `backend/src/camply/db/migrations/`, move developer Alembic/Gunicorn configuration to `backend/alembic.ini` and `backend/config/gunicorn.conf.py`, and include `backend/LICENSE` plus required package data in `backend/pyproject.toml`; retain the entire revision graph.
-- [x] T011 Validate the consolidated full-dependency layout with existing backend, release, OpenAPI, and Docker checks; record results in `specs/012-python-package/quickstart.md` and fix relocation regressions before extras work.
+- [x] T011 Validate the consolidated full-dependency layout with existing backend, release, OpenAPI, and Docker checks; record results in `specs/018-python-package/quickstart.md` and fix relocation regressions before extras work.
 
 ## Phase 3: US1 — Base Providers and Persistence (P1)
 
@@ -42,7 +42,7 @@ imports, population help, migration resources, and SQLite upgrades.
 - [x] T014 [US1] Make `backend/src/camply/__init__.py` lightweight and centralize distribution metadata using stdlib `importlib.metadata` in `backend/src/camply/__about__.py`; update server metadata consumers and verify no server/worker initialization occurs on base imports.
 - [x] T015 [US1] Provide installed-resource Alembic configuration in `backend/src/camply/db/migration.py` and `backend/alembic.ini`; keep formatter hooks developer-only, and verify fresh/earlier-revision synthetic SQLite upgrades without source-relative paths.
 - [x] T016 [US1] Preserve `populate-database` in `backend/pyproject.toml` pointing to `backend/src/camply/providers/cli.py`; keep existing flags and ensure imports/help work offline without optional runtimes or a new `camply` script.
-- [x] T017 [US1] Run isolated base checks and relocated provider/database suites in `backend/tests/`; record resource, dependency-absence, and database-history results in `specs/012-python-package/quickstart.md`.
+- [x] T017 [US1] Run isolated base checks and relocated provider/database suites in `backend/tests/`; record resource, dependency-absence, and database-history results in `specs/018-python-package/quickstart.md`.
 
 ## Phase 4: US2 — Independent Runtime Extras (P1)
 
@@ -73,13 +73,13 @@ installs; release fixture and Docker command validation without publication.
 
 - [x] T029 Update current layout/extras/install/release instructions in `README.md`, `backend/README.md`, `docs/agents/DEVELOPER_GUIDE.md`, `docs/agents/RELEASES.md`, and `docs/agents/CONFIGURATION.md`; distinguish Python 3.11 support from 3.14 runtime defaults, and document API-only scheduling limitations and breaking import paths.
 - [x] T030 Update `AGENTS.md`, `docs/agents/PLAN.md`, affected `docs/agents/DESIGN_*.md`, `.pre-commit-config.yaml`, and `docs/agents/CHECKLIST.md` for the final architecture; retain historical specs as history and document deployment drain/restart/rollback steps.
-- [x] T031 Run the complete validation sequence from `specs/012-python-package/quickstart.md`, reconcile spec/plan/task coverage with `specs/012-python-package/checklists/requirements.md`, record actual outcomes/remaining infrastructure limits, and mark tasks/acceptance checks complete only with evidence.
+- [x] T031 Run the complete validation sequence from `specs/018-python-package/quickstart.md`, reconcile spec/plan/task coverage with `specs/018-python-package/checklists/requirements.md`, record actual outcomes/remaining infrastructure limits, and mark tasks/acceptance checks complete only with evidence.
 
 ## Phase 7: Import Architecture Enforcement
 
 - [x] T032 Add Import Linter to development dependencies and define exhaustive internal layers plus base/runtime/root import restrictions in `backend/pyproject.toml`; include service/migration directories in graph coverage with package markers and preserve exact guarded broker exceptions.
 - [x] T033 Integrate `backend:imports` into `backend/Taskfile.yaml` lint and `.pre-commit-config.yaml`, ignore graph caches, and document the contracts in `backend/README.md` and `docs/agents/DEVELOPER_GUIDE.md`.
-- [x] T034 Add behavioral violation/scan-coverage regressions in `backend/tests/test_import_boundaries.py`, verify development tools stay out of installed artifacts, and record Python 3.11/3.14 checks in `specs/012-python-package/quickstart.md`.
+- [x] T034 Add behavioral violation/scan-coverage regressions in `backend/tests/test_import_boundaries.py`, verify development tools stay out of installed artifacts, and record Python 3.11/3.14 checks in `specs/018-python-package/quickstart.md`.
 
 ## Dependencies and Execution Order
 

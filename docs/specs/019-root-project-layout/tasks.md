@@ -4,7 +4,7 @@
 
 ## Phase 1: Setup
 
-- [x] T001 Verify baseline, checklist gates, and deployment inventory using `docs/specs/013-root-project-layout/checklists/requirements.md` and `docker-compose.yaml`.
+- [x] T001 Verify baseline, checklist gates, and deployment inventory using `docs/specs/019-root-project-layout/checklists/requirements.md` and `docker-compose.yaml`.
 - [x] T002 Amend directory governance in `.specify/memory/constitution.md` and align `.specify/templates/*.md` with root projects.
 
 ## Phase 2: Foundation
@@ -62,7 +62,7 @@
 ## Phase 7: Integration and closure
 
 - [x] T032 Run root fix/lint/type/test/pre-commit gates and all explicit smoke/snapshot acceptance entrypoints defined in `quickstart.md`.
-- [x] T033 Record build sizes/timings and actual validation evidence in `docs/specs/013-root-project-layout/quickstart.md`.
+- [x] T033 Record build sizes/timings and actual validation evidence in `docs/specs/019-root-project-layout/quickstart.md`.
 - [x] T034 Update feature status, task markers, and global `docs/CHECKLIST.md`; update the existing PR title/body to describe the implemented result.
 
 ## Dependencies and parallel execution

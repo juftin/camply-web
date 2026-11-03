@@ -199,7 +199,7 @@ Root `pyproject.toml`/`uv.lock` and `package.json`/`pnpm-lock.yaml` own the envi
 
 Run `uv run python -m build` after `task install`, or `python -m build` with the project interpreter. Standard checkout builds require Node 24 and pinned pnpm, install the frozen frontend dependency graph, and compile root-hosted `/api` assets. A missing toolchain or broken build is an error. The sdist contains rebuildable frontend inputs and prepared assets; its wheel can be rebuilt outside the repository without Node. Editable Python installs, dependency discovery, and Python-only checks do not compile the UI.
 
-Generated assets and their private integrity manifest live under ignored `build/`. Wheels receive `camply/server/static`; sdists receive `src/camply/server/static` and the inventory. These are archive mappings, not generated files in working Python source. Modifying archived frontend inputs or corrupting its assets invalidates reuse and requires a fresh source build with the documented toolchain. See the [packaging contract](../specs/013-root-project-layout/contracts/packaging.md).
+Generated assets and their private integrity manifest live under ignored `build/`. Wheels receive `camply/server/static`; sdists receive `src/camply/server/static` and the inventory. These are archive mappings, not generated files in working Python source. Modifying archived frontend inputs or corrupting its assets invalidates reuse and requires a fresh source build with the documented toolchain. See the [packaging contract](../specs/019-root-project-layout/contracts/packaging.md).
 
 ## Spec-Kit feature locations
 

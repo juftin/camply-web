@@ -1,6 +1,6 @@
 # Search Map and List Interaction
 
-This change supersedes the map-only panning behavior in the earlier [mapping specification](../007-open-source-explore-maps/spec.md), notably FR-009.
+This change supersedes the map-only panning behavior in the earlier [mapping specification](../010-open-source-explore-maps/spec.md), notably FR-009.
 
 ## Requirements
 
