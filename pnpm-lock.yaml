@@ -292,7 +292,7 @@ importers:
         version: 30.1.3
       openapi-typescript:
         specifier: ^7.13.0
-        version: 7.13.0(typescript@5.9.3)
+        version: 7.13.0(typescript@7.0.2)
       oxfmt:
         specifier: 0.75.0
         version: 0.75.0
@@ -309,14 +309,14 @@ importers:
         specifier: ^4.23.15
         version: 4.23.15
       typescript:
-        specifier: ~5.9.3
-        version: 5.9.3
+        specifier: ~7.0.0
+        version: 7.0.2
       vite:
         specifier: ^8.3.5
         version: 8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@1.21.7)(tsx@4.23.15)(yaml@2.8.0)
       vitepress:
         specifier: ^1.6.4
-        version: 1.6.4(@algolia/client-search@5.61.0)(@types/node@24.19.2)(@types/react@18.3.31)(axios@1.21.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(lightningcss@1.33.0)(postcss@8.5.32)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)(typescript@5.9.3)
+        version: 1.6.4(@algolia/client-search@5.61.0)(@types/node@24.19.2)(@types/react@18.3.31)(axios@1.21.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(lightningcss@1.33.0)(postcss@8.5.32)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)(typescript@7.0.2)
       vitest:
         specifier: ^5.0.5
         version: 5.0.5(@types/node@24.19.2)(jsdom@30.1.3)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@1.21.7)(tsx@4.23.15)(yaml@2.8.0))
@@ -4125,11 +4125,6 @@ packages:
     resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
     engines: {node: '>=16'}
 
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
   typescript@7.0.2:
     resolution: {integrity: sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==}
     engines: {node: '>=16.20.0'}
@@ -6056,10 +6051,10 @@ snapshots:
       '@rolldown/pluginutils': 1.0.1
       vite: 8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@1.21.7)(tsx@4.23.15)(yaml@2.8.0)
 
-  '@vitejs/plugin-vue@5.2.4(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0))(vue@3.5.44(typescript@5.9.3))':
+  '@vitejs/plugin-vue@5.2.4(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0))(vue@3.5.44(typescript@7.0.2))':
     dependencies:
       vite: 5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)
-      vue: 3.5.44(typescript@5.9.3)
+      vue: 3.5.44(typescript@7.0.2)
 
   '@vitest/mocker@5.0.5(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@1.21.7)(tsx@4.23.15)(yaml@2.8.0))':
     dependencies:
@@ -6144,20 +6139,20 @@ snapshots:
 
   '@vue/shared@3.5.44': {}
 
-  '@vueuse/core@12.8.2(typescript@5.9.3)':
+  '@vueuse/core@12.8.2(typescript@7.0.2)':
     dependencies:
       '@types/web-bluetooth': 0.0.21
       '@vueuse/metadata': 12.8.2
-      '@vueuse/shared': 12.8.2(typescript@5.9.3)
-      vue: 3.5.44(typescript@5.9.3)
+      '@vueuse/shared': 12.8.2(typescript@7.0.2)
+      vue: 3.5.44(typescript@7.0.2)
     transitivePeerDependencies:
       - typescript
 
-  '@vueuse/integrations@12.8.2(axios@1.21.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(focus-trap@7.8.0)(typescript@5.9.3)':
+  '@vueuse/integrations@12.8.2(axios@1.21.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(focus-trap@7.8.0)(typescript@7.0.2)':
     dependencies:
-      '@vueuse/core': 12.8.2(typescript@5.9.3)
-      '@vueuse/shared': 12.8.2(typescript@5.9.3)
-      vue: 3.5.44(typescript@5.9.3)
+      '@vueuse/core': 12.8.2(typescript@7.0.2)
+      '@vueuse/shared': 12.8.2(typescript@7.0.2)
+      vue: 3.5.44(typescript@7.0.2)
     optionalDependencies:
       axios: 1.21.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
       change-case: 5.4.4
@@ -6167,9 +6162,9 @@ snapshots:
 
   '@vueuse/metadata@12.8.2': {}
 
-  '@vueuse/shared@12.8.2(typescript@5.9.3)':
+  '@vueuse/shared@12.8.2(typescript@7.0.2)':
     dependencies:
-      vue: 3.5.44(typescript@5.9.3)
+      vue: 3.5.44(typescript@7.0.2)
     transitivePeerDependencies:
       - typescript
 
@@ -7142,14 +7137,14 @@ snapshots:
       regex: 6.1.0
       regex-recursion: 6.0.2
 
-  openapi-typescript@7.13.0(typescript@5.9.3):
+  openapi-typescript@7.13.0(typescript@7.0.2):
     dependencies:
       '@redocly/openapi-core': 1.34.21(supports-color@10.2.2)
       ansi-colors: 4.1.3
       change-case: 5.4.4
       parse-json: 8.3.0
       supports-color: 10.2.2
-      typescript: 5.9.3
+      typescript: 7.0.2
       yargs-parser: 21.1.1
 
   openid-client@6.8.8:
@@ -7804,8 +7799,6 @@ snapshots:
 
   type-fest@4.41.0: {}
 
-  typescript@5.9.3: {}
-
   typescript@7.0.2:
     optionalDependencies:
       '@typescript/typescript-aix-ppc64': 7.0.2
@@ -7953,7 +7946,7 @@ snapshots:
       tsx: 4.23.15
       yaml: 2.8.0
 
-  vitepress@1.6.4(@algolia/client-search@5.61.0)(@types/node@24.19.2)(@types/react@18.3.31)(axios@1.21.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(lightningcss@1.33.0)(postcss@8.5.32)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)(typescript@5.9.3):
+  vitepress@1.6.4(@algolia/client-search@5.61.0)(@types/node@24.19.2)(@types/react@18.3.31)(axios@1.21.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(lightningcss@1.33.0)(postcss@8.5.32)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)(typescript@7.0.2):
     dependencies:
       '@docsearch/css': 3.8.2
       '@docsearch/js': 3.8.2(@algolia/client-search@5.61.0)(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)
@@ -7962,17 +7955,17 @@ snapshots:
       '@shikijs/transformers': 2.5.0
       '@shikijs/types': 2.5.0
       '@types/markdown-it': 14.2.0
-      '@vitejs/plugin-vue': 5.2.4(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0))(vue@3.5.44(typescript@5.9.3))
+      '@vitejs/plugin-vue': 5.2.4(vite@5.4.21(@types/node@24.19.2)(lightningcss@1.33.0))(vue@3.5.44(typescript@7.0.2))
       '@vue/devtools-api': 7.7.10
       '@vue/shared': 3.5.44
-      '@vueuse/core': 12.8.2(typescript@5.9.3)
-      '@vueuse/integrations': 12.8.2(axios@1.21.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(focus-trap@7.8.0)(typescript@5.9.3)
+      '@vueuse/core': 12.8.2(typescript@7.0.2)
+      '@vueuse/integrations': 12.8.2(axios@1.21.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(focus-trap@7.8.0)(typescript@7.0.2)
       focus-trap: 7.8.0
       mark.js: 8.11.1
       minisearch: 7.2.0
       shiki: 2.5.0
       vite: 5.4.21(@types/node@24.19.2)(lightningcss@1.33.0)
-      vue: 3.5.44(typescript@5.9.3)
+      vue: 3.5.44(typescript@7.0.2)
     optionalDependencies:
       postcss: 8.5.32
     transitivePeerDependencies:
@@ -8025,7 +8018,7 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
-  vue@3.5.44(typescript@5.9.3):
+  vue@3.5.44(typescript@7.0.2):
     dependencies:
       '@vue/compiler-dom': 3.5.44
       '@vue/compiler-sfc': 3.5.44
@@ -8033,7 +8026,7 @@ snapshots:
       '@vue/server-renderer': 3.5.44
       '@vue/shared': 3.5.44
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 7.0.2
 
   w3c-xmlserializer@6.0.0:
     dependencies:
