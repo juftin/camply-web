@@ -61,6 +61,7 @@ tasks:
     summary: Fix Frontend Code with Linters and Formatters
     cmds:
       - pnpm run fix
+    deps: [install]
 
   preview:
     summary: Preview Production Build

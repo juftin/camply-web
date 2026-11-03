@@ -5,19 +5,26 @@ version: "3"
 tasks:
   install:
     summary: Install docs dependencies
-    cmd: pnpm install --frozen-lockfile
+    cmds:
+      - task: :frontend:install
 
   build:
     summary: Build docs into build/docs
-    cmd: pnpm run docs:build -- {{.CLI_ARGS}}
+    cmds:
+      - pnpm run docs:build -- {{.CLI_ARGS}}
+    deps: [install]
 
   serve:
     desc: Preview docs at http://127.0.0.1:8001
-    cmd: pnpm run docs:dev -- {{.CLI_ARGS}}
+    cmds:
+      - pnpm run docs:dev -- {{.CLI_ARGS}}
+    deps: [install]
 
   preview:
     summary: Preview built docs at http://127.0.0.1:8001
-    cmd: pnpm run docs:preview -- {{.CLI_ARGS}}
+    cmds:
+      - pnpm run docs:preview -- {{.CLI_ARGS}}
+    deps: [install]
 
   check:
     summary: Build docs and verify rendered links and Pages publishing

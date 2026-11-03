@@ -82,7 +82,7 @@ tasks:
 
   fix:
     desc: Fix All Code with Linters and Formatters
-    deps:
+    cmds:
       - task: backend:fix
       - task: frontend:fix
 

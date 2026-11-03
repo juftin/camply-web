@@ -12,18 +12,21 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Install task runner
+    - name: task - install task runner
       shell: bash
       run: |
-        curl -sL https://taskfile.dev/install.sh | sh -s -- -d -b "$HOME/.local/bin" v3.41.0
-        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        if ! command -v task >/dev/null 2>&1; then
+          curl -sL https://taskfile.dev/install.sh | sh -s -- -d -b "$HOME/.local/bin" v3.41.0
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        fi
 
-    - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+    - name: uv - setup uv and python
+      uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
       with:
         enable-cache: true
         cache-suffix: backend
         python-version: ${{ inputs.python-version }}
 
-    - name: Install backend dependencies
+    - name: backend - install dependencies
       shell: bash
-      run: uv sync --locked --all-extras
+      run: task backend:install
