@@ -6,7 +6,7 @@ Releases use the Gitmoji/semantic-release infrastructure from [cookiecutter-pyth
 
 Every push to `main` starts `.github/workflows/release.yaml`. It calls the entire existing CI workflow, including lint, types, tests, OpenAPI drift, live smoke checks, snapshot gallery verification, visual snapshots, and Docker builds. After all checks succeed, semantic-release analyzes commits and creates a release when appropriate. Publication runs only in `juftin/camply-web`; pull requests and manually dispatched CI runs only validate changes.
 
-`.github/workflows/publish.yaml` listens for native `release: published` events. It validates the stable full-version tag, checks out that exact tag, stamps the application version, and publishes the shared `camply-web` image followed by the versioned `camply-web` Helm chart. When semantic-release finishes without a release, `release.yaml` calls this same publisher at the successful main SHA to update the SHA and `latest` image/chart tags. Release-producing commits build images once, through the release event. The exec success hook writes a runner-local marker used to skip the main fallback.
+`.github/workflows/publish.yaml` listens for native `release: published` events. It validates the stable full-version tag, checks out that exact tag, stamps the application version, and publishes the shared `camply-web` image, the versioned `camply-web` Helm chart, and the `camply-web` Python package on PyPI. When semantic-release finishes without a release, `release.yaml` calls this same publisher at the successful main SHA to update the SHA and `latest` image/chart tags. Release-producing commits build images once, through the release event. The exec success hook writes a runner-local marker used to skip the main fallback.
 
 Release runs are serialized without cancelling an active run. Artifact publication is serialized separately across both entrypoints. GitHub may replace a pending run with a newer push; semantic-release considers all unreleased commits on `main`.
 
@@ -25,13 +25,14 @@ flowchart LR
     Latest --> MainCharts[SHA and latest OCI charts]
 ```
 
-The release preparation hook runs `task release:prepare RELEASE_VERSION=1.2.3` and `task dist`. Preparation stamps the single `camply` backend distribution, updates `uv.lock`, and sets the frontend package version. Those changes exist only in the runner; development version files remain unchanged in Git. The publisher repeats version preparation at the full release tag so installed application metadata matches the image version. Tags identify the exact source commit.
+The release preparation hook runs `task release:prepare RELEASE_VERSION=1.2.3` and `task dist`. Preparation stamps the `camply-web` backend distribution, updates `uv.lock`, and sets the frontend package version. Those changes exist only in the runner; development version files remain unchanged in Git. The publisher repeats version preparation at the full release tag so installed application metadata matches the image version. Tags identify the exact source commit.
 
 The GitHub release provides generated release notes and one version-stamped
-Python wheel/sdist pair: `camply-1.2.3-py3-none-any.whl` and
-`camply-1.2.3.tar.gz`. `task dist` clears stale build outputs and builds the
+Python wheel/sdist pair: `camply_web-1.2.3-py3-none-any.whl` and
+`camply_web-1.2.3.tar.gz`. `task dist` clears stale build outputs and builds the
 single distribution into `dist/`. The GitHub plugin attaches both artifacts.
-Builds complete before release creation; no PyPI upload is configured. The
+On release, `.github/workflows/publish.yaml` publishes the `camply-web` Python package
+to PyPI using PyPI Trusted Publishing. The
 standalone sdist includes frontend inputs and prepared UI, its README, license,
 typing marker, installed Gunicorn configuration, and the full Alembic migration
 graph. Its wheel can be rebuilt without JavaScript tooling or repository siblings.

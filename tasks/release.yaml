@@ -61,6 +61,12 @@ tasks:
     env:
       GITHUB_SHA: "{{.GITHUB_SHA}}"
 
+  publish:python:
+    summary: Publish the camply-web Package to PyPI
+    cmds:
+      - task: dist
+      - uv publish {{.CLI_ARGS}}
+
   images:
     internal: true
     cmd: >-

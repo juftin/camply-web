@@ -283,3 +283,10 @@ tasks:
       - task: release:publish:latest
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"
+
+  publish:python:
+    summary: Publish the camply-web Package to PyPI
+    cmds:
+      - task: release:publish:python
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"

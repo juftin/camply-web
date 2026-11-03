@@ -20,7 +20,7 @@ def test_base_imports_and_metadata(install: Callable[[str], Installation]) -> No
         for module in ('fastapi', 'uvicorn', 'celery', 'redis', 'psycopg', 'sentry_sdk', 'pytest', 'importlinter', 'grimp', 'zensical'):
             assert importlib.util.find_spec(module) is None, module
         assert not any(name.startswith(('camply.server', 'camply.worker')) for name in sys.modules)
-        distribution = metadata.distribution('camply')
+        distribution = metadata.distribution('camply-web')
         assert distribution.metadata['Requires-Python'] == '>=3.11'
         assert set(distribution.metadata.get_all('Provides-Extra')) == {'server', 'distributed', 'postgres', 'sentry'}
         assert __about__.__version__ == distribution.version
@@ -42,7 +42,7 @@ def test_cli_version_is_offline(install: Callable[[str], Installation]) -> None:
         from pathlib import Path
         result = subprocess.run([str(Path(sys.executable).with_name('camply')), '--version'],
                                 check=True, capture_output=True, text=True)
-        assert result.stdout == f"camply, version {metadata.version('camply')}\\n"
+        assert result.stdout == f"camply, version {metadata.version('camply-web')}\\n"
         result = subprocess.run([sys.executable, '-c', 'import sys, camply.cli.main; print(sorted(m for m in sys.modules if m.startswith(("camply.server", "camply.worker", "camply.providers", "camply.db"))))'],
                                 check=True, capture_output=True, text=True)
         assert result.stdout == '[]\\n'

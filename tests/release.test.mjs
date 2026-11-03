@@ -85,7 +85,7 @@ test("release preparation stamps both applications and keeps the lock usable", (
     /version = "2\.3\.4"/,
   );
   const lock = readFileSync(join(directory, "uv.lock"), "utf8");
-  assert.ok(lock.includes('name = "camply"\nversion = "2.3.4"'));
+  assert.ok(lock.includes('name = "camply-web"\nversion = "2.3.4"'));
   for (const name of [
     "camply-backend",
     "backend",
@@ -129,8 +129,8 @@ test("one wheel and sdist contain stamped metadata and support standalone rebuil
     (file) => file.endsWith(".tar.gz") || file.endsWith(".whl"),
   );
   assert.deepEqual(artifacts.sort(), [
-    "camply-2.3.4-py3-none-any.whl",
-    "camply-2.3.4.tar.gz",
+    "camply_web-2.3.4-py3-none-any.whl",
+    "camply_web-2.3.4.tar.gz",
   ]);
   const config = JSON.parse(
     readFileSync(join(root, "package.json"), "utf8"),
@@ -143,16 +143,16 @@ test("one wheel and sdist contain stamped metadata and support standalone rebuil
     globSync(github.assets, { cwd: directory }).sort(),
     artifacts.map((file) => `dist/${file}`).sort(),
   );
-  const archive = join(directory, "dist/camply-2.3.4.tar.gz");
+  const archive = join(directory, "dist/camply_web-2.3.4.tar.gz");
   const metadata = spawnSync(
     "tar",
-    ["-xOf", archive, "camply-2.3.4/PKG-INFO"],
+    ["-xOf", archive, "camply_web-2.3.4/PKG-INFO"],
     {
       encoding: "utf8",
     },
   );
   assert.equal(metadata.status, 0, metadata.stderr);
-  assert.match(metadata.stdout, /^Name: camply$/m);
+  assert.match(metadata.stdout, /^Name: camply-web$/m);
   assert.match(metadata.stdout, /^Version: 2\.3\.4$/m);
   assert.match(metadata.stdout, /^Requires-Python: >=3\.11$/m);
   const extras = [...metadata.stdout.matchAll(/^Provides-Extra: (.+)$/gm)].map(
@@ -189,11 +189,11 @@ test("one wheel and sdist contain stamped metadata and support standalone rebuil
     "src/frontend/index.html",
     "build/frontend-manifest.json",
   ]) {
-    assert.ok(contents.stdout.includes(`camply-2.3.4/${file}`), file);
+    assert.ok(contents.stdout.includes(`camply_web-2.3.4/${file}`), file);
   }
   const rebuild = mkdtempSync(join(tmpdir(), "camply-sdist-rebuild-"));
   t.after(() => rmSync(rebuild, { recursive: true, force: true }));
-  const standaloneArchive = join(rebuild, "camply-2.3.4.tar.gz");
+  const standaloneArchive = join(rebuild, "camply_web-2.3.4.tar.gz");
   cpSync(archive, standaloneArchive);
   const rebuilt = spawnSync(
     "uv",
@@ -213,11 +213,11 @@ test("one wheel and sdist contain stamped metadata and support standalone rebuil
   assert.equal(rebuilt.status, 0, rebuilt.stderr);
   assert.deepEqual(readdirSync(join(rebuild, "wheels")), [
     ".gitignore",
-    "camply-2.3.4-py3-none-any.whl",
+    "camply_web-2.3.4-py3-none-any.whl",
   ]);
   for (const wheel of [
-    join(directory, "dist/camply-2.3.4-py3-none-any.whl"),
-    join(rebuild, "wheels/camply-2.3.4-py3-none-any.whl"),
+    join(directory, "dist/camply_web-2.3.4-py3-none-any.whl"),
+    join(rebuild, "wheels/camply_web-2.3.4-py3-none-any.whl"),
   ]) {
     const listed = spawnSync("unzip", ["-Z1", wheel], { encoding: "utf8" });
     assert.equal(listed.status, 0, listed.stderr);
@@ -231,7 +231,7 @@ test("one wheel and sdist contain stamped metadata and support standalone rebuil
       assert.ok(listed.stdout.split("\n").includes(file), file);
     assert.match(
       listed.stdout,
-      /camply-2\.3\.4\.dist-info\/(?:licenses\/)?LICENSE/,
+      /camply_web-2\.3\.4\.dist-info\/(?:licenses\/)?LICENSE/,
     );
   }
 });
@@ -419,6 +419,20 @@ test("publisher selects the full release tag or exact main SHA and rejects other
   ]) {
     assert.throws(() => resolve(context));
   }
+});
+
+test("publish workflow publishes the camply-web Python package on release", () => {
+  const workflow = readFileSync(
+    join(root, ".github/workflows/publish.yaml"),
+    "utf8",
+  );
+  assert.match(workflow, /pypi:\n\s+name: publish - camply-web python package/);
+  assert.match(
+    workflow,
+    /environment:\s*\n\s+name: pypi\s*\n\s+url: https:\/\/pypi\.org\/p\/camply-web/,
+  );
+  assert.match(workflow, /id-token: write/);
+  assert.match(workflow, /task publish:python/);
 });
 
 test("semantic release signals publication only after preparing source assets", (t) => {

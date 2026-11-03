@@ -179,7 +179,7 @@ class FrontendBuildHook(BuildHookInterface):
             metadata = Parser().parsestr((root / "PKG-INFO").read_text())
             versions = self.package_versions(root)
             valid = (
-                metadata["Name"] == "camply"
+                metadata["Name"] in {"camply", "camply-web"}
                 and metadata["Version"] == versions["python"]
                 and manifest["schema"] == 1
                 and manifest["recipe"] == RECIPE
