@@ -12,6 +12,7 @@ Before contributing, ensure your machine has:
 - **Node.js 24+** and **pnpm 12+**
 - **Docker & Docker Compose** (for backing PostgreSQL & Valkey services)
 - **go-task** ([Taskfile](https://taskfile.dev/)) runner
+- **GitHub CLI** ([gh](https://cli.github.com/)) for pull request and review operations
 
 ---
 
@@ -52,7 +53,7 @@ Before contributing, ensure your machine has:
 
 ## 🌳 Branching & Git Worktrees
 
-To keep feature development isolated and clean, we strongly recommend working in git worktrees located in `.worktrees/`:
+To keep feature development isolated and clean, work in git worktrees located in `.worktrees/`:
 
 ```bash
 # Create a new branch and isolated worktree:
@@ -61,31 +62,54 @@ task worktree:add -- feature-name
 # Navigate into the worktree:
 cd .worktrees/feature-name
 
-# When finished:
+# When finished and merged:
 task worktree:remove -- feature-name
 ```
 
 ---
 
-## 🎨 Commit Conventions (Gitmoji)
+## 🏷️ Commit & PR Title Conventions
 
-We use [semantic-release](https://semantic-release.gitbook.io/) and [Gitmoji](https://gitmoji.dev/). Every commit message **MUST** begin with a valid Gitmoji representing the intent:
+Titles follow the unified format:
 
-| Gitmoji | Code          | Purpose                                |
-| :------ | :------------ | :------------------------------------- |
-| ✨      | `:sparkles:`  | New feature                            |
-| 🐛      | `:bug:`       | Bug fix                                |
-| 🔨      | `:hammer:`    | Developer tooling / refactor / scripts |
-| 📝      | `:memo:`      | Documentation updates                  |
-| 🧪      | `:test_tube:` | Adding or improving tests              |
-| 🎨      | `:art:`       | UI / visual style tweaks               |
-| 🔒      | `:lock:`      | Security or auth fixes                 |
-
-Example commit:
-
-```bash
-git commit -m "✨ (search): Add campsite amenity filters to Explore view"
 ```
+<type> [scope?][:?] <summary>
+```
+
+> [!TIP]
+> If your title needs **"and"** in the summary, the PR is too broad — narrow the scope.
+
+### Gitmoji Mode (Default in this repo / `GITMOJI=1`)
+
+| Prefix | Intent                                    |
+| :----- | :---------------------------------------- |
+| ✨     | New feature                               |
+| 🐛     | Bug fix                                   |
+| 💥     | Breaking change                           |
+| ♻️     | Refactor                                  |
+| 🔨     | Developer tooling / task runner / scripts |
+| 📝     | Documentation                             |
+| ⚡     | Performance                               |
+| 🧪     | Tests                                     |
+| 🔧     | Configuration                             |
+| ⬆️     | Dependency bump                           |
+| 🎨     | UI / style tweaks                         |
+
+**Examples**:
+
+- `✨ (search): Add campsite amenity filters to Explore view`
+- `🐛 (maps): Fix bounds calculation on mobile viewports`
+- `🔨 (taskfile): Streamline CI and Taskfile configuration`
+
+### Conventional Commit Mode
+
+When `GITMOJI` is unset or `0`:
+
+- `feat: [scope]: <summary>`
+- `fix: [scope]: <summary>`
+- `refactor: [scope]: <summary>`
+- `docs: [scope]: <summary>`
+- `chore: [scope]: <summary>`
 
 ---
 
@@ -112,23 +136,97 @@ task test
 
 ---
 
-## 🤖 Feature Lifecycle & Spec-Kit
+## 📬 Pull Request Workflow
 
-Non-trivial features follow the formal **Spec-Kit** engineering lifecycle:
+We use the GitHub CLI (`gh`) for opening and refining pull requests.
 
-1. **Specify**: Define stories and acceptance criteria in `docs/specs/<number>-<name>/spec.md`.
-2. **Design**: Detail technical architecture and database models in `plan.md`.
-3. **Tasking**: Create granular, test-backed implementation steps in `tasks.md`.
-4. **Implement & Check**: Tick off tasks in `tasks.md` and update `docs/CHECKLIST.md` before opening your PR.
+### 1. PR Body Structure
+
+Every pull request should adhere to the following structure:
+
+```markdown
+## Summary
+
+[Concise summary of what this PR achieves.]
+
+## Context
+
+[The "why" behind this work — feature, bugfix, or chore reasoning.]
+
+## Changes
+
+[Detailed description of code changes, ideally organized by file or feature area.]
+
+<details><summary>Code Changes</summary>
+<p>
+
+- **`path/to/file`**
+  - Detailed description of changes.
+
+</p>
+</details>
+
+## Test Plan
+
+- [x] `task check:format` passed
+- [x] `task check:lint` passed
+- [x] `task check:types` passed
+- [x] `task test` passed
+- [ ] Manual verification step
+
+## Behavior Diagram
+
+[Optional Mermaid diagram explaining architecture or workflow changes]
+```
+
+### 2. Creating the PR with `gh`
+
+Prepare the body in a temporary file and create the PR:
+
+```bash
+BODY_FILE="$(mktemp "${TMPDIR:-/tmp}/pr-body.XXXXXX")"
+cat > "${BODY_FILE}" <<'EOF'
+## Summary
+...
+EOF
+
+gh pr create \
+  --title "<type> [scope?]: <summary>" \
+  --body-file "${BODY_FILE}"
+```
+
+### 3. PR Rules & Best Practices
+
+- **Final State**: Describe the PR's final state (what it achieves and why). Omit intermediate attempts, discarded approaches, and internal reasoning loops.
+- **Prose Formatting**: Remove hard line breaks within prose paragraphs so they render cleanly on GitHub. Preserve blank lines and structural line breaks in lists, tables, and code blocks.
+- **Up-to-Date Metadata**: Keep the title and description up to date whenever newly pushed code materially changes the PR.
+- **No Force-Pushes**: Make requested changes in a new commit — do not force-push or amend unless explicitly requested to squash.
+- **Never Force-Push to Main**: Protected branches must remain linear and safe.
 
 ---
 
-## 📬 Submitting a Pull Request
+## 🔄 Refining & Responding to Reviews
 
-1. Ensure all tests (`task test`) and type checks (`task check`) pass locally.
-2. Push your branch to GitHub:
+1. **Inspect Review Feedback**:
    ```bash
-   git push origin feature-name
+   gh pr view --comments
    ```
-3. Open a Pull Request referencing any associated issues and specs.
-4. CI will validate your branch across Python versions (`3.11`–`3.14`), linters, and integration smoke gates.
+2. **Make Updates**:
+   Commit changes in a new commit and push:
+   ```bash
+   git push origin HEAD
+   ```
+3. **Monitor CI**:
+   ```bash
+   gh pr checks --watch
+   ```
+4. **Thread Resolution**:
+   Never resolve review threads yourself — let the reviewer confirm and resolve them.
+
+---
+
+## 🔒 Security & Privacy
+
+- **No Secrets**: Never commit credentials, tokens, or private keys. Use environment variables.
+- **No PHI / PII**: Ensure logs, tests, cassettes, and code do not include sensitive personal data.
+- **Environment Files**: Never commit `.env` or decrypt secrets into repository context.

@@ -1,26 +1,35 @@
 ## Summary
 
-<!-- Briefly describe the changes introduced by this pull request. -->
+<!-- Concise summary of what this PR achieves. -->
 
-## Linked Issues / Spec-Kit Plans
+## Context
 
-<!-- Link to any relevant GitHub issues or Spec-Kit documents (e.g. docs/specs/<name>/plan.md). -->
+<!-- The "why" behind this work — feature, bugfix, or chore reasoning. -->
 
-- Issue:
-- Spec / Plan:
+## Changes
 
-## PR Checklist
+<!-- Detailed description of code changes, ideally organized by file or feature area. -->
 
-Before submitting, ensure all of the following have been verified:
+<details><summary>Code Changes</summary>
+<p>
 
-- [ ] **Tests Pass**: `task test` completes successfully.
-- [ ] **Type Check**: `task check:types` (or `task check`) passes with zero violations.
-- [ ] **Lint & Format**: `task check:format` and `task check:lint` are clean (`task fix` applied).
-- [ ] **Feature Checklist**: Global `docs/CHECKLIST.md` updated (for new features/tasks).
-- [ ] **Database Migrations**: Generated and applied if models were modified (`task backend:migration -- "message"`).
-- [ ] **Documentation**: Updated `docs/` if core logic, APIs, or settings changed.
-- [ ] **Gitmoji**: Commit message adheres to Gitmoji conventions (`✨`, `🐛`, `🔨`, `📝`, etc.).
+- **`path/to/file`**
+  - Detailed description of changes.
 
-## Validation Evidence
+</p>
+</details>
 
-<!-- Provide terminal output, screenshots, or test evidence demonstrating the changes work as expected. -->
+## Test Plan
+
+<!-- Steps to verify changes work as intended. -->
+
+- [ ] `task check:format` (Ruff & Oxfmt code formatting)
+- [ ] `task check:lint` (Ruff, Oxlint, Import Linter)
+- [ ] `task check:types` (MyPy & TypeScript)
+- [ ] `task test` (Full backend & frontend test suites)
+- [ ] Manual verification step
+- [ ] Post-merge verification (if applicable)
+
+## Behavior Diagram
+
+<!-- Only if relevant: a Mermaid diagram explaining this PR -->
