@@ -19,10 +19,11 @@ concurrency:
 
 jobs:
   ci:
+    name: ci
     uses: ./.github/workflows/ci.yaml
 
   docs:
-    name: Publish Documentation
+    name: docs - publish documentation
     needs: [ci]
     if: github.repository == 'juftin/camply-web'
     runs-on: ubuntu-latest
@@ -38,18 +39,20 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-frontend
-      - name: Build documentation
+      - name: checkout - repository source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: frontend - setup toolchain
+        uses: ./.github/actions/setup-frontend
+      - name: docs - build documentation
         run: task docs:build
-      - name: Publish to GitHub Pages
+      - name: pages - publish to github pages
         id: deployment
         uses: juftin/actions/github-pages@5a54b64fe07d8de40f92676cae6b56c565ec28b2 # v1.4.0
         with:
           path: build/docs
 
   release:
-    name: GitHub Release
+    name: release - semantic release
     needs: [ci]
     if: github.repository == 'juftin/camply-web'
     runs-on: ubuntu-latest
@@ -59,14 +62,16 @@ jobs:
     outputs:
       published: ${{ steps.result.outputs.published }}
     steps:
-      - name: Checkout release source and history
+      - name: checkout - release source and history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: ./.github/actions/setup-backend
-      - uses: ./.github/actions/setup-frontend
-      - name: Generate release token with the existing Renovate App
+      - name: backend - setup toolchain
+        uses: ./.github/actions/setup-backend
+      - name: frontend - setup toolchain
+        uses: ./.github/actions/setup-frontend
+      - name: auth - generate release token with renovate app
         id: app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
@@ -75,18 +80,19 @@ jobs:
           permission-contents: write
           # Moving major tags across workflow changes requires this permission.
           permission-workflows: write
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - name: node - setup node runtime
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: lts/*
-      - name: Install npm compatible with the shared release lockfile
+      - name: npm - install npm 10 for semantic release lockfile compatibility
         # Match the shared action's Node installation so it retains npm 10.
         # npm 11 rejects the shared action's release lockfile.
         run: npm install --global npm@10.9.9
-      - name: Semantic release
+      - name: release - execute semantic release
         uses: juftin/actions/semantic-release@5a54b64fe07d8de40f92676cae6b56c565ec28b2 # v1.4.0
         with:
           github_token: ${{ steps.app-token.outputs.token }}
-      - name: Report whether a release was published
+      - name: release - report whether release was published
         id: result
         run: |
           if test -f .release-published; then
@@ -96,7 +102,7 @@ jobs:
           fi
 
   publish-main:
-    name: Publish Main Without a Release
+    name: publish - main without release
     needs: [release]
     if: needs.release.outputs.published == 'false'
     permissions:

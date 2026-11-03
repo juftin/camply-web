@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   publish:
-    name: Camply Web Image and Helm Chart
+    name: publish - ghcr image and helm chart
     if: >-
       github.repository == 'juftin/camply-web' &&
       (github.event_name == 'push' ||
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Resolve publication source
+      - name: git - resolve publication source
         id: source
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
@@ -46,47 +46,50 @@ jobs:
             } else {
               throw new Error('Latest publication requires a successful main push');
             }
-      - name: Checkout the exact publication source
+      - name: checkout - exact publication source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.source.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/setup-backend
-      - uses: ./.github/actions/setup-frontend
-      - name: Stamp the released application version
+      - name: backend - setup toolchain
+        uses: ./.github/actions/setup-backend
+      - name: frontend - setup toolchain
+        uses: ./.github/actions/setup-frontend
+      - name: release - stamp application version
         if: steps.source.outputs.version != ''
         run: task release:prepare
         env:
           RELEASE_VERSION: ${{ steps.source.outputs.version }}
-      - name: Record the checked-out source revision
+      - name: git - record source revision
         id: revision
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - name: Log in to GHCR
+      - name: docker - login to ghcr
         uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - name: Enable Docker build cache access for Task
+      - name: docker - setup buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: docker - enable task build cache
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN);
             core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL);
             core.exportVariable('ACTIONS_CACHE_SERVICE_V2', process.env.ACTIONS_CACHE_SERVICE_V2);
-      - name: Publish release image
+      - name: docker - publish release image
         if: steps.source.outputs.version != ''
         run: task publish
         env:
           RELEASE_VERSION: ${{ steps.source.outputs.version }}
           GITHUB_SHA: ${{ steps.revision.outputs.sha }}
-      - name: Publish latest for a main build without a release
+      - name: docker - publish latest image for main build
         if: steps.source.outputs.version == ''
         run: task publish:latest
         env:
           GITHUB_SHA: ${{ steps.revision.outputs.sha }}
-      - name: Install Helm and ORAS for chart publication
+      - name: helm - install helm and oras
         env:
           HELM_VERSION: v4.3.0
           ORAS_VERSION: 1.3.0
@@ -98,14 +101,14 @@ jobs:
           tar -xzf /tmp/oras.tar.gz -C /tmp oras
           install /tmp/oras "$HOME/.local/bin/oras"
       # ORAS reuses the Docker registry credentials established above.
-      - name: Publish matching Helm chart tags
+      - name: helm - publish matching chart tags
         run: task helm:publish
         env:
           RELEASE_VERSION: ${{ steps.source.outputs.version }}
           GITHUB_SHA: ${{ steps.revision.outputs.sha }}
 
   pypi:
-    name: Camply Web Python Package
+    name: publish - camply-web python package
     if: >-
       github.repository == 'juftin/camply-web' &&
       github.event_name == 'release' &&
@@ -120,7 +123,7 @@ jobs:
       name: pypi
       url: https://pypi.org/p/camply-web
     steps:
-      - name: Resolve publication source
+      - name: git - resolve publication source
         id: source
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
@@ -135,16 +138,18 @@ jobs:
             } else {
               throw new Error('PyPI publication requires a release event');
             }
-      - name: Checkout the exact publication source
+      - name: checkout - exact publication source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.source.outputs.ref }}
           persist-credentials: false
-      - uses: ./.github/actions/setup-backend
-      - uses: ./.github/actions/setup-frontend
-      - name: Stamp the released application version
+      - name: backend - setup toolchain
+        uses: ./.github/actions/setup-backend
+      - name: frontend - setup toolchain
+        uses: ./.github/actions/setup-frontend
+      - name: release - stamp application version
         run: task release:prepare
         env:
           RELEASE_VERSION: ${{ steps.source.outputs.version }}
-      - name: Publish Python package to PyPI
+      - name: pypi - publish package to pypi
         run: task publish:python

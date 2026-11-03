@@ -64,10 +64,12 @@ class DocumentationTests(unittest.TestCase):
         publish = next(s for s in deploy["steps"] if s.get("id") == "deployment")
         self.assertEqual(publish["with"]["path"], "build/docs")
         ci = yaml.safe_load((ROOT / ".github/workflows/ci.yaml").read_text())
-        docs_job = ci["jobs"]["docs"]
-        self.assertTrue(
-            any("task docs:check" in s.get("run", "") for s in docs_job["steps"])
-        )
+        tasks = [
+            item.get("task")
+            for job in ci["jobs"].values()
+            for item in job.get("strategy", {}).get("matrix", {}).get("include", [])
+        ]
+        self.assertIn("docs:check", tasks)
         self.assertNotIn("pages", ci["permissions"])
 
     @unittest.skipUnless(

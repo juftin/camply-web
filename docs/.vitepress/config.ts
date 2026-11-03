@@ -56,6 +56,7 @@ export default defineConfig({
       {
         text: "Development",
         items: [
+          { text: "Contributing Guide", link: "/CONTRIBUTING" },
           { text: "Developer Guide", link: "/development/DEVELOPER_GUIDE" },
           { text: "Style Guide", link: "/development/STYLE_GUIDE" },
           {
@@ -123,6 +124,7 @@ export default defineConfig({
         text: "Development & Planning",
         collapsed: false,
         items: [
+          { text: "Contributing Guide", link: "/CONTRIBUTING" },
           { text: "Developer Quickstart", link: "/development" },
           { text: "Developer Guide", link: "/development/DEVELOPER_GUIDE" },
           { text: "Style Guide", link: "/development/STYLE_GUIDE" },
