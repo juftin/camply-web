@@ -4,11 +4,11 @@ version: "3"
 
 tasks:
   install:
-    desc: Install docs dependencies
+    summary: Install docs dependencies
     cmd: pnpm install --frozen-lockfile
 
   build:
-    desc: Build docs into build/docs
+    summary: Build docs into build/docs
     cmd: pnpm run docs:build -- {{.CLI_ARGS}}
 
   serve:
@@ -16,11 +16,11 @@ tasks:
     cmd: pnpm run docs:dev -- {{.CLI_ARGS}}
 
   preview:
-    desc: Preview built docs at http://127.0.0.1:8001
+    summary: Preview built docs at http://127.0.0.1:8001
     cmd: pnpm run docs:preview -- {{.CLI_ARGS}}
 
   check:
-    desc: Build docs and verify rendered links and Pages publishing
+    summary: Build docs and verify rendered links and Pages publishing
     cmds:
       - task: build
       - uv run python -m unittest discover -s tests/docs -v

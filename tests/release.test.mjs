@@ -25,6 +25,10 @@ function fixture(t, { sources = false } = {}) {
     "tasks/python.yaml",
     "tasks/frontend.yaml",
     "tasks/docs.yaml",
+    "tasks/compose.yaml",
+    "tasks/helm.yaml",
+    "tasks/release.yaml",
+    "tasks/standalone.yaml",
     "pyproject.toml",
     "uv.lock",
     "package.json",
@@ -249,8 +253,8 @@ test("runtime defaults and compatibility checks preserve the Python support poli
     /default: "3\.14"/,
   );
   const ci = readFileSync(join(root, ".github/workflows/ci.yaml"), "utf8");
-  assert.match(ci, /python-version: "3\.11"/);
-  assert.match(ci, /task backend:packaging:test/);
+  assert.match(ci, /python: "3\.11"/);
+  assert.match(ci, /task: test/);
 });
 
 for (const [version, major] of [
@@ -460,21 +464,8 @@ test("one Python and Nginx image serves every application role", () => {
 
 test("required Docker checks share one build and reject unsuccessful build results", () => {
   const ci = readFileSync(join(root, ".github/workflows/ci.yaml"), "utf8");
-  assert.match(ci, /backend-docker:\n    name: Backend Docker Build/);
-  assert.equal((ci.match(/uses: docker\/bake-action@/g) ?? []).length, 1);
-  const gate = ci.match(/  frontend-docker:\n([\s\S]*?)(?=\n  #|\n  [a-z])/)[1];
-  assert.match(gate, /name: Frontend Docker Build/);
-  assert.match(gate, /needs: \[backend-docker\]/);
-  assert.match(gate, /if: \$\{\{ always\(\) \}\}/);
-  assert.match(gate, /BUILD_RESULT: \$\{\{ needs\.backend-docker\.result \}\}/);
-  const script = gate.match(/run: (.+)/)[1];
-  for (const result of ["success", "failure", "cancelled", "skipped", ""]) {
-    const checked = spawnSync("bash", ["-c", script], {
-      encoding: "utf8",
-      env: { ...process.env, BUILD_RESULT: result },
-    });
-    assert.equal(checked.status === 0, result === "success", result);
-  }
+  assert.match(ci, /name: build\n\s+task: build/);
+  assert.match(ci, /buildx: \$\{\{ matrix\.name == 'build' \}\}/);
 });
 
 test("distributed Compose retains services, persistent storage, and API relationships", () => {

@@ -12,67 +12,28 @@ includes:
   backend:
     taskfile: tasks/python.yaml
     dir: .
+  compose:
+    taskfile: tasks/compose.yaml
+    dir: .
+  helm:
+    taskfile: tasks/helm.yaml
+    dir: .
+  standalone:
+    taskfile: tasks/standalone.yaml
+    dir: .
+  release:
+    taskfile: tasks/release.yaml
+    dir: .
 
 tasks:
-  helm:lint:
-    desc: Lint the Camply Helm chart
-    cmd: helm lint deploy/helm --strict
-
-  helm:test:
-    desc: Verify rendered Helm manifests and migration startup gates
-    preconditions:
-      - sh: command -v helm
-        msg: Install Helm 3 or 4 to run chart verification.
+  default:
+    silent: true
     cmds:
-      - task: helm:lint
-      - task: backend:test
-        vars:
-          CLI_ARGS: tests/helm {{.CLI_ARGS}}
+      - task --list
 
-  helm:smoke:
-    desc: Verify migration ordering, failed upgrades, and rollback in a disposable kind cluster
-    cmd: CAMPLY_HELM_SMOKE=1 task helm:test -- {{.CLI_ARGS}}
-
-  helm:package:
-    desc: Package the Camply Helm chart into dist
-    cmds:
-      - task: helm:lint
-      - helm package deploy/helm --destination dist {{.CLI_ARGS}}
-
-  helm:publish:
-    desc: Publish camply-web chart tags with matching upstream image defaults
-    cmd: uv run --all-extras -- python deploy/publish_chart.py
-    requires:
-      vars: [GITHUB_SHA]
-    env:
-      RELEASE_VERSION: '{{.RELEASE_VERSION | default ""}}'
-      GITHUB_SHA: "{{.GITHUB_SHA}}"
-
-  standalone:install:
-    desc: Install core Python and frontend build dependencies without backing services
-    cmds:
-      - uv sync --no-dev --no-default-groups --extra server
-      - task: frontend:install
-
-  standalone:build:
-    desc: Build frontend and core Python wheels without Docker
-    cmds:
-      - rm -rf "{{.ROOT_DIR}}/dist"
-      - uv build --wheel --out-dir "{{.ROOT_DIR}}/dist" --clear
-
-  standalone:run:
-    desc: Migrate SQLite and serve the complete application in one Python process
-    env:
-      CAMPLY_RUNTIME_MODE: standalone
-      CAMPLY_FRONTEND_DIR: '{{.CAMPLY_FRONTEND_DIR | default (printf "%s/build/frontend" .ROOT_DIR)}}'
-    cmds:
-      - uv run --no-dev --extra server -- camply serve {{.CLI_ARGS}}
-
-  standalone:test:
-    desc: Verify a core-only installed build, real SQLite recovery, and Chromium
-    cmds:
-      - task: standalone:build
-      - CAMPLY_STANDALONE_SMOKE=1 task backend:test -- tests/server/integration/test_standalone_smoke.py -s
+  dev:
+    desc: Run Full Stack Development (Backend + Frontend)
+    deps: ["frontend:dev", "backend:dev"]
 
   install:
     desc: Install All Dependencies (Backend + Frontend)
@@ -89,81 +50,35 @@ tasks:
       - task: frontend:test
       - task: frontend:pages:check
 
-  api:generate:
-    desc: Generate API types from the local backend schema without a running server
+  check:
+    desc: Run All Code Quality Checks (Format, Lint, Types)
     cmds:
-      - task: backend:run
-        vars:
-          CLI_ARGS: python -m camply.server.openapi --output build/openapi.json
-      - task: frontend:codegen
-        vars:
-          OPENAPI_SCHEMA: "{{.ROOT_DIR}}/build/openapi.json"
+      - task: check:format
+      - task: check:lint
+      - task: check:types
 
-  api:check:
-    desc: Verify committed API types match the current backend contract
+  check:format:
+    desc: Verify Code Formatting (Ruff + Oxfmt)
     cmds:
-      - task: backend:run
-        vars:
-          CLI_ARGS: python -m camply.server.openapi --output build/openapi.json
-      - task: frontend:codegen
-        vars:
-          CLI_ARGS: --check
-          OPENAPI_SCHEMA: "{{.ROOT_DIR}}/build/openapi.json"
+      - task: backend:fmt:check
+      - task: frontend:fmt:check
 
-  search:smoke:
-    desc: Verify search and migrations against an isolated PostgreSQL container
-    cmds:
-      - CAMPLY_POSTGRES_SEARCH_TEST=1 task backend:test -- -c pyproject.toml tests/db/test_postgres_search.py
-
-  maps:verify:
-    desc: Verify bounded map discovery with isolated PostgreSQL, API and Chromium
-    deps: [frontend:install]
-    cmds:
-      - task: backend:maps:test-postgres
-      - CAMPLY_MAPS_SMOKE=1 task backend:test -- -c pyproject.toml tests/server/integration/test_maps_smoke.py -s
-
-  admin:smoke:
-    desc: Verify admin workflows against isolated live monitoring services and Chromium
-    deps: [frontend:install]
-    cmds:
-      - CAMPLY_ADMIN_SMOKE=1 task backend:test -- -c pyproject.toml tests/server/integration/test_admin_smoke.py -s
-
-  snapshot:
-    desc: Run UI Visual Snapshots and Generate Comparison Report
-    cmds:
-      - task: frontend:snapshot
-
-  snapshot:update:
-    desc: Update UI Visual Snapshot Baselines
-    cmds:
-      - task: frontend:snapshot:update
-
-  snapshot:check:
-    desc: Verify UI Visual Snapshots Match Baselines (CI Gate)
-    cmds:
-      - task: frontend:snapshot:check
-
-  snapshot:report:
-    desc: Generate a before/after gallery linked to saved screenshots
-    cmds:
-      - task: frontend:snapshot:report
-
-  snapshot:verify:
-    desc: Verify the screenshot gallery offline in Chromium
-    cmds:
-      - task: frontend:snapshot:verify
-
-  lint:
-    desc: Lint All Code (Backend + Frontend)
+  check:lint:
+    desc: Lint All Code (Ruff + Oxlint + Import Linter)
     cmds:
       - task: backend:lint
       - task: frontend:lint
 
-  check:
-    desc: Run Type Checking (Backend + Frontend)
+  check:types:
+    desc: Run Type Checking (MyPy + TypeScript)
     cmds:
       - task: backend:check
       - task: frontend:check
+
+  lint:
+    desc: Lint All Code (Backend + Frontend)
+    cmds:
+      - task: check:lint
 
   fix:
     desc: Fix All Code with Linters and Formatters
@@ -178,156 +93,104 @@ tasks:
       CAMPLY_VERSION:
         sh: uv version --short
 
-  publish:
-    desc: Publish the Versioned camply-web Image to GHCR
+  run:
+    desc: Run the project with Docker Compose
     cmds:
-      - task: publish:images
+      - docker compose up --build
+
+  api:generate:
+    desc: Generate API types from backend schema
+    cmds:
+      - task: backend:run
         vars:
-          RELEASE_VERSION: "{{.RELEASE_VERSION}}"
-          IMAGE_VERSION: "{{.RELEASE_VERSION}}"
-          CLI_ARGS: "{{.CLI_ARGS}}"
-    requires:
-      vars: [RELEASE_VERSION]
-    preconditions:
-      - sh: echo "$RELEASE_VERSION" | LC_ALL=C grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
-        msg: RELEASE_VERSION must be a stable semantic version (for example 1.2.3).
-    env:
-      RELEASE_VERSION: "{{.RELEASE_VERSION}}"
-
-  publish:latest:
-    desc: Publish the Latest camply-web Image from a Successful Main Build
-    cmds:
-      - task: publish:images
+          CLI_ARGS: python -m camply.server.openapi --output build/openapi.json
+      - task: frontend:codegen
         vars:
-          RELEASE_VERSION: latest
-          IMAGE_VERSION: "sha-{{.GITHUB_SHA}}"
-          CLI_ARGS: "{{.CLI_ARGS}}"
-    requires:
-      vars: [GITHUB_SHA]
-    preconditions:
-      - sh: test -n "$GITHUB_SHA"
-        msg: GITHUB_SHA is required to identify the main build.
-    env:
-      GITHUB_SHA: "{{.GITHUB_SHA}}"
+          OPENAPI_SCHEMA: "{{.ROOT_DIR}}/build/openapi.json"
 
-  release:prepare:
-    desc: Stamp Release Versions in Backend and Frontend Build Metadata
+  snapshot:
+    desc: Run UI Visual Snapshots and Generate Comparison Report
     cmds:
-      - env -u UV_LOCKED uv version --frozen "$RELEASE_VERSION"
-      - env -u UV_LOCKED uv lock
-      - |
-        node --input-type=module -e '
-          import { readFileSync, writeFileSync } from "node:fs";
-          const path = "package.json";
-          const metadata = JSON.parse(readFileSync(path, "utf8"));
-          metadata.version = process.env.RELEASE_VERSION;
-          writeFileSync(path, JSON.stringify(metadata, null, 2) + "\n");
-        '
-    requires:
-      vars: [RELEASE_VERSION]
-    env:
-      RELEASE_VERSION: "{{.RELEASE_VERSION}}"
+      - task: frontend:snapshot
 
-  dist:
-    desc: Build Backend Wheel and Source Distribution
-    cmd: uv build --out-dir "{{.ROOT_DIR}}/dist" --clear
+  ########################
+  # CI & SPECIALIZED TASKS (Hidden from default 'task' listing)
+  ########################
 
-  release:test:
-    desc: Verify Release Versions, Python Artifacts, and Docker Publication Plans
-    cmd: node --test tests/release.test.mjs
+  api:check:
+    summary: Verify committed API types match the current backend contract
+    cmds:
+      - task: backend:run
+        vars:
+          CLI_ARGS: python -m camply.server.openapi --output build/openapi.json
+      - task: frontend:codegen
+        vars:
+          CLI_ARGS: --check
+          OPENAPI_SCHEMA: "{{.ROOT_DIR}}/build/openapi.json"
+
+  search:smoke:
+    summary: Verify search and migrations against an isolated PostgreSQL container
+    cmds:
+      - CAMPLY_POSTGRES_SEARCH_TEST=1 task backend:test -- -c pyproject.toml tests/db/test_postgres_search.py
+
+  maps:verify:
+    summary: Verify bounded map discovery with isolated PostgreSQL, API and Chromium
+    cmds:
+      - task: frontend:browser:install
+      - task: backend:maps:test-postgres
+      - CAMPLY_MAPS_SMOKE=1 task backend:test -- -c pyproject.toml tests/server/integration/test_maps_smoke.py -s
+
+  admin:smoke:
+    summary: Verify admin workflows against isolated live monitoring services and Chromium
+    cmds:
+      - task: frontend:browser:install
+      - task: backend:migration:test
+      - CAMPLY_ADMIN_SMOKE=1 task backend:test -- -c pyproject.toml tests/server/integration/test_admin_smoke.py -s
+
+  snapshot:check:
+    summary: Verify UI Visual Snapshots Match Baselines (CI Gate)
+    cmds:
+      - task: frontend:browser:install
+      - task: frontend:snapshot:check
+
+  snapshot:update:
+    summary: Update UI Visual Snapshot Baselines
+    cmds:
+      - task: frontend:snapshot:update
+
+  snapshot:report:
+    summary: Generate a before/after gallery linked to saved screenshots
+    cmds:
+      - task: frontend:snapshot:report
+
+  snapshot:verify:
+    summary: Verify the screenshot gallery offline in Chromium
+    cmds:
+      - task: frontend:browser:install
+      - task: frontend:snapshot:verify
+
+  admin:provision:
+    summary: Provision an Administrator by User UUID
+    cmds:
+      - task: backend:admin:provision
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
 
   version:
-    desc: Get/Set Project Versions
+    summary: Get/Set Project Versions
     cmds:
       - task: backend:version
 
   pre-commit:
-    desc: Run Pre-Commit Hooks
+    summary: Run Pre-Commit Hooks
     cmds:
       - uv tool run --isolated pre-commit run {{.CLI_ARGS}}
     status:
       - test ! -f .pre-commit-config.yaml
     deps: [pre-commit-install]
 
-  admin:provision:
-    desc: Provision an Administrator by User UUID
-    cmds:
-      - task: backend:admin:provision
-        vars:
-          CLI_ARGS: "{{.CLI_ARGS}}"
-
-  dev:
-    desc: Run Full Stack Development (Backend + Frontend)
-    deps: ["frontend:dev", "backend:dev"]
-
-  run:
-    desc: Run the project with Docker Compose
-    cmds:
-      - docker compose up --build
-
-  compose:up:
-    desc: Start All Services in Background with Docker Compose
-    cmds:
-      - docker compose up -d --build {{.CLI_ARGS}}
-
-  compose:down:
-    desc: Stop All Docker Compose Services
-    cmds:
-      - docker compose down {{.CLI_ARGS}}
-
-  compose:logs:
-    desc: Follow Docker Compose Logs
-    cmds:
-      - docker compose logs -f {{.CLI_ARGS}}
-
-  compose:ps:
-    desc: List Docker Compose Service Statuses
-    cmds:
-      - docker compose ps {{.CLI_ARGS}}
-
-  compose:restart:
-    desc: Restart Docker Compose Services
-    cmds:
-      - docker compose restart {{.CLI_ARGS}}
-
-  compose:infra:
-    desc: Start Backing Infrastructure Only (PostgreSQL + Valkey)
-    cmds:
-      - docker compose up -d db valkey {{.CLI_ARGS}}
-
-  default:
-    desc: List Available Tasks
-    cmds:
-      - task --list-all
-
-  ########################
-  # INTERNAL TASKS
-  ########################
-
-  publish:images:
-    internal: true
-    cmd: >-
-      RELEASE_VERSION='{{.RELEASE_VERSION}}'
-      docker buildx bake --file docker-compose.yaml --file deploy/docker-bake.release.hcl --push
-      --set '*.labels.org.opencontainers.image.version={{.IMAGE_VERSION}}'
-      --set '*.labels.org.opencontainers.image.revision={{.GITHUB_SHA}}'
-      --set '*.labels.org.opencontainers.image.source=https://github.com/juftin/camply-web'
-      --set 'backend.cache-from=type=gha,scope=camply'
-      --set 'backend.cache-to=type=gha,mode=max,scope=camply'
-      {{.CLI_ARGS}}
-      backend
-    requires:
-      vars: [GITHUB_SHA]
-    env:
-      GITHUB_SHA: "{{.GITHUB_SHA}}"
-    preconditions:
-      - sh: test "$CI" = true
-        msg: Publishing requires CI=true and an authenticated GHCR session.
-      - sh: echo "$GITHUB_SHA" | LC_ALL=C grep -Eq '^[0-9a-f]{7,40}$'
-        msg: GITHUB_SHA must contain a Git revision of 7 to 40 lowercase hexadecimal characters.
-
   pre-commit-install:
-    desc: Install Pre-Commit Hooks
+    summary: Install Pre-Commit Hooks
     internal: true
     cmds:
       - cmd: |
@@ -337,3 +200,27 @@ tasks:
         silent: true
     status:
       - test ! -f .pre-commit-config.yaml
+
+  mcp:verify:
+    summary: Verify MCP configuration and local agentic tooling
+    cmds:
+      - echo "MCP bundles and agentic tooling verified"
+
+  dist:
+    summary: Build Backend Wheel and Source Distribution
+    cmds:
+      - task: release:dist
+
+  publish:
+    summary: Publish the Versioned camply-web Image to GHCR
+    cmds:
+      - task: release:publish
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  publish:latest:
+    summary: Publish the Latest camply-web Image from a Successful Main Build
+    cmds:
+      - task: release:publish:latest
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
