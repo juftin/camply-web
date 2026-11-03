@@ -16,9 +16,9 @@ permissions:
   pull-requests: write
 
 jobs:
-  ci:
+  backend:
     name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     concurrency:
       group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
@@ -26,10 +26,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: backend - docker build
-            task: build
-            buildx: true
-
           - name: backend - format
             task: backend:fmt:check
             install: true
@@ -74,7 +70,33 @@ jobs:
           - name: backend - packaging test
             task: backend:packaging:test
             install: true
+    steps:
+      - name: ${{ matrix.name }}
+        if: github.event_name == 'pull_request' || matrix.run_on_push
+        uses: juftin/actions/taskfile@v1
+        with:
+          task: ${{ matrix.task }}
+          checkout: true
+          install: ${{ matrix.install || false }}
+          setup-uv: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          annotations-ruff: ${{ matrix.annotations_ruff || false }}
+          annotations-mypy: ${{ matrix.annotations_mypy || false }}
+          annotations-pytest: ${{ matrix.annotations_pytest || false }}
+          pytest-coverage: ${{ matrix.pytest_coverage && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork || false }}
+        env:
+          UV_PYTHON: ${{ matrix.python || '' }}
 
+  frontend:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
           - name: frontend - format
             task: frontend:fmt:check
             install: true
@@ -91,7 +113,27 @@ jobs:
             task: frontend:test
             install: true
             run_on_push: true
+    steps:
+      - name: ${{ matrix.name }}
+        if: github.event_name == 'pull_request' || matrix.run_on_push
+        uses: juftin/actions/taskfile@v1
+        with:
+          task: ${{ matrix.task }}
+          checkout: true
+          install: ${{ matrix.install || false }}
+          setup-uv: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
+  verify:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
           - name: pre-commit
             task: pre-commit
             install: true
@@ -109,22 +151,59 @@ jobs:
             task: helm:test
             install: true
 
-          - name: helm - cluster smoke
-            task: helm:smoke
-            install: true
-
           - name: release - verification
             task: release:test
-            install: true
-
-          - name: standalone - smoke
-            task: standalone:test
             install: true
 
           - name: api - contract check
             task: api:check
             install: true
+    steps:
+      - name: ${{ matrix.name }}
+        uses: juftin/actions/taskfile@v1
+        with:
+          task: ${{ matrix.task }}
+          checkout: true
+          install: ${{ matrix.install || false }}
+          fetch-depth: ${{ matrix.fetch_depth || '1' }}
+          setup-uv: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
+  build:
+    name: ${{ matrix.name }}
+    needs: [backend, frontend, verify]
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend - docker build
+            task: build
+            buildx: true
+    steps:
+      - name: ${{ matrix.name }}
+        uses: juftin/actions/taskfile@v1
+        with:
+          task: ${{ matrix.task }}
+          checkout: true
+          setup-uv: true
+          buildx: ${{ matrix.buildx || false }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  smoke:
+    name: ${{ matrix.name }}
+    needs: [build]
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
           - name: search - postgres smoke
             task: search:smoke
             install: true
@@ -137,25 +216,43 @@ jobs:
             task: admin:smoke
             install: true
 
-          - name: ui - visual snapshots
-            task: snapshot:check
-            os: macos-latest
+          - name: standalone - smoke
+            task: standalone:test
+            install: true
+
+          - name: helm - cluster smoke
+            task: helm:smoke
             install: true
     steps:
       - name: ${{ matrix.name }}
-        if: github.event_name == 'pull_request' || matrix.run_on_push
         uses: juftin/actions/taskfile@v1
         with:
           task: ${{ matrix.task }}
           checkout: true
           install: ${{ matrix.install || false }}
-          fetch-depth: ${{ matrix.fetch_depth || '1' }}
           setup-uv: true
-          buildx: ${{ matrix.buildx || false }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          annotations-ruff: ${{ matrix.annotations_ruff || false }}
-          annotations-mypy: ${{ matrix.annotations_mypy || false }}
-          annotations-pytest: ${{ matrix.annotations_pytest || false }}
-          pytest-coverage: ${{ matrix.pytest_coverage && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork || false }}
-        env:
-          UV_PYTHON: ${{ matrix.python || '' }}
+
+  snapshots:
+    name: ${{ matrix.name }}
+    needs: [frontend]
+    runs-on: macos-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ui - visual snapshots
+            task: snapshot:check
+            install: true
+    steps:
+      - name: ${{ matrix.name }}
+        uses: juftin/actions/taskfile@v1
+        with:
+          task: ${{ matrix.task }}
+          checkout: true
+          install: ${{ matrix.install || false }}
+          setup-uv: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
