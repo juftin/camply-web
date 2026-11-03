@@ -23,7 +23,7 @@ See the [standalone guide](docs/self-hosting/standalone.md) for installation and
 
 ## Docs
 
-Start with the [camply docs](https://camply.juftin.dev/docs/) for using the app, configuration, and self-hosting ([browse the source](docs/index.md)). Every installation includes docs at `/docs/`, linked from the app footer. Contributors can follow the [developer guide](docs/development/DEVELOPER_GUIDE.md); detailed [runtime and packaging](docs/operations/RUNNING.md) and [architecture](docs/architecture/ARCHITECTURE_DEEP_DIVE.md) references are also available.
+Start with the [camply docs](https://camply.juftin.dev/docs/) for using the app, configuration, and self-hosting ([browse the source](docs/index.md)). Every installation includes docs at `/docs/`, linked from the app footer. Contributors can follow the [contributing guide](docs/CONTRIBUTING.md) and [developer guide](docs/development/DEVELOPER_GUIDE.md); detailed [runtime and packaging](docs/operations/RUNNING.md) and [architecture](docs/architecture/ARCHITECTURE_DEEP_DIVE.md) references are also available.
 
 To edit or preview the docs, see [working on the docs](docs/development.md#working-on-the-docs).
 
