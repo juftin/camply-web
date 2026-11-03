@@ -26,18 +26,22 @@ class CamplyCLI(click.Group):
 
     def list_commands(self, ctx: click.Context) -> list[str]:
         commands = super().list_commands(ctx)
-        if "populate-database" not in commands:
-            commands.append("populate-database")
+        if "db" not in commands:
+            commands.append("db")
         return sorted(commands)
 
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
         cmd = super().get_command(ctx, cmd_name)
         if cmd is not None:
             return cmd
-        if cmd_name == "populate-database":
-            from camply.cli.populate import populate_database
+        if cmd_name == "db":
+            from camply.cli.db import db_group
 
-            return populate_database
+            return db_group
+        if cmd_name == "populate-database":
+            from camply.cli.db import metadata_cmd
+
+            return metadata_cmd
         return None
 
 

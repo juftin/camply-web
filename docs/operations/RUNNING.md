@@ -55,13 +55,13 @@ camply serve
 
 Substitute the artifact version and run the installed environment's `camply` executable. Installed standalone applications use package-owned assets by default. `CAMPLY_FRONTEND_DIR` remains an optional absolute override. SQLite storage defaults to the platform's camply application-data directory; set `CAMPLY_DB_HOST` to an absolute writable path to choose another location.
 
-| Installation              | Capabilities                                                                                               |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `camply-web`              | Provider APIs, SQLite persistence, migrations, `camply --version`/`--help`, and `camply populate-database` |
-| `camply-web[server]`      | FastAPI and standalone HTTP application                                                                    |
-| `camply-web[distributed]` | Celery worker/beat and Redis client                                                                        |
-| `camply-web[postgres]`    | PostgreSQL driver                                                                                          |
-| `camply-web[sentry]`      | Optional error reporting                                                                                   |
+| Installation              | Capabilities                                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `camply-web`              | Provider APIs, SQLite persistence, migrations, `camply --version`/`--help`, and `camply db metadata` |
+| `camply-web[server]`      | FastAPI and standalone HTTP application                                                              |
+| `camply-web[distributed]` | Celery worker/beat and Redis client                                                                  |
+| `camply-web[postgres]`    | PostgreSQL driver                                                                                    |
+| `camply-web[sentry]`      | Optional error reporting                                                                             |
 
 Extras select dependencies; all installations receive the same application files. The existing full stack selects `server,distributed,postgres,sentry`. API-only serving does not start scheduled scans unless standalone mode is selected.
 

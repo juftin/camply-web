@@ -439,9 +439,18 @@ def test_beat_help_needs_no_distributed_extra(monkeypatch: pytest.MonkeyPatch) -
     execute.assert_not_called()
 
 
-def test_populate_database_subcommand_exposed() -> None:
-    """The populate-database subcommand is discoverable and callable via the CLI."""
-    result = CliRunner().invoke(cli, ["populate-database", "--help"])
+def test_db_metadata_subcommand_exposed() -> None:
+    """The db metadata subcommand is discoverable and callable via the CLI."""
+    runner = CliRunner()
+    result_db = runner.invoke(cli, ["db", "--help"])
+    assert result_db.exit_code == 0, result_db.output
+    assert "metadata" in result_db.output
+
+    result = runner.invoke(cli, ["db", "metadata", "--help"])
     assert result.exit_code == 0, result.output
     assert "--provider-id" in result.output
     assert "all" in result.output
+
+    alias_result = runner.invoke(cli, ["populate-database", "--help"])
+    assert alias_result.exit_code == 0, alias_result.output
+    assert "--provider-id" in alias_result.output

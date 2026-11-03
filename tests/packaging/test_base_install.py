@@ -55,7 +55,7 @@ def test_population_help_is_offline(install: Callable[[str], Installation]) -> N
         import subprocess
         import sys
         from pathlib import Path
-        result = subprocess.run([str(Path(sys.executable).with_name('camply')), 'populate-database', '--help'],
+        result = subprocess.run([str(Path(sys.executable).with_name('camply')), 'db', 'metadata', '--help'],
                                 check=True, capture_output=True, text=True)
         assert '--provider-id' in result.stdout
         assert 'all' in result.stdout
