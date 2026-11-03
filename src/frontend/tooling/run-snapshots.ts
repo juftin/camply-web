@@ -1390,10 +1390,19 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
     }
   }
 
-  if (scenario.route.startsWith("/admin")) {
-    await page.waitForFunction(
-      () => document.querySelectorAll(".animate-spin").length === 0,
-    );
+  await page.waitForFunction(
+    () => document.querySelectorAll(".animate-spin").length === 0,
+    { timeout: 10000 },
+  );
+
+  if (scenario.route.startsWith("/dashboard/scans/")) {
+    try {
+      await page.waitForSelector("text=View campground on provider", {
+        timeout: 4000,
+      });
+    } catch {
+      // Continue if selector is not found within timeout
+    }
   }
 
   // Settle time for layout rendering
