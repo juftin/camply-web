@@ -3,9 +3,6 @@
 name: ci
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
   workflow_call:
   workflow_dispatch:
@@ -45,19 +42,16 @@ jobs:
           - name: backend - test - 3.11
             task: backend:test
             install: true
-            run_on_push: true
             python: "3.11"
 
           - name: backend - test - 3.12
             task: backend:test
             install: true
-            run_on_push: true
             python: "3.12"
 
           - name: backend - test - 3.13
             task: backend:test
             install: true
-            run_on_push: true
             python: "3.13"
             annotations_pytest: true
             pytest_coverage: true
@@ -65,7 +59,6 @@ jobs:
           - name: backend - test - 3.14
             task: backend:test
             install: true
-            run_on_push: true
             python: "3.14"
 
           - name: backend - packaging test
@@ -73,7 +66,6 @@ jobs:
             install: true
     steps:
       - name: ${{ matrix.name }}
-        if: github.event_name == 'pull_request' || matrix.run_on_push
         uses: juftin/actions/taskfile@v1
         with:
           task: ${{ matrix.task }}
@@ -114,10 +106,8 @@ jobs:
           - name: frontend - test
             task: frontend:test
             install: true
-            run_on_push: true
     steps:
       - name: ${{ matrix.name }}
-        if: github.event_name == 'pull_request' || matrix.run_on_push
         uses: juftin/actions/taskfile@v1
         with:
           task: ${{ matrix.task }}
