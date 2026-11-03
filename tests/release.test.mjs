@@ -435,6 +435,29 @@ test("publish workflow publishes the camply-web Python package on release", () =
   assert.match(workflow, /task publish:python/);
 });
 
+test("reusable workflow calls grant all required permissions", () => {
+  const release = readFileSync(
+    join(root, ".github/workflows/release.yaml"),
+    "utf8",
+  );
+  assert.match(
+    release,
+    /ci:\s*\n\s+name: ci\s*\n\s+permissions:\s*\n\s+contents: read\s*\n\s+id-token: write\s*\n\s+pull-requests: write/,
+  );
+  assert.match(
+    release,
+    /publish-main:\s*\n\s+name: publish - main without release[\s\S]*?permissions:\s*\n\s+contents: read\s*\n\s+packages: write\s*\n\s+id-token: write/,
+  );
+  const publish = readFileSync(
+    join(root, ".github/workflows/publish.yaml"),
+    "utf8",
+  );
+  assert.match(
+    publish,
+    /permissions:\s*\n\s+contents: read\s*\n\s+packages: write\s*\n\s+id-token: write/,
+  );
+});
+
 test("semantic release signals publication only after preparing source assets", (t) => {
   const directory = fixture(t);
   const config = JSON.parse(
