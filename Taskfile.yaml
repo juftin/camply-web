@@ -113,6 +113,46 @@ tasks:
     cmds:
       - task: frontend:snapshot
 
+  doctor:
+    desc: Verify local toolchain and system prerequisites
+    silent: true
+    cmds:
+      - |
+        echo "🩺 Checking Camply development toolchain..."
+        echo ""
+        if command -v uv >/dev/null 2>&1; then
+          echo "  ✓ uv:     $(uv --version)"
+        else
+          echo "  ✗ uv:     NOT INSTALLED (required: https://docs.astral.sh/uv/)"
+        fi
+        if command -v node >/dev/null 2>&1; then
+          echo "  ✓ Node:   $(node -v)"
+        else
+          echo "  ✗ Node:   NOT INSTALLED (required: >= 24.0.0)"
+        fi
+        if command -v pnpm >/dev/null 2>&1; then
+          echo "  ✓ pnpm:   $(pnpm -v)"
+        else
+          echo "  ! pnpm:   not in PATH (will be auto-installed by task frontend:install)"
+        fi
+        if command -v task >/dev/null 2>&1; then
+          echo "  ✓ Task:   $(task --version)"
+        else
+          echo "  ✗ Task:   NOT INSTALLED"
+        fi
+        if command -v docker >/dev/null 2>&1; then
+          echo "  ✓ Docker: $(docker --version)"
+        else
+          echo "  ! Docker: not installed (optional if running standalone SQLite)"
+        fi
+        if command -v helm >/dev/null 2>&1; then
+          echo "  ✓ Helm:   $(helm version --short 2>/dev/null)"
+        else
+          echo "  ! Helm:   not installed (optional, needed for chart development)"
+        fi
+        echo ""
+        echo "Toolchain check complete."
+
   ########################
   # CI & SPECIALIZED TASKS (Hidden from default 'task' listing)
   ########################
@@ -180,6 +220,23 @@ tasks:
     summary: Get/Set Project Versions
     cmds:
       - task: backend:version
+
+  worktree:add:
+    summary: Create a new isolated worktree and install dependencies
+    cmds:
+      - git worktree add .worktrees/{{.CLI_ARGS}} -b {{.CLI_ARGS}}
+      - cd .worktrees/{{.CLI_ARGS}} && task install
+    preconditions:
+      - sh: '[[ -n "{{.CLI_ARGS}}" ]]'
+        msg: Worktree branch name is required (e.g. task worktree:add -- my-feature)
+
+  worktree:remove:
+    summary: Remove an isolated worktree
+    cmds:
+      - git worktree remove .worktrees/{{.CLI_ARGS}}
+    preconditions:
+      - sh: '[[ -n "{{.CLI_ARGS}}" ]]'
+        msg: Worktree branch name is required (e.g. task worktree:remove -- my-feature)
 
   pre-commit:
     summary: Run Pre-Commit Hooks
