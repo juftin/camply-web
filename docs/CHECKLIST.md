@@ -52,6 +52,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.4.11a Provide a local HTML comparison gallery linked to before/after PNG files, side-by-side, reveal-slider and diff views, search/status filters, pre-update baseline preservation, report-only regeneration and offline browser verification. See [snapshot gallery plan](specs/016-snapshot-gallery/plan.md).
 - [x] T1.4.11b Prevent map snapshot navigation from waiting on background network traffic; wait for search results, rendered maps and loaded markers, with a browser regression covering an indefinitely pending request.
 - [x] T1.4.11c Improve visual regression and DOM snapshot determinism: enforce UTC timezone in test setup, and pin US English locale and device scale factor in browser context.
+- [x] T1.4.11d Accelerate UI snapshot execution with parallel worker concurrency, scenario filtering (`--filter`), DOM-mount navigation without `networkidle` pauses, isolated default port (`5197`), and clean process-group shutdown.
 - [x] T1.4.12 Migrate frontend dependency management to pinned pnpm with an imported lockfile; update Task workflows, CI caching, Docker builds, scripts, formatting hooks, and setup documentation.
 - [x] T1.4.13 Migrate frontend tooling to Oxlint, Oxfmt, Vite 8, Vitest 5, and native TypeScript 7; align Node 24 across environments and preserve eager page imports.
 - [x] T1.4.14 Make plain `task` list available workflows without installing dependencies.

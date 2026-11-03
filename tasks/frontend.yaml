@@ -2,6 +2,12 @@
 
 version: "3"
 
+env:
+  LD_LIBRARY_PATH:
+    sh: test -d /tmp/camply-browser-deps/root/usr/lib/x86_64-linux-gnu && echo "/tmp/camply-browser-deps/root/usr/lib/x86_64-linux-gnu:/tmp/camply-browser-deps/root/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH" || echo "$LD_LIBRARY_PATH"
+  FONTCONFIG_PATH:
+    sh: test -d /tmp/camply-browser-deps && echo "/tmp/camply-browser-deps" || echo "$FONTCONFIG_PATH"
+
 tasks:
   install:
     summary: Install Frontend Dependencies
@@ -104,13 +110,13 @@ tasks:
   snapshot:
     summary: Capture UI Snapshots and Generate Visual Comparison Report
     cmds:
-      - pnpm run snapshot
+      - pnpm run snapshot {{.CLI_ARGS}}
     deps: [install]
 
   snapshot:update:
     summary: Update UI Snapshot Baselines with Current State
     cmds:
-      - pnpm run snapshot:update
+      - pnpm run snapshot:update {{.CLI_ARGS}}
     deps: [install]
 
   snapshot:check:
@@ -118,7 +124,7 @@ tasks:
     env:
       GITHUB_REPOSITORY: ""
     cmds:
-      - pnpm run snapshot:check
+      - pnpm run snapshot:check {{.CLI_ARGS}}
     deps: [install]
 
   snapshot:report:
