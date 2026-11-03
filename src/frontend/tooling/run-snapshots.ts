@@ -11,7 +11,7 @@ import fs from "fs";
 import path from "path";
 import http from "http";
 import { fileURLToPath } from "url";
-import { spawn, type ChildProcess } from "child_process";
+import { spawn, execSync, type ChildProcess } from "child_process";
 import { chromium, type Browser, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
 import { setupAdminSnapshotMocks } from "./admin-snapshot-mocks";
@@ -921,6 +921,7 @@ const MOCK_SEARCH_RESULTS = MOCK_SEARCH_ITEMS;
 function isServerRunning(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const req = http.get(`http://localhost:${port}/`, (res) => {
+      res.resume();
       resolve(res.statusCode !== undefined);
     });
     req.on("error", () => resolve(false));
@@ -929,6 +930,37 @@ function isServerRunning(port: number): Promise<boolean> {
       resolve(false);
     });
   });
+}
+
+/**
+ * Terminate the spawned Vite development server and all processes in its process group.
+ *
+ * Parameters
+ * ----------
+ * serverProcess : ChildProcess
+ *     The child process reference returned by ensureServerRunning.
+ */
+function stopServer(serverProcess: ChildProcess): void {
+  if (!serverProcess || serverProcess.pid === undefined) return;
+  console.log("🛑 Stopping spawned Vite dev server...");
+  const pid = serverProcess.pid;
+  try {
+    if (process.platform === "win32") {
+      execSync(`taskkill /pid ${pid} /T /F`, { stdio: "ignore" });
+    } else {
+      try {
+        process.kill(-pid, "SIGTERM");
+      } catch {
+        try {
+          process.kill(pid, "SIGTERM");
+        } catch {
+          // Process already terminated.
+        }
+      }
+    }
+  } catch {
+    // Process already terminated.
+  }
 }
 
 /**
@@ -947,13 +979,15 @@ async function ensureServerRunning(): Promise<ChildProcess | null> {
   }
 
   console.log(`🚀 Starting Vite development server on port ${PORT}...`);
+  const isWin = process.platform === "win32";
+  const executable = isWin ? "pnpm.cmd" : "pnpm";
   const serverProcess = spawn(
-    "pnpm",
+    executable,
     ["run", "dev", "--port", `${PORT}`, "--base", "/"],
     {
       cwd: FRONTEND_ROOT,
-      stdio: "pipe",
-      shell: true,
+      stdio: "ignore",
+      detached: !isWin,
       env: {
         ...process.env,
         GITHUB_REPOSITORY: "",
@@ -962,6 +996,7 @@ async function ensureServerRunning(): Promise<ChildProcess | null> {
       },
     },
   );
+  serverProcess.unref();
 
   const started = await new Promise<boolean>((resolve) => {
     const timeout = setTimeout(() => resolve(false), 15000);
@@ -975,7 +1010,7 @@ async function ensureServerRunning(): Promise<ChildProcess | null> {
   });
 
   if (!started) {
-    serverProcess.kill();
+    stopServer(serverProcess);
     throw new Error(
       `Failed to start Vite dev server on port ${PORT} within 15 seconds.`,
     );
@@ -1494,6 +1529,7 @@ async function main(): Promise<void> {
 
   const serverProcess = await ensureServerRunning();
   let browser: Browser | null = null;
+  let hasRegressions = false;
 
   try {
     console.log("🌐 Launching headless browser...");
@@ -1565,10 +1601,7 @@ async function main(): Promise<void> {
       );
 
       if (isCheck) {
-        console.error(
-          "\n❌ Visual regression check failed: modified snapshots detected in --check mode.",
-        );
-        process.exit(1);
+        hasRegressions = true;
       }
     } else {
       console.log("🎉 All snapshots match baselines perfectly!");
@@ -1576,13 +1609,23 @@ async function main(): Promise<void> {
   } finally {
     if (browser) await browser.close();
     if (serverProcess) {
-      console.log("🛑 Stopping spawned Vite dev server...");
-      serverProcess.kill();
+      stopServer(serverProcess);
     }
+  }
+
+  if (hasRegressions) {
+    console.error(
+      "\n❌ Visual regression check failed: modified snapshots detected in --check mode.",
+    );
+    process.exit(1);
   }
 }
 
-main().catch((err) => {
-  console.error("Fatal error during snapshot execution:", err);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error("Fatal error during snapshot execution:", err);
+    process.exit(1);
+  });

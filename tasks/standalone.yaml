@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+tasks:
+  install:
+    summary: Install core Python and frontend build dependencies without backing services
+    cmds:
+      - uv sync --no-dev --no-default-groups --extra server
+      - task: :frontend:install
+
+  build:
+    summary: Build frontend and core Python wheels without Docker
+    cmds:
+      - rm -rf "{{.ROOT_DIR}}/dist"
+      - uv build --wheel --out-dir "{{.ROOT_DIR}}/dist" --clear
+
+  run:
+    summary: Migrate SQLite and serve the complete application in one Python process
+    env:
+      CAMPLY_RUNTIME_MODE: standalone
+      CAMPLY_FRONTEND_DIR: '{{.CAMPLY_FRONTEND_DIR | default (printf "%s/build/frontend" .ROOT_DIR)}}'
+    cmds:
+      - uv run --no-dev --extra server -- camply serve {{.CLI_ARGS}}
+
+  test:
+    summary: Verify a core-only installed build, real SQLite recovery, and Chromium
+    cmds:
+      - task: :frontend:browser:install
+      - task: build
+      - CAMPLY_STANDALONE_SMOKE=1 task backend:test -- tests/server/integration/test_standalone_smoke.py -s

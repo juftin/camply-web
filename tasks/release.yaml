@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+tasks:
+  prepare:
+    summary: Stamp Release Versions in Backend and Frontend Build Metadata
+    cmds:
+      - env -u UV_LOCKED uv version --frozen "$RELEASE_VERSION"
+      - env -u UV_LOCKED uv lock
+      - |
+        node --input-type=module -e '
+          import { readFileSync, writeFileSync } from "node:fs";
+          const path = "package.json";
+          const metadata = JSON.parse(readFileSync(path, "utf8"));
+          metadata.version = process.env.RELEASE_VERSION;
+          writeFileSync(path, JSON.stringify(metadata, null, 2) + "\n");
+        '
+    requires:
+      vars: [RELEASE_VERSION]
+    env:
+      RELEASE_VERSION: "{{.RELEASE_VERSION}}"
+
+  dist:
+    summary: Build Backend Wheel and Source Distribution
+    cmd: uv build --out-dir "{{.ROOT_DIR}}/dist" --clear
+
+  test:
+    summary: Verify Release Versions, Python Artifacts, and Docker Publication Plans
+    cmd: node --test tests/release.test.mjs
+
+  publish:
+    summary: Publish the Versioned camply-web Image to GHCR
+    cmds:
+      - task: images
+        vars:
+          RELEASE_VERSION: "{{.RELEASE_VERSION}}"
+          IMAGE_VERSION: "{{.RELEASE_VERSION}}"
+          CLI_ARGS: "{{.CLI_ARGS}}"
+    requires:
+      vars: [RELEASE_VERSION]
+    preconditions:
+      - sh: echo "$RELEASE_VERSION" | LC_ALL=C grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+        msg: RELEASE_VERSION must be a stable semantic version (for example 1.2.3).
+    env:
+      RELEASE_VERSION: "{{.RELEASE_VERSION}}"
+
+  publish:latest:
+    summary: Publish the Latest camply-web Image from a Successful Main Build
+    cmds:
+      - task: images
+        vars:
+          RELEASE_VERSION: latest
+          IMAGE_VERSION: "sha-{{.GITHUB_SHA}}"
+          CLI_ARGS: "{{.CLI_ARGS}}"
+    requires:
+      vars: [GITHUB_SHA]
+    preconditions:
+      - sh: test -n "$GITHUB_SHA"
+        msg: GITHUB_SHA is required to identify the main build.
+    env:
+      GITHUB_SHA: "{{.GITHUB_SHA}}"
+
+  images:
+    internal: true
+    cmd: >-
+      RELEASE_VERSION='{{.RELEASE_VERSION}}'
+      docker buildx bake --file docker-compose.yaml --file deploy/docker-bake.release.hcl --push
+      --set '*.labels.org.opencontainers.image.version={{.IMAGE_VERSION}}'
+      --set '*.labels.org.opencontainers.image.revision={{.GITHUB_SHA}}'
+      --set '*.labels.org.opencontainers.image.source=https://github.com/juftin/camply-web'
+      --set 'backend.cache-from=type=gha,scope=camply'
+      --set 'backend.cache-to=type=gha,mode=max,scope=camply'
+      {{.CLI_ARGS}}
+      backend
+    requires:
+      vars: [GITHUB_SHA]
+    env:
+      GITHUB_SHA: "{{.GITHUB_SHA}}"
+    preconditions:
+      - sh: test "$CI" = true
+        msg: Publishing requires CI=true and an authenticated GHCR session.
+      - sh: echo "$GITHUB_SHA" | LC_ALL=C grep -Eq '^[0-9a-f]{7,40}$'
+        msg: GITHUB_SHA must contain a Git revision of 7 to 40 lowercase hexadecimal characters.

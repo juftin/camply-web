@@ -1,292 +1,264 @@
----
-name: CI
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
-  actions: write
-
-on:
-  workflow_call:
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
-  cancel-in-progress: true
+  id-token: write
+  pull-requests: write
 
 jobs:
-  docs:
-    name: Documentation
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-backend
-      - uses: ./.github/actions/setup-frontend
-      - name: Build and verify documentation
-        run: task docs:check
-
-  helm-checks:
-    name: Helm ${{ matrix.helm }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    strategy:
-      matrix:
-        helm: [v3.19.0, v4.3.0]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-backend
-      - name: Install Helm and ORAS
-        env:
-          HELM_VERSION: ${{ matrix.helm }}
-          ORAS_VERSION: 1.3.0
-        run: |
-          curl -fsSLo /tmp/helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
-          tar -xzf /tmp/helm.tar.gz -C /tmp
-          install /tmp/linux-amd64/helm "$HOME/.local/bin/helm"
-          curl -fsSLo /tmp/oras.tar.gz "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
-          tar -xzf /tmp/oras.tar.gz -C /tmp oras
-          install /tmp/oras "$HOME/.local/bin/oras"
-      - run: task helm:test
-
-  release-checks:
-    name: Release Configuration
-    runs-on: ubuntu-latest
+  backend:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-backend
-      - uses: ./.github/actions/setup-frontend
-      - run: task release:test
-
-  standalone-smoke:
-    name: Standalone Install and Browser Smoke
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: ./.github/actions/setup-backend
-      - uses: ./.github/actions/setup-frontend
-      - run: task frontend:browser:install
-      - run: task standalone:test
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        if: always()
-        with:
-          name: standalone-smoke
-          path: tmp/standalone-smoke*.png
-
-  # ── Backend ──────────────────────────────────────────────────────────────
-
-  backend-checks:
-    name: Backend ${{ matrix.name }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: Lint
-            cmd: task backend:lint
-          - name: Type Check
-            cmd: task backend:check
-          - name: Tests
-            cmd: task backend:test
+          - name: backend - format
+            task: backend:fmt:check
+            install: true
+            annotations_ruff: true
+
+          - name: backend - lint
+            task: backend:lint
+            install: true
+            annotations_ruff: true
+
+          - name: backend - type check
+            task: backend:check
+            install: true
+            annotations_mypy: true
+
+          - name: backend - test - 3.11
+            task: backend:test
+            install: true
+            run_on_push: true
+            python: "3.11"
+
+          - name: backend - test - 3.12
+            task: backend:test
+            install: true
+            run_on_push: true
+            python: "3.12"
+
+          - name: backend - test - 3.13
+            task: backend:test
+            install: true
+            run_on_push: true
+            python: "3.13"
+            annotations_pytest: true
+            pytest_coverage: true
+
+          - name: backend - test - 3.14
+            task: backend:test
+            install: true
+            run_on_push: true
+            python: "3.14"
+
+          - name: backend - packaging test
+            task: backend:packaging:test
+            install: true
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-backend
       - name: ${{ matrix.name }}
-        run: ${{ matrix.cmd }}
-
-  backend-packaging:
-    name: Backend Artifact Matrix (Python 3.14)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-backend
-      - uses: ./.github/actions/setup-frontend
-      - run: task backend:packaging:test
-        env:
-          PACKAGING_PYTHON: "3.14"
-
-  runtime-health-smoke:
-    name: Runtime Health Smoke
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-backend
-      - run: task backend:healthcheck:test
-      - run: task backend:nginx:test
-
-  backend-compatibility:
-    name: Backend Minimum Python (3.11)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      UV_PYTHON: "3.11"
-      PACKAGING_PYTHON: "3.11"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-backend
+        if: github.event_name == 'pull_request' || matrix.run_on_push
+        uses: juftin/actions/taskfile@v1
         with:
-          python-version: "3.11"
-      - uses: ./.github/actions/setup-frontend
-      - run: task backend:test
-      - run: task backend:packaging:test
-
-  # Preserve the existing required check names while building the image once.
-  backend-docker:
-    name: Backend Docker Build
-    needs: [backend-checks, frontend-checks]
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - name: Build camply-web image
-        uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7.5.0
-        with:
-          files: ./docker-compose.yaml
-          targets: backend
-          push: false
-          load: true
-          set: |
-            *.cache-from=type=gha,scope=camply
-            *.cache-to=type=gha,mode=max,scope=camply
+          task: ${{ matrix.task }}
+          checkout: true
+          install: ${{ matrix.install || false }}
+          setup-uv: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          annotations-ruff: ${{ matrix.annotations_ruff || false }}
+          annotations-mypy: ${{ matrix.annotations_mypy || false }}
+          annotations-pytest: ${{ matrix.annotations_pytest || false }}
+          pytest-coverage: ${{ matrix.pytest_coverage && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork || false }}
         env:
-          CAMPLY_VERSION: ci-${{ github.sha }}
-      - uses: ./.github/actions/setup-backend
-      - name: Install Helm and kind for lifecycle verification
-        env:
-          HELM_VERSION: v4.3.0
-          KIND_VERSION: v0.33.0
-        run: |
-          curl -fsSLo /tmp/helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
-          tar -xzf /tmp/helm.tar.gz -C /tmp
-          install /tmp/linux-amd64/helm "$HOME/.local/bin/helm"
-          curl -fsSLo "$HOME/.local/bin/kind" "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
-          chmod +x "$HOME/.local/bin/kind"
-      - name: Verify Kubernetes install and upgrades against the source image
-        run: task helm:smoke
-        env:
-          CAMPLY_HELM_TEST_IMAGE: ghcr.io/juftin/camply-web:ci-${{ github.sha }}
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        if: always()
-        with:
-          name: helm-lifecycle
-          path: tmp/camply-helm-*/
+          UV_PYTHON: ${{ matrix.python || '' }}
 
-  frontend-docker:
-    name: Frontend Docker Build
-    needs: [backend-docker]
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 1
-    steps:
-      - name: Verify shared image build
-        env:
-          BUILD_RESULT: ${{ needs.backend-docker.result }}
-        run: test "$BUILD_RESULT" = success
-
-  # ── Frontend ─────────────────────────────────────────────────────────────
-
-  frontend-checks:
-    name: Frontend ${{ matrix.name }}
-    runs-on: ubuntu-latest
+  frontend:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: Lint
-            cmd: task frontend:lint
-          - name: Type Check
-            cmd: task frontend:check
-          - name: Tests
-            cmd: task frontend:test
+          - name: frontend - format
+            task: frontend:fmt:check
+            install: true
+
+          - name: frontend - lint
+            task: frontend:lint
+            install: true
+
+          - name: frontend - type check
+            task: frontend:check
+            install: true
+
+          - name: frontend - test
+            task: frontend:test
+            install: true
+            run_on_push: true
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-frontend
       - name: ${{ matrix.name }}
-        run: ${{ matrix.cmd }}
-
-  api-contract:
-    name: API Contract
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-backend
-      - uses: ./.github/actions/setup-frontend
-      - run: task api:check
-      - run: task frontend:pages:check
-
-  search-smoke:
-    name: PostgreSQL Search
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-backend
-      - run: task search:smoke
-
-  map-verification:
-    name: Map Database and Browser Verification
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-backend
-      - uses: ./.github/actions/setup-frontend
-      - run: task frontend:browser:install
-      - run: task maps:verify
-      - name: Upload map verification evidence
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: github.event_name == 'pull_request' || matrix.run_on_push
+        uses: juftin/actions/taskfile@v1
         with:
-          name: map-verification
-          path: tmp/maps-*
-          if-no-files-found: ignore
+          task: ${{ matrix.task }}
+          checkout: true
+          install: ${{ matrix.install || false }}
+          setup-uv: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-  admin-smoke:
-    name: Admin Live Smoke
-    runs-on: ubuntu-latest
+  verify:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-backend
-      - uses: ./.github/actions/setup-frontend
-      - run: task frontend:browser:install
-      - run: task backend:migration:test
-      - run: task admin:smoke
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: pre-commit
+            task: pre-commit
+            install: true
+            fetch_depth: 0
 
-  ui-snapshots:
-    name: UI Visual Snapshots
+          - name: mcp - bundle verify
+            task: mcp:verify
+            install: true
+
+          - name: docs - check
+            task: docs:check
+            install: true
+
+          - name: helm - chart test
+            task: helm:test
+            install: true
+
+          - name: release - verification
+            task: release:test
+            install: true
+
+          - name: api - contract check
+            task: api:check
+            install: true
+    steps:
+      - name: ${{ matrix.name }}
+        uses: juftin/actions/taskfile@v1
+        with:
+          task: ${{ matrix.task }}
+          checkout: true
+          install: ${{ matrix.install || false }}
+          fetch-depth: ${{ matrix.fetch_depth || '1' }}
+          setup-uv: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    name: ${{ matrix.name }}
+    needs: [backend, frontend, verify]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend - docker build
+            task: build
+            buildx: true
+    steps:
+      - name: ${{ matrix.name }}
+        uses: juftin/actions/taskfile@v1
+        with:
+          task: ${{ matrix.task }}
+          checkout: true
+          setup-uv: true
+          buildx: ${{ matrix.buildx || false }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  smoke:
+    name: ${{ matrix.name }}
+    needs: [build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: search - postgres smoke
+            task: search:smoke
+            install: true
+
+          - name: maps - browser verification
+            task: maps:verify
+            install: true
+
+          - name: admin - live smoke
+            task: admin:smoke
+            install: true
+
+          - name: standalone - smoke
+            task: standalone:test
+            install: true
+
+          - name: helm - cluster smoke
+            task: helm:smoke
+            install: true
+    steps:
+      - name: ${{ matrix.name }}
+        uses: juftin/actions/taskfile@v1
+        with:
+          task: ${{ matrix.task }}
+          checkout: true
+          install: ${{ matrix.install || false }}
+          setup-uv: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  snapshots:
+    name: ${{ matrix.name }}
+    needs: [frontend]
     runs-on: macos-latest
     timeout-minutes: 15
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ui - visual snapshots
+            task: snapshot:check
+            install: true
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-frontend
-      - run: task frontend:browser:install
-      - run: task snapshot:verify
-      - run: task snapshot:check
-        env:
-          GITHUB_REPOSITORY: ""
-      - name: Upload Snapshot Reports and Visual Diffs
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - name: ${{ matrix.name }}
+        uses: juftin/actions/taskfile@v1
         with:
-          name: ui-snapshots-report
-          path: |
-            tmp/snapshots/REPORT.md
-            tmp/snapshots/report.html
-            tmp/snapshots/diffs/
-            tmp/snapshots/current/
-            tmp/snapshots/before/
-            tmp/snapshot-gallery/
-          if-no-files-found: ignore
+          task: ${{ matrix.task }}
+          checkout: true
+          install: ${{ matrix.install || false }}
+          setup-uv: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}

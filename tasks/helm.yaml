@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+tasks:
+  lint:
+    summary: Lint the Camply Helm chart
+    cmd: helm lint deploy/helm --strict
+
+  test:
+    summary: Verify rendered Helm manifests and migration startup gates
+    preconditions:
+      - sh: command -v helm
+        msg: Install Helm 3 or 4 to run chart verification.
+    cmds:
+      - task: lint
+      - task: :backend:test
+        vars:
+          CLI_ARGS: tests/helm {{.CLI_ARGS}}
+
+  smoke:
+    summary: Verify migration ordering, failed upgrades, and rollback in a disposable kind cluster
+    cmd: CAMPLY_HELM_SMOKE=1 task helm:test -- {{.CLI_ARGS}}
+
+  package:
+    summary: Package the Camply Helm chart into dist
+    cmds:
+      - task: lint
+      - helm package deploy/helm --destination dist {{.CLI_ARGS}}
+
+  publish:
+    summary: Publish camply-web chart tags with matching upstream image defaults
+    cmd: uv run --all-extras -- python deploy/publish_chart.py
+    requires:
+      vars: [GITHUB_SHA]
+    env:
+      RELEASE_VERSION: '{{.RELEASE_VERSION | default ""}}'
+      GITHUB_SHA: "{{.GITHUB_SHA}}"

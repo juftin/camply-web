@@ -10,6 +10,7 @@ Before modifying the system, review the relevant architectural blueprints:
 
 - 👉 **[Roadmap & Plan](docs/PLAN.md)**: The definitive path forward and current phases.
 - 👉 **[Feature Checklist](docs/CHECKLIST.md)**: Granular implementation tasks. (Update this before every PR!).
+- 👉 **[Contributing Guide](docs/CONTRIBUTING.md)**: PR lifecycle, Gitmoji conventions, and quality gates.
 - 👉 **[Developer Guide](docs/development/DEVELOPER_GUIDE.md)**: Quickstart, workflows, and local setup.
 - 👉 **[Style Guide](docs/development/STYLE_GUIDE.md)**: Engineering, Git, and PR standards.
 - 👉 **[Architecture Deep Dive](docs/architecture/ARCHITECTURE_DEEP_DIVE.md)**: Details on the Smart De-duplicated Poller.

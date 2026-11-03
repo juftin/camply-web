@@ -9,7 +9,7 @@
 - **Use the hosted app:** [find a campground and create a scan](using-camply.md).
 - **Run it on your machine:** [start the standalone app](self-hosting/standalone.md) with Python and SQLite.
 - **Host your own instance:** choose [Docker Compose or Kubernetes](self-hosting/containers.md), then [configure login and alerts](configuration.md).
-- **Contribute:** follow the [development guide](development.md) or browse the [technical references](reference.md).
+- **Contribute:** follow the [contributing guide](CONTRIBUTING.md), the [development guide](development.md), or browse the [technical references](reference.md).
 
 camply finds availability; reservations are completed with the booking provider. An alert does not hold a campsite for you.
 
