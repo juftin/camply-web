@@ -497,7 +497,7 @@ def test_api_booking_url() -> None:
 
 def test_population_cli(monkeypatch: pytest.MonkeyPatch) -> None:
     """Select California via the metadata CLI and close clients on failure."""
-    from camply.cli.populate import populate_database
+    from camply.cli.db import metadata_cmd
 
     instance = MagicMock()
     instance.populate_database = AsyncMock(
@@ -506,7 +506,7 @@ def test_population_cli(monkeypatch: pytest.MonkeyPatch) -> None:
     instance.async_client.aclose = AsyncMock()
     factory = MagicMock(return_value=instance)
     monkeypatch.setitem(PROVIDERS, 2, factory)
-    result = CliRunner().invoke(populate_database, ["--provider-id", "2"])
+    result = CliRunner().invoke(metadata_cmd, ["--provider-id", "2"])
     assert isinstance(result.exception, RuntimeError)
     factory.assert_called_once_with()
     instance.populate_database.assert_awaited_once()

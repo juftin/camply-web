@@ -38,10 +38,6 @@ class CamplyCLI(click.Group):
             from camply.cli.db import db_group
 
             return db_group
-        if cmd_name == "populate-database":
-            from camply.cli.db import metadata_cmd
-
-            return metadata_cmd
         return None
 
 

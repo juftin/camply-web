@@ -58,7 +58,3 @@ def metadata_cmd(provider_id: str) -> None:
                 await provider.async_client.aclose()
 
     asyncio.run(populate())
-
-
-# Also register populate-database as alias under db
-db_group.add_command(metadata_cmd, name="populate-database")

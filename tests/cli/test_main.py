@@ -450,7 +450,3 @@ def test_db_metadata_subcommand_exposed() -> None:
     assert result.exit_code == 0, result.output
     assert "--provider-id" in result.output
     assert "all" in result.output
-
-    alias_result = runner.invoke(cli, ["populate-database", "--help"])
-    assert alias_result.exit_code == 0, alias_result.output
-    assert "--provider-id" in alias_result.output

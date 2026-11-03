@@ -70,9 +70,9 @@ def test_metadata_cli_lists_registered_providers() -> None:
     """Operators can discover all supported metadata provider IDs from help."""
     from click.testing import CliRunner
 
-    from camply.cli.populate import populate_database
+    from camply.cli.db import metadata_cmd
 
-    result = CliRunner().invoke(populate_database, ["--help"])
+    result = CliRunner().invoke(metadata_cmd, ["--help"])
     assert result.exit_code == 0
     assert "3 = FloridaStateParks" in result.output
     assert "11 = NorthernTerritory" in result.output
