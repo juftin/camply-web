@@ -1544,7 +1544,11 @@ async function main(): Promise<void> {
       ],
     });
 
-    const context = await browser.newContext({ timezoneId: "UTC" });
+    const context = await browser.newContext({
+      timezoneId: "UTC",
+      locale: "en-US",
+      deviceScaleFactor: 1,
+    });
     const page = await context.newPage();
     await page.clock.setFixedTime(new Date("2026-10-10T12:00:00Z"));
 

@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom/vitest";
 
+if (typeof globalThis !== "undefined" && "process" in globalThis) {
+  const nodeProcess = globalThis.process as { env?: Record<string, string> };
+  if (nodeProcess?.env) {
+    nodeProcess.env.TZ = "UTC";
+  }
+}
+
 // jsdom in some environments has opaque origins where localStorage/sessionStorage
 // throws. Provide a mock so DismissibleBanner and similar tests work.
 if (typeof localStorage === "undefined" || localStorage === null) {
