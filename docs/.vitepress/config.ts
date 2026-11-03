@@ -150,9 +150,5 @@ export default defineConfig({
     socialLinks: [
       { icon: "github", link: "https://github.com/juftin/camply-web" },
     ],
-    editLink: {
-      pattern: "https://github.com/juftin/camply-web/edit/main/docs/:path",
-      text: "Edit this page on GitHub",
-    },
   },
 });
