@@ -48,7 +48,7 @@ The following MCP servers should be added to the local agent configuration (e.g.
 
 **Capability**: Manage issues, PRs, and project boards.
 
-- **Repository**: `juftin/camply`
+- **Repository**: `juftin/camply-web`
 - **Use Case**:
   - Synchronize `spec-kit` tasks with GitHub Issues.
   - Create PRs with detailed "Plan vs. Reality" descriptions.

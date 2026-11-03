@@ -2,27 +2,37 @@
 
 Standalone camply serves the web app, API, and background polling in one Python process. It stores your catalog, scans, and pending alerts in SQLite. This is the simplest setup for a personal instance.
 
-## Install from GitHub
+## Quick start with uvx
 
-Install [uv](https://docs.astral.sh/uv/), Git, Node.js 24, and pnpm 12.15.0 (the version pinned in `package.json`). The Git install builds the bundled web app, so Node and pnpm must be available during installation. uv can install Python 3.14 automatically.
+Run camply directly with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv tool install git+https://github.com/juftin/camply-web --with 'camply[server]' --python 3.14
-camply serve
+uvx --from "camply-web[server]" camply serve
 ```
 
 Open <http://127.0.0.1:8000>. Use **Sync Providers** in Admin Operations to import the campground catalog, then [create a scan](../using-camply.md). Configure [Pushover](../configuration.md#notifications) to receive alerts.
 
-The `server` extra installs the dependencies needed to serve the app. uv installs camply in an isolated tool environment and exposes the `camply` command on your PATH. If your shell cannot find it, run `uv tool update-shell` and restart your shell.
+The `server` extra installs the dependencies needed to serve the app.
 
-Docker, PostgreSQL, and Valkey are not required for this workflow. Internet access is needed for catalog imports, availability checks, and notifications. Node and pnpm are not needed to run the installed app.
+Docker, PostgreSQL, and Valkey are not required for this workflow. Internet access is needed for catalog imports, availability checks, and notifications.
+
+## Install as a tool
+
+To install camply into a persistent tool environment:
+
+```bash
+uv tool install "camply-web[server]"
+camply serve
+```
+
+uv exposes the `camply` command on your PATH. If your shell cannot find it, run `uv tool update-shell` and restart your shell.
 
 ## Run a prepared wheel
 
-If you have a prepared camply wheel, install it with uv from the directory containing the downloaded file:
+If you have a prepared camply-web wheel, install it with uv from the directory containing the downloaded file:
 
 ```bash
-uv tool install './camply-0.1.0-py3-none-any.whl[server]' --python 3.14
+uv tool install './camply_web-0.1.0-py3-none-any.whl[server]'
 camply serve
 ```
 

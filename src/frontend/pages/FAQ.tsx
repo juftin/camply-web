@@ -72,7 +72,7 @@ const faqs: FAQItem[] = [
           </>
         )}
         <a
-          href="https://github.com/juftin/camply"
+          href="https://github.com/juftin/camply-web"
           target="_blank"
           rel="noopener noreferrer"
           className="text-primary hover:text-primary/80 underline"
@@ -238,7 +238,7 @@ export function FAQ() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button variant="outline" asChild>
                 <a
-                  href="https://github.com/juftin/camply/issues"
+                  href="https://github.com/juftin/camply-web/issues"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

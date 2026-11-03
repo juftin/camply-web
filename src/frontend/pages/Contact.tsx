@@ -163,7 +163,7 @@ export function Contact() {
             <CardContent className="text-center">
               <Button variant="outline" className="w-full" asChild>
                 <a
-                  href="https://github.com/juftin/camply/issues"
+                  href="https://github.com/juftin/camply-web/issues"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -201,7 +201,7 @@ export function Contact() {
             <CardContent className="text-center">
               <Button variant="outline" className="w-full" asChild>
                 <a
-                  href="https://github.com/juftin/camply/issues/new?template=bug_report.md"
+                  href="https://github.com/juftin/camply-web/issues/new?template=bug_report.md"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -223,7 +223,7 @@ export function Contact() {
             <CardContent className="text-center">
               <Button variant="outline" className="w-full" asChild>
                 <a
-                  href="https://github.com/juftin/camply/issues/new?template=feature_request.md"
+                  href="https://github.com/juftin/camply-web/issues/new?template=feature_request.md"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

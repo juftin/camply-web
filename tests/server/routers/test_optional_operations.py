@@ -49,11 +49,11 @@ def test_server_only_operations_report_unavailable(
     assert not overview.json()["telemetry_available"]
     assert not overview.json()["broker_connected"]
     assert overview.json()["stale"]
-    assert "camply[distributed]" in overview.json()["error_message"]
+    assert "camply-web[distributed]" in overview.json()["error_message"]
     tasks = test_client.get("/api/admin/operations/tasks")
     assert tasks.status_code == 200
     assert not tasks.json()["available"]
-    assert "camply[distributed]" in tasks.json()["error_message"]
+    assert "camply-web[distributed]" in tasks.json()["error_message"]
 
 
 def test_server_only_optional_actions_return_installation_hint(
@@ -68,7 +68,7 @@ def test_server_only_optional_actions_return_installation_hint(
     ):
         response = getattr(test_client, method)(path)
         assert response.status_code == 503
-        assert "camply[distributed]" in response.json()["detail"]
+        assert "camply-web[distributed]" in response.json()["detail"]
 
 
 def test_server_only_operations_preserve_authorization(

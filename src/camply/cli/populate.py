@@ -16,11 +16,12 @@ rich.traceback.install(
 
 
 @click.command(
+    name="populate-database",
     help="Populate provider metadata independently of availability scans.\n\n"
     + "; ".join(
         f"{provider_id} = {provider_cls.__name__.removesuffix('Provider')}"
         for provider_id, provider_cls in PROVIDERS.items()
-    )
+    ),
 )
 @click.option(
     "--provider-id",

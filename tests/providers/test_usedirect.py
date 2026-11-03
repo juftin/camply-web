@@ -70,7 +70,7 @@ def test_metadata_cli_lists_registered_providers() -> None:
     """Operators can discover all supported metadata provider IDs from help."""
     from click.testing import CliRunner
 
-    from camply.providers.cli import populate_database
+    from camply.cli.populate import populate_database
 
     result = CliRunner().invoke(populate_database, ["--help"])
     assert result.exit_code == 0

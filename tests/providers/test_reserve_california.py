@@ -497,7 +497,7 @@ def test_api_booking_url() -> None:
 
 def test_population_cli(monkeypatch: pytest.MonkeyPatch) -> None:
     """Select California via the metadata CLI and close clients on failure."""
-    from camply.providers.cli import populate_database
+    from camply.cli.populate import populate_database
 
     instance = MagicMock()
     instance.populate_database = AsyncMock(

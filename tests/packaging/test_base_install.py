@@ -28,7 +28,7 @@ def test_base_imports_and_metadata(install: Callable[[str], Installation]) -> No
         assert sorted(PROVIDERS) == list(range(1, 12))
         assert db.DRIVERNAME.value == 'sqlite+aiosqlite'
         scripts = {entry.name: entry.value for entry in distribution.entry_points if entry.group == 'console_scripts'}
-        assert scripts['populate-database'] == 'camply.providers.cli:populate_database'
+        assert 'populate-database' not in scripts
         assert scripts['camply'] == 'camply.cli.main:cli'
     """)
 
@@ -50,12 +50,12 @@ def test_cli_version_is_offline(install: Callable[[str], Installation]) -> None:
 
 
 def test_population_help_is_offline(install: Callable[[str], Installation]) -> None:
-    """The retained population entry point lists its flags without a provider call."""
+    """The CLI population command lists its flags without a provider call."""
     install("").run("""
         import subprocess
         import sys
         from pathlib import Path
-        result = subprocess.run([str(Path(sys.executable).with_name('populate-database')), '--help'],
+        result = subprocess.run([str(Path(sys.executable).with_name('camply')), 'populate-database', '--help'],
                                 check=True, capture_output=True, text=True)
         assert '--provider-id' in result.stdout
         assert 'all' in result.stdout
@@ -147,12 +147,12 @@ def test_runtime_help_and_missing_dependencies(
         from camply.cli.main import cli
 
         for command, hint in (
-            (['serve'], 'camply[server]'),
+            (['serve'], 'camply-web[server]'),
             (['serve', 'frontend'], 'Nginx'),
-            (['serve', 'backend'], 'camply[server]'),
-            (['serve', 'worker'], 'camply[distributed]'),
-            (['serve', 'beat'], 'camply[distributed]'),
-            (['serve', 'healthcheck', 'worker'], 'camply[distributed]'),
+            (['serve', 'backend'], 'camply-web[server]'),
+            (['serve', 'worker'], 'camply-web[distributed]'),
+            (['serve', 'beat'], 'camply-web[distributed]'),
+            (['serve', 'healthcheck', 'worker'], 'camply-web[distributed]'),
         ):
             help_result = CliRunner().invoke(cli, [*command, '--help'])
             assert help_result.exit_code == 0, help_result.output

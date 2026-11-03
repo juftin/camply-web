@@ -167,7 +167,7 @@ def test_server_only_routes_and_operations(
                 for method, path in (('GET', '/api/admin/operations/tasks/synthetic-task'), ('POST', '/api/admin/operations/sync-providers')):
                     response = await client.request(method, path)
                     assert response.status_code == 503, response.text
-                    assert 'camply[distributed]' in response.text
+                    assert 'camply-web[distributed]' in response.text
 
                 def unauthorized():
                     """Reject authentication before optional operations are inspected."""
@@ -269,13 +269,13 @@ def test_missing_optional_entrypoints(install: Callable[[str], Installation]) ->
             try:
                 importlib.import_module(module)
             except RuntimeError as error:
-                assert f'camply[{extra}]' in str(error), str(error)
+                assert f'camply-web[{extra}]' in str(error), str(error)
             else:
                 raise AssertionError(f'{module} unexpectedly imported without {extra}')
         try:
             DatabaseConfig(DRIVERNAME=DatabaseDrivers.POSTGRES, HOST='localhost').create_async_engine()
         except RuntimeError as error:
-            assert 'camply[postgres]' in str(error), str(error)
+            assert 'camply-web[postgres]' in str(error), str(error)
         else:
             raise AssertionError('PostgreSQL did not require its extra')
     """)
@@ -312,7 +312,7 @@ def test_configured_sentry_requires_extra(
         try:
             importlib.import_module({module!r})
         except RuntimeError as error:
-            assert 'camply[sentry]' in str(error), str(error)
+            assert 'camply-web[sentry]' in str(error), str(error)
         else:
             raise AssertionError('Configured Sentry did not require its extra')
         """,

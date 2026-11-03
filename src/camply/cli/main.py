@@ -21,7 +21,28 @@ from camply.cli.healthcheck import beat_health_path, healthcheck
 from camply.cli.runtime import require_modules
 
 
+class CamplyCLI(click.Group):
+    """Camply CLI group with lazy subcommand resolution."""
+
+    def list_commands(self, ctx: click.Context) -> list[str]:
+        commands = super().list_commands(ctx)
+        if "populate-database" not in commands:
+            commands.append("populate-database")
+        return sorted(commands)
+
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
+        cmd = super().get_command(ctx, cmd_name)
+        if cmd is not None:
+            return cmd
+        if cmd_name == "populate-database":
+            from camply.cli.populate import populate_database
+
+            return populate_database
+        return None
+
+
 @click.group(
+    cls=CamplyCLI,
     name=__application__,
     invoke_without_command=True,
     context_settings={"help_option_names": ["-h", "--help"]},

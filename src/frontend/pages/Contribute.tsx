@@ -254,7 +254,7 @@ export function Contribute() {
               </p>
               <Button variant="outline" className="w-full" asChild>
                 <a
-                  href="https://github.com/juftin/camply"
+                  href="https://github.com/juftin/camply-web"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -274,7 +274,7 @@ export function Contribute() {
               </p>
               <Button variant="outline" className="w-full" asChild>
                 <a
-                  href="https://github.com/juftin/camply/issues"
+                  href="https://github.com/juftin/camply-web/issues"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

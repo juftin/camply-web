@@ -77,7 +77,7 @@ def test_serve_requires_server_extra(monkeypatch: pytest.MonkeyPatch) -> None:
         result = CliRunner().invoke(cli, ["serve"])
 
     assert result.exit_code == 1
-    assert "camply[server]" in result.stderr
+    assert "camply-web[server]" in result.stderr
 
 
 @pytest.mark.parametrize(
@@ -278,7 +278,7 @@ def test_python_roles_check_dependencies_before_side_effects(
         )
         result = CliRunner().invoke(cli, command)
         assert result.exit_code == 1, (missing, result.output)
-        assert f"camply[{extra}]" in result.stderr
+        assert f"camply-web[{extra}]" in result.stderr
         assert missing in result.stderr
         upgrade.assert_not_called()
         execute.assert_not_called()
@@ -437,3 +437,11 @@ def test_beat_help_needs_no_distributed_extra(monkeypatch: pytest.MonkeyPatch) -
     assert "--sync-providers" in result.output
     dispatch.assert_not_called()
     execute.assert_not_called()
+
+
+def test_populate_database_subcommand_exposed() -> None:
+    """The populate-database subcommand is discoverable and callable via the CLI."""
+    result = CliRunner().invoke(cli, ["populate-database", "--help"])
+    assert result.exit_code == 0, result.output
+    assert "--provider-id" in result.output
+    assert "all" in result.output

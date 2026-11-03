@@ -50,7 +50,7 @@ class TestProviderCLI:
 
     def test_cli_entry_point_registered(self) -> None:
         """The CLI entry point should be importable."""
-        from camply.providers.cli import populate_database
+        from camply.cli.populate import populate_database
 
         assert populate_database is not None
         assert callable(populate_database)
@@ -60,7 +60,7 @@ class TestProviderCLI:
         """The CLI help output should include the 'all' option."""
         from click.testing import CliRunner
 
-        from camply.providers.cli import populate_database
+        from camply.cli.populate import populate_database
 
         runner = CliRunner()
         result = runner.invoke(populate_database, ["--help"])
@@ -73,7 +73,7 @@ class TestProviderCLI:
 
         from click.testing import CliRunner
 
-        from camply.providers.cli import populate_database
+        from camply.cli.populate import populate_database
 
         runner = CliRunner()
         mock_instances = {}
@@ -84,7 +84,7 @@ class TestProviderCLI:
             mock_instances[pid] = inst
 
         with patch.dict(
-            "camply.providers.cli.PROVIDERS",
+            "camply.cli.populate.PROVIDERS",
             {pid: (lambda p=pid: mock_instances[p]) for pid in PROVIDERS},
         ):
             result = runner.invoke(populate_database, ["--provider-id", "all"])
