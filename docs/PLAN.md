@@ -94,6 +94,7 @@ remain separate work.
 - [ ] **Providers**: Port `usedirect`, `going_to_camp`, `xanterra`.
 - [x] **ReserveCalifornia**: Port California State Parks availability and metadata to the current Tyler RDR API; preserve modern booking routes on the shared UseDirect ABC.
 - [x] **Shared UseDirect providers**: Implement independent metadata sync and availability for Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory. Alabama and Maricopa endpoint discovery remain pending; see [provider TODOs](specs/007-usedirect-providers/TODO.md).
+- [x] **GoingToCamp (Washington State Parks)**: Re-engineer `GoingToCampProvider` on async catalog/map endpoints and add `WashingtonStateParksProvider` (`https://washington.goingtocamp.com`, ID 12). Remaining regional GoingToCamp variations are tracked in [GoingToCamp TODOs](specs/023-going-to-camp/TODO.md).
 - [ ] **Advanced Filters**: Implement RV length, electric, and accessibility filters in the worker.
 - [ ] **Permits**: Add support for scanning wilderness permit and tour availability.
 

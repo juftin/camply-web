@@ -1,0 +1,150 @@
+# Synthetic fixture derived from the public GoingToCamp API schema; no live inventory.
+version: 1
+interactions:
+  - request:
+      method: GET
+      uri: https://washington.goingtocamp.com/api/resourceLocation
+      body: ""
+      headers: {}
+    response:
+      status:
+        code: 200
+        message: OK
+      headers:
+        Content-Type:
+          - application/json
+      body:
+        string:
+          '[{"resourceLocationId": -2147483631, "transactionLocationId": -2147483640,
+          "rootMapId": -2147483500, "region": "Washington", "country": "USA",
+          "resourceCategoryIds": [-2147483648], "localizedValues": [{"cultureName":
+          "en-US", "shortName": "Synthetic Bay", "fullName": "Synthetic Bay Campground"}]}]'
+  - request:
+      method: GET
+      uri: https://washington.goingtocamp.com/api/bookingcategories
+      body: ""
+      headers: {}
+    response:
+      status:
+        code: 200
+        message: OK
+      headers:
+        Content-Type:
+          - application/json
+      body:
+        string:
+          '[{"bookingCategoryId": 0, "bookingModel": 0, "isDisabled": false,
+          "allowedResourceCategoryIds": [-2147483648], "localizedValues": [{"cultureName":
+          "en-US", "name": "Campsite"}]}]'
+  - request:
+      method: GET
+      uri: https://washington.goingtocamp.com/api/resourcecategory
+      body: ""
+      headers: {}
+    response:
+      status:
+        code: 200
+        message: OK
+      headers:
+        Content-Type:
+          - application/json
+      body:
+        string:
+          '[{"resourceCategoryId": -2147483648, "resourceType": 0, "localizedValues":
+          [{"cultureName": "en-US", "name": "Campsite"}]}]'
+  - request:
+      method: GET
+      uri: https://washington.goingtocamp.com/api/equipment
+      body: ""
+      headers: {}
+    response:
+      status:
+        code: 200
+        message: OK
+      headers:
+        Content-Type:
+          - application/json
+      body:
+        string:
+          '[{"equipmentCategoryId": -32767, "localizedValues": [{"cultureName":
+          "en-US", "name": "Group"}], "subEquipmentCategories": [{"subEquipmentCategoryId":
+          -32768, "localizedValues": [{"cultureName": "en-US", "name": "Group Tent"}]}]},
+          {"equipmentCategoryId": -32768, "localizedValues": [{"cultureName": "en-US",
+          "name": "Single"}], "subEquipmentCategories": [{"subEquipmentCategoryId":
+          -32766, "localizedValues": [{"cultureName": "en-US", "name": "RV/Trailer up to 35ft"}]}]}]'
+  - request:
+      method: GET
+      uri: https://washington.goingtocamp.com/api/attribute/filterable
+      body: ""
+      headers: {}
+    response:
+      status:
+        code: 200
+        message: OK
+      headers:
+        Content-Type:
+          - application/json
+      body:
+        string:
+          '{"1": {"attributeDefinitionId": 1, "localizedValues": [{"cultureName":
+          "en-US", "displayName": "Electrical Service"}], "values": [{"enumValue":
+          1, "localizedValues": [{"cultureName": "en-US", "displayName": "30 Amps"}]},
+          {"enumValue": 2, "localizedValues": [{"cultureName": "en-US", "displayName":
+          "50 Amps"}]}]}, "2": {"attributeDefinitionId": 2, "localizedValues":
+          [{"cultureName": "en-US", "displayName": "ADA Accessible"}], "values":
+          [{"enumValue": 1, "localizedValues": [{"cultureName": "en-US", "displayName":
+          "Yes"}]}]}}'
+  - request:
+      method: GET
+      uri: https://washington.goingtocamp.com/api/resourcelocation/resources?resourceLocationId=-2147483631
+      body: ""
+      headers: {}
+    response:
+      status:
+        code: 200
+        message: OK
+      headers:
+        Content-Type:
+          - application/json
+      body:
+        string:
+          '{"-2147483001": {"resourceId": -2147483001, "resourceLocationId": -2147483631,
+          "resourceCategoryId": -2147483648, "resourceModel": 0, "minCapacity": 1,
+          "maxCapacity": 8, "maxStay": 10, "localizedValues": [{"cultureName": "en-US",
+          "name": "Site A01"}], "allowedEquipment": [{"equipmentCategoryId": -32768,
+          "subEquipmentCategoryId": -32766}], "definedAttributes": [{"attributeDefinitionId":
+          1, "values": [1, 2]}, {"attributeDefinitionId": 2, "values": [1]}]}}'
+  - request:
+      method: GET
+      uri: https://washington.goingtocamp.com/api/availability/map?mapId=-2147483500&bookingCategoryId=0&startDate=2030-07-10&endDate=2030-07-12&getDailyAvailability=true&isReserving=true
+      body: ""
+      headers: {}
+    response:
+      status:
+        code: 200
+        message: OK
+      headers:
+        Content-Type:
+          - application/json
+      body:
+        string:
+          '{"mapId": -2147483500, "resourceAvailabilities": {}, "mapLinkAvailabilities":
+          {"-2147483501": [7, 0, 0]}}'
+  - request:
+      method: GET
+      uri: https://washington.goingtocamp.com/api/availability/map?mapId=-2147483501&bookingCategoryId=0&startDate=2030-07-10&endDate=2030-07-12&getDailyAvailability=true&isReserving=true
+      body: ""
+      headers: {}
+    response:
+      status:
+        code: 200
+        message: OK
+      headers:
+        Content-Type:
+          - application/json
+      body:
+        string:
+          '{"mapId": -2147483501, "resourceAvailabilities": {"-2147483001": [{"availability":
+          0, "remainingQuota": null}, {"availability": 0, "remainingQuota": null},
+          {"availability": 0, "remainingQuota": null}]}, "mapLinkAvailabilities":
+          {}}'

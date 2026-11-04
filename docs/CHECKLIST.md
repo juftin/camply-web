@@ -160,6 +160,7 @@ Implementation specification and tasks: [Admin UI plan](specs/002-admin-ui/plan.
 - [ ] T3.1.1c Discover Alabama State Parks' current catalog/grid endpoints; the legacy catalog returned HTTP 404. See [provider TODOs](specs/007-usedirect-providers/TODO.md).
 - [ ] T3.1.1d Discover Maricopa County's current reservation backend and catalog/grid endpoints; the legacy catalog returned HTTP 404. See [provider TODOs](specs/007-usedirect-providers/TODO.md).
 - [ ] T3.1.2 Migrate `going_to_camp`.
+- [x] T3.1.2a Re-engineer the async `GoingToCampProvider` ABC (dynamic nightly booking/resource categories, bulk resource metadata, 60-night map availability BFS traversal, multi-category equipment and filterable attribute decoding) and implement `WashingtonStateParksProvider` (`https://washington.goingtocamp.com`, ID 12) with seed migration, deep links, and synthetic HTTP/VCR/database regressions. See [GoingToCamp plan](specs/023-going-to-camp/plan.md) and [remaining deployment TODOs](specs/023-going-to-camp/TODO.md).
 - [ ] T3.1.3 Migrate `xanterra` (Yellowstone, etc.).
 
 ### 3.2 Advanced Search
