@@ -54,9 +54,8 @@ build/
 dist/
 out/
 *.tsbuildinfo
-.vitepress/cache/
-.vitepress/dist/
-docs/.vitepress/cache
+docs/.vitepress/cache/
+docs/.vitepress/dist/
 
 # IDE & Editors
 .vscode/
