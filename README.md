@@ -30,7 +30,7 @@ To edit or preview the docs, see [working on the docs](docs/development.md#worki
 
 ### How is camply licensed?
 
-camply is licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE). We chose the AGPL to ensure that camply and all its derivative works stay open-source. Because camply is a network application, the AGPL requires anyone who modifies the software and provides it over a network to also make their source code available under the same copyleft terms, protecting community contributions and preventing proprietary forks.
+camply is licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](https://www.gnu.org/licenses/agpl-3.0.html). We chose the AGPL to guarantee that camply remains 100% open-source forever. Under this license, anyone who modifies or builds on camply must release their source code to the community under the same terms. This prevents closed-source forks and ensures all improvements stay free and accessible to everyone.
 
 ## License
 

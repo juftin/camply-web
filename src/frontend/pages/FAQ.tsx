@@ -151,8 +151,24 @@ const faqs: FAQItem[] = [
   {
     id: "license",
     question: "How is camply licensed?",
-    answer:
-      "camply is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). We chose the AGPL to ensure that camply and all its derivative works stay open-source. Because camply is a network application, the AGPL requires anyone who modifies the software and offers it over a network to make their source code available under the same copyleft terms, protecting community contributions and preventing proprietary closed-source derivatives.",
+    answer: (
+      <>
+        camply is licensed under the{" "}
+        <a
+          href="https://www.gnu.org/licenses/agpl-3.0.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:text-primary/80 underline"
+        >
+          GNU Affero General Public License v3.0 (AGPL-3.0)
+        </a>
+        . We chose the AGPL to guarantee that camply remains 100% open-source
+        forever. Under this license, anyone who modifies or builds on camply
+        must release their source code to the community under the same terms.
+        This prevents closed-source forks and ensures all improvements stay free
+        and accessible to everyone.
+      </>
+    ),
   },
 ];
 

@@ -493,11 +493,20 @@ export function HowItWorks() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                camply is licensed under the GNU Affero General Public License
-                (AGPL-3.0). We chose the AGPL to ensure that camply and all its
-                derivative works stay open-source. Anyone modifying camply and
-                running it as a network service must also share their code under
-                the same terms.
+                camply is licensed under the{" "}
+                <a
+                  href="https://www.gnu.org/licenses/agpl-3.0.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  GNU Affero General Public License v3.0 (AGPL-3.0)
+                </a>
+                . We chose the AGPL to guarantee that camply remains 100%
+                open-source forever. Under this license, anyone who modifies or
+                builds on camply must release their source code to the community
+                under the same terms. This prevents closed-source forks and
+                ensures all improvements stay free and accessible to everyone.
               </p>
             </CardContent>
           </Card>
