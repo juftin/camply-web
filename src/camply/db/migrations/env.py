@@ -10,11 +10,13 @@ from alembic.config import Config
 from sqlalchemy import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from camply.db.config import db
+from camply.db.config import DatabaseConfig, db
 from camply.db.models import Base
 
 config: Config = context.config
-database_config = config.attributes.get("database_config", db)
+database_config = config.attributes.get("database_config") or (
+    DatabaseConfig() if DatabaseConfig().model_fields_set else db
+)
 """Explicit migration settings, or the application's CAMPLY_DB_* defaults."""
 target_metadata = Base.metadata
 
