@@ -148,6 +148,12 @@ const faqs: FAQItem[] = [
     answer:
       "Open-source means our code is publicly available on GitHub for anyone to view, contribute to, or learn from. This ensures transparency, allows community contributions, and means the project isn't controlled by a single company.",
   },
+  {
+    id: "license",
+    question: "How is camply licensed?",
+    answer:
+      "camply is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). We chose the AGPL to ensure that camply and all its derivative works stay open-source. Because camply is a network application, the AGPL requires anyone who modifies the software and offers it over a network to make their source code available under the same copyleft terms, protecting community contributions and preventing proprietary closed-source derivatives.",
+  },
 ];
 
 export function FAQ() {

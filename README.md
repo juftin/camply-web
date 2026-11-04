@@ -26,4 +26,12 @@ Start with the [camply docs](https://camply.juftin.dev/docs/) for using the app,
 
 To edit or preview the docs, see [working on the docs](docs/development.md#working-on-the-docs).
 
-Licensed under [PolyForm Noncommercial 1.0.0](LICENSE).
+## FAQ
+
+### How is camply licensed?
+
+camply is licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE). We chose the AGPL to ensure that camply and all its derivative works stay open-source. Because camply is a network application, the AGPL requires anyone who modifies the software and provides it over a network to also make their source code available under the same copyleft terms, protecting community contributions and preventing proprietary forks.
+
+## License
+
+Licensed under [GNU Affero General Public License v3.0](LICENSE).
