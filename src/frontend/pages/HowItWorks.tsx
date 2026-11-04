@@ -483,33 +483,6 @@ export function HowItWorks() {
               </p>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-primary" />
-                How is camply licensed?
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                camply is licensed under the{" "}
-                <a
-                  href="https://www.gnu.org/licenses/agpl-3.0.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  GNU Affero General Public License v3.0 (AGPL-3.0)
-                </a>
-                . We chose the AGPL to guarantee that camply remains 100%
-                open-source forever. Under this license, anyone who modifies or
-                builds on camply must release their source code to the community
-                under the same terms. This prevents closed-source forks and
-                ensures all improvements stay free and accessible to everyone.
-              </p>
-            </CardContent>
-          </Card>
         </div>
       </section>
 
