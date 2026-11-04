@@ -440,13 +440,155 @@ def test_beat_help_needs_no_distributed_extra(monkeypatch: pytest.MonkeyPatch) -
 
 
 def test_db_metadata_subcommand_exposed() -> None:
-    """The db metadata subcommand is discoverable and callable via the CLI."""
+    """The db subcommands are discoverable and callable via the CLI."""
     runner = CliRunner()
     result_db = runner.invoke(cli, ["db", "--help"])
     assert result_db.exit_code == 0, result_db.output
-    assert "metadata" in result_db.output
+    for subcommand in ("delete", "info", "metadata", "migrate"):
+        assert subcommand in result_db.output
 
     result = runner.invoke(cli, ["db", "metadata", "--help"])
     assert result.exit_code == 0, result.output
     assert "--provider-id" in result.output
     assert "all" in result.output
+
+
+def test_db_info_prints_safe_json_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Expose safe configured-database details for scripts and operators."""
+    import json
+
+    runner = CliRunner()
+    sqlite_file = tmp_path / "camply.db"
+    for key in (
+        "CAMPLY_DB_DRIVERNAME",
+        "CAMPLY_DB_USERNAME",
+        "CAMPLY_DB_PASSWORD",
+        "CAMPLY_DB_HOST",
+        "CAMPLY_DB_PORT",
+        "CAMPLY_DB_DATABASE",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    default_result = runner.invoke(cli, ["db", "info"])
+    assert default_result.exit_code == 0, default_result.output
+    default_output = json.loads(default_result.output)
+    assert default_output["database_url_is_explicit"] is False
+    assert default_output["dialect"] == "sqlite"
+    assert default_output["driver"] == "aiosqlite"
+
+    monkeypatch.setenv("CAMPLY_DB_HOST", str(sqlite_file))
+    sqlite_result = runner.invoke(cli, ["db", "info"])
+    assert sqlite_result.exit_code == 0, sqlite_result.output
+    sqlite_output = json.loads(sqlite_result.output)
+    assert sqlite_output["database_url_is_explicit"] is True
+    assert sqlite_output["path"] == str(sqlite_file.resolve())
+    assert sqlite_output["exists"] is False
+
+    sqlite_file.touch()
+    sqlite_existing = json.loads(runner.invoke(cli, ["db", "info"]).output)
+    assert sqlite_existing["exists"] is True
+
+    monkeypatch.setenv("CAMPLY_DB_DRIVERNAME", "postgresql+psycopg")
+    monkeypatch.setenv("CAMPLY_DB_USERNAME", "user")
+    monkeypatch.setenv("CAMPLY_DB_PASSWORD", "synthetic-secret")
+    monkeypatch.setenv("CAMPLY_DB_HOST", "localhost")
+    monkeypatch.setenv("CAMPLY_DB_DATABASE", "camply")
+
+    pg_result = runner.invoke(cli, ["db", "info"])
+    assert pg_result.exit_code == 0, pg_result.output
+    assert pg_result.output.startswith("{\n  ")
+    pg_output = json.loads(pg_result.output)
+    assert pg_output["database_url"] == "postgresql+psycopg://user:***@localhost/camply"
+    assert pg_output["database_url_is_explicit"] is True
+    assert pg_output["dialect"] == "postgresql"
+    assert pg_output["driver"] == "psycopg"
+    assert pg_output["path"] is None
+    assert pg_output["exists"] is None
+
+
+def test_db_migrate_uses_the_configured_database(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Apply the configured database's pending migrations via the CLI."""
+    import camply.cli.db as db_cli
+
+    sqlite_file = tmp_path / "camply.db"
+    upgrade = Mock()
+    monkeypatch.setenv("CAMPLY_DB_HOST", str(sqlite_file))
+    monkeypatch.setattr(db_cli, "upgrade", upgrade)
+
+    result = CliRunner().invoke(cli, ["db", "migrate"])
+
+    assert result.exit_code == 0, result.output
+    upgrade.assert_called_once()
+    assert upgrade.call_args.kwargs["database_config"].HOST == str(sqlite_file)
+    assert result.output == "Database migrations applied.\n"
+
+
+def test_db_delete_handles_confirmation_and_backends(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Confirm destructive deletes and report file vs. table removal."""
+    from unittest.mock import AsyncMock
+
+    import camply.cli.db as db_cli
+
+    runner = CliRunner()
+    sqlite_file = tmp_path / "camply.db"
+    monkeypatch.setenv("CAMPLY_DB_HOST", str(sqlite_file))
+    delete_database = AsyncMock(return_value=True)
+    monkeypatch.setattr(db_cli, "delete_database", delete_database)
+
+    aborted = runner.invoke(cli, ["db", "delete"], input="n\n")
+    assert aborted.exit_code == 0, aborted.output
+    assert "Aborted." in aborted.output
+    delete_database.assert_not_awaited()
+
+    deleted_file = runner.invoke(cli, ["db", "delete", "--yes"])
+    assert deleted_file.exit_code == 0, deleted_file.output
+    delete_database.assert_awaited_once()
+    assert deleted_file.output == "SQLite database file deleted.\n"
+
+    delete_tables = AsyncMock(return_value=False)
+    monkeypatch.setattr(db_cli, "delete_database", delete_tables)
+    monkeypatch.setenv("CAMPLY_DB_DRIVERNAME", "postgresql+psycopg")
+    monkeypatch.setenv("CAMPLY_DB_HOST", "localhost")
+
+    deleted_remote = runner.invoke(cli, ["db", "delete", "--yes"])
+    assert deleted_remote.exit_code == 0, deleted_remote.output
+    delete_tables.assert_awaited_once()
+    assert deleted_remote.output == "Database tables deleted.\n"
+
+
+def test_db_cli_sqlite_lifecycle(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Exercise info, migrate, and delete against a real SQLite database file."""
+    import json
+
+    runner = CliRunner()
+    sqlite_file = tmp_path / "lifecycle.db"
+    monkeypatch.setenv("CAMPLY_DB_DRIVERNAME", "sqlite+aiosqlite")
+    monkeypatch.setenv("CAMPLY_DB_HOST", str(sqlite_file))
+
+    before = json.loads(runner.invoke(cli, ["db", "info"]).output)
+    assert before["exists"] is False
+
+    migrated = runner.invoke(cli, ["db", "migrate"])
+    assert migrated.exit_code == 0, migrated.output
+    assert migrated.output == "Database migrations applied.\n"
+    assert sqlite_file.is_file()
+
+    after_migrate = json.loads(runner.invoke(cli, ["db", "info"]).output)
+    assert after_migrate["exists"] is True
+
+    deleted = runner.invoke(cli, ["db", "delete", "--yes"])
+    assert deleted.exit_code == 0, deleted.output
+    assert deleted.output == "SQLite database file deleted.\n"
+    assert not sqlite_file.exists()

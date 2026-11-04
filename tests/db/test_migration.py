@@ -6,9 +6,15 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.script import ScriptDirectory
+from sqlalchemy import inspect
 
 from camply.db.config import DatabaseConfig, DatabaseDrivers
-from camply.db.migration import get_alembic_config
+from camply.db.migration import (
+    delete_database,
+    drop_all_tables,
+    get_alembic_config,
+    upgrade_database,
+)
 
 
 def test_migration_config_uses_packaged_history() -> None:
@@ -54,3 +60,57 @@ def test_migration_upgrade_is_cwd_independent(
             assert connection.execute(
                 "SELECT name FROM providers WHERE id = 999"
             ).fetchone() == ("Synthetic provider",)
+
+
+def test_drop_all_tables_removes_schema_and_migration_state(
+    tmp_path: Path,
+) -> None:
+    """Allow a later migration to rebuild a fully deleted database schema."""
+    import asyncio
+
+    database = DatabaseConfig(
+        DRIVERNAME=DatabaseDrivers.SQLITE,
+        HOST=f"/{tmp_path / 'reset.db'}",
+    )
+    upgrade_database(database)
+
+    asyncio.run(drop_all_tables(database))
+
+    async def get_tables() -> list[str]:
+        engine = database.create_async_engine()
+        try:
+            async with engine.connect() as connection:
+                return await connection.run_sync(
+                    lambda sync_connection: inspect(sync_connection).get_table_names()
+                )
+        finally:
+            await engine.dispose()
+
+    assert asyncio.run(get_tables()) == []
+
+    upgrade_database(database)
+    assert {"alembic_version", "providers", "users", "user_scans"} <= set(
+        asyncio.run(get_tables())
+    )
+
+
+@pytest.mark.asyncio
+async def test_delete_database_removes_sqlite_file_and_sidecars(
+    tmp_path: Path,
+) -> None:
+    """Remove every file that preserves a deleted SQLite database state."""
+    database_path = tmp_path / "camply.db"
+    database = DatabaseConfig(
+        DRIVERNAME=DatabaseDrivers.SQLITE,
+        HOST=f"/{database_path}",
+    )
+    sidecars = (
+        database_path.with_name("camply.db-journal"),
+        database_path.with_name("camply.db-shm"),
+        database_path.with_name("camply.db-wal"),
+    )
+    for path in (database_path, *sidecars):
+        path.touch()
+
+    assert await delete_database(database) is True
+    assert not any(path.exists() for path in (database_path, *sidecars))

@@ -27,7 +27,7 @@ The backend is one `camply` distribution with internal `server`, `db`,
 `providers`, and `worker` subpackages. Development sync installs all extras;
 consumers can select `server`, `distributed`, `postgres`, and `sentry`
 independently. Base provides providers, SQLite, and the `camply` command
-(including `camply db metadata`).
+(including `camply db` commands `info`, `migrate`, `delete`, and `metadata`).
 See [backend installation](../operations/RUNNING.md#build-and-install-the-complete-application) for artifact examples.
 
 API-only installs do not run scheduled scans: workers, beat, and Valkey/Redis
