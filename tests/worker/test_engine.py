@@ -1,6 +1,6 @@
 """Behavior shared by Celery adapters and the durable local scan runner."""
 
-import httpx
+import httpx2
 import pytest
 from sqlalchemy import select
 
@@ -30,10 +30,10 @@ async def test_failed_provider_preserves_results(
         registry={1: factory},
         persistent=True,
     )
-    factory.return_value.find_availabilities.side_effect = httpx.ConnectError(
+    factory.return_value.find_availabilities.side_effect = httpx2.ConnectError(
         "synthetic"
     )
-    with pytest.raises(httpx.ConnectError):
+    with pytest.raises(httpx2.ConnectError):
         await check_target(
             str(target.id),
             sessions=database.get_session,

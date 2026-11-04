@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
-import httpx
+import httpx2
 import pytest
 from click.testing import CliRunner
 from sqlalchemy import select
@@ -84,15 +84,15 @@ def grid(units: dict[str, Any] | None) -> dict[str, Any]:
 @pytest.mark.anyio
 async def test_find_availabilities(provider: ReserveCaliforniaProvider) -> None:
     """POST facility IDs, map DTOs, and exclude the check-out night."""
-    requests: list[httpx.Request] = []
+    requests: list[httpx2.Request] = []
 
-    def respond(request: httpx.Request) -> httpx.Response:
+    def respond(request: httpx2.Request) -> httpx2.Response:
         """Serve synthetic provider responses and capture the request contract."""
         requests.append(request)
         data = filters() if request.method == "GET" else grid({"99.1": unit()})
-        return httpx.Response(200, json=data)
+        return httpx2.Response(200, json=data)
 
-    provider.async_client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
+    provider.async_client = httpx2.AsyncClient(transport=httpx2.MockTransport(respond))
     results = await provider.find_availabilities(
         "10", start_date=date(2030, 1, 1), end_date=date(2030, 1, 3)
     )
@@ -143,9 +143,9 @@ async def test_unbookable_inventory(
     provider: ReserveCaliforniaProvider, override: dict[str, Any]
 ) -> None:
     """A free flag alone must not trigger alerts for unbookable inventory."""
-    provider.async_client = httpx.AsyncClient(
-        transport=httpx.MockTransport(
-            lambda r: httpx.Response(
+    provider.async_client = httpx2.AsyncClient(
+        transport=httpx2.MockTransport(
+            lambda r: httpx2.Response(
                 200,
                 json=filters() if r.method == "GET" else grid({"x": unit(**override)}),
             )
@@ -168,9 +168,9 @@ async def test_http_200_rejection_propagates(
     response.update(
         Message="Invalid FacilityId specified for facility grid search", NightsActual=0
     )
-    provider.async_client = httpx.AsyncClient(
-        transport=httpx.MockTransport(
-            lambda r: httpx.Response(
+    provider.async_client = httpx2.AsyncClient(
+        transport=httpx2.MockTransport(
+            lambda r: httpx2.Response(
                 200, json=filters() if r.method == "GET" else response
             )
         )
@@ -186,10 +186,10 @@ async def test_chunking_and_deduplication(provider: ReserveCaliforniaProvider) -
     """Long searches request bounded inclusive grids and merge duplicate units."""
     windows: list[dict[str, Any]] = []
 
-    def respond(request: httpx.Request) -> httpx.Response:
+    def respond(request: httpx2.Request) -> httpx2.Response:
         """Return padded overlapping grids like the real provider does."""
         if request.method == "GET":
-            return httpx.Response(200, json=filters())
+            return httpx2.Response(200, json=filters())
         windows.append(json.loads(request.content))
         slices = {
             str(d): {"Date": str(d), "IsFree": True}
@@ -200,9 +200,9 @@ async def test_chunking_and_deduplication(provider: ReserveCaliforniaProvider) -
                 date(2030, 2, 2),
             ]
         }
-        return httpx.Response(200, json=grid({"x": unit(Slices=slices)}))
+        return httpx2.Response(200, json=grid({"x": unit(Slices=slices)}))
 
-    provider.async_client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
+    provider.async_client = httpx2.AsyncClient(transport=httpx2.MockTransport(respond))
     results = await provider.find_availabilities(
         "10", start_date=date(2030, 1, 1), end_date=date(2030, 2, 2)
     )
@@ -224,9 +224,9 @@ async def test_empty_grids(
     provider: ReserveCaliforniaProvider, response: dict[str, Any]
 ) -> None:
     """Empty successful inventory responses contain no availability."""
-    provider.async_client = httpx.AsyncClient(
-        transport=httpx.MockTransport(
-            lambda r: httpx.Response(
+    provider.async_client = httpx2.AsyncClient(
+        transport=httpx2.MockTransport(
+            lambda r: httpx2.Response(
                 200, json=filters() if r.method == "GET" else response
             )
         )
@@ -242,10 +242,10 @@ async def test_empty_grids(
 @pytest.mark.anyio
 async def test_errors_propagate(provider: ReserveCaliforniaProvider) -> None:
     """HTTP failures must reach the worker instead of clearing cached results."""
-    provider.async_client = httpx.AsyncClient(
-        transport=httpx.MockTransport(lambda r: httpx.Response(503))
+    provider.async_client = httpx2.AsyncClient(
+        transport=httpx2.MockTransport(lambda r: httpx2.Response(503))
     )
-    with pytest.raises(httpx.HTTPStatusError):
+    with pytest.raises(httpx2.HTTPStatusError):
         await provider.find_availabilities(
             "10", start_date=date(2030, 1, 1), end_date=date(2030, 1, 2)
         )
@@ -296,9 +296,9 @@ async def test_metadata_ingestion_and_provider_isolation(
         },
     ]
 
-    provider.async_client = httpx.AsyncClient(
-        transport=httpx.MockTransport(
-            lambda r: httpx.Response(
+    provider.async_client = httpx2.AsyncClient(
+        transport=httpx2.MockTransport(
+            lambda r: httpx2.Response(
                 200,
                 json={
                     ("GET", "/rdr/fd/places"): places,
@@ -442,9 +442,11 @@ async def test_facility_restrictions(
     """Facility lottery, booking, and season restrictions override free slices."""
     data = grid({"x": unit()})
     data["Facility"].update(facility_flags)
-    provider.async_client = httpx.AsyncClient(
-        transport=httpx.MockTransport(
-            lambda r: httpx.Response(200, json=filters() if r.method == "GET" else data)
+    provider.async_client = httpx2.AsyncClient(
+        transport=httpx2.MockTransport(
+            lambda r: httpx2.Response(
+                200, json=filters() if r.method == "GET" else data
+            )
         )
     )
     assert (

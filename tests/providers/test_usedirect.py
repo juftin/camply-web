@@ -4,7 +4,7 @@ from datetime import date
 from types import SimpleNamespace
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -88,9 +88,9 @@ async def test_provider_grid_and_booking_routes(
     monkeypatch.setattr("camply.providers.usedirect.provider._REQUEST_INTERVAL", 0)
     provider = provider_cls()
     await provider.async_client.aclose()
-    requests: list[httpx.Request] = []
+    requests: list[httpx2.Request] = []
 
-    def respond(request: httpx.Request) -> httpx.Response:
+    def respond(request: httpx2.Request) -> httpx2.Response:
         """Use synthetic API responses; reject requests to another provider."""
         requests.append(request)
         assert str(request.url).startswith(provider.api_url + "/")
@@ -115,9 +115,9 @@ async def test_provider_grid_and_booking_routes(
                     },
                 },
             }
-        return httpx.Response(200, json=data)
+        return httpx2.Response(200, json=data)
 
-    provider.async_client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
+    provider.async_client = httpx2.AsyncClient(transport=httpx2.MockTransport(respond))
     try:
         results = await provider.find_availabilities(
             "10", start_date=date(2030, 1, 1), end_date=date(2030, 1, 3)
@@ -148,9 +148,9 @@ async def test_provider_error_identity_and_cache_isolation(
     provider = provider_cls()
     other = provider_cls()
     await provider.async_client.aclose()
-    provider.async_client = httpx.AsyncClient(
-        transport=httpx.MockTransport(
-            lambda r: httpx.Response(
+    provider.async_client = httpx2.AsyncClient(
+        transport=httpx2.MockTransport(
+            lambda r: httpx2.Response(
                 200,
                 json={}
                 if r.method == "GET"
@@ -245,13 +245,13 @@ async def _sync_synthetic_catalog(cls: type[UseDirectProvider]) -> None:
         ],
     }
 
-    def respond(request: httpx.Request) -> httpx.Response:
+    def respond(request: httpx2.Request) -> httpx2.Response:
         """Reject availability and classification requests during metadata sync."""
         assert request.method == "GET"
         path = str(request.url).removeprefix(provider.api_url)
-        return httpx.Response(200, json=catalogs[path])
+        return httpx2.Response(200, json=catalogs[path])
 
-    provider.async_client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
+    provider.async_client = httpx2.AsyncClient(transport=httpx2.MockTransport(respond))
     try:
         await provider.sync_metadata()
         await provider.populate_database()

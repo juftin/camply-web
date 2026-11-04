@@ -47,7 +47,7 @@ def test_http_cli_serves_and_shuts_down(
         import tempfile
         import time
         from pathlib import Path
-        import httpx
+        import httpx2
 
         with socket.socket() as listener:
             listener.bind(('127.0.0.1', 0))
@@ -63,13 +63,13 @@ def test_http_cli_serves_and_shuts_down(
             )
             try:
                 ready = False
-                with httpx.Client(base_url=f'http://127.0.0.1:{port}', timeout=1) as client:
+                with httpx2.Client(base_url=f'http://127.0.0.1:{port}', timeout=1) as client:
                     for attempt in range(150):
                         if process.poll() is not None:
                             break
                         try:
                             ready = client.get('/api/health').is_success
-                        except httpx.TransportError:
+                        except httpx2.TransportError:
                             pass
                         if ready:
                             break
@@ -141,7 +141,7 @@ def test_server_only_routes_and_operations(
         import socket
         import sys
         from unittest.mock import patch
-        import httpx
+        import httpx2
         from camply.db.config import db
         from camply.db.models import Base
 
@@ -155,7 +155,7 @@ def test_server_only_routes_and_operations(
             from camply.server.auth import resolve_current_user
             from fastapi import HTTPException
             assert '/api/admin/operations' in app.openapi()['paths']
-            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
+            async with httpx2.AsyncClient(transport=httpx2.ASGITransport(app=app), base_url='http://test') as client:
                 assert (await client.get('/api/ping')).status_code == 200
                 assert (await client.get('/api/providers')).status_code == 200
                 overview = await client.get('/api/admin/operations')

@@ -177,7 +177,7 @@ def test_healthchecks_without_optional_runtimes(
         from contextlib import nullcontext
         from pathlib import Path
         from unittest.mock import patch
-        import httpx
+        import httpx2
         from click.testing import CliRunner
         from camply.cli.main import cli
 
@@ -185,7 +185,7 @@ def test_healthchecks_without_optional_runtimes(
             result = CliRunner().invoke(cli, ['serve', 'healthcheck', *role, '--help'])
             assert result.exit_code == 0, result.output
         for role in ([], ['backend'], ['frontend']):
-            with patch('httpx.stream', return_value=nullcontext(httpx.Response(200))):
+            with patch('httpx2.stream', return_value=nullcontext(httpx2.Response(200))):
                 result = CliRunner().invoke(cli, ['serve', 'healthcheck', *role])
             assert result.exit_code == 0, result.output
         path = Path.cwd() / 'synthetic-beat.json'

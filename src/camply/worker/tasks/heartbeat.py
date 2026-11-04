@@ -16,7 +16,7 @@ from camply.worker.telemetry import record_discovery_completion
 logger = structlog.getLogger(__name__)
 
 
-@celery_app.task(name="camply.search.schedule_checks")
+@celery_app.task(name="camply.search.schedule_checks", ignore_result=True)
 def discover_targets() -> dict:
     """
     Periodic task (defaults to every 5m / 300s). Discovers UniqueTargets that are due for

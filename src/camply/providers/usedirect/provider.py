@@ -16,7 +16,7 @@ from abc import ABC
 from datetime import date, timedelta
 from typing import Any, ClassVar
 
-import httpx
+import httpx2
 import structlog
 from pydantic import TypeAdapter
 from sqlalchemy import update
@@ -72,7 +72,7 @@ class UseDirectProvider(BaseProvider, ABC):
 
     async def _request(
         self, method: str, path: str, *, payload: dict[str, Any] | None = None
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         """Perform paced async requests through the base retry transport."""
         async with self._request_lock:
             delay = _REQUEST_INTERVAL - (time.monotonic() - self._last_request)
@@ -99,7 +99,7 @@ class UseDirectProvider(BaseProvider, ABC):
         facility_id = int(park_id)
         if self._filters is None:
             response = await self._request("GET", "search/filters")
-            self._filters = SearchFilters.model_validate(response.json())
+            self._filters = SearchFilters.model_validate_json(response.content)
         campsites: dict[str, CampsiteDTO] = {}
         current = start_date
         while current < end_date:
@@ -116,7 +116,7 @@ class UseDirectProvider(BaseProvider, ABC):
                     "UnitSort": "orderby",
                 },
             )
-            parsed = AvailabilityResponse.model_validate(response.json())
+            parsed = AvailabilityResponse.model_validate_json(response.content)
             if parsed.NightsActual == 0:
                 raise ValueError(
                     f"{self.provider.name} rejected the scan: {parsed.Message}"
@@ -150,12 +150,12 @@ class UseDirectProvider(BaseProvider, ABC):
     async def populate_database(self) -> None:
         """Fetch metadata before opening a transaction and upsert provider rows."""
         places_response = await self._request("GET", "fd/places")
-        places: list[Place] = TypeAdapter(list[Place]).validate_python(
-            places_response.json()
+        places: list[Place] = TypeAdapter(list[Place]).validate_json(
+            places_response.content
         )
         facilities_response = await self._request("GET", "fd/facilities")
-        facilities: list[Facility] = TypeAdapter(list[Facility]).validate_python(
-            facilities_response.json()
+        facilities: list[Facility] = TypeAdapter(list[Facility]).validate_json(
+            facilities_response.content
         )
         places_by_id = {p.PlaceId: p for p in places if p.Name and p.Name.strip()}
         async with db.get_session() as session:

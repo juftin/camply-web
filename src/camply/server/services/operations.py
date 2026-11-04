@@ -9,11 +9,11 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
-import json
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
 
+import jiter
 import structlog
 
 try:
@@ -172,14 +172,17 @@ def _query_valkey_overview_sync() -> tuple[int, Optional[AdminDiscoveryMetadata]
     """
     try:
         r = _get_redis_client()
-        raw_depth = r.llen("celery")
+        pipe = r.pipeline()
+        pipe.llen("celery")
+        pipe.get(DISCOVERY_LAST_KEY)
+        raw_depth, raw_disc = pipe.execute()
         depth = int(raw_depth) if isinstance(raw_depth, int) else 0
-        raw_disc = r.get(DISCOVERY_LAST_KEY)
 
         disc_meta: Optional[AdminDiscoveryMetadata] = None
-        if raw_disc and isinstance(raw_disc, str):
+        if raw_disc and isinstance(raw_disc, (str, bytes)):
             try:
-                data = json.loads(raw_disc)
+                payload = raw_disc if isinstance(raw_disc, bytes) else raw_disc.encode()
+                data = jiter.from_json(payload)
                 disc_meta = AdminDiscoveryMetadata(
                     timestamp=dt.datetime.fromisoformat(data["timestamp"]),
                     targets_discovered=data.get("targets_discovered", 0),
@@ -520,8 +523,9 @@ def _get_task_detail_sync(task_id: str) -> Optional[AdminOperationsTaskDetail]:
     try:
         r = _get_redis_client()
         raw = r.get(f"{TASK_KEY_PREFIX}{task_id}")
-        if raw and isinstance(raw, str):
-            data = json.loads(raw)
+        if raw and isinstance(raw, (str, bytes)):
+            payload = raw if isinstance(raw, bytes) else raw.encode()
+            data = jiter.from_json(payload)
             item = _parse_telemetry_dict(data)
             if item:
                 return AdminOperationsTaskDetail(

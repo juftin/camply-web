@@ -9,7 +9,7 @@ from collections.abc import Awaitable, Callable
 from http import HTTPStatus
 from typing import Any
 
-import httpx
+import httpx2
 from pydantic import ValidationError
 from sqlalchemy import delete, select
 from sqlalchemy.exc import OperationalError
@@ -138,7 +138,7 @@ async def delivery_outcome(
         )
     except MissingCredentials:
         outcome, reason = "skipped", "missing_app_credentials"
-    except httpx.HTTPStatusError as exc:
+    except httpx2.HTTPStatusError as exc:
         transient = (
             exc.response.status_code == HTTPStatus.TOO_MANY_REQUESTS
             or exc.response.status_code >= HTTPStatus.INTERNAL_SERVER_ERROR
@@ -148,7 +148,7 @@ async def delivery_outcome(
             if transient
             else ("failure", "upstream_rejected")
         )
-    except httpx.TransportError:
+    except httpx2.TransportError:
         outcome, reason = "retry", "transport_error"
     except (ValueError, TypeError):
         outcome, reason = "failure", "invalid_response"

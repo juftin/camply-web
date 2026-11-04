@@ -115,7 +115,7 @@ To keep the system running smoothly, providers are responsible for more than jus
 
 ## 🔒 Performance & Concurrency
 
-- **Connection Pooling**: Use a shared `httpx.AsyncClient` within the provider package.
+- **Connection Pooling**: Use a shared `httpx2.AsyncClient` within the provider package.
 - **Async-First**: All IO-bound operations must be `async` to prevent blocking the worker.
 - **Rate Limiting**: Implementation of provider-specific backoff logic to respect API limits.
 

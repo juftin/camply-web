@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, ClassVar
 
-import httpx
+import httpx2
 import structlog
 from pydantic import BaseModel, field_validator
 from sqlalchemy import Insert, and_, delete, func, insert, literal, null, select
@@ -29,9 +29,9 @@ _HTTP_SERVER_ERROR_MAX = 599
 
 # ── Types of connection-level errors that are retryable ────────────────
 _RETRYABLE_CONNECTION_ERRORS = (
-    httpx.ConnectError,
-    httpx.TimeoutException,
-    httpx.RemoteProtocolError,
+    httpx2.ConnectError,
+    httpx2.TimeoutException,
+    httpx2.RemoteProtocolError,
 )
 
 
@@ -218,9 +218,9 @@ class ProviderCircuitBreaker:
 # ===========================================================================
 
 
-class RetryTransport(httpx.AsyncHTTPTransport):
+class RetryTransport(httpx2.AsyncHTTPTransport):
     """
-    Custom ``httpx.AsyncHTTPTransport`` that adds retry logic with
+    Custom ``httpx2.AsyncHTTPTransport`` that adds retry logic with
     exponential backoff, optional jitter, and an optional per-provider
     circuit breaker.
 
@@ -232,10 +232,18 @@ class RetryTransport(httpx.AsyncHTTPTransport):
         self,
         retry_strategy: RetryStrategy | None = None,
         circuit_breaker: ProviderCircuitBreaker | None = None,
+        limits: httpx2.Limits | None = None,
     ) -> None:
         self._retry_strategy = retry_strategy or RetryStrategy()
         self._circuit_breaker = circuit_breaker
-        self._inner = httpx.AsyncHTTPTransport()
+        self._inner = httpx2.AsyncHTTPTransport(
+            limits=limits
+            or httpx2.Limits(
+                max_keepalive_connections=50,
+                max_connections=200,
+                keepalive_expiry=30.0,
+            )
+        )
         self._cb_tasks: set[asyncio.Task[None]] = set()
         super().__init__()
 
@@ -248,8 +256,8 @@ class RetryTransport(httpx.AsyncHTTPTransport):
 
     async def handle_async_request(
         self,
-        request: httpx.Request,
-    ) -> httpx.Response:
+        request: httpx2.Request,
+    ) -> httpx2.Response:
         """
         Dispatch *request* through this transport, with retry and optional
         circuit-breaker logic.
@@ -262,7 +270,7 @@ class RetryTransport(httpx.AsyncHTTPTransport):
         request_body = request.content
 
         last_exception: Exception | None = None
-        last_response: httpx.Response | None = None
+        last_response: httpx2.Response | None = None
 
         for attempt in range(self._retry_strategy.max_retries + 1):
             try:
@@ -295,18 +303,18 @@ class RetryTransport(httpx.AsyncHTTPTransport):
         if last_response is not None:
             return last_response
 
-        raise httpx.RemoteProtocolError("Unexpected retry state")
+        raise httpx2.RemoteProtocolError("Unexpected retry state")
 
     @staticmethod
     def _request_for_attempt(
-        original: httpx.Request,
+        original: httpx2.Request,
         body: bytes,
         attempt: int,
-    ) -> httpx.Request:
+    ) -> httpx2.Request:
         """Return the request to use for *attempt* (reconstructs for retries)."""
         if attempt == 0:
             return original
-        return httpx.Request(
+        return httpx2.Request(
             method=original.method,
             url=str(original.url),
             headers=original.headers,
@@ -315,9 +323,9 @@ class RetryTransport(httpx.AsyncHTTPTransport):
 
     async def _execute_attempt(
         self,
-        request: httpx.Request,
+        request: httpx2.Request,
         attempt: int,
-    ) -> httpx.Response | Exception | None:
+    ) -> httpx2.Response | Exception | None:
         """
         Execute one attempt and return the result.
 
@@ -327,7 +335,7 @@ class RetryTransport(httpx.AsyncHTTPTransport):
             Retry needed (connection or server error within limits).
         ``Exception``
             Non-recoverable error; caller should re-raise.
-        ``httpx.Response``
+        ``httpx2.Response``
             Final response (success or exhausted retries).
         """
         try:
@@ -367,12 +375,12 @@ class RetryTransport(httpx.AsyncHTTPTransport):
     # ── response classification helpers ────────────────────────────────
 
     @staticmethod
-    def _is_429(response: httpx.Response) -> bool:
+    def _is_429(response: httpx2.Response) -> bool:
         """Return ``True`` when the response is an HTTP 429."""
         return response.status_code == _HTTP_TOO_MANY_REQUESTS
 
     @staticmethod
-    def _is_5xx(response: httpx.Response) -> bool:
+    def _is_5xx(response: httpx2.Response) -> bool:
         """Return ``True`` when the response is an HTTP 5xx."""
         return _HTTP_SERVER_ERROR_MIN <= response.status_code <= _HTTP_SERVER_ERROR_MAX
 
@@ -385,7 +393,7 @@ class RetryTransport(httpx.AsyncHTTPTransport):
 
     async def _handle_retryable_response(
         self,
-        response: httpx.Response,
+        response: httpx2.Response,
         attempt: int,
         label: str,
     ) -> bool:
@@ -432,7 +440,7 @@ class RetryTransport(httpx.AsyncHTTPTransport):
         return delay
 
     @staticmethod
-    def _parse_retry_after(response: httpx.Response) -> float | None:
+    def _parse_retry_after(response: httpx2.Response) -> float | None:
         """Parse the ``Retry-After`` header from a response."""
         raw = response.headers.get("Retry-After")
         if raw is None:
@@ -487,15 +495,21 @@ class BaseProvider(ABC):
                 "Chrome/120.0.0.0 Safari/537.36"
             )
 
-        # Build retry transport with circuit breaker
+        # Build retry transport with circuit breaker and tuned connection pool
         provider_name = type(self).__name__
         self._retry_strategy = self.retry_strategy
         cb = self._get_or_create_circuit_breaker(provider_name)
+        limits = httpx2.Limits(
+            max_keepalive_connections=50,
+            max_connections=200,
+            keepalive_expiry=30.0,
+        )
         transport = RetryTransport(
             retry_strategy=self._retry_strategy,
             circuit_breaker=cb,
+            limits=limits,
         )
-        self.async_client = httpx.AsyncClient(
+        self.async_client = httpx2.AsyncClient(
             headers=self.headers,
             transport=transport,
         )

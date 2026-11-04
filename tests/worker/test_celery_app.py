@@ -4,6 +4,7 @@ Tests for the Celery application configuration and task registration.
 
 from camply.worker.celery_app import celery_app
 from camply.worker.config import worker_config
+from camply.worker.tasks import heartbeat, ingestion, notifications, scanner  # noqa: F401
 
 
 class TestCeleryAppConfiguration:
@@ -14,10 +15,11 @@ class TestCeleryAppConfiguration:
         assert celery_app.main == "camply_worker"
 
     def test_task_serialization(self) -> None:
-        """Task serialization should be JSON for security."""
-        assert celery_app.conf.task_serializer == "json"
-        assert celery_app.conf.result_serializer == "json"
-        assert celery_app.conf.accept_content == ["json"]
+        """Task serialization should be msgpack with json acceptance."""
+        assert celery_app.conf.task_serializer == "msgpack"
+        assert celery_app.conf.result_serializer == "msgpack"
+        assert "msgpack" in celery_app.conf.accept_content
+        assert "json" in celery_app.conf.accept_content
 
     def test_timezone_config(self) -> None:
         """Timezone should be UTC."""
@@ -31,6 +33,7 @@ class TestCeleryAppConfiguration:
         assert celery_app.conf.task_reject_on_worker_lost is True
         assert celery_app.conf.task_default_retry_delay == 60
         assert celery_app.conf.task_max_retries == 3
+        assert celery_app.conf.worker_prefetch_multiplier == 1
 
     def test_result_expiry(self) -> None:
         """Results should expire after 1 hour."""
