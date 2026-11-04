@@ -155,8 +155,9 @@ class RecreationGovProvider(BaseProvider):
                 timeout=30.0,
             )
             response.raise_for_status()
-            returned_data = response.json()
-            campsite_response = RecDotGovCampsiteResponse.model_validate(returned_data)
+            campsite_response = RecDotGovCampsiteResponse.model_validate_json(
+                response.content
+            )
             campsites.extend(campsite_response.campsites)
             results = len(campsites)
             params.start = results
@@ -196,7 +197,7 @@ class RecreationGovProvider(BaseProvider):
             timeout=30.0,
         )
         response.raise_for_status()
-        return CampsiteAvailabilityResponse.model_validate(response.json())
+        return CampsiteAvailabilityResponse.model_validate_json(response.content)
 
     async def find_availabilities(
         self,

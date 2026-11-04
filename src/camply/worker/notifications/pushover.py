@@ -4,7 +4,8 @@ Pushover notification provider implementation.
 
 from typing import Any, ClassVar
 
-import httpx
+import httpx2
+import jiter
 import structlog
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -38,6 +39,9 @@ class PushoverProvider(BaseNotificationProvider):
     """
 
     config: ClassVar[PushoverConfig] = PushoverConfig()
+
+    def __init__(self, client: httpx2.AsyncClient | None = None) -> None:
+        self._client = client
 
     @property
     def provider_id(self) -> str:
@@ -89,13 +93,27 @@ class PushoverProvider(BaseNotificationProvider):
             "sound": "pushover",
         }
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
+        if self._client is not None:
+            response = await self._client.post(
                 url=self.config.api_url, json=message_data, timeout=10.0
             )
             response.raise_for_status()
-            if require_acceptance and response.json().get("status") != 1:
+            if (
+                require_acceptance
+                and jiter.from_json(response.content).get("status") != 1
+            ):
                 return False
+        else:
+            async with httpx2.AsyncClient() as client:
+                response = await client.post(
+                    url=self.config.api_url, json=message_data, timeout=10.0
+                )
+                response.raise_for_status()
+                if (
+                    require_acceptance
+                    and jiter.from_json(response.content).get("status") != 1
+                ):
+                    return False
 
         logger.info(
             "Pushover notification sent",

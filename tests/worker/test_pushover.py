@@ -45,7 +45,7 @@ class TestPushoverProvider:
         )
 
         with patch.object(provider.config, "app_token", "test_app_token"):
-            with patch("httpx.AsyncClient") as mock_client_cls:
+            with patch("httpx2.AsyncClient") as mock_client_cls:
                 mock_client = AsyncMock()
                 mock_response = AsyncMock()
                 mock_response.raise_for_status = MagicMock()
@@ -78,7 +78,7 @@ class TestPushoverProvider:
             end_date=datetime.date(2026, 9, 3),
         )
 
-        with patch("httpx.AsyncClient") as mock_client:
+        with patch("httpx2.AsyncClient") as mock_client:
             await provider.send_alert({"user_key": ""}, payload)
             mock_client.assert_not_called()
 
@@ -99,7 +99,7 @@ class TestPushoverProvider:
         )
 
         with patch.object(provider.config, "app_token", ""):
-            with patch("httpx.AsyncClient") as mock_client:
+            with patch("httpx2.AsyncClient") as mock_client:
                 await provider.send_alert(user_config, payload)
                 mock_client.assert_not_called()
 
@@ -125,7 +125,7 @@ class TestPushoverProvider:
         )
 
         with patch.object(provider.config, "app_token", "token"):
-            with patch("httpx.AsyncClient") as mock_client_cls:
+            with patch("httpx2.AsyncClient") as mock_client_cls:
                 mock_client = AsyncMock()
                 mock_client.post.side_effect = Exception("HTTP Error")
                 mock_client_cls.return_value.__aenter__.return_value = mock_client

@@ -13,7 +13,7 @@ from contextlib import ExitStack
 from pathlib import Path
 from typing import Callable, cast
 
-import httpx
+import httpx2
 import pytest
 import redis
 import uvicorn
@@ -42,7 +42,7 @@ def _wait(check: Callable[[], bool], timeout: float = 30) -> None:
         try:
             if check():
                 return
-        except (httpx.HTTPError, redis.RedisError, OSError, ValueError):
+        except (httpx2.HTTPError, redis.RedisError, OSError, ValueError):
             pass
         time.sleep(0.25)
     raise AssertionError("Admin smoke readiness check timed out")
@@ -129,7 +129,7 @@ def _start_api(stack: ExitStack) -> str:
 
     stack.callback(stop_api)
     origin = f"http://127.0.0.1:{port}"
-    _wait(lambda: httpx.get(f"{origin}/api/health").is_success)
+    _wait(lambda: httpx2.get(f"{origin}/api/health").is_success)
     return origin
 
 
@@ -186,7 +186,7 @@ def test_admin_live_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
         )
         _wait(
             lambda: (
-                httpx.get(
+                httpx2.get(
                     f"http://127.0.0.1:{prom_port}/api/v1/query",
                     params={"query": "camply_application_outcomes_total"},
                 )
@@ -197,15 +197,15 @@ def test_admin_live_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
             )
         )
 
-        failure_count = httpx.get(
+        failure_count = httpx2.get(
             f"http://127.0.0.1:{prom_port}/api/v1/query",
             params={"query": 'sum(camply_celery_tasks_total{status="failure"})'},
         ).json()["data"]["result"][0]["value"][1]
         assert float(failure_count) == 1
 
         origin = _start_api(stack)
-        profile = httpx.get(f"{origin}/api/me").json()
-        scan = httpx.post(
+        profile = httpx2.get(f"{origin}/api/me").json()
+        scan = httpx2.post(
             f"{origin}/api/scans",
             json={
                 "provider_id": 1,
@@ -215,12 +215,14 @@ def test_admin_live_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
             },
         )
         assert scan.is_success, scan.text
-        overview = httpx.get(f"{origin}/api/admin/operations", timeout=10).json()
+        overview = httpx2.get(f"{origin}/api/admin/operations", timeout=10).json()
         assert overview["inspection_available"]
         assert overview["active_tasks_total"] == 0
-        history = httpx.get(f"{origin}/api/admin/operations/tasks").json()
+        history = httpx2.get(f"{origin}/api/admin/operations/tasks").json()
         assert history["total"] == 3
-        charts = httpx.get(f"{origin}/api/admin/trends?group=worker", timeout=10).json()
+        charts = httpx2.get(
+            f"{origin}/api/admin/trends?group=worker", timeout=10
+        ).json()
         assert charts["available"]
         assert any(metric["series"] for metric in charts["metrics"])
 
@@ -237,6 +239,6 @@ def test_admin_live_stack(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
         )
         _stop(worker)
         monkeypatch.setattr(operations, "_cached_overview_time", 0)
-        stopped = httpx.get(f"{origin}/api/admin/operations", timeout=10).json()
+        stopped = httpx2.get(f"{origin}/api/admin/operations", timeout=10).json()
         assert not stopped["inspection_available"]
         assert stopped["stale"]

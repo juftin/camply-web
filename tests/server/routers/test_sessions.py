@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import URL
+from httpx2 import URL
 
 from camply.server.config import AuthMode, BackendConfig, backend_config
 

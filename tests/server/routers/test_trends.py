@@ -8,7 +8,7 @@ import uuid
 from typing import Generator
 from unittest.mock import AsyncMock, patch
 
-import httpx
+import httpx2
 import pytest
 from fastapi.testclient import TestClient
 
@@ -81,13 +81,13 @@ def test_trends_usage_group_success(
         },
     }
 
-    mock_resp = httpx.Response(
+    mock_resp = httpx2.Response(
         status_code=200,
         json=fake_prometheus_data,
-        request=httpx.Request("GET", "http://localhost:9090"),
+        request=httpx2.Request("GET", "http://localhost:9090"),
     )
 
-    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+    with patch("httpx2.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = mock_resp
         resp = test_client.get("/api/admin/trends?group=usage&range=24h")
 
@@ -129,13 +129,13 @@ def test_trends_api_group_and_range_params(
         },
     }
 
-    mock_resp = httpx.Response(
+    mock_resp = httpx2.Response(
         status_code=200,
         json=fake_prometheus_data,
-        request=httpx.Request("GET", "http://localhost:9090"),
+        request=httpx2.Request("GET", "http://localhost:9090"),
     )
 
-    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+    with patch("httpx2.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = mock_resp
         resp = test_client.get("/api/admin/trends?group=api&range=7d")
 
@@ -156,13 +156,13 @@ def test_trends_worker_and_provider_groups(
         "data": {"resultType": "matrix", "result": []},
     }
 
-    mock_resp = httpx.Response(
+    mock_resp = httpx2.Response(
         status_code=200,
         json=fake_prometheus_data,
-        request=httpx.Request("GET", "http://localhost:9090"),
+        request=httpx2.Request("GET", "http://localhost:9090"),
     )
 
-    with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+    with patch("httpx2.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = mock_resp
         resp_worker = test_client.get("/api/admin/trends?group=worker&range=24h")
         assert resp_worker.status_code == 200
@@ -178,8 +178,8 @@ def test_trends_prometheus_outage_handling(
 ) -> None:
     """When Prometheus is unreachable, returns 200 with available=False."""
     with patch(
-        "httpx.AsyncClient.get",
-        side_effect=httpx.ConnectError("Connection refused to Prometheus"),
+        "httpx2.AsyncClient.get",
+        side_effect=httpx2.ConnectError("Connection refused to Prometheus"),
     ):
         resp = test_client.get("/api/admin/trends?group=usage&range=24h")
 
@@ -273,7 +273,7 @@ async def test_outage_retains_last_successful_trends() -> None:
     _TRENDS_CACHE[key] = (time.monotonic() - 60, healthy)
     with patch(
         "camply.server.services.trends._query_prometheus_range",
-        side_effect=httpx.ConnectError("synthetic outage"),
+        side_effect=httpx2.ConnectError("synthetic outage"),
     ):
         stale = await get_admin_trends()
     assert not stale.available
@@ -294,7 +294,7 @@ async def test_trends_promql_aggregates_across_workers() -> None:
     executed_queries: list[str] = []
 
     async def fake_query(
-        client: httpx.AsyncClient,
+        client: httpx2.AsyncClient,
         prometheus_url: str,
         query: str,
         start: float,

@@ -25,6 +25,7 @@ logger = structlog.getLogger(__name__)
 
 @celery_app.task(
     name="camply.catalog.sync_all_providers",
+    ignore_result=True,
 )
 def populate_database() -> dict:
     """
@@ -63,6 +64,7 @@ def populate_database() -> dict:
     max_retries=3,
     default_retry_delay=300,
     acks_late=True,
+    ignore_result=True,
 )
 def populate_provider_database(self, provider_id: int) -> dict:
     """

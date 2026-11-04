@@ -15,7 +15,7 @@ providers, authentication, and scan engine.
 - **Languages**: Python 3.12 development environment and existing TypeScript/React.
   Preserve current package Python metadata; this feature does not raise minimums.
 - **Dependencies**: FastAPI/Starlette, Uvicorn, SQLAlchemy/Alembic, aiosqlite,
-  Pydantic, httpx, structlog; Vite/pnpm only for asset builds. Infrastructure extras
+  Pydantic, httpx2, structlog; Vite/pnpm only for asset builds. Infrastructure extras
   remain available for distributed deployment.
 - **Storage/platform**: File-backed SQLite on local disk; one application instance.
   PostgreSQL remains supported for the distributed stack.

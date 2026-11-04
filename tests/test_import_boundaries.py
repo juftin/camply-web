@@ -111,7 +111,7 @@ def test_source_directories_are_packages() -> None:
         ({"__init__.py": "import camply.providers"}, "Package root stays lightweight"),
         ({"__init__.py": "import camply.cli"}, "Package root stays lightweight"),
         ({"__init__.py": "import fastapi"}, "Base dependencies stay optional-free"),
-        ({"probe.py": "import httpx"}, "Component dependency layers"),
+        ({"probe.py": "import httpx2"}, "Component dependency layers"),
         ({"cli/probe.py": "import fastapi"}, "Base dependencies stay optional-free"),
         ({"cli/probe.py": "import celery"}, "Base dependencies stay optional-free"),
         (

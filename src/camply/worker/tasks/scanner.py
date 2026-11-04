@@ -58,6 +58,7 @@ def _dispatch_notification(scan: UserScan, opening: NotificationDTO) -> None:
     max_retries=3,
     default_retry_delay=60,
     acks_late=True,
+    ignore_result=True,
 )
 def check_target_availability(self: Any, target_id: str) -> Optional[dict]:
     """

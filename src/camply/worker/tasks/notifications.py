@@ -21,6 +21,7 @@ logger = structlog.getLogger(__name__)
     bind=True,
     max_retries=3,
     default_retry_delay=120,
+    ignore_result=True,
 )
 def send_pushover_notification(
     self: Any,

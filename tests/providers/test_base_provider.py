@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
+import httpx2
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -133,12 +133,12 @@ class TestRetryStrategyProviderOverride:
 
 def _make_response(
     status_code: int, headers: dict[str, str] | None = None
-) -> httpx.Response:
-    """Helper to build a minimal ``httpx.Response`` for testing."""
-    return httpx.Response(
+) -> httpx2.Response:
+    """Helper to build a minimal ``httpx2.Response`` for testing."""
+    return httpx2.Response(
         status_code=status_code,
         headers=headers or {},
-        request=httpx.Request("GET", "https://example.com/api"),
+        request=httpx2.Request("GET", "https://example.com/api"),
     )
 
 
@@ -146,9 +146,9 @@ class _TransportMixin:
     """Mixin providing a convenience method for running requests through a transport."""
 
     @staticmethod
-    async def _run_request(transport: RetryTransport) -> httpx.Response:
+    async def _run_request(transport: RetryTransport) -> httpx2.Response:
         """Send a basic GET request through *transport*."""
-        request = httpx.Request("GET", "https://example.com/api")
+        request = httpx2.Request("GET", "https://example.com/api")
         return await transport.handle_async_request(request)
 
 
@@ -167,7 +167,7 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_normal_request_succeeds_on_first_try(self) -> None:
         strategy = RetryStrategy(max_retries=3, jitter=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_200 = _make_response(200)
         transport._inner.handle_async_request = AsyncMock(return_value=response_200)
@@ -181,7 +181,7 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_retries_on_429_with_exponential_backoff(self) -> None:
         strategy = RetryStrategy(max_retries=3, jitter=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_429 = _make_response(429)
         response_200 = _make_response(200)
@@ -199,7 +199,7 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_retries_on_429_uses_retry_after_header(self) -> None:
         strategy = RetryStrategy(max_retries=2, jitter=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_429 = _make_response(429, headers={"Retry-After": "0.01"})
         response_200 = _make_response(200)
@@ -214,7 +214,7 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_exhausts_retries_and_raises_on_429(self) -> None:
         strategy = RetryStrategy(max_retries=2, jitter=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_429 = _make_response(429)
         transport._inner.handle_async_request = AsyncMock(
@@ -228,7 +228,7 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_does_not_retry_on_429_when_disabled(self) -> None:
         strategy = RetryStrategy(max_retries=3, jitter=False, retry_on_429=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_429 = _make_response(429)
         transport._inner.handle_async_request = AsyncMock(return_value=response_429)
@@ -242,7 +242,7 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_retries_on_5xx(self) -> None:
         strategy = RetryStrategy(max_retries=2, jitter=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_500 = _make_response(500)
         response_200 = _make_response(200)
@@ -259,7 +259,7 @@ class TestRetryTransportUnit(_TransportMixin):
         """When all retries are exhausted on 5xx, returns the last response."""
         strategy = RetryStrategy(max_retries=2, jitter=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_500 = _make_response(500)
         transport._inner.handle_async_request = AsyncMock(
@@ -273,7 +273,7 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_does_not_retry_on_5xx_when_disabled(self) -> None:
         strategy = RetryStrategy(max_retries=3, jitter=False, retry_on_5xx=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_500 = _make_response(500)
         transport._inner.handle_async_request = AsyncMock(return_value=response_500)
@@ -287,7 +287,7 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_does_not_retry_on_4xx_non_429(self) -> None:
         strategy = RetryStrategy(max_retries=3, jitter=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_404 = _make_response(404)
         transport._inner.handle_async_request = AsyncMock(return_value=response_404)
@@ -299,7 +299,7 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_does_not_retry_on_400(self) -> None:
         strategy = RetryStrategy(max_retries=3, jitter=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_400 = _make_response(400)
         transport._inner.handle_async_request = AsyncMock(return_value=response_400)
@@ -311,7 +311,7 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_does_not_retry_on_401(self) -> None:
         strategy = RetryStrategy(max_retries=3, jitter=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_401 = _make_response(401)
         transport._inner.handle_async_request = AsyncMock(return_value=response_401)
@@ -323,7 +323,7 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_does_not_retry_on_403(self) -> None:
         strategy = RetryStrategy(max_retries=3, jitter=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_403 = _make_response(403)
         transport._inner.handle_async_request = AsyncMock(return_value=response_403)
@@ -337,12 +337,12 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_retries_on_connect_error(self) -> None:
         strategy = RetryStrategy(max_retries=2, jitter=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_200 = _make_response(200)
         transport._inner.handle_async_request = AsyncMock(
             side_effect=[
-                httpx.ConnectError("Connection refused"),
+                httpx2.ConnectError("Connection refused"),
                 response_200,
             ]
         )
@@ -354,12 +354,12 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_retries_on_timeout_error(self) -> None:
         strategy = RetryStrategy(max_retries=2, jitter=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         response_200 = _make_response(200)
         transport._inner.handle_async_request = AsyncMock(
             side_effect=[
-                httpx.TimeoutException("Timed out"),
+                httpx2.TimeoutException("Timed out"),
                 response_200,
             ]
         )
@@ -370,13 +370,13 @@ class TestRetryTransportUnit(_TransportMixin):
     async def test_exhausts_retries_on_connection_error(self) -> None:
         strategy = RetryStrategy(max_retries=2, jitter=False)
         transport = RetryTransport(retry_strategy=strategy)
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
 
         transport._inner.handle_async_request = AsyncMock(
-            side_effect=httpx.ConnectError("Connection refused")
+            side_effect=httpx2.ConnectError("Connection refused")
         )
 
-        with pytest.raises(httpx.ConnectError):
+        with pytest.raises(httpx2.ConnectError):
             await self._run_request(transport)
 
         assert (
@@ -557,7 +557,7 @@ class TestRetryTransportWithCircuitBreaker(_TransportMixin):
         await cb.on_failure()
         assert cb.state == cb.OPEN
 
-        request = httpx.Request("GET", "https://example.com/api")
+        request = httpx2.Request("GET", "https://example.com/api")
         with pytest.raises(CircuitBreakerOpenError):
             await transport.handle_async_request(request)
 
@@ -568,7 +568,7 @@ class TestRetryTransportWithCircuitBreaker(_TransportMixin):
         strategy = RetryStrategy(max_retries=1, jitter=False)
         transport = RetryTransport(retry_strategy=strategy, circuit_breaker=cb)
 
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
         response_429 = _make_response(429)
         transport._inner.handle_async_request = AsyncMock(
             side_effect=[response_429, response_429]
@@ -590,7 +590,7 @@ class TestRetryTransportWithCircuitBreaker(_TransportMixin):
         strategy = RetryStrategy(max_retries=1, jitter=False)
         transport = RetryTransport(retry_strategy=strategy, circuit_breaker=cb)
 
-        transport._inner = MagicMock(spec=httpx.AsyncHTTPTransport)
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
         response_200 = _make_response(200)
         transport._inner.handle_async_request = AsyncMock(return_value=response_200)
 

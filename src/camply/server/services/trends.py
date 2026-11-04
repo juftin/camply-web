@@ -15,7 +15,8 @@ import math
 import time
 from typing import Any, Optional
 
-import httpx
+import httpx2
+import jiter
 import structlog
 
 from camply.server.config import RuntimeMode, backend_config
@@ -48,7 +49,7 @@ def _parse_step_and_range(range_param: str) -> tuple[int, int, str]:
 
 
 async def _query_prometheus_range(
-    client: httpx.AsyncClient,
+    client: httpx2.AsyncClient,
     prometheus_url: str,
     query: str,
     start: float,
@@ -67,7 +68,7 @@ async def _query_prometheus_range(
     }
     response = await client.get(url, params=params, timeout=5.0)
     response.raise_for_status()
-    data = response.json()
+    data = jiter.from_json(response.content)
     if data.get("status") != "success":
         raise ValueError(f"Prometheus query failed: {data.get('error')}")
     return data.get("data", {}).get("result", [])
@@ -172,7 +173,7 @@ async def get_admin_trends(
     metrics: list[TrendMetric] = []
 
     try:
-        async with asyncio.timeout(8), httpx.AsyncClient() as client:
+        async with asyncio.timeout(8), httpx2.AsyncClient() as client:
             if norm_group == "usage":
                 # Metric 1: Total Registered Users
                 try:
@@ -847,7 +848,12 @@ async def get_admin_trends(
         _TRENDS_CACHE[cache_key] = (now, response)
         return response
 
-    except (httpx.RequestError, httpx.HTTPStatusError, ValueError, TimeoutError) as exc:
+    except (
+        httpx2.RequestError,
+        httpx2.HTTPStatusError,
+        ValueError,
+        TimeoutError,
+    ) as exc:
         logger.warning(
             "Prometheus trends service unavailable",
             url=backend_config.prometheus_url,

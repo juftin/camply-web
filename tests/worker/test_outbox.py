@@ -6,7 +6,7 @@ import sqlite3
 from typing import Any, Literal
 from unittest.mock import AsyncMock, MagicMock
 
-import httpx
+import httpx2
 import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
@@ -242,11 +242,11 @@ async def test_failed_intent_insert_rolls_back_detection(
 )
 async def test_http_delivery_classification(status: int, expected: str) -> None:
     """Only rate limits and server errors qualify for another send attempt."""
-    response = httpx.Response(
-        status, request=httpx.Request("POST", "https://example.test")
+    response = httpx2.Response(
+        status, request=httpx2.Request("POST", "https://example.test")
     )
     send = AsyncMock(
-        side_effect=httpx.HTTPStatusError(
+        side_effect=httpx2.HTTPStatusError(
             "synthetic", request=response.request, response=response
         )
     )
@@ -260,7 +260,7 @@ async def test_http_delivery_classification(status: int, expected: str) -> None:
     [
         (MissingCredentials(), "skipped"),
         (ValueError(), "failure"),
-        (httpx.ReadTimeout("synthetic"), "retry"),
+        (httpx2.ReadTimeout("synthetic"), "retry"),
     ],
 )
 async def test_delivery_error_classification(error: Exception, expected: str) -> None:
@@ -283,7 +283,7 @@ async def test_four_send_budget_and_terminal_retention(
         registry={1: fake_provider(target)},
         persistent=True,
     )
-    send = AsyncMock(side_effect=httpx.ConnectError("synthetic"))
+    send = AsyncMock(side_effect=httpx2.ConnectError("synthetic"))
     for attempt in range(1, 5):
         result = await deliver_next(database, send=send)
         assert result is not None and result["attempt"] == attempt
@@ -317,7 +317,7 @@ async def test_retry_and_interrupted_budget(
         registry={1: fake_provider(target)},
         persistent=True,
     )
-    send = AsyncMock(side_effect=httpx.ConnectError("synthetic"))
+    send = AsyncMock(side_effect=httpx2.ConnectError("synthetic"))
     result = await deliver_next(database, send=send)
     assert result is not None and result["outcome"] == "retry"
     async with database.get_session() as session:

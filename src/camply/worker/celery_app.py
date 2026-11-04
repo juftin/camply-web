@@ -30,10 +30,10 @@ def create_celery_app() -> Celery:
     app.conf.broker_url = worker_config.valkey_url
     app.conf.result_backend = worker_config.valkey_url
 
-    # Task serialization: JSON only (secure, debuggable, no pickle)
-    app.conf.task_serializer = "json"
-    app.conf.result_serializer = "json"
-    app.conf.accept_content = ["json"]
+    # Task serialization: msgpack for speed and compact payloads, accepting json for compatibility
+    app.conf.task_serializer = "msgpack"
+    app.conf.result_serializer = "msgpack"
+    app.conf.accept_content = ["msgpack", "json"]
 
     # Timezone
     app.conf.timezone = "UTC"
@@ -45,6 +45,7 @@ def create_celery_app() -> Celery:
     app.conf.task_reject_on_worker_lost = True
     app.conf.task_default_retry_delay = 60  # 1 minute
     app.conf.task_max_retries = 3
+    app.conf.worker_prefetch_multiplier = 1
 
     # Result expiry: 1 hour (we don't need results long-term)
     app.conf.result_expires = 3600

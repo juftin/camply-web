@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Callable
 from urllib.parse import urlparse
 
-import httpx
+import httpx2
 import pytest
 
 pytestmark = pytest.mark.skipif(
@@ -37,7 +37,7 @@ def _wait(check: Callable[[], bool], *, timeout: float = 30) -> None:
         try:
             if check():
                 return
-        except (httpx.HTTPError, OSError, sqlite3.OperationalError, ValueError):
+        except (httpx2.HTTPError, OSError, sqlite3.OperationalError, ValueError):
             pass
         time.sleep(0.1)
     raise AssertionError("Standalone smoke readiness timed out")
@@ -54,7 +54,7 @@ def _stop(process: subprocess.Popen[bytes]) -> None:
             process.wait(timeout=5)
 
 
-def _login(client: httpx.Client, username: str, password: str) -> None:
+def _login(client: httpx2.Client, username: str, password: str) -> None:
     """Establish real session/CSRF cookies using synthetic test credentials."""
     response = client.post(
         "/api/login", json={"username": username, "password": password}
@@ -76,7 +76,7 @@ def _exercise_scans(
 ) -> None:
     """Verify shared-target HTTP checks and pending-alert recovery on restart."""
     client = stack.enter_context(
-        httpx.Client(base_url=origin, headers={"Origin": origin})
+        httpx2.Client(base_url=origin, headers={"Origin": origin})
     )
     _login(client, "synthetic-admin", "synthetic-password")
     assert client.post("/api/admin/operations/sync-providers").is_success
@@ -106,7 +106,7 @@ def _exercise_scans(
     )
     assert response.is_success, response.text
     second = stack.enter_context(
-        httpx.Client(base_url=origin, headers={"Origin": origin})
+        httpx2.Client(base_url=origin, headers={"Origin": origin})
     )
     _login(second, "second@example.test", "synthetic-password")
     assert second.patch("/api/me", json={"pushover_token": "synthetic"}).is_success
@@ -141,7 +141,7 @@ def _exercise_scans(
 
 
 def _verify_current_features(
-    client: httpx.Client, origin: str, deliveries: list[bytes]
+    client: httpx2.Client, origin: str, deliveries: list[bytes]
 ) -> None:
     """Exercise current maps, saved site details, and summary links on installed SQLite."""
     import json
@@ -177,7 +177,7 @@ def _verify_map_worker(core: Path, origin: str) -> None:
         )
     )
     assert len(workers) == 1, "The standalone wheel must bundle the map worker"
-    resource = httpx.get(
+    resource = httpx2.get(
         origin + "/assets/" + workers[0].name, headers={"Accept-Encoding": "gzip"}
     )
     assert resource.is_success
@@ -322,7 +322,7 @@ def test_installed_standalone_stack(tmp_path: Path) -> None:
                 stderr=subprocess.STDOUT,
             )
             stack.callback(_stop, process)
-            _wait(lambda: httpx.get(origin + "/api/health").is_success)
+            _wait(lambda: httpx2.get(origin + "/api/health").is_success)
             return process
 
         process = start()
