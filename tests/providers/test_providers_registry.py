@@ -46,24 +46,24 @@ class TestBaseProviderURLGeneration:
 
 
 class TestProviderCLI:
-    """Tests for the populate-database CLI entry point."""
+    """Tests for the database metadata CLI entry point."""
 
     def test_cli_entry_point_registered(self) -> None:
         """The CLI entry point should be importable."""
-        from camply.providers.cli import populate_database
+        from camply.cli.db import metadata_cmd
 
-        assert populate_database is not None
-        assert callable(populate_database)
-        assert populate_database.name == "populate-database"
+        assert metadata_cmd is not None
+        assert callable(metadata_cmd)
+        assert metadata_cmd.name == "metadata"
 
     def test_cli_help_includes_all(self) -> None:
         """The CLI help output should include the 'all' option."""
         from click.testing import CliRunner
 
-        from camply.providers.cli import populate_database
+        from camply.cli.db import metadata_cmd
 
         runner = CliRunner()
-        result = runner.invoke(populate_database, ["--help"])
+        result = runner.invoke(metadata_cmd, ["--help"])
         assert result.exit_code == 0
         assert "all" in result.output
 
@@ -73,7 +73,7 @@ class TestProviderCLI:
 
         from click.testing import CliRunner
 
-        from camply.providers.cli import populate_database
+        from camply.cli.db import metadata_cmd
 
         runner = CliRunner()
         mock_instances = {}
@@ -84,10 +84,10 @@ class TestProviderCLI:
             mock_instances[pid] = inst
 
         with patch.dict(
-            "camply.providers.cli.PROVIDERS",
+            "camply.cli.db.PROVIDERS",
             {pid: (lambda p=pid: mock_instances[p]) for pid in PROVIDERS},
         ):
-            result = runner.invoke(populate_database, ["--provider-id", "all"])
+            result = runner.invoke(metadata_cmd, ["--provider-id", "all"])
             assert result.exit_code == 0
             for inst in mock_instances.values():
                 inst.populate_database.assert_awaited_once()

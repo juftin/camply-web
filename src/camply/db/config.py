@@ -95,7 +95,7 @@ class DatabaseConfig(BaseSettings):
             if self.DRIVERNAME != DatabaseDrivers.POSTGRES or exc.name != "psycopg":
                 raise
             raise RuntimeError(
-                "PostgreSQL support requires installing 'camply[postgres]'."
+                "PostgreSQL support requires installing 'camply-web[postgres]'."
             ) from exc
 
         if self.DRIVERNAME == DatabaseDrivers.SQLITE:

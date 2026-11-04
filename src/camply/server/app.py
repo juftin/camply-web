@@ -12,7 +12,9 @@ try:
 except ModuleNotFoundError as exc:
     if exc.name != "fastapi":
         raise
-    raise RuntimeError("The API server requires installing 'camply[server]'.") from exc
+    raise RuntimeError(
+        "The API server requires installing 'camply-web[server]'."
+    ) from exc
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import Response
@@ -43,7 +45,7 @@ if backend_config.sentry_dsn:
         if exc.name != "sentry_sdk":
             raise
         raise RuntimeError(
-            "CAMPLY_SENTRY_DSN is configured; install 'camply[sentry]' to enable reporting."
+            "CAMPLY_SENTRY_DSN is configured; install 'camply-web[sentry]' to enable reporting."
         ) from exc
     from sentry_sdk.integrations.fastapi import FastApiIntegration
     from sentry_sdk.integrations.starlette import StarletteIntegration

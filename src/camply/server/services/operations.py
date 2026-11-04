@@ -45,7 +45,7 @@ logger = structlog.getLogger(__name__)
 STREAM_KEY = "camply:telemetry:tasks"
 TASK_KEY_PREFIX = "camply:telemetry:task:"
 DISCOVERY_LAST_KEY = "camply:telemetry:discovery:last"
-DISTRIBUTED_INSTALL_HINT = "Distributed operations require 'camply[distributed]'."
+DISTRIBUTED_INSTALL_HINT = "Distributed operations require 'camply-web[distributed]'."
 """Actionable explanation for a server installed without worker dependencies."""
 
 # 10-second in-memory snapshot cache

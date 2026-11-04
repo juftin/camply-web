@@ -43,7 +43,7 @@ export function Layout({ children }: LayoutProps) {
                 Contact
               </Link>
               <a
-                href="https://github.com/juftin/camply/tree/web"
+                href="https://github.com/juftin/camply-web"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 hover:text-foreground"

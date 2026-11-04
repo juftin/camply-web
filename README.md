@@ -10,11 +10,10 @@
 
 ## Run camply yourself
 
-Install from GitHub with [uv](https://docs.astral.sh/uv/). The Git install builds the web app, so it also needs Git, Node.js 24, and pnpm (see [installation prerequisites](docs/self-hosting/standalone.md#install-from-github)).
+Run camply directly with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv tool install git+https://github.com/juftin/camply-web --with 'camply[server]' --python 3.14
-camply serve
+uvx --from "camply-web[server]" camply serve
 ```
 
 Open <http://127.0.0.1:8000> and use **Sync Providers** in Admin Operations to load the campground catalog. Set up Pushover to receive alerts. The default login uses a shared administrator account; [configure authentication](docs/configuration.md) before sharing your instance.

@@ -22,7 +22,6 @@ dependencies = [
 
 [project.scripts]
 camply = "camply.cli.main:cli"
-populate-database = "camply.providers.cli:populate_database"
 
 [project.optional-dependencies]
 server = [

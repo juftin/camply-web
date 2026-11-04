@@ -14,7 +14,7 @@ def test_missing_postgres_driver_has_installation_hint() -> None:
         "camply.db.config.create_async_engine",
         side_effect=ModuleNotFoundError(name="psycopg"),
     ):
-        with pytest.raises(RuntimeError, match=r"camply\[postgres\]"):
+        with pytest.raises(RuntimeError, match=r"camply-web\[postgres\]"):
             config.create_async_engine()
 
 

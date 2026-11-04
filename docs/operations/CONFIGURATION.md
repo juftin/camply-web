@@ -5,13 +5,13 @@ This document defines all environment variables used by the `camply` monorepo. A
 ## Python installation capabilities
 
 Python >=3.11 is supported; development, primary CI, Docker, and release
-runtimes default to 3.14. Base `camply` provides provider and SQLite APIs.
+runtimes default to 3.14. Base `camply-web` provides provider and SQLite APIs.
 The `server`, `distributed`, `postgres`, and `sentry` extras independently add
 HTTP, Celery/Redis, Psycopg, and Sentry dependencies. Selecting an extra does
 not start or provision services. Configuration keys remain unchanged.
 
-Use `camply[server]` for the API without broker integration and
-`camply[server,distributed,postgres,sentry]` for the existing full stack.
+Use `camply-web[server]` for the API without broker integration and
+`camply-web[server,distributed,postgres,sentry]` for the existing full stack.
 API-only installs retain scan management, but scheduled checks need workers,
 beat, and Valkey/Redis. Missing distributed support makes operations reads
 unavailable and task detail/dispatch return authorized HTTP 503 responses.
@@ -124,7 +124,7 @@ Workers and beat never apply database migrations, including when the sync flag i
 | `camply serve healthcheck worker`   | Directed Celery ping to `celery@<local hostname>` through the configured broker |
 | `camply serve healthcheck beat`     | Fresh heartbeat from a live local scheduler PID                                 |
 
-Each probe prints `healthy` and exits 0 on success; an unhealthy service exits 1 with a short diagnostic on stderr. Invalid CLI usage exits 2. The probes do not migrate databases or dispatch application tasks. HTTP and beat checks work with the base package; the worker check requires `camply[distributed]`. Beat PID checks require Unix. Help never requires optional runtime dependencies. Run each local probe in the same container and environment as its serving role.
+Each probe prints `healthy` and exits 0 on success; an unhealthy service exits 1 with a short diagnostic on stderr. Invalid CLI usage exits 2. The probes do not migrate databases or dispatch application tasks. HTTP and beat checks work with the base package; the worker check requires `camply-web[distributed]`. Beat PID checks require Unix. Help never requires optional runtime dependencies. Run each local probe in the same container and environment as its serving role.
 
 HTTP probes accept `--url` for a custom listener and `--timeout` for the network timeout (5 seconds by default). They require a 2xx status, reject redirects, and ignore environment HTTP proxies. For example, `camply serve healthcheck --url http://127.0.0.1:9000/api/health` matches standalone serving on port 9000. An init container can use `camply serve healthcheck backend --url http://backend:8000/api/health` to wait for the API. The backend endpoint verifies its database with a two-second query budget and returns HTTP 503 when unavailable. Standalone additionally checks its local runner. `/api/ping` checks API responsiveness independently of the database and is the Helm chart's liveness endpoint. Frontend checks only Nginx, independently of its upstream. Keep separate broker probes when Valkey availability matters.
 

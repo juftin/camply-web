@@ -26,8 +26,8 @@ Running `task` without arguments lists available workflows. Use `task install` t
 The backend is one `camply` distribution with internal `server`, `db`,
 `providers`, and `worker` subpackages. Development sync installs all extras;
 consumers can select `server`, `distributed`, `postgres`, and `sentry`
-independently. Base provides providers, SQLite, the `camply` command, and
-`populate-database`.
+independently. Base provides providers, SQLite, and the `camply` command
+(including `camply db metadata`).
 See [backend installation](../operations/RUNNING.md#build-and-install-the-complete-application) for artifact examples.
 
 API-only installs do not run scheduled scans: workers, beat, and Valkey/Redis
@@ -44,7 +44,7 @@ Set `CAMPLY_DB_HOST` to an absolute writable file path to choose storage. On mac
 
 For session login over local HTTP, set `CAMPLY_AUTH_MODE=session`, securely inject `CAMPLY_LOGIN_USERNAME`, `CAMPLY_LOGIN_PASSWORD`, and `CAMPLY_SESSION_SECRET`, set `CAMPLY_SESSION_COOKIE_SECURE=false`, and include the exact frontend origin in `CAMPLY_CORS_ORIGINS`. HTTPS deployments retain secure cookies. Auth0 callbacks must use the Python-served origin. Automatic shared-admin login remains the default.
 
-For installation outside the checkout, install the `camply` package with the `server` extra. Start with `camply serve`; it selects standalone mode automatically. Use `--host` and `--port` to override the default `127.0.0.1:8000` listener. No Vite or Node process is needed. To supply a separate prebuilt UI, set `CAMPLY_FRONTEND_DIR` to its absolute directory. Build assets before producing release wheels; normal editable backend installs do not require frontend assets.
+For installation outside the checkout, install the `camply-web` package with the `server` extra (or run `uvx --from "camply-web[server]" camply serve`). Start with `camply serve`; it selects standalone mode automatically. Use `--host` and `--port` to override the default `127.0.0.1:8000` listener. No Vite or Node process is needed. To supply a separate prebuilt UI, set `CAMPLY_FRONTEND_DIR` to its absolute directory. Build assets before producing release wheels; normal editable backend installs do not require frontend assets.
 
 Alerts use the existing summary/direct modes. Standalone summary links default to the listener origin; set `CAMPLY_APP_URL` to the public URL (including any path prefix) behind HTTPS or a reverse proxy. Site details and map/search APIs use the shared SQLite-backed catalog and latest scan results.
 

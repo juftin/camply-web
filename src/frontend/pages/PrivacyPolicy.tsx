@@ -159,10 +159,10 @@ export function PrivacyPolicy() {
             <li>
               GitHub:{" "}
               <a
-                href="https://github.com/juftin/camply"
+                href="https://github.com/juftin/camply-web"
                 className="text-primary hover:text-primary/80"
               >
-                github.com/juftin/camply
+                github.com/juftin/camply-web
               </a>
             </li>
           </ul>

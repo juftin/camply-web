@@ -9,7 +9,9 @@ try:
 except ModuleNotFoundError as exc:
     if exc.name != "celery":
         raise
-    raise RuntimeError("The worker requires installing 'camply[distributed]'.") from exc
+    raise RuntimeError(
+        "The worker requires installing 'camply-web[distributed]'."
+    ) from exc
 from celery.schedules import crontab
 from celery.signals import setup_logging, worker_init
 
@@ -126,7 +128,7 @@ if worker_config.sentry_dsn:
         if exc.name != "sentry_sdk":
             raise
         raise RuntimeError(
-            "CAMPLY_SENTRY_DSN is configured; install 'camply[sentry]' to enable reporting."
+            "CAMPLY_SENTRY_DSN is configured; install 'camply-web[sentry]' to enable reporting."
         ) from exc
     from sentry_sdk.integrations.celery import CeleryIntegration
 

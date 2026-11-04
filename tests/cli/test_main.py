@@ -77,7 +77,7 @@ def test_serve_requires_server_extra(monkeypatch: pytest.MonkeyPatch) -> None:
         result = CliRunner().invoke(cli, ["serve"])
 
     assert result.exit_code == 1
-    assert "camply[server]" in result.stderr
+    assert "camply-web[server]" in result.stderr
 
 
 @pytest.mark.parametrize(
@@ -278,7 +278,7 @@ def test_python_roles_check_dependencies_before_side_effects(
         )
         result = CliRunner().invoke(cli, command)
         assert result.exit_code == 1, (missing, result.output)
-        assert f"camply[{extra}]" in result.stderr
+        assert f"camply-web[{extra}]" in result.stderr
         assert missing in result.stderr
         upgrade.assert_not_called()
         execute.assert_not_called()
@@ -437,3 +437,16 @@ def test_beat_help_needs_no_distributed_extra(monkeypatch: pytest.MonkeyPatch) -
     assert "--sync-providers" in result.output
     dispatch.assert_not_called()
     execute.assert_not_called()
+
+
+def test_db_metadata_subcommand_exposed() -> None:
+    """The db metadata subcommand is discoverable and callable via the CLI."""
+    runner = CliRunner()
+    result_db = runner.invoke(cli, ["db", "--help"])
+    assert result_db.exit_code == 0, result_db.output
+    assert "metadata" in result_db.output
+
+    result = runner.invoke(cli, ["db", "metadata", "--help"])
+    assert result.exit_code == 0, result.output
+    assert "--provider-id" in result.output
+    assert "all" in result.output

@@ -4,10 +4,16 @@ Detailed runtime, distribution, and deployment reference. For a quick start, see
 
 ## Run without backing services
 
-The standalone runtime serves the UI, API, and background polling in one Python process. Install from GitHub with uv (Git, Node.js 24, and the pinned pnpm are needed to build the bundled UI):
+The standalone runtime serves the UI, API, and background polling in one Python process. Run directly with uv:
 
 ```bash
-uv tool install git+https://github.com/juftin/camply-web --with 'camply[server]' --python 3.14
+uvx --from "camply-web[server]" camply serve
+```
+
+Or install it as a persistent tool:
+
+```bash
+uv tool install "camply-web[server]"
 camply serve
 ```
 
@@ -21,7 +27,7 @@ task standalone:run
 
 Open <http://127.0.0.1:8000>. Use **Sync Providers** in Admin Operations to load the catalog. Configure the Pushover application token and each user's key to receive alerts. The default authentication mode signs in as a shared administrator; select session or Auth0 authentication before sharing an instance. See [configuration](../operations/CONFIGURATION.md) and the [standalone guide](../development/DEVELOPER_GUIDE.md#standalone-runtime).
 
-An installed `camply[server]` package starts the complete standalone application with `camply serve`. Override the listener with `camply serve --host 0.0.0.0 --port 9000`. Explicit `camply serve frontend`, `backend`, `worker`, and `beat` subcommands run individual roles.
+An installed `camply-web[server]` package starts the complete standalone application with `camply serve`. Override the listener with `camply serve --host 0.0.0.0 --port 9000`. Explicit `camply serve frontend`, `backend`, `worker`, and `beat` subcommands run individual roles.
 
 Standalone uses one process on one host, with persisted scans and pending alerts. Historical monitoring charts require the distributed deployment. `task standalone:run` uses `build/frontend` as its default development UI; an explicit `CAMPLY_FRONTEND_DIR` selects another absolute asset directory.
 
@@ -43,19 +49,19 @@ The shared `camply-web` Docker image includes Python and Nginx. `camply serve fr
 Install the actual wheel path into a uv-managed environment with the desired extras:
 
 ```bash
-uv pip install 'dist/camply-0.1.0-py3-none-any.whl[server]'
+uv pip install 'dist/camply_web-0.1.0-py3-none-any.whl[server]'
 camply serve
 ```
 
 Substitute the artifact version and run the installed environment's `camply` executable. Installed standalone applications use package-owned assets by default. `CAMPLY_FRONTEND_DIR` remains an optional absolute override. SQLite storage defaults to the platform's camply application-data directory; set `CAMPLY_DB_HOST` to an absolute writable path to choose another location.
 
-| Installation          | Capabilities                                                                                        |
-| --------------------- | --------------------------------------------------------------------------------------------------- |
-| `camply`              | Provider APIs, SQLite persistence, migrations, `camply --version`/`--help`, and `populate-database` |
-| `camply[server]`      | FastAPI and standalone HTTP application                                                             |
-| `camply[distributed]` | Celery worker/beat and Redis client                                                                 |
-| `camply[postgres]`    | PostgreSQL driver                                                                                   |
-| `camply[sentry]`      | Optional error reporting                                                                            |
+| Installation              | Capabilities                                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `camply-web`              | Provider APIs, SQLite persistence, migrations, `camply --version`/`--help`, and `camply db metadata` |
+| `camply-web[server]`      | FastAPI and standalone HTTP application                                                              |
+| `camply-web[distributed]` | Celery worker/beat and Redis client                                                                  |
+| `camply-web[postgres]`    | PostgreSQL driver                                                                                    |
+| `camply-web[sentry]`      | Optional error reporting                                                                             |
 
 Extras select dependencies; all installations receive the same application files. The existing full stack selects `server,distributed,postgres,sentry`. API-only serving does not start scheduled scans unless standalone mode is selected.
 
@@ -87,11 +93,11 @@ Build the shared image with `task build`. The default command is `camply serve b
 
 `camply serve backend` applies database migrations unless `SKIP_MIGRATIONS=1`; frontend and worker commands do not migrate. Compose waits for the backend's post-migration health check before starting workers or beat. Its scheduler runs `camply serve beat --sync-providers` to enqueue the initial catalog sync before starting beat. Bare `camply serve beat` does not enqueue a startup sync; the option preserves the task's ten-minute expiry and exits on dispatch failure. Set `CAMPLY_VERSION` to select the image tag in Compose. PostgreSQL, Valkey, and Prometheus keep their upstream images.
 
-Outside Docker, standalone and backend serving require `camply[server]`, and worker/beat require `camply[distributed]`. The frontend requires system Nginx and a prepared wheel with built assets. Launchers check dependencies before startup and use the CLI's Python environment. Help remains available with only the base package installed.
+Outside Docker, standalone and backend serving require `camply-web[server]`, and worker/beat require `camply-web[distributed]`. The frontend requires system Nginx and a prepared wheel with built assets. Launchers check dependencies before startup and use the CLI's Python environment. Help remains available with only the base package installed.
 
 Serving commands replace the CLI process with the foreground runtime, preserving direct signal delivery. Compose sends `SIGTERM` to Python roles and `SIGQUIT` to Nginx, with one minute to stop before a forced kill. For Nginx outside Compose, use `docker run --stop-signal SIGQUIT --stop-timeout 60` or send `SIGQUIT` directly. See [shutdown behavior](../operations/CONFIGURATION.md#process-shutdown) for forced termination and host process groups.
 
-Backend and worker commands forward extra arguments to Gunicorn or Celery, for example `camply serve backend --bind 127.0.0.1:9000`, `camply serve worker --concurrency=2`, or `camply serve beat --schedule /tmp/camply-beat`. Backend serving requires `camply[server]`; worker commands require `camply[distributed]`. Each command replaces itself with the runtime process so container signals reach it directly.
+Backend and worker commands forward extra arguments to Gunicorn or Celery, for example `camply serve backend --bind 127.0.0.1:9000`, `camply serve worker --concurrency=2`, or `camply serve beat --schedule /tmp/camply-beat`. Backend serving requires `camply-web[server]`; worker commands require `camply-web[distributed]`. Each command replaces itself with the runtime process so container signals reach it directly.
 
 Frontend serving requires system Nginx with `/etc/nginx/mime.types`, as installed in the image. Set `CAMPLY_BACKEND_URL` to choose the API upstream; it defaults to `http://backend:8000`. For example, `CAMPLY_BACKEND_URL=http://api.internal:9000 camply serve frontend` proxies `/api/` to that server. Compose forwards the same variable. Use an origin without a trailing slash to preserve the `/api/` path. The frontend listens on port 8080, renders the two package-owned templates under a writable temporary directory, and runs Nginx in the foreground without modifying `/etc/nginx`. Nginx config resources live in `src/camply/cli/nginx/`.
 

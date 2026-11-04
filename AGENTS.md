@@ -43,7 +43,7 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
   - `providers/`: Third-party booking providers.
   - `worker/`: Shared polling engine and Celery adapters (`distributed` extra).
 - `src/frontend/`: React TypeScript application, colocated tests, public assets, Pages `functions/`, and Node `tooling/`; manifests/configuration live at root.
-- `src/camply/cli/`: The `camply` command-line entrypoint (base dependencies only; currently `--version`/`--help`). The existing `populate-database` utility is retained.
+- `src/camply/cli/`: The `camply` command-line entrypoint (base dependencies only; provides `--version`/`--help`, `serve`, and `db metadata`).
 - `docs/{development,architecture,operations}/`: Current guides and design blueprints.
 - `docs/specs/`: Feature specifications, plans, and task tracking. Spec-Kit creation defaults and numbering use this directory; `.specify/` stays at root. Feature overrides identify the complete feature directory, and saved pointers remain checkout-local.
 - `tests/`: Python suites, installed-artifact/release regressions, and frontend visual baselines.
