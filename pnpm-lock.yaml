@@ -193,12 +193,6 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.105.0
         version: 5.105.0(@types/react@18.3.31)(react@18.3.1)
-      '@types/dompurify':
-        specifier: ^3.2.0
-        version: 3.2.0
-      '@types/react-router-dom':
-        specifier: ^5.3.3
-        version: 5.3.3
       autoprefixer:
         specifier: ^10.6.2
         version: 10.6.2(postcss@8.5.32)
@@ -269,9 +263,6 @@ importers:
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
-      '@types/pixelmatch':
-        specifier: ^7.1.0
-        version: 7.1.0
       '@types/pngjs':
         specifier: ^6.0.5
         version: 6.0.5
@@ -2220,10 +2211,6 @@ packages:
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
-  '@types/dompurify@3.2.0':
-    resolution: {integrity: sha512-Fgg31wv9QbLDA0SpTOXO3MaxySc4DKGLi8sna4/Utjo4r3ZRPdCt4UQee8BWr+Q5z21yifghREPJGYaEOEIACg==}
-    deprecated: This is a stub types definition. dompurify provides its own type definitions, so you do not need this installed.
-
   '@types/estree@1.0.10':
     resolution: {integrity: sha512-lTyOMnOcmRBzdCv6/4zUZCrEhV0xrqQiUZBZtVcbmLHBXKLnN8q89v/wKRF/Q0HbwVsqbIG3o5HDoFl9sduM+g==}
 
@@ -2235,9 +2222,6 @@ packages:
 
   '@types/hast@3.0.5':
     resolution: {integrity: sha512-rp/ezSWaD1m44dPKICGhiskI13nVr7qTloFwDa/IYkhhf5nzwP+zIQcIJh3WIFSBOy/H1PzB40jPjMDksN4F+g==}
-
-  '@types/history@4.7.11':
-    resolution: {integrity: sha512-qjDJRrmvBMiTx+jyLxvLfJU7UznFuokDv4f3WRuriHKERccVpFU+8XMQUAbDzoiJCsmexxRExQeMwwCdamSKDA==}
 
   '@types/linkify-it@5.0.0':
     resolution: {integrity: sha512-sVDA58zAw4eWAffKOaQH5/5j3XeayukzDk+ewSsnv3p4yJEZHCCzMDiZM8e0OUrRvmpGZ85jf4yDHkHsgBNr9Q==}
@@ -2260,10 +2244,6 @@ packages:
   '@types/node@24.19.2':
     resolution: {integrity: sha512-93d49wCWJkCyN87MxLpNN6KXPCwFw7bVUg79mGUV1OS40JGWwVCr8n61DXCSqz7CV6/VfPkb7xec7uP2M+QHWQ==}
 
-  '@types/pixelmatch@7.1.0':
-    resolution: {integrity: sha512-0QezS/yQirZ++KVOHu3a49ZB3zeRxGh3PRd9z9+FUNO+14N3oL0vibN3ADEaIvSeY8hsdChi09U6fjTcTcqowQ==}
-    deprecated: This is a stub types definition. pixelmatch provides its own type definitions, so you do not need this installed.
-
   '@types/pngjs@6.0.5':
     resolution: {integrity: sha512-0k5eKfrA83JOZPppLtS2C7OUtyNAl2wKNxfyYl9Q5g9lPkgBl/9hNyAu6HuEH2J4XmIv2znEpkDd0SaZVxW6iQ==}
 
@@ -2274,12 +2254,6 @@ packages:
     resolution: {integrity: sha512-MEe3UeoENYVFXzoXEWsvcpg6ZvlrFNlOQ7EOsvhI3CfAXwzPfO8Qwuxd40nepsYKqyyVQnTdEfv68q91yLcKrQ==}
     peerDependencies:
       '@types/react': ^18.0.0
-
-  '@types/react-router-dom@5.3.3':
-    resolution: {integrity: sha512-kpqnYK4wcdm5UaWI3fLcELopqLrHgLqNsdpHauzlQktfkHL3npOSwtj1Uz9oKBAzs7lFtVkV8j83voAz2D8fhw==}
-
-  '@types/react-router@5.1.20':
-    resolution: {integrity: sha512-jGjmu/ZqS7FjSH6owMcD5qpq19+1RS9DeVRqfl1FeBMxTDQAGwlMWOcs52NDoXaNKyG3d1cYQFMs9rCrb88o9Q==}
 
   '@types/react@18.3.31':
     resolution: {integrity: sha512-vfEqpXTvwT91yhmwdfouStN2hSKwTvyRs8qpLfADyrq/kxDw0hZM7Wk9Ug1FELj8hIby+S/+kQCSRFF32nv2Qw==}
@@ -5907,10 +5881,6 @@ snapshots:
 
   '@types/deep-eql@4.0.2': {}
 
-  '@types/dompurify@3.2.0':
-    dependencies:
-      dompurify: 3.4.17
-
   '@types/estree@1.0.10': {}
 
   '@types/estree@1.0.9': {}
@@ -5920,8 +5890,6 @@ snapshots:
   '@types/hast@3.0.5':
     dependencies:
       '@types/unist': 3.0.3
-
-  '@types/history@4.7.11': {}
 
   '@types/linkify-it@5.0.0': {}
 
@@ -5948,10 +5916,6 @@ snapshots:
     dependencies:
       undici-types: 7.24.6
 
-  '@types/pixelmatch@7.1.0':
-    dependencies:
-      pixelmatch: 8.0.0
-
   '@types/pngjs@6.0.5':
     dependencies:
       '@types/node': 24.19.2
@@ -5960,17 +5924,6 @@ snapshots:
 
   '@types/react-dom@18.3.7(@types/react@18.3.31)':
     dependencies:
-      '@types/react': 18.3.31
-
-  '@types/react-router-dom@5.3.3':
-    dependencies:
-      '@types/history': 4.7.11
-      '@types/react': 18.3.31
-      '@types/react-router': 5.1.20
-
-  '@types/react-router@5.1.20':
-    dependencies:
-      '@types/history': 4.7.11
       '@types/react': 18.3.31
 
   '@types/react@18.3.31':
