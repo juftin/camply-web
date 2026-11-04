@@ -19,4 +19,4 @@ These guides cover everyday use and setup. Detailed engineering and operations d
 
 The site is built with [VitePress](https://vitepress.dev/). See [working on the docs](development.md#working-on-the-docs) to edit, build, or preview the docs.
 
-camply is licensed under [PolyForm Noncommercial 1.0.0](https://github.com/juftin/camply-web/blob/main/LICENSE).
+camply is licensed under [GNU Affero General Public License v3.0](https://github.com/juftin/camply-web/blob/main/LICENSE).

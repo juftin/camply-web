@@ -252,3 +252,16 @@ jobs:
           install: ${{ matrix.install || false }}
           setup-uv: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Snapshot Reports and Visual Diffs
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: ui-snapshots-report
+          path: |
+            tmp/snapshots/REPORT.md
+            tmp/snapshots/report.html
+            tmp/snapshots/diffs/
+            tmp/snapshots/current/
+            tmp/snapshots/before/
+          if-no-files-found: ignore

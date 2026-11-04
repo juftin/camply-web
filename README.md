@@ -26,4 +26,4 @@ Start with the [camply docs](https://camply.juftin.dev/docs/) for using the app,
 
 To edit or preview the docs, see [working on the docs](docs/development.md#working-on-the-docs).
 
-Licensed under [PolyForm Noncommercial 1.0.0](LICENSE).
+Licensed under [GNU Affero General Public License v3.0](LICENSE).
