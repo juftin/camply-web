@@ -50,7 +50,7 @@ Frontend builds run VitePress directly through Node, eliminating separate Python
 
 ## Publishing the docs
 
-Pull requests build and verify the docs in CI. The app hosts its docs at <https://camply.juftin.dev/docs/>. After all CI checks pass on `main`, the release workflow also publishes `build/docs` as a GitHub Pages mirror using the same [shared Pages action as cookiecutter-python](https://github.com/juftin/cookiecutter-python/blob/main/.github/workflows/release.yaml). The mirror updates even when no new application version is released.
+Pull requests build and verify the docs in CI. The app hosts its docs at <https://camply.rocks/docs/>. After all CI checks pass on `main`, the release workflow also publishes `build/docs` as a GitHub Pages mirror using the same [shared Pages action as cookiecutter-python](https://github.com/juftin/cookiecutter-python/blob/main/.github/workflows/release.yaml). The mirror updates even when no new application version is released.
 
 The mirror URL is <https://juftin.com/camply-web/>. Self-hosted instances serve their own bundled docs at `/docs/`.
 

@@ -91,7 +91,7 @@ class BackendConfig(BaseSettings):
     # CORS
     cors_origins: list[str] = [
         "http://localhost:5173",
-        "https://camply.juftin.dev",
+        "https://camply.rocks",
     ]
     """Allowed CORS origins list."""
     cors_origin_regex: Optional[str] = (

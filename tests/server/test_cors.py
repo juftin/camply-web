@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
         "http://100.85.12.34:5173",
         "https://my-macbook.ts.net",
         "http://camply-server.tailnet-xyz.ts.net:5173",
-        "https://camply.juftin.dev",
+        "https://camply.rocks",
         "https://camply-81r.pages.dev",
         "https://da37cb45.camply-81r.pages.dev",
         "https://feature-branch.camply-81r.pages.dev",

@@ -56,7 +56,7 @@ hosting, rollout, and database migrations remain separate operator tasks.
 
 ## Documentation
 
-Every frontend and Python distribution build includes the documentation in the static bundle under `/docs/`, linked from the app footer. VitePress generates the site during frontend compilation; deployed Python and Nginx instances serve the prepared HTML, search index, and assets without it. The primary documentation URL is <https://camply.juftin.dev/docs/>.
+Every frontend and Python distribution build includes the documentation in the static bundle under `/docs/`, linked from the app footer. VitePress generates the site during frontend compilation; deployed Python and Nginx instances serve the prepared HTML, search index, and assets without it. The primary documentation URL is <https://camply.rocks/docs/>.
 
 The main-branch workflow also publishes a GitHub Pages mirror after CI succeeds, independently of whether semantic-release creates an application release. It builds with `task docs:build` and publishes `build/docs` with the pinned `juftin/actions/github-pages` action, following [cookiecutter-python](https://github.com/juftin/cookiecutter-python/blob/main/.github/workflows/release.yaml). Pull requests build and verify the site with `task docs:check`.
 

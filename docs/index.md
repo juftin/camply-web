@@ -2,7 +2,7 @@
 
 **camply** watches campground availability and alerts you when a stay matches your plans. Explore campgrounds on a map, save a scan for your dates, and open the provider's booking page when a campsite becomes available.
 
-**[Open camply at camply.juftin.dev →](https://camply.juftin.dev)**
+**[Open camply at camply.rocks →](https://camply.rocks)**
 
 ## Get started
 
