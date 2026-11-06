@@ -10,7 +10,7 @@ from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import Mock
 
-import httpx
+import httpx2
 import pytest
 from click.testing import CliRunner
 
@@ -29,8 +29,8 @@ def test_http_health_defaults(
     monkeypatch: pytest.MonkeyPatch, role: list[str], url: str
 ) -> None:
     """HTTP probes use existing local endpoints without a proxy or redirects."""
-    probe = Mock(return_value=nullcontext(httpx.Response(200)))
-    monkeypatch.setattr(httpx, "stream", probe)
+    probe = Mock(return_value=nullcontext(httpx2.Response(200)))
+    monkeypatch.setattr(httpx2, "stream", probe)
     result = CliRunner().invoke(cli, ["serve", "healthcheck", *role])
     assert result.exit_code == 0, result.output
     assert result.stdout.strip() == "healthy"
@@ -45,7 +45,7 @@ def test_http_health_rejects_unhealthy_status(
 ) -> None:
     """Redirects and errors must never be reported as healthy."""
     monkeypatch.setattr(
-        httpx, "stream", Mock(return_value=nullcontext(httpx.Response(status)))
+        httpx2, "stream", Mock(return_value=nullcontext(httpx2.Response(status)))
     )
     result = CliRunner().invoke(cli, ["serve", "healthcheck", "backend"])
     assert result.exit_code == 1
@@ -56,8 +56,8 @@ def test_http_health_override_and_connection_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Custom listeners get bounded probes and errors do not expose URL credentials."""
-    probe = Mock(side_effect=httpx.ConnectError("synthetic private diagnostic"))
-    monkeypatch.setattr(httpx, "stream", probe)
+    probe = Mock(side_effect=httpx2.ConnectError("synthetic private diagnostic"))
+    monkeypatch.setattr(httpx2, "stream", probe)
     result = CliRunner().invoke(
         cli,
         [

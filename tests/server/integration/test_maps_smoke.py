@@ -11,7 +11,7 @@ import time
 from collections.abc import AsyncIterator
 from pathlib import Path
 
-import httpx
+import httpx2
 import pytest
 import uvicorn
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -153,9 +153,9 @@ def test_maps_browser(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     try:
         for _ in range(100):
             try:
-                if httpx.get(f"http://127.0.0.1:{port}/api/health").is_success:
+                if httpx2.get(f"http://127.0.0.1:{port}/api/health").is_success:
                     break
-            except httpx.HTTPError:
+            except httpx2.HTTPError:
                 pass
             time.sleep(0.1)
         subprocess.run(

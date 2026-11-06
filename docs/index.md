@@ -2,7 +2,7 @@
 
 **camply** watches campground availability and alerts you when a stay matches your plans. Explore campgrounds on a map, save a scan for your dates, and open the provider's booking page when a campsite becomes available.
 
-**[Open camply at camply.juftin.dev →](https://camply.juftin.dev)**
+**[Open camply at camply.rocks →](https://camply.rocks)**
 
 ## Get started
 
@@ -19,4 +19,4 @@ These guides cover everyday use and setup. Detailed engineering and operations d
 
 The site is built with [VitePress](https://vitepress.dev/). See [working on the docs](development.md#working-on-the-docs) to edit, build, or preview the docs.
 
-camply is licensed under [PolyForm Noncommercial 1.0.0](https://github.com/juftin/camply-web/blob/main/LICENSE).
+camply is licensed under [GNU Affero General Public License v3.0](https://github.com/juftin/camply-web/blob/main/LICENSE).

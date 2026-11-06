@@ -4,6 +4,6 @@
   "pages_build_output_dir": "dist",
   "compatibility_date": "2024-11-11",
   "vars": {
-    "CAMPLY_API_ORIGIN": "https://camply.juftin.dev",
+    "CAMPLY_API_ORIGIN": "https://camply.rocks",
   },
 }

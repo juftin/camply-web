@@ -70,7 +70,7 @@ def test_installed_frontend_and_gunicorn(
         import subprocess
         import sys
         from pathlib import Path
-        import httpx
+        import httpx2
         from camply.server.config import RuntimeMode, backend_config
         from camply.server.app import app
         from camply.server.static import attach_frontend
@@ -90,7 +90,7 @@ def test_installed_frontend_and_gunicorn(
         attach_frontend(app, Path(str(static)))
 
         async def exercise():
-            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
+            async with httpx2.AsyncClient(transport=httpx2.ASGITransport(app=app), base_url='http://test') as client:
                 home = await client.get('/')
                 assert home.status_code == 200
                 assets = re.findall(r'(?:src|href)="(/assets/[^\"]+)"', home.text)

@@ -27,7 +27,7 @@ def _fake_auth0_payload() -> dict:
         "sub": _FAKE_AUTH0_SUB,
         "email": _FAKE_AUTH0_EMAIL,
         "iss": "https://camply-test.us.auth0.com/",
-        "aud": "https://api.camply.juftin.dev",
+        "aud": "https://api.camply.rocks",
     }
 
 
@@ -275,7 +275,7 @@ class TestAuth0Mode:
         payload_without_email = {
             "sub": no_email_sub,
             "iss": "https://camply-test.us.auth0.com/",
-            "aud": "https://api.camply.juftin.dev",
+            "aud": "https://api.camply.rocks",
         }
 
         with patch(

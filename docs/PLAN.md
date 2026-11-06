@@ -13,7 +13,7 @@ A **free, open-source, and self-hostable** campsite availability scanner. Users 
 - **Database**: SQLite in the base package; PostgreSQL through the `postgres` extra for distributed deployment (SQLAlchemy + Alembic).
 - **Worker**: Shared async de-duplicated poller with Celery + Valkey adapters in distributed mode or bounded local loops in standalone.
 - **Auth**: Multi-user **Auth0** integration with optional **invite-only access** (`CAMPLY_INVITE_ONLY`). The owner selects `none` (automatic shared-account login), `session` (in-app password login), or `auth0`, independently of the environment. HTTP Basic authentication is unsupported.
-- **Licensing**: Transition to a **Non-Commercial License** (e.g., Polyform Non-Commercial or AGPL with restrictions) to prevent unauthorized paid hosting/monetization.
+- **Licensing**: Licensed under the **GNU Affero General Public License v3.0 (AGPLv3)** to ensure camply and all derivative works stay open-source.
 - **Notifications**: Initial support for **Pushover** (extensible to Email/Discord).
 
 - **Monitoring**: **Sentry** integration enabled for error tracking and performance.

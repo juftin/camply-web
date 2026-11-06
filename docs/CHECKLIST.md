@@ -66,7 +66,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ### 1.5 Governance & Licensing
 
-- [x] T1.5.1 Research and select a Non-Commercial license (Polyform Noncommercial 1.0.0).
+- [x] T1.5.1 Research and select an open-source copyleft license (GNU AGPLv3).
 - [x] T1.5.2 Update `LICENSE` file and repository headers to reflect new terms.
 
 ---

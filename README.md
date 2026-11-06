@@ -1,12 +1,12 @@
 <div align="center">
-<a href="https://camply.juftin.dev">
+<a href="https://camply.rocks">
   <img src="src/frontend/public/branding/camply-horizontal.svg" width="400" alt="camply">
 </a>
 </div>
 
 **camply**, the campsite finder ⛺️, watches for openings at sold-out campgrounds and alerts you when a stay matches your plans. Explore campgrounds, save your dates, and follow booking links when availability appears.
 
-**[Open camply →](https://camply.juftin.dev)**
+**[Open camply →](https://camply.rocks)**
 
 ## Run camply yourself
 
@@ -22,8 +22,8 @@ See the [standalone guide](docs/self-hosting/standalone.md) for installation and
 
 ## Docs
 
-Start with the [camply docs](https://camply.juftin.dev/docs/) for using the app, configuration, and self-hosting ([browse the source](docs/index.md)). Every installation includes docs at `/docs/`, linked from the app footer. Contributors can follow the [contributing guide](docs/CONTRIBUTING.md) and [developer guide](docs/development/DEVELOPER_GUIDE.md); detailed [runtime and packaging](docs/operations/RUNNING.md) and [architecture](docs/architecture/ARCHITECTURE_DEEP_DIVE.md) references are also available.
+Start with the [camply docs](https://camply.rocks/docs/) for using the app, configuration, and self-hosting ([browse the source](docs/index.md)). Every installation includes docs at `/docs/`, linked from the app footer. Contributors can follow the [contributing guide](docs/CONTRIBUTING.md) and [developer guide](docs/development/DEVELOPER_GUIDE.md); detailed [runtime and packaging](docs/operations/RUNNING.md) and [architecture](docs/architecture/ARCHITECTURE_DEEP_DIVE.md) references are also available.
 
 To edit or preview the docs, see [working on the docs](docs/development.md#working-on-the-docs).
 
-Licensed under [PolyForm Noncommercial 1.0.0](LICENSE).
+Licensed under [GNU Affero General Public License v3.0](LICENSE).

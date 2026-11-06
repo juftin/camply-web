@@ -31,7 +31,7 @@ class WorkerConfig(BaseSettings):
     notification_mode: Literal["summary", "direct"] = "summary"
     """Summarize new matches per scan, or send individual provider booking links."""
 
-    app_url: HttpUrl = HttpUrl("https://camply.juftin.dev")
+    app_url: HttpUrl = HttpUrl("https://camply.rocks")
     """Public frontend URL, including any deployment path prefix, for alerts."""
 
     @field_validator("app_url")

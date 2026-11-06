@@ -1,6 +1,5 @@
 """Read-only health probes for the application's foreground serving roles."""
 
-import json
 import os
 import socket
 import subprocess
@@ -10,6 +9,7 @@ import time
 from pathlib import Path
 
 import click
+import jiter
 
 from camply.cli.runtime import require_modules
 
@@ -28,17 +28,17 @@ def beat_health_path() -> Path:
 
 def _check_http(url: str, *, timeout: float) -> None:
     """Check HTTP status without reading an unbounded body or following redirects."""
-    import httpx
+    import httpx2
 
     try:
-        with httpx.stream(
+        with httpx2.stream(
             "GET", url, timeout=timeout, trust_env=False, follow_redirects=False
         ) as response:
             if not response.is_success:
                 raise click.ClickException(
                     f"HTTP healthcheck failed with status {response.status_code}."
                 )
-    except (httpx.HTTPError, ValueError) as exc:
+    except (httpx2.HTTPError, ValueError) as exc:
         raise click.ClickException(
             "HTTP healthcheck could not reach the service."
         ) from exc
@@ -157,7 +157,7 @@ def beat(heartbeat_file: Path | None, max_age: float) -> None:
         raise click.ClickException("Beat healthchecks require a Unix PID namespace.")
     path = heartbeat_file or beat_health_path()
     try:
-        state = json.loads(path.read_text())
+        state = jiter.from_json(path.read_bytes())
         if not isinstance(state, dict):
             raise ValueError("Invalid heartbeat")
         pid, stamp = state.get("pid"), state.get("timestamp")

@@ -10,7 +10,7 @@ import time
 from contextlib import ExitStack
 from pathlib import Path
 
-import httpx
+import httpx2
 import pytest
 
 pytestmark = pytest.mark.skipif(
@@ -147,14 +147,14 @@ def test_packaged_nginx_proxies_upstream(tmp_path: Path, use_tls: bool) -> None:
             timeout=30,
         )
         port = _command(["docker", "port", container, "8080"]).rsplit(":", 1)[1]
-        with httpx.Client(
+        with httpx2.Client(
             base_url=f"http://127.0.0.1:{port}", trust_env=False, timeout=5
         ) as client:
             for _attempt in range(50):
                 try:
                     if client.get("/healthz").status_code == 200:
                         break
-                except httpx.HTTPError:
+                except httpx2.HTTPError:
                     pass
                 time.sleep(0.1)
             else:

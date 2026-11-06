@@ -5,7 +5,7 @@ defineProps<{
   variant?: "nav" | "sidebar" | "mobile";
 }>();
 
-const appUrl = ref("https://camply.juftin.dev");
+const appUrl = ref("https://camply.rocks");
 
 onMounted(() => {
   if (typeof window !== "undefined") {

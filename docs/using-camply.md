@@ -1,6 +1,6 @@
 # Using camply
 
-Start at **[camply.juftin.dev](https://camply.juftin.dev)**, or open your own instance. Sign in if the instance requires it.
+Start at **[camply.rocks](https://camply.rocks)**, or open your own instance. Sign in if the instance requires it.
 
 ## Find a campground
 
