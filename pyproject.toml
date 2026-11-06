@@ -159,16 +159,25 @@ dev = [
 
 [tool.uv]
 no-build-package = [
+  "ast-serialize",
   "cffi",
+  "coverage",
   "cryptography",
   "greenlet",
+  "grimp",
   "jiter",
+  "librt",
   "markupsafe",
   "msgpack",
+  "mypy",
   "orjson",
   "psycopg",
   "psycopg-binary",
-  "pydantic-core"
+  "pydantic-core",
+  "ruff",
+  "sqlalchemy",
+  "wcwidth",
+  "wrapt"
 ]
 environments = [
   "python_version == '3.11' and sys_platform == 'linux' and platform_python_implementation == 'CPython'",
