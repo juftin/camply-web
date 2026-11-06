@@ -68,6 +68,45 @@ export default defineConfig({
     emptyOutDir: true,
     // Preserve Vite 6's browser support when upgrading the bundler.
     target: ["es2020", "edge88", "firefox78", "chrome87", "safari14"],
+    chunkSizeWarningLimit: 1200,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "vendor-react",
+              test: /node_modules[\\/](react|react-dom|react-router-dom|@tanstack[\\/]react-query)[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "vendor-maps",
+              test: /node_modules[\\/]maplibre-gl[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "vendor-charts",
+              test: /node_modules[\\/]recharts[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "vendor-icons",
+              test: /node_modules[\\/]lucide-react[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "vendor-auth",
+              test: /node_modules[\\/]@auth0[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "vendor",
+              test: /node_modules[\\/]/,
+              priority: 10,
+            },
+          ],
+        },
+      },
+    },
   },
   resolve: {
     alias: {

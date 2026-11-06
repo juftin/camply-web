@@ -6,6 +6,11 @@ export default defineConfig({
   base: process.env.VITEPRESS_BASE || "/docs/",
   outDir: "../build/docs",
   ignoreDeadLinks: true,
+  vite: {
+    build: {
+      chunkSizeWarningLimit: 1000,
+    },
+  },
   head: [
     ["link", { rel: "shortcut icon", href: "/docs/favicon.ico" }],
     ["link", { rel: "icon", type: "image/svg+xml", href: "/docs/favicon.svg" }],
