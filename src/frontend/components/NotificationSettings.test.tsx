@@ -52,6 +52,7 @@ describe("NotificationSettings", () => {
     await waitFor(() =>
       expect(updateMe).toHaveBeenCalledWith({
         notification_provider: "ntfy",
+        ntfy_topic: "camply-random",
         ntfy_server_url: "https://custom.example.test/push",
         ntfy_access_token: "synthetic",
       }),
@@ -95,6 +96,7 @@ it("shows only the application subscription server and retains defaults when sav
   await waitFor(() =>
     expect(updateMe).toHaveBeenLastCalledWith({
       notification_provider: "ntfy",
+      ntfy_topic: "camply-fallback",
       ntfy_server_url: null,
       ntfy_access_token: null,
     }),
@@ -135,6 +137,7 @@ it.each([null, "https://application.example.test"])(
     await waitFor(() =>
       expect(updateMe).toHaveBeenLastCalledWith({
         notification_provider: "ntfy",
+        ntfy_topic: "camply-choices",
         ntfy_server_url: "https://ntfy.sh",
         ntfy_access_token: null,
       }),

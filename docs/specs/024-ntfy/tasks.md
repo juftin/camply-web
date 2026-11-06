@@ -8,3 +8,5 @@
 - [x] Configure private publish and public subscription defaults at deployment level, support user custom-server overrides, and test fallback, endpoint privacy and delivery in both runtimes.
 
 - [x] Add a server dropdown for the configured application server, ntfy.sh and a user-provided URL, with private publish settings hidden.
+
+- [x] Show only the selected provider’s settings, save preferences together, and support editable user-ID-prefix topics with duplicate validation and a follow-up migration.

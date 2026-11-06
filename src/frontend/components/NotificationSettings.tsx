@@ -17,6 +17,8 @@ export const NotificationSettings = ({
   const [provider, setProvider] = useState<"pushover" | "ntfy">(
     user.notification_provider ?? "pushover",
   );
+  const [pushoverKey, setPushoverKey] = useState(user.pushover_token ?? "");
+  const [topic, setTopic] = useState(user.ntfy_topic || user.id.slice(0, 7));
   const publicServer = "https://ntfy.sh";
   const savedServer = user.ntfy_server_url?.replace(/\/+$/, "");
   const [serverChoice, setServerChoice] = useState<
@@ -41,6 +43,7 @@ export const NotificationSettings = ({
         notification_provider: provider,
         ...(provider === "ntfy"
           ? {
+              ntfy_topic: topic.trim(),
               ntfy_server_url:
                 serverChoice === "default"
                   ? null
@@ -49,7 +52,7 @@ export const NotificationSettings = ({
                     : server.trim(),
               ntfy_access_token: token.trim() || null,
             }
-          : {}),
+          : { pushover_token: pushoverKey.trim() || null }),
       }),
     onSuccess: refresh,
   });
@@ -70,6 +73,30 @@ export const NotificationSettings = ({
       <p className="text-xs text-muted-foreground">
         Alerts are sent through your selected provider.
       </p>
+      {provider === "pushover" && (
+        <>
+          <Label htmlFor="pushover-key">Pushover User Key</Label>
+          <Input
+            id="pushover-key"
+            type="password"
+            value={pushoverKey}
+            onChange={(event) => setPushoverKey(event.target.value)}
+            placeholder="Enter your Pushover user key"
+          />
+          <p className="text-xs text-muted-foreground">
+            Find your user key in the Pushover app or at{" "}
+            <a
+              href="https://pushover.net"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              pushover.net
+            </a>
+            .
+          </p>
+        </>
+      )}
       {provider === "ntfy" && (
         <>
           <Label htmlFor="ntfy-server-choice">ntfy server</Label>
@@ -104,7 +131,16 @@ export const NotificationSettings = ({
             </>
           )}
           <Label htmlFor="ntfy-topic">Your ntfy topic</Label>
-          <Input id="ntfy-topic" value={user.ntfy_topic ?? ""} readOnly />
+          <Input
+            id="ntfy-topic"
+            value={topic}
+            onChange={(event) => setTopic(event.target.value)}
+            maxLength={64}
+          />
+          <p className="text-xs text-muted-foreground">
+            Defaults to the first seven characters of your user ID. You can
+            change it; subscribe to the new topic after saving.
+          </p>
           <Label htmlFor="ntfy-subscription-url">
             Your saved subscription URL
           </Label>
@@ -132,7 +168,8 @@ export const NotificationSettings = ({
         size="sm"
         disabled={
           mutation.isPending ||
-          (provider === "ntfy" && serverChoice === "custom" && !server.trim())
+          (provider === "ntfy" &&
+            (!topic.trim() || (serverChoice === "custom" && !server.trim())))
         }
         onClick={() => mutation.mutate()}
       >
@@ -143,8 +180,8 @@ export const NotificationSettings = ({
       )}
       {mutation.isError && (
         <p role="alert">
-          Could not save notification settings. Check the server URL and try
-          again.
+          Could not save notification settings. Check your settings and choose
+          an unused topic.
         </p>
       )}
     </div>

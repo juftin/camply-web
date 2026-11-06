@@ -1571,6 +1571,8 @@ export interface components {
         MeUpdateRequest: {
             /** Pushover Token */
             pushover_token?: string | null;
+            /** Ntfy Topic */
+            ntfy_topic?: string | null;
             /**
              * Notification Provider
              * @default pushover

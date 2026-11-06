@@ -502,7 +502,7 @@ class TestNtfySettings:
 
     def test_defaults_and_partial_updates(self, test_client: TestClient) -> None:
         user = test_client.get("/api/me").json()
-        assert user["ntfy_topic"].startswith("camply-")
+        assert user["ntfy_topic"] == user["id"][:7]
         assert user["notification_provider"] == "pushover"
         test_client.patch("/api/me", json={"pushover_token": "keep-me"})
         response = test_client.patch(
@@ -601,3 +601,44 @@ class TestNtfySettings:
         )
         assert response.json()["ntfy_server_url"] is None
         assert "ntfy.internal" not in response.text
+
+    def test_edit_ntfy_topic_and_preserve_partial_updates(
+        self, test_client: TestClient
+    ) -> None:
+        response = test_client.patch("/api/me", json={"ntfy_topic": "my-camping-topic"})
+        assert response.status_code == 200
+        assert response.json()["ntfy_topic"] == "my-camping-topic"
+        assert test_client.get("/api/me").json()["ntfy_topic"] == "my-camping-topic"
+        assert (
+            test_client.patch("/api/me", json={"pushover_token": "synthetic"}).json()[
+                "ntfy_topic"
+            ]
+            == "my-camping-topic"
+        )
+
+    @pytest.mark.parametrize(
+        "topic", ["", None, "has spaces", "with/slash", "a?token=secret", "a" * 65]
+    )
+    def test_invalid_topic(self, test_client: TestClient, topic: str | None) -> None:
+        assert (
+            test_client.patch("/api/me", json={"ntfy_topic": topic}).status_code == 422
+        )
+
+    def test_duplicate_topic_returns_conflict(self, test_client: TestClient) -> None:
+        import asyncio
+
+        from camply.db.models import User
+        from tests.server.conftest import maker
+
+        async def seed() -> None:
+            async with maker() as session:
+                session.add(
+                    User(email="topic-owner@example.test", ntfy_topic="already-claimed")
+                )
+                await session.commit()
+
+        asyncio.run(seed())
+        previous = test_client.get("/api/me").json()["ntfy_topic"]
+        response = test_client.patch("/api/me", json={"ntfy_topic": "already-claimed"})
+        assert response.status_code == 409
+        assert test_client.get("/api/me").json()["ntfy_topic"] == previous

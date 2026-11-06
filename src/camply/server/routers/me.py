@@ -7,6 +7,7 @@ from __future__ import annotations
 import structlog
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from camply.db.models import User as UserDB
 from camply.db.notification_config import ntfy_config
@@ -82,7 +83,16 @@ async def update_me(
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(user, field, (value or None) if field == "pushover_token" else value)
 
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        if "ntfy_topic" not in str(exc.orig):
+            raise
+        raise HTTPException(
+            status_code=409,
+            detail="That ntfy topic is already in use. Choose another topic.",
+        ) from exc
     await session.refresh(user)
 
     return MeResponse(

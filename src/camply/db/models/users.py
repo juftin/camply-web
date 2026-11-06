@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from sqlalchemy import Boolean, String, func
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.engine.default import DefaultExecutionContext
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from camply.db.models.base import Base
@@ -16,6 +17,11 @@ from camply.db.models.base import Base
 if TYPE_CHECKING:
     from camply.db.models.admin_audit import AdminAuditEvent
     from camply.db.models.user_scans import UserScan
+
+
+def default_ntfy_topic(context: DefaultExecutionContext) -> str:
+    """Derive the topic for ORM bulk inserts from the generated account ID."""
+    return str(context.get_current_parameters()["id"])[:7]
 
 
 class User(Base):
@@ -27,7 +33,9 @@ class User(Base):
 
     def __init__(self, **kwargs: Any) -> None:
         """Initialize invitation and scanning flags before persistence."""
-        kwargs.setdefault("ntfy_topic", f"camply-{uuid.uuid4().hex}")
+        if kwargs.get("id") is None:
+            kwargs["id"] = uuid.uuid4()
+        kwargs.setdefault("ntfy_topic", str(kwargs["id"])[:7])
         kwargs.setdefault("notification_provider", "pushover")
         kwargs.setdefault("is_admin", False)
         kwargs.setdefault("scanning_enabled", True)
@@ -49,7 +57,7 @@ class User(Base):
         String(64),
         unique=True,
         index=True,
-        default=lambda: f"camply-{uuid.uuid4().hex}",
+        default=default_ntfy_topic,
         server_default="",
     )
     notification_provider: Mapped[Literal["pushover", "ntfy"]] = mapped_column(

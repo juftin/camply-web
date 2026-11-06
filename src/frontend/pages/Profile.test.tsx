@@ -5,6 +5,9 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { ReactNode } from "react";
 import type { AuthState } from "@/hooks/useAuth";
 import { Profile } from "./Profile";
+import { updateMe } from "@/lib/api";
+
+vi.mock("@/lib/api", () => ({ updateMe: vi.fn().mockResolvedValue({}) }));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
@@ -59,6 +62,7 @@ function renderProfile(overrides: Partial<AuthState> = {}) {
 
 beforeEach(() => {
   queryClient.clear();
+  vi.clearAllMocks();
 });
 
 describe("Profile", () => {
@@ -101,14 +105,16 @@ describe("Profile", () => {
     expect(signOut).toHaveBeenCalledOnce();
   });
 
-  it("calls updatePushoverToken when save is clicked", async () => {
-    const updatePushoverToken = vi.fn().mockResolvedValue(undefined);
-    renderProfile({ updatePushoverToken });
+  it("saves Pushover preferences together when save is clicked", async () => {
+    renderProfile();
     const input = screen.getByPlaceholderText("Enter your Pushover user key");
     fireEvent.change(input, { target: { value: "new-token" } });
-    fireEvent.click(screen.getByText("Save"));
+    fireEvent.click(screen.getByText("Save notification settings"));
     await waitFor(() => {
-      expect(updatePushoverToken).toHaveBeenCalledWith("new-token");
+      expect(updateMe).toHaveBeenCalledWith({
+        notification_provider: "pushover",
+        pushover_token: "new-token",
+      });
     });
   });
 
@@ -128,4 +134,54 @@ it("hides sign-out during automatic local login", () => {
   expect(
     screen.queryByRole("button", { name: "Sign Out" }),
   ).not.toBeInTheDocument();
+});
+
+it("immediately switches provider fields and saves an editable user ID topic", async () => {
+  renderProfile({
+    user: {
+      id: "1234567a-abcd-1234-1234-123456789abc",
+      email: "test@example.test",
+      is_invited: true,
+      is_admin: false,
+      scanning_enabled: true,
+      pushover_token: "saved-key",
+      notification_provider: "pushover",
+      ntfy_topic: null,
+      ntfy_subscription_url: "https://ntfy.sh",
+    },
+  });
+  expect(screen.getAllByLabelText("Pushover User Key")).toHaveLength(1);
+  expect(screen.queryByLabelText("Your ntfy topic")).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Notification provider"), {
+    target: { value: "ntfy" },
+  });
+  expect(screen.queryByLabelText("Pushover User Key")).not.toBeInTheDocument();
+  expect(screen.getByLabelText("Your ntfy topic")).toHaveValue("1234567");
+  fireEvent.change(screen.getByLabelText("Your ntfy topic"), {
+    target: { value: "edited-topic" },
+  });
+  fireEvent.click(screen.getByText("Save notification settings"));
+  await waitFor(() =>
+    expect(updateMe).toHaveBeenLastCalledWith({
+      notification_provider: "ntfy",
+      ntfy_topic: "edited-topic",
+      ntfy_server_url: "https://ntfy.sh",
+      ntfy_access_token: null,
+    }),
+  );
+  fireEvent.change(screen.getByLabelText("Notification provider"), {
+    target: { value: "pushover" },
+  });
+  expect(screen.queryByLabelText("Your ntfy topic")).not.toBeInTheDocument();
+  expect(screen.getAllByLabelText("Pushover User Key")).toHaveLength(1);
+  fireEvent.change(screen.getByLabelText("Pushover User Key"), {
+    target: { value: "new-key" },
+  });
+  fireEvent.click(screen.getByText("Save notification settings"));
+  await waitFor(() =>
+    expect(updateMe).toHaveBeenLastCalledWith({
+      notification_provider: "pushover",
+      pushover_token: "new-key",
+    }),
+  );
 });

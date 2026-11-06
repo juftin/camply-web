@@ -1,9 +1,7 @@
-import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Loader2,
   LogOut,
-  Key,
   Mail,
   ArrowLeft,
   LayoutDashboard,
@@ -22,13 +20,8 @@ import { NotificationSettings } from "@/components/NotificationSettings";
 import { useAuth } from "@/hooks/useAuth";
 
 export function Profile() {
-  const { user, isLoading, updatePushoverToken, refresh, signOut, autoLogin } =
-    useAuth();
+  const { user, isLoading, refresh, signOut, autoLogin } = useAuth();
   const navigate = useNavigate();
-
-  const [pushoverKey, setPushoverKey] = useState(user?.pushover_token ?? "");
-  const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -45,20 +38,6 @@ export function Profile() {
       </div>
     );
   }
-
-  const handleSavePushover = async () => {
-    setSaving(true);
-    setSaveMessage(null);
-    try {
-      await updatePushoverToken(pushoverKey.trim() || null);
-      setSaveMessage("Pushover key updated.");
-    } catch {
-      setSaveMessage("Failed to update Pushover key.");
-    } finally {
-      setSaving(false);
-      setTimeout(() => setSaveMessage(null), 3000);
-    }
-  };
 
   const handleSignOut = () => {
     signOut();
@@ -97,51 +76,6 @@ export function Profile() {
           </div>
 
           <NotificationSettings key={user.id} user={user} refresh={refresh} />
-
-          {/* Pushover Key */}
-          {user.notification_provider !== "ntfy" && (
-            <div className="space-y-2">
-              <Label htmlFor="pushover-key" className="flex items-center gap-2">
-                <Key className="h-4 w-4 text-muted-foreground" />
-                Pushover User Key
-              </Label>
-              <Input
-                id="pushover-key"
-                type="password"
-                value={pushoverKey}
-                onChange={(e) => setPushoverKey(e.target.value)}
-                placeholder="Enter your Pushover user key"
-              />
-              <p className="text-xs text-muted-foreground">
-                Your Pushover user key is used to send notifications when
-                campsites become available. Find it in the Pushover app or at{" "}
-                <a
-                  href="https://pushover.net"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  pushover.net
-                </a>
-                .
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={handleSavePushover}
-                  disabled={saving}
-                  size="sm"
-                >
-                  {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                  Save
-                </Button>
-                {saveMessage && (
-                  <span className="text-sm text-muted-foreground">
-                    {saveMessage}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Actions */}
           <div className="pt-4 border-t space-y-3">

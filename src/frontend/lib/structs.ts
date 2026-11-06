@@ -104,6 +104,7 @@ export type ChangePasswordRequest =
   components["schemas"]["ChangePasswordRequest"];
 
 export interface MeUpdateRequest {
+  ntfy_topic?: string;
   pushover_token?: string | null;
   notification_provider?: "pushover" | "ntfy";
   ntfy_server_url?: string | null;

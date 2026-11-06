@@ -79,6 +79,9 @@ class MeUpdateRequest(BaseModel):
     """Payload for ``PATCH /me``; omitted fields are preserved."""
 
     pushover_token: Optional[str] = None
+    ntfy_topic: str | None = Field(
+        default=None, min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$"
+    )
     notification_provider: Literal["pushover", "ntfy"] = "pushover"
     ntfy_server_url: str | None = Field(
         default=None,
@@ -86,6 +89,14 @@ class MeUpdateRequest(BaseModel):
         description="Custom server used for publishing and subscribing; null restores deployment defaults.",
     )
     ntfy_access_token: str | None = Field(default=None, max_length=1024, repr=False)
+
+    @field_validator("ntfy_topic")
+    @classmethod
+    def validate_ntfy_topic(cls, value: str | None) -> str:
+        """Omit the field to preserve a topic; explicit null is not a topic."""
+        if value is None:
+            raise ValueError("Topic cannot be null")
+        return value
 
     @field_validator("ntfy_server_url")
     @classmethod

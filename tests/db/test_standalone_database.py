@@ -101,7 +101,7 @@ def test_previous_pr_database_preserves_pending_delivery(tmp_path: Path) -> None
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         assert connection.execute(
             "SELECT version_num FROM alembic_version"
-        ).fetchall() == [("f024a1b2c3d4",)]
+        ).fetchall() == [("f024b1c2d3e4",)]
 
 
 def test_populated_upgrade_and_online_backup(tmp_path: Path) -> None:  # noqa: PLR0915
