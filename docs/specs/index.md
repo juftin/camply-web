@@ -54,3 +54,5 @@ This catalog indexes all feature specifications, technical implementation plans,
   - [Plan](021-helm-chart/plan.md) | [Tasks](021-helm-chart/tasks.md)
 - **[022: Documentation Site](022-documentation-site/spec.md)**
   - [Plan](022-documentation-site/plan.md) | [Tasks](022-documentation-site/tasks.md)
+- **[023: GoingToCamp Provider](023-going-to-camp/spec.md)**
+  - [Plan](023-going-to-camp/plan.md) | [Tasks](023-going-to-camp/tasks.md) | [TODOs](023-going-to-camp/TODO.md) | [Validation](023-going-to-camp/validation.md)

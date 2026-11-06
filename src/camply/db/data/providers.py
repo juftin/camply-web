@@ -11,6 +11,8 @@ OhioStateParks, ArizonaStateParks, MissouriStateParks : Provider
     Stable identities for Ohio, Arizona, and Missouri state parks.
 FairfaxCountyParks, OregonMetro, NorthernTerritory : Provider
     Stable identities for regional parks and Australia's Northern Territory.
+WashingtonStateParks : Provider
+    Stable identity for Washington State Parks on GoingToCamp.
 """
 
 from camply.db.models.providers import Provider
@@ -108,5 +110,13 @@ NorthernTerritory = Provider(
     name="Northern Territory",
     description="Australian Northern Territory park campsite reservations.",
     url="https://parkbookings.nt.gov.au/Web",
+    enabled=True,
+)
+
+WashingtonStateParks = Provider(
+    id=12,
+    name="Washington State Parks",
+    description="Washington State Parks campsite reservations.",
+    url="https://washington.goingtocamp.com",
     enabled=True,
 )

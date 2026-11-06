@@ -260,6 +260,11 @@ export const FoundCampsites = ({ scan }: { scan: ScanDetailResponse }) => {
               ? `Last checked ${formatRelativeTime(scan.last_checked_at)}`
               : "Your scan is ready to check for openings."}
           </CardDescription>
+          <p className="text-sm text-muted-foreground">
+            Confirm availability, minimum and maximum stay rules, and vehicle
+            length restrictions with the booking provider before making a
+            reservation.
+          </p>
           {!scan.is_active && groups.size > 0 && (
             <p className="text-sm text-muted-foreground">
               This scan is paused; availability is not being refreshed.
