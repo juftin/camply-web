@@ -151,14 +151,25 @@ dev = [
   "pytest==9.2.0",
   "pytest-asyncio==1.4.1",
   "pytest-cov==7.1.0",
-  "pytest-vcr==1.0.2 ; python_version < '3.15'",
+  "pytest-vcr==1.0.2",
   "ruff==0.17.3",
   "types-pyyaml==6.0.12.20260906",
   "types-ujson==5.10.0.20250822"
 ]
 
 [tool.uv]
-no-build = true
+no-build-package = [
+  "cffi",
+  "cryptography",
+  "greenlet",
+  "jiter",
+  "markupsafe",
+  "msgpack",
+  "orjson",
+  "psycopg",
+  "psycopg-binary",
+  "pydantic-core"
+]
 environments = [
   "python_version == '3.11' and sys_platform == 'linux' and platform_python_implementation == 'CPython'",
   "python_version == '3.12' and sys_platform == 'linux' and platform_python_implementation == 'CPython'",
