@@ -86,6 +86,8 @@ def _inspect_celery_sync() -> tuple[
     try:
         app = Celery("camply_inspect", broker=backend_config.valkey_url)
         app.conf.broker_connection_timeout = 2.0
+        # Workers reply with msgpack (see worker/celery_app.py); accept it.
+        app.conf.accept_content = ["msgpack", "json"]
         inspect = app.control.inspect(timeout=2.0)
 
         # Independent inspections share the deadline, retaining successful replies.

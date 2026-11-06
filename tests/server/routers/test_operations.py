@@ -219,6 +219,19 @@ class TestOperationsServiceResilience:
             assert act_tot is None
 
     @pytest.mark.asyncio
+    async def test_inspect_celery_accepts_msgpack_replies(self) -> None:
+        """Workers reply in msgpack, so the inspect client must accept it."""
+        from camply.server.services.operations import _inspect_celery_sync
+
+        with patch("camply.server.services.operations.Celery") as mock_celery:
+            mock_app = MagicMock()
+            mock_celery.return_value = mock_app
+
+            _inspect_celery_sync()
+
+            assert "msgpack" in mock_app.conf.accept_content
+
+    @pytest.mark.asyncio
     async def test_query_valkey_overview_failure(self) -> None:
         from camply.server.services.operations import _query_valkey_overview_sync
 
