@@ -8,3 +8,5 @@ tests/frontend/snapshots/**
 **/generated/**
 build/**
 tmp/**
+# Helm Go templates are validated by helm lint.
+**/deploy/helm/templates/**

@@ -54,7 +54,7 @@ tasks:
   fmt:check:
     summary: Verify Frontend Code Formatting (Oxfmt)
     cmds:
-      - pnpm exec oxfmt -c src/frontend/.oxfmtrc.json --ignore-path src/frontend/.oxfmtignore --ignore-path .oxfmtignore --check .
+      - pnpm exec oxfmt -c src/frontend/.oxfmtrc.json --ignore-path src/frontend/.oxfmtignore --check .
     deps: [install]
 
   check:
