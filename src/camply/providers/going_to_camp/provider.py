@@ -15,7 +15,7 @@ from collections import defaultdict, deque
 from datetime import date, timedelta
 from typing import Any, ClassVar
 
-import httpx
+import httpx2
 import structlog
 from pydantic import TypeAdapter
 from sqlalchemy import update
@@ -84,7 +84,7 @@ class GoingToCampProvider(BaseProvider, ABC):
 
     async def _request(
         self, method: str, path: str, *, params: dict[str, Any] | None = None
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         """Perform paced async requests through the base retry transport."""
         async with self._request_lock:
             delay = _REQUEST_INTERVAL - (time.monotonic() - self._last_request)

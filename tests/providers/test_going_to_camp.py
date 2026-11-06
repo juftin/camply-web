@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
-import httpx
+import httpx2
 import pytest
 from click.testing import CliRunner
 from sqlalchemy import select
@@ -610,9 +610,9 @@ async def test_find_availabilities_map_traversal_statuses_and_clipping(
         },
     }
 
-    def respond(request: httpx.Request) -> httpx.Response:
+    def respond(request: httpx2.Request) -> httpx2.Response:
         if request.url.path.endswith("/resourcelocation/resources"):
-            return httpx.Response(200, json=resources_payload)
+            return httpx2.Response(200, json=resources_payload)
         assert request.url.path.endswith("/availability/map")
         params = request.url.params
         map_id = int(params["mapId"])
@@ -620,7 +620,7 @@ async def test_find_availabilities_map_traversal_statuses_and_clipping(
         map_requests.append((map_id, bc_id, params["startDate"], params["endDate"]))
         if bc_id == 0 and map_id == 100:
             # Root map links to 101 (partially available), 102 (closed/non-reservable -> pruned!), and 100 (cycle guard)
-            return httpx.Response(
+            return httpx2.Response(
                 200,
                 json={
                     "mapId": 100,
@@ -639,7 +639,7 @@ async def test_find_availabilities_map_traversal_statuses_and_clipping(
         if bc_id == 0 and map_id == 101:
             # Site 101 is available on night 0, unavailable (1) on night 1, available (0) on check-out night 2 (must be clipped!)
             # Site 103 has non-zero statuses (3=walk-in, 8=held) -> excluded!
-            return httpx.Response(
+            return httpx2.Response(
                 200,
                 json={
                     "mapId": 101,
@@ -659,7 +659,7 @@ async def test_find_availabilities_map_traversal_statuses_and_clipping(
                 },
             )
         if bc_id == 1 and map_id == 100:
-            return httpx.Response(
+            return httpx2.Response(
                 200,
                 json={
                     "mapId": 100,
@@ -675,7 +675,7 @@ async def test_find_availabilities_map_traversal_statuses_and_clipping(
             )
         raise AssertionError(f"Unexpected map call: {(map_id, bc_id)}")
 
-    provider.async_client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
+    provider.async_client = httpx2.AsyncClient(transport=httpx2.MockTransport(respond))
     results = await provider.find_availabilities(
         "-2147483631", start_date=date(2030, 7, 10), end_date=date(2030, 7, 12)
     )
@@ -700,9 +700,9 @@ async def test_chunking_and_deduplication(
     provider._filters = build_filters()
     windows: list[tuple[str, str]] = []
 
-    def respond(request: httpx.Request) -> httpx.Response:
+    def respond(request: httpx2.Request) -> httpx2.Response:
         if request.url.path.endswith("/resourcelocation/resources"):
-            return httpx.Response(
+            return httpx2.Response(
                 200,
                 json={
                     "101": {
@@ -724,7 +724,7 @@ async def test_chunking_and_deduplication(
             {"availability": 0 if idx in (0, nights) else 1}
             for idx in range(nights + 2)
         ]
-        return httpx.Response(
+        return httpx2.Response(
             200,
             json={
                 "mapId": 100,
@@ -733,7 +733,7 @@ async def test_chunking_and_deduplication(
             },
         )
 
-    provider.async_client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
+    provider.async_client = httpx2.AsyncClient(transport=httpx2.MockTransport(respond))
     results = await provider.find_availabilities(
         "-2147483631", start_date=date(2030, 6, 1), end_date=date(2030, 8, 5)
     )
@@ -792,10 +792,10 @@ async def test_unknown_unmapped_and_invalid_inputs(
 
         # HTTP 503 propagates HTTPStatusError
         provider._filters = None
-        provider.async_client = httpx.AsyncClient(
-            transport=httpx.MockTransport(lambda _r: httpx.Response(503))
+        provider.async_client = httpx2.AsyncClient(
+            transport=httpx2.MockTransport(lambda _r: httpx2.Response(503))
         )
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(httpx2.HTTPStatusError):
             await provider.find_availabilities(
                 "-2147483631",
                 start_date=date(2030, 7, 10),
@@ -944,11 +944,11 @@ async def test_metadata_ingestion_atomicity_and_provider_isolation(
     )
     parks, facilities, catalogs = _synthetic_metadata_catalogs()
 
-    def respond(request: httpx.Request) -> httpx.Response:
+    def respond(request: httpx2.Request) -> httpx2.Response:
         assert request.method == "GET"
-        return httpx.Response(200, json=catalogs[request.url.path])
+        return httpx2.Response(200, json=catalogs[request.url.path])
 
-    provider.async_client = httpx.AsyncClient(transport=httpx.MockTransport(respond))
+    provider.async_client = httpx2.AsyncClient(transport=httpx2.MockTransport(respond))
     try:
         await provider.sync_metadata()
         await _assert_ingested_catalog(maker)
