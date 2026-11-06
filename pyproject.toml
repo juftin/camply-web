@@ -15,7 +15,7 @@ dependencies = [
   "jiter==0.18.0",
   "platformdirs==4.13.6",
   "pydantic==2.14.1",
-  "pydantic-settings==2.16.1",
+  "pydantic-settings==2.16.2",
   "rich==15.0.0",
   "sqlalchemy[asyncio]==2.1.6",
   "structlog==26.1.0"
