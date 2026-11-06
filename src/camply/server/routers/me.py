@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
 from camply.db.models import User as UserDB
+from camply.db.notification_config import ntfy_config
 from camply.server.auth import CurrentUserDep
 from camply.server.dependencies import SessionDep
 from camply.server.schemas import MeResponse, MeUpdateRequest
@@ -33,6 +34,18 @@ async def get_me(current_user: CurrentUserDep) -> MeResponse:
         is_admin=current_user.is_admin,
         scanning_enabled=current_user.scanning_enabled,
         pushover_token=current_user.pushover_token,
+        notification_provider=current_user.notification_provider,
+        ntfy_default_subscription_url=(
+            ntfy_config.subscription_url
+            if ntfy_config.subscription_url != "https://ntfy.sh"
+            else None
+        ),
+        ntfy_topic=current_user.ntfy_topic,
+        ntfy_server_url=current_user.ntfy_server_url,
+        ntfy_subscription_url=ntfy_config.subscription_server(
+            current_user.ntfy_server_url
+        ),
+        ntfy_access_token=current_user.ntfy_access_token,
         must_change_password=current_user.must_change_password,
     )
 
@@ -66,7 +79,8 @@ async def update_me(
             detail="User not found",
         )
 
-    user.pushover_token = body.pushover_token or None
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(user, field, (value or None) if field == "pushover_token" else value)
 
     await session.commit()
     await session.refresh(user)
@@ -78,5 +92,15 @@ async def update_me(
         is_admin=user.is_admin,
         scanning_enabled=user.scanning_enabled,
         pushover_token=user.pushover_token,
+        notification_provider=user.notification_provider,
+        ntfy_default_subscription_url=(
+            ntfy_config.subscription_url
+            if ntfy_config.subscription_url != "https://ntfy.sh"
+            else None
+        ),
+        ntfy_topic=user.ntfy_topic,
+        ntfy_server_url=user.ntfy_server_url,
+        ntfy_subscription_url=ntfy_config.subscription_server(user.ntfy_server_url),
+        ntfy_access_token=user.ntfy_access_token,
         must_change_password=user.must_change_password,
     )

@@ -91,6 +91,12 @@ export interface MeResponse {
   is_admin: boolean;
   scanning_enabled: boolean;
   pushover_token: string | null;
+  notification_provider?: "pushover" | "ntfy";
+  ntfy_topic?: string | null;
+  ntfy_server_url?: string | null;
+  ntfy_subscription_url?: string;
+  ntfy_default_subscription_url?: string | null;
+  ntfy_access_token?: string | null;
   must_change_password?: boolean;
 }
 
@@ -99,6 +105,9 @@ export type ChangePasswordRequest =
 
 export interface MeUpdateRequest {
   pushover_token?: string | null;
+  notification_provider?: "pushover" | "ntfy";
+  ntfy_server_url?: string | null;
+  ntfy_access_token?: string | null;
 }
 
 // ---- Scans ----

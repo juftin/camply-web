@@ -5,6 +5,7 @@ import datetime as dt
 import json
 import sqlite3
 import time
+import uuid
 from pathlib import Path
 
 import pytest
@@ -100,10 +101,10 @@ def test_previous_pr_database_preserves_pending_delivery(tmp_path: Path) -> None
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         assert connection.execute(
             "SELECT version_num FROM alembic_version"
-        ).fetchall() == [("c2f84b9d1a3e",)]
+        ).fetchall() == [("f024a1b2c3d4",)]
 
 
-def test_populated_upgrade_and_online_backup(tmp_path: Path) -> None:
+def test_populated_upgrade_and_online_backup(tmp_path: Path) -> None:  # noqa: PLR0915
     """Preserve linked UUID/JSON/date state across an upgrade and online backup."""
     database = DatabaseConfig(HOST=str(tmp_path / "state.db"))
     upgrade_database(database, revision="09367969f1a4")
@@ -118,7 +119,17 @@ def test_populated_upgrade_and_online_backup(tmp_path: Path) -> None:
                 )
                 await session.flush()
                 user = User(email="synthetic@example.test")
-                session.add(user)
+                # Insert only historical columns; the current ORM includes newer settings.
+                from sqlalchemy import text
+
+                user.id = uuid.uuid4()
+                await session.execute(
+                    text(
+                        "INSERT INTO users (id, email, is_early_access_user, is_admin, scanning_enabled, must_change_password) "
+                        "VALUES (:id, :email, 0, 0, 1, 0)"
+                    ),
+                    {"id": user.id.hex, "email": user.email},
+                )
                 target = UniqueTarget(
                     provider_id=1,
                     campground_id="synthetic",

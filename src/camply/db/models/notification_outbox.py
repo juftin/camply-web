@@ -52,6 +52,9 @@ class NotificationOutbox(Base):
     """Original target, so relinked scans cannot receive stale alerts."""
     delivery_key: Mapped[str] = mapped_column(String(128))
     """Summary marker or provider campsite identity, unique within this detection."""
+    channel: Mapped[str] = mapped_column(
+        String(16), default="pushover", server_default="pushover"
+    )
     payload: Mapped[dict[str, Any]] = mapped_column(JSON)
     """Credential-free serialized NotificationDTO."""
     status: Mapped[str] = mapped_column(String(16), default="pending")

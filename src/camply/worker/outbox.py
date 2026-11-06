@@ -16,9 +16,11 @@ from sqlalchemy.exc import OperationalError
 
 from camply.db.config import DatabaseConfig
 from camply.db.models import NotificationOutbox, UniqueTarget, User, UserScan
+from camply.db.notification_config import ntfy_config as ntfy_defaults
 from camply.worker.config import worker_config
 from camply.worker.engine.alerts import matching_opening, summarize_openings
 from camply.worker.notifications.base import NotificationDTO
+from camply.worker.notifications.ntfy import NtfyProvider
 from camply.worker.notifications.pushover import PushoverProvider
 
 MAX_ATTEMPTS = 4
@@ -193,6 +195,7 @@ async def deliver_next(
             and target
             and scan.user_id == user.id
             and scan.target_id == target.id
+            and user.notification_provider == row.channel
             and user.scanning_enabled
             and scan.is_active
             and (not invite_only or user.is_invited)
@@ -206,7 +209,21 @@ async def deliver_next(
                 )
             except (ValidationError, ValueError, KeyError, TypeError):
                 outcome, reason = "failure", "invalid_payload"
-        token = user.pushover_token if user else None
+        channel = row.channel
+        ntfy_config = (
+            {
+                "topic": user.ntfy_topic,
+                "server_url": ntfy_defaults.publish_server(user.ntfy_server_url),
+                "access_token": user.ntfy_access_token,
+            }
+            if user
+            else {}
+        )
+        token = (
+            (user.ntfy_topic if user.notification_provider == "ntfy" else None)
+            if user and channel == "ntfy"
+            else (user.pushover_token if user else None)
+        )
         if payload is not None and not token:
             payload = None
             reason = "missing_user_credentials"
@@ -220,7 +237,13 @@ async def deliver_next(
         job_id, attempt, target_id = row.id, row.attempt_count, row.target_id
         await session.commit()
     if payload is not None:
-        outcome, reason = await delivery_outcome(send, str(token), payload)
+
+        async def send_ntfy(token: str, payload: NotificationDTO) -> bool:
+            return await NtfyProvider().send_accepted(ntfy_config, payload)
+
+        outcome, reason = await delivery_outcome(
+            send_ntfy if channel == "ntfy" else send, str(token), payload
+        )
         if outcome == "retry" and attempt >= MAX_ATTEMPTS:
             outcome = "failure"
         if not await finish_delivery(database, job_id, outcome=outcome, reason=reason):

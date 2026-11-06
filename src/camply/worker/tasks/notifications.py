@@ -62,3 +62,34 @@ async def _send_pushover_notification_async(
             raise self.retry(exc=exc)
         except Exception:
             return {"status": "error", "reason": str(exc)}
+
+
+@celery_app.task(
+    name="camply.notifications.send_ntfy_notification",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=120,
+    ignore_result=True,
+)
+def send_ntfy_notification(
+    self: Any,
+    user_id: str,
+    notification: dict,
+    scan_id: Optional[str] = None,
+) -> dict:
+    """Deliver ntfy independently of the legacy Pushover task."""
+    try:
+        result = asyncio.run(
+            send_notification(
+                user_id,
+                notification,
+                scan_id,
+                sessions=db.get_session,
+                channel="ntfy",
+            )
+        )
+        if result["status"] == "success":
+            NOTIFICATIONS_SENT_TOTAL.inc()
+        return result
+    except Exception:
+        raise self.retry(exc=RuntimeError("ntfy delivery failed")) from None

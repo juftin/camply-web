@@ -495,3 +495,109 @@ def test_deployed_requests_require_application_login(
     response = test_client.get(path)
     assert response.status_code == 401
     assert response.headers.get("www-authenticate", "").lower() != "basic"
+
+
+class TestNtfySettings:
+    """Account-owned settings and safe partial updates."""
+
+    def test_defaults_and_partial_updates(self, test_client: TestClient) -> None:
+        user = test_client.get("/api/me").json()
+        assert user["ntfy_topic"].startswith("camply-")
+        assert user["notification_provider"] == "pushover"
+        test_client.patch("/api/me", json={"pushover_token": "keep-me"})
+        response = test_client.patch(
+            "/api/me",
+            json={
+                "notification_provider": "ntfy",
+                "ntfy_server_url": "http://ntfy.internal/prefix/",
+                "ntfy_access_token": "synthetic",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["ntfy_topic"] == user["ntfy_topic"]
+        assert data["ntfy_server_url"] == "http://ntfy.internal/prefix"
+        assert data["pushover_token"] == "keep-me"
+        data = test_client.patch("/api/me", json={"pushover_token": None}).json()
+        assert data["notification_provider"] == "ntfy"
+        assert data["ntfy_access_token"] == "synthetic"
+
+    @pytest.mark.parametrize(
+        "server",
+        [
+            "ftp://example.test",
+            "https://user:pass@example.test",
+            "https://example.test?token=secret",
+            "https://example.test/#fragment",
+            "http://",
+            "https://example.test:invalid",
+        ],
+    )
+    def test_invalid_server(self, test_client: TestClient, server: str) -> None:
+        assert (
+            test_client.patch("/api/me", json={"ntfy_server_url": server}).status_code
+            == 422
+        )
+
+    def test_distinct_topics(self) -> None:
+        from camply.db.models import User
+
+        assert (
+            User(email="a@example.test").ntfy_topic
+            != User(email="b@example.test").ntfy_topic
+        )
+
+    def test_invalid_notification_provider(self, test_client: TestClient) -> None:
+        assert (
+            test_client.patch(
+                "/api/me", json={"notification_provider": "unknown"}
+            ).status_code
+            == 422
+        )
+
+    def test_deployment_defaults_stay_private(
+        self, test_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from camply.db.notification_config import ntfy_config
+
+        monkeypatch.setattr(
+            ntfy_config, "subscription_url", "https://push.example.test/public"
+        )
+        monkeypatch.setattr(
+            ntfy_config, "publish_url", "http://ntfy.internal:80/publish"
+        )
+        test_client.patch("/api/me", json={"ntfy_server_url": None})
+        for response in [
+            test_client.get("/api/me"),
+            test_client.patch("/api/me", json={"notification_provider": "ntfy"}),
+        ]:
+            assert response.status_code == 200
+            assert response.json()["ntfy_server_url"] is None
+            assert (
+                response.json()["ntfy_subscription_url"]
+                == "https://push.example.test/public"
+            )
+            assert "ntfy.internal" not in response.text
+            assert (
+                response.json()["ntfy_default_subscription_url"]
+                == "https://push.example.test/public"
+            )
+        data = test_client.patch(
+            "/api/me", json={"ntfy_server_url": "https://custom.example.test/push/"}
+        ).json()
+        assert data["ntfy_subscription_url"] == "https://custom.example.test/push"
+        assert data["ntfy_server_url"] == "https://custom.example.test/push"
+        assert (
+            data["ntfy_default_subscription_url"] == "https://push.example.test/public"
+        )
+        data = test_client.patch(
+            "/api/me", json={"pushover_token": "keep-custom"}
+        ).json()
+        assert data["ntfy_server_url"] == "https://custom.example.test/push"
+        response = test_client.patch("/api/me", json={"ntfy_server_url": None})
+        assert (
+            response.json()["ntfy_subscription_url"]
+            == "https://push.example.test/public"
+        )
+        assert response.json()["ntfy_server_url"] is None
+        assert "ntfy.internal" not in response.text

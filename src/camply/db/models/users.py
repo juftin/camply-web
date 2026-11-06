@@ -5,7 +5,7 @@ User Model
 import datetime
 import uuid
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from sqlalchemy import Boolean, String, func
 from sqlalchemy.dialects.postgresql import UUID
@@ -27,6 +27,8 @@ class User(Base):
 
     def __init__(self, **kwargs: Any) -> None:
         """Initialize invitation and scanning flags before persistence."""
+        kwargs.setdefault("ntfy_topic", f"camply-{uuid.uuid4().hex}")
+        kwargs.setdefault("notification_provider", "pushover")
         kwargs.setdefault("is_admin", False)
         kwargs.setdefault("scanning_enabled", True)
         kwargs.setdefault("is_invited", False)
@@ -43,6 +45,19 @@ class User(Base):
     )
     """Invitation eligibility, backed by the existing access column."""
     pushover_token: Mapped[str | None] = mapped_column(String(255))
+    ntfy_topic: Mapped[str] = mapped_column(
+        String(64),
+        unique=True,
+        index=True,
+        default=lambda: f"camply-{uuid.uuid4().hex}",
+        server_default="",
+    )
+    notification_provider: Mapped[Literal["pushover", "ntfy"]] = mapped_column(
+        String(16), default="pushover", server_default="pushover"
+    )
+    ntfy_server_url: Mapped[str | None] = mapped_column(String(2048))
+    """Optional user-selected custom server; absent means deployment defaults."""
+    ntfy_access_token: Mapped[str | None] = mapped_column(String(1024))
     is_admin: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=func.false()
     )

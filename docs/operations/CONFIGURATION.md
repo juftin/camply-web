@@ -269,3 +269,22 @@ A custom tile URL requires its own attribution text and link. For a self-hosted 
 Open-source map software and openly licensed map data are separate from tile hosting costs and capacity. The default public service has no SLA; follow [OpenStreetMap's tile usage policy](https://operations.osmfoundation.org/policies/tiles/) for linked attribution, browser caching, origin referrers, and no bulk/offline downloading. Choose a compatible hosted or self-hosted service for production capacity beyond those terms. Map requests do not use the authenticated API client, attach authorization/CSRF headers, or submit scan settings. External tile hosts still see client IP addresses and requested tile coordinates; self-hosting avoids that external dependency. Device location is not requested.
 
 MapLibre GL JS requires WebGL 2. If the browser cannot create a graphics context, the map shows a local error with retry and the list remains usable. The renderer worker is bundled as a same-origin Vite asset, including under a repository subpath. Cross-origin raster sources must permit CORS for the frontend origin (the default OSM source does); self-hosted sources on the same origin need no CORS configuration. If you enforce a Content Security Policy, permit the bundled same-origin worker and the configured tile origin.
+
+## ntfy notifications
+
+Set the application’s default ntfy server with these environment variables on both the API and notification workers (or the standalone process):
+
+```dotenv
+CAMPLY_NTFY_SUBSCRIPTION_URL=https://push.example.com
+CAMPLY_NTFY_PUBLISH_URL=http://ntfy:80
+```
+
+`CAMPLY_NTFY_SUBSCRIPTION_URL` defaults to `https://ntfy.sh`. `CAMPLY_NTFY_PUBLISH_URL` is optional: when unset or empty, Camply publishes to the subscription URL. HTTP(S) URLs and path prefixes are supported. Both addresses must reach the same ntfy service and topic. Compose forwards both settings to the API and worker; Helm deployments can set them through the shared `env` values.
+
+Only the public subscription URL is exposed to users. The default publish URL stays server-side and is never included in profile responses. For example, Camply can publish internally to `http://ntfy:80` while users subscribe to `https://push.example.com/camply-…`.
+
+In **Profile**, users select **Pushover** or **ntfy**. Each user gets a unique random topic. The ntfy server dropdown offers the configured application server (when different from ntfy.sh), `ntfy.sh`, or **Enter your own server**. The URL input appears only for the last option. Selecting the configured server follows current deployment defaults; selecting ntfy.sh or entering a URL stores an explicit per-user server used for both publishing and subscribing. Profile shows the saved public subscription URL including the user’s topic.
+
+An optional per-user ntfy access token supplies publish permission for protected servers. Topics are not automatically reserved or provisioned with access controls. Keep public topics private; anyone who knows a public topic can subscribe or publish. Prefer HTTPS when sending access tokens.
+
+ntfy requires no Pushover application token. Summary/direct mode applies to either selected provider. Standalone persists a delivery intent for the selected channel; distributed mode dispatches its corresponding Celery task. Switching providers skips pending deliveries for the previous channel. Settings and credentials are fetched again at delivery time and never embedded in queued payloads. Publishing follows the [ntfy JSON API](https://docs.ntfy.sh/publish/#publish-as-json).

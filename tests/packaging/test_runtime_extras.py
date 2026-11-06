@@ -207,6 +207,7 @@ def test_worker_only_registration(install: Callable[[str], Installation]) -> Non
                 'camply.catalog.sync_all_providers',
                 'camply.catalog.sync_provider_catalog',
                 'camply.notifications.send_pushover_notification',
+                'camply.notifications.send_ntfy_notification',
             }
             assert celery_app.conf.beat_schedule['schedule-availability-checks']['task'] == 'camply.search.schedule_checks'
             assert celery_app.conf.beat_schedule['sync-provider-catalogs-daily']['task'] == 'camply.catalog.sync_all_providers'

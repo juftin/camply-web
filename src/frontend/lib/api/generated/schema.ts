@@ -1533,6 +1533,32 @@ export interface components {
             /** Pushover Token */
             pushover_token?: string | null;
             /**
+             * Notification Provider
+             * @default pushover
+             * @enum {string}
+             */
+            notification_provider: "pushover" | "ntfy";
+            /** Ntfy Topic */
+            ntfy_topic?: string | null;
+            /**
+             * Ntfy Server Url
+             * @description Optional user-selected custom ntfy server; null uses deployment defaults.
+             */
+            ntfy_server_url?: string | null;
+            /**
+             * Ntfy Default Subscription Url
+             * @description Configured public application server, when different from ntfy.sh.
+             */
+            ntfy_default_subscription_url?: string | null;
+            /**
+             * Ntfy Subscription Url
+             * @description Effective public subscription server. The deployment publish URL is never exposed.
+             * @default https://ntfy.sh
+             */
+            ntfy_subscription_url: string;
+            /** Ntfy Access Token */
+            ntfy_access_token?: string | null;
+            /**
              * Must Change Password
              * @default false
              */
@@ -1540,11 +1566,24 @@ export interface components {
         };
         /**
          * MeUpdateRequest
-         * @description Payload for ``PATCH /me``.
+         * @description Payload for ``PATCH /me``; omitted fields are preserved.
          */
         MeUpdateRequest: {
             /** Pushover Token */
             pushover_token?: string | null;
+            /**
+             * Notification Provider
+             * @default pushover
+             * @enum {string}
+             */
+            notification_provider: "pushover" | "ntfy";
+            /**
+             * Ntfy Server Url
+             * @description Custom server used for publishing and subscribing; null restores deployment defaults.
+             */
+            ntfy_server_url?: string | null;
+            /** Ntfy Access Token */
+            ntfy_access_token?: string | null;
         };
         /**
          * Provider
