@@ -427,6 +427,20 @@ def test_resource_classification_and_attribute_decoding() -> None:
     """Classify cabins, RVs, tents, hookups, multi-enum amps, capacities, and ADA flags."""
     filters = build_filters()
 
+    scalar = Resource.model_validate(
+        {
+            "definedAttributes": [
+                {"attributeDefinitionId": 2, "value": 1},
+                {"attributeDefinitionId": 3, "value": 1},
+                {"attributeDefinitionId": 5, "value": 2},
+            ]
+        }
+    )
+    decoded = scalar._decode_attributes(filters)
+    assert decoded["Electrical Service"] == "20 Amps"
+    assert decoded["ADA Accessible"] == "Yes"
+    assert decoded["Max RVs"] == 2
+
     # 1. RV site with multi-enum Electrical Service + Adjacent To: ADA Restroom (NOT accessible!)
     rv_site = Resource.model_validate(
         {

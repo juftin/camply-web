@@ -383,7 +383,14 @@ class Resource(BaseModel):
                 elif len(labels) > 1:
                     decoded[definition.display_name] = labels
             elif item.value is not None:
-                decoded[definition.display_name] = item.value
+                enum_lookup = {
+                    ev.enumValue: ev.display_name for ev in definition.values
+                }
+                decoded[definition.display_name] = (
+                    enum_lookup.get(item.value, item.value)
+                    if isinstance(item.value, int) and not isinstance(item.value, bool)
+                    else item.value
+                )
         return decoded
 
     def _decode_equipment(self, filters: CatalogFilters) -> list[str]:

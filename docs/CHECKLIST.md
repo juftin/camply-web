@@ -241,3 +241,5 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Build documentation into every frontend bundle at `/docs/`, link it from the app footer, manage VitePress via `package.json`, and preserve docs sources/assets in wheel/sdist integrity checks. Serve documentation pages and real documentation 404s in Python, Nginx, and Cloudflare Pages previews; verify installed artifacts without the generator.
 - [x] Eliminate Python documentation build dependencies from frontend builds, Dockerfile frontend stage, and Cloudflare Pages, ensure unprivileged Nginx smoke environments run with proper file permissions, and maintain baseline visual snapshots for the footer docs link.
 - [x] Re-organize documentation site directly under `docs/`, natively representing all operations, architecture, development, roadmap, checklist, and feature specification documents without duplicate files or copy scripts.
+
+- [x] GoingToCamp review follow-up: decode scalar enum attributes, verify PostgreSQL provider seed upgrade expectations, and disclose provider booking restrictions in results.

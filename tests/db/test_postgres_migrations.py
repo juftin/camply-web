@@ -73,12 +73,9 @@ def test_postgres_populated_upgrade() -> None:
         with psycopg.connect(
             host=database.HOST, port=port, user="postgres", dbname="postgres"
         ) as connection:
-            assert (
-                connection.execute(
-                    "SELECT id, name FROM providers ORDER BY id"
-                ).fetchall()
-                == before
-            )
+            assert connection.execute(
+                "SELECT id, name FROM providers ORDER BY id"
+            ).fetchall() == [*before, (12, "Washington State Parks")]
             assert connection.execute(
                 "SELECT COUNT(*) FROM notification_outbox"
             ).fetchone() == (0,)
