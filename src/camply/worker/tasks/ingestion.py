@@ -14,7 +14,7 @@ import asyncio
 
 import structlog
 
-from camply.providers import PROVIDERS
+from camply.providers import CATALOG_PROVIDERS, PROVIDERS
 from camply.worker.celery_app import celery_app
 from camply.worker.engine.catalog import (
     populate_provider as _populate_provider_async,
@@ -29,17 +29,17 @@ logger = structlog.getLogger(__name__)
 )
 def populate_database() -> dict:
     """
-    Orchestrate database population for all registered providers.
+    Orchestrate database population for all enabled providers.
 
-    Iterates over the ``PROVIDERS`` registry and fans out a
-    ``populate_provider_database`` task for each provider ID.
+    Iterates over the ``CATALOG_PROVIDERS`` registry (enabled providers only)
+    and fans out a ``populate_provider_database`` task for each provider ID.
 
     Returns
     -------
     dict
         ``{"status": "ok", "providers_fanned_out": N, "provider_ids": [...]}``.
     """
-    provider_ids = list(PROVIDERS.keys())
+    provider_ids = list(CATALOG_PROVIDERS)
     logger.info("Fanning out ingestion tasks", provider_ids=provider_ids)
 
     for provider_id in provider_ids:

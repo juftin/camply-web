@@ -2,7 +2,7 @@
 Tests for the providers package: registry, base provider URL generation, CLI.
 """
 
-from camply.providers import PROVIDERS
+from camply.providers import CATALOG_PROVIDERS, PROVIDERS
 from camply.providers.recreation_gov.provider import RecreationGovProvider
 
 
@@ -68,7 +68,7 @@ class TestProviderCLI:
         assert "all" in result.output
 
     def test_cli_populate_all_providers(self, monkeypatch: object) -> None:
-        """Running with --provider-id all should populate all registered providers."""
+        """Running with --provider-id all should populate only enabled providers."""
         from unittest.mock import AsyncMock, patch
 
         from click.testing import CliRunner
@@ -89,6 +89,9 @@ class TestProviderCLI:
         ):
             result = runner.invoke(metadata_cmd, ["--provider-id", "all"])
             assert result.exit_code == 0
-            for inst in mock_instances.values():
-                inst.populate_database.assert_awaited_once()
-                inst.async_client.aclose.assert_awaited_once()
+            for pid, inst in mock_instances.items():
+                if pid in CATALOG_PROVIDERS:
+                    inst.populate_database.assert_awaited_once()
+                    inst.async_client.aclose.assert_awaited_once()
+                else:
+                    inst.populate_database.assert_not_awaited()

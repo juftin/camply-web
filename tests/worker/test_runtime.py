@@ -116,7 +116,7 @@ async def test_target_backoff_and_catalog_failure_isolation() -> None:
             scan.cancel()
             await asyncio.gather(scan, return_exceptions=True)
     with (
-        patch("camply.worker.runtime.PROVIDERS", {1: object, 2: object}),
+        patch("camply.worker.runtime.CATALOG_PROVIDERS", {1: object, 2: object}),
         patch(
             "camply.worker.runtime.populate_provider",
             new_callable=AsyncMock,

@@ -28,3 +28,12 @@ On 2026-11-04, `WashingtonStateParksProvider` ran `sync_metadata()` and `find_av
 - Dynamic overnight category resolution cleanly separated the 92 overnight camping/lodging facilities (`reservable=True`, indexed as searchable campgrounds) from the 75 day-use shelters, marinas/moorage slips, and unmapped locations (`reservable=False`).
 - Live `/api/attribute/filterable` (`dict[str, AttributeDefinition]` with `displayName` localization) decoded 33 site-level attributes on sampled Deception Pass sites/cabins (`Electrical Service`, `Service Type`, `ADA Accessible`, `ADA Only`, `Adjacent To`, `Max RVs`, etc.), accurately distinguishing the 2 ADA-accessible units from units merely adjacent to an ADA restroom.
 - No live API payloads or reservation identifiers are stored in the repository; all committed tests and VCR cassettes are synthetic.
+
+## Additional deployments (IDs 13-25)
+
+On 2026-11-06 unauthenticated `GET /api/transactionlocation` requests were made to every legacy-CLI deployment:
+
+- Thirteen (`wisconsin`, `midnrreservations.com`, `tacomapower`, `reservation.pc.gc.ca`, `camping.bcparks.ca`, `reservations.ontarioparks.ca`, `novascotia`, `manitoba`, `nlcamping.ca`, `reservations.ncc-ccn.gc.ca`, `longpoint`, `maitlandvalley`, `stclair`) returned an Azure WAF bot challenge (HTTP 403). They are registered and seeded `enabled = false` by migration `e7a41c5b9d02`; no challenge bypass was attempted.
+- Maryland (404, Aspira platform), New Brunswick (404 after redirect), Algonquin Highlands and Saugeen Valley (DNS no longer resolves) are not registered. See [TODO.md](TODO.md).
+
+Synthetic tests cover registry wiring, identities, deep links, and the seed migration round trip and dependent-data guard.

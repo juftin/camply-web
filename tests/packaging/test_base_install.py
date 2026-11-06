@@ -25,7 +25,7 @@ def test_base_imports_and_metadata(install: Callable[[str], Installation]) -> No
         assert set(distribution.metadata.get_all('Provides-Extra')) == {'server', 'distributed', 'postgres', 'sentry'}
         assert __about__.__version__ == distribution.version
         assert Path(camply.__file__).with_name('py.typed').is_file()
-        assert sorted(PROVIDERS) == list(range(1, 13))
+        assert sorted(PROVIDERS) == list(range(1, 26))
         assert db.DRIVERNAME.value == 'sqlite+aiosqlite'
         scripts = {entry.name: entry.value for entry in distribution.entry_points if entry.group == 'console_scripts'}
         assert 'populate-database' not in scripts
