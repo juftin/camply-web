@@ -180,7 +180,7 @@ def parse_gps_coordinates(
     return (lat, lon)
 
 
-def normalize_state_code(raw: str | None, fallback: str) -> str:
+def normalize_state_code(raw: str | None, fallback: str | None) -> str | None:
     """Normalize two-letter state/province codes or full names to uppercase."""
     if not raw or not raw.strip():
         return fallback

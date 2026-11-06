@@ -11,7 +11,7 @@ import structlog
 from sqlalchemy.exc import OperationalError
 
 from camply.db.config import DatabaseConfig
-from camply.providers import PROVIDERS
+from camply.providers import CATALOG_PROVIDERS, PROVIDERS
 from camply.worker.config import worker_config
 from camply.worker.engine.catalog import populate_provider
 from camply.worker.engine.discovery import due_targets
@@ -275,7 +275,7 @@ class LocalRunner:
         while True:
             job = await self.catalog_queue.get()
             try:
-                for provider_id, provider_cls in PROVIDERS.items():
+                for provider_id, provider_cls in CATALOG_PROVIDERS.items():
                     started = time.monotonic()
                     self.active += 1
                     try:

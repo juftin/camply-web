@@ -104,3 +104,69 @@ def test_washington_dependent_rows_block_seed_downgrade(dependent_kind: str) -> 
             == "Washington State Parks"
         )
     engine.dispose()
+
+
+def disabled_migration() -> ModuleType:
+    """Load the immutable disabled GoingToCamp seed migration directly."""
+    path = files("camply.db").joinpath(
+        "migrations/versions/e7a41c5b9d02_seed_disabled_going_to_camp_providers.py"
+    )
+    spec = importlib.util.spec_from_file_location("disabled_gtc_seed", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_disabled_seed_round_trip_and_matches_identities() -> None:
+    """Unverified deployments seed disabled, match code identities, and roll back."""
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    revision = disabled_migration()
+    assert revision.down_revision == "c2f84b9d1a3e"
+    with (
+        engine.begin() as connection,
+        Operations.context(MigrationContext.configure(connection)),
+    ):
+        revision.upgrade()
+        rows = connection.execute(
+            select(Provider.__table__).order_by(Provider.id)
+        ).all()
+        assert [row.id for row in rows] == list(range(13, 26))
+        assert not any(row.enabled for row in rows)
+        by_id = {
+            value.id: value
+            for value in vars(identities).values()
+            if isinstance(value, Provider)
+        }
+        for row in rows:
+            identity = by_id[row.id]
+            assert (row.name, row.description, row.url, row.enabled) == (
+                identity.name,
+                identity.description,
+                identity.url,
+                identity.enabled,
+            )
+        revision.downgrade()
+        assert connection.scalars(select(Provider.id)).all() == []
+    engine.dispose()
+
+
+def test_disabled_seed_downgrade_blocked_by_dependent_rows() -> None:
+    """Dependent catalog rows block rollback of the disabled seeds."""
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    revision = disabled_migration()
+    with (
+        engine.begin() as connection,
+        Operations.context(MigrationContext.configure(connection)),
+    ):
+        revision.upgrade()
+        connection.execute(
+            insert(Campground).values(
+                id="-2147483631", provider_id=17, name="Synthetic Campground"
+            )
+        )
+        with pytest.raises(RuntimeError, match=r"GoingToCamp providers.*dependent"):
+            revision.downgrade()
+    engine.dispose()

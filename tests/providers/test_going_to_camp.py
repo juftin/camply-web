@@ -1012,3 +1012,115 @@ async def test_washington_going_to_camp_http_replay() -> None:
         ]
     finally:
         await provider.async_client.aclose()
+
+
+UNVERIFIED_DEPLOYMENTS = [
+    (13, "Wisconsin State Parks", "https://wisconsin.goingtocamp.com", "WI", "US"),
+    (14, "Michigan State Parks", "https://midnrreservations.com", "MI", "US"),
+    (15, "Tacoma Power Parks", "https://tacomapower.goingtocamp.com", "WA", "US"),
+    (16, "Parks Canada", "https://reservation.pc.gc.ca", None, "CA"),
+    (17, "BC Parks", "https://camping.bcparks.ca", "BC", "CA"),
+    (18, "Ontario Parks", "https://reservations.ontarioparks.ca", "ON", "CA"),
+    (19, "Nova Scotia Parks", "https://novascotia.goingtocamp.com", "NS", "CA"),
+    (20, "Manitoba Parks", "https://manitoba.goingtocamp.com", "MB", "CA"),
+    (
+        21,
+        "Newfoundland & Labrador Provincial Parks",
+        "https://nlcamping.ca",
+        "NL",
+        "CA",
+    ),
+    (22, "Gatineau Park (NCC)", "https://reservations.ncc-ccn.gc.ca", "QC", "CA"),
+    (
+        23,
+        "Long Point Region Conservation Authority",
+        "https://longpoint.goingtocamp.com",
+        "ON",
+        "CA",
+    ),
+    (
+        24,
+        "Maitland Valley Conservation Authority",
+        "https://maitlandvalley.goingtocamp.com",
+        "ON",
+        "CA",
+    ),
+    (
+        25,
+        "St. Clair Region Conservation Authority",
+        "https://stclair.goingtocamp.com",
+        "ON",
+        "CA",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("provider_id", "name", "booking_url", "state_code", "country_code"),
+    UNVERIFIED_DEPLOYMENTS,
+)
+def test_unverified_deployments_are_registered_but_disabled(
+    provider_id: int,
+    name: str,
+    booking_url: str,
+    state_code: str | None,
+    country_code: str,
+) -> None:
+    """Each additional deployment has a disabled identity and correct deep links."""
+    provider_cls = PROVIDERS[provider_id]
+    assert issubclass(provider_cls, GoingToCampProvider)
+    assert provider_cls.booking_url == booking_url
+    assert provider_cls.api_url == f"{booking_url}/api"
+    assert provider_cls.state_code == state_code
+    assert provider_cls.country_code == country_code
+    identity = provider_cls().provider
+    assert (identity.id, identity.name, identity.url) == (
+        provider_id,
+        name,
+        booking_url,
+    )
+    assert identity.enabled is False
+    assert provider_cls.get_campground_url(
+        "-2147483631", rec_area_id="-2147483640"
+    ) == (
+        f"{booking_url}/create-booking/results?resourceLocationId=-2147483631"
+        "&transactionLocationId=-2147483640"
+    )
+
+
+def test_state_fallback_is_optional_for_multi_region_deployments() -> None:
+    """Parks Canada falls back to no state when the API omits a region."""
+    assert normalize_state_code(None, None) is None
+    assert normalize_state_code("bc", None) == "BC"
+
+
+def test_disabled_providers_excluded_from_bulk_catalog_sync(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bulk metadata sync skips disabled providers; explicit IDs still run them."""
+    from camply.cli.db import metadata_cmd
+    from camply.providers import CATALOG_PROVIDERS
+
+    assert set(CATALOG_PROVIDERS) == set(range(1, 13))
+    populated: list[int] = []
+
+    def make(provider_id: int) -> MagicMock:
+        instance = MagicMock()
+
+        async def populate() -> None:
+            populated.append(provider_id)
+
+        instance.populate_database = populate
+        instance.async_client.aclose = AsyncMock()
+        return instance
+
+    for provider_id in PROVIDERS:
+        monkeypatch.setitem(PROVIDERS, provider_id, lambda pid=provider_id: make(pid))
+    monkeypatch.setattr(
+        "camply.cli.db.CATALOG_PROVIDERS", {i: PROVIDERS[i] for i in range(1, 13)}
+    )
+    assert CliRunner().invoke(metadata_cmd, ["--provider-id", "all"]).exit_code == 0
+    assert populated == list(range(1, 13))
+    populated.clear()
+    assert CliRunner().invoke(metadata_cmd, ["--provider-id", "13"]).exit_code == 0
+    assert populated == [13]

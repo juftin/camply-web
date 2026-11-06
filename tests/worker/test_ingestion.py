@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
 
-from camply.providers import PROVIDERS
+from camply.providers import CATALOG_PROVIDERS, PROVIDERS
 from camply.worker.tasks import ingestion
 
 
@@ -14,21 +14,22 @@ def anyio_backend() -> str:
     return "asyncio"
 
 
-def test_ingestion_fans_out_all_registered_providers(
+def test_ingestion_fans_out_all_enabled_providers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Daily ingestion includes all new IDs without requiring active user scans."""
+    """Daily ingestion includes enabled IDs only and skips unverified providers."""
     send = MagicMock()
     monkeypatch.setattr(ingestion.celery_app, "send_task", send)
     result = ingestion.populate_database.run()
-    assert result["provider_ids"] == list(PROVIDERS)
+    assert result["provider_ids"] == list(CATALOG_PROVIDERS) == list(range(1, 13))
+    assert set(PROVIDERS) - set(CATALOG_PROVIDERS) == set(range(13, 26))
     assert result["providers_fanned_out"] == 12
     assert send.call_args_list == [
         call(
             name="camply.catalog.sync_provider_catalog",
             kwargs={"provider_id": provider_id},
         )
-        for provider_id in PROVIDERS
+        for provider_id in CATALOG_PROVIDERS
     ]
 
 
