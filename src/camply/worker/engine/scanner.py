@@ -46,7 +46,7 @@ async def check_target(
     dispatch: Callable[[UserScan, NotificationDTO], None] | None = None,
     persistent: bool = False,
     notification_mode: Literal["summary", "direct"] = "summary",
-    app_url: str = "https://camply.juftin.dev",
+    app_url: str = "https://camply.rocks",
     invite_only: bool = False,
     on_provider_result: Callable[[int, bool], None] | None = None,
 ) -> dict[str, Any]:

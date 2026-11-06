@@ -36,7 +36,7 @@ They are defined in `src/camply/server/config.py` via `pydantic-settings`.
 | `CAMPLY_SESSION_SECRET`            | Cookie signing secret (at least 32 characters)                | `None`                                                             |
 | `CAMPLY_SESSION_MAX_AGE`           | Absolute session lifetime in seconds                          | `43200`                                                            |
 | `CAMPLY_SESSION_COOKIE_SECURE`     | Require HTTPS for session cookies                             | `true`                                                             |
-| `CAMPLY_CORS_ORIGINS`              | JSON list of trusted frontend origins for CORS and login      | localhost:5173 and camply.juftin.dev                               |
+| `CAMPLY_CORS_ORIGINS`              | JSON list of trusted frontend origins for CORS and login      | localhost:5173 and camply.rocks                                    |
 | `CAMPLY_CORS_ORIGIN_REGEX`         | Regex of additional trusted origins for CORS and login        | Local/Tailscale origins and HTTPS camply-81r.pages.dev deployments |
 | `CAMPLY_ADMIN_EMAIL`               | Shared identity for automatic login and password sessions     | `admin@camply.local`                                               |
 | `CAMPLY_AUTH0_DOMAIN`              | Auth0 tenant domain (e.g., `dev-xyz.us.auth0.com`)            | `None`                                                             |
@@ -54,13 +54,13 @@ Database config uses `CAMPLY_DB_` prefix (defined in `src/camply/db/config.py`):
 
 Valkey/Celery & Operations config:
 
-| Variable                    | Description                                                                                                             | Default                     |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| `CAMPLY_VALKEY_URL`         | Valkey connection string for Celery                                                                                     | `redis://localhost:6379/0`  |
-| `CAMPLY_HEARTBEAT_INTERVAL` | Heartbeat interval for periodic campsite availability discovery in seconds                                              | `300` (5 minutes)           |
-| `CAMPLY_TARGET_COOLDOWN`    | Minimum seconds elapsed before an existing target is eligible for re-checking                                           | `55`                        |
-| `CAMPLY_NOTIFICATION_MODE`  | `summary`: one alert per saved scan/check with new matching openings; `direct`: individual provider booking-link alerts | `summary`                   |
-| `CAMPLY_APP_URL`            | Public frontend base URL, including an optional path prefix, used by summary alerts                                     | `https://camply.juftin.dev` |
+| Variable                    | Description                                                                                                             | Default                    |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `CAMPLY_VALKEY_URL`         | Valkey connection string for Celery                                                                                     | `redis://localhost:6379/0` |
+| `CAMPLY_HEARTBEAT_INTERVAL` | Heartbeat interval for periodic campsite availability discovery in seconds                                              | `300` (5 minutes)          |
+| `CAMPLY_TARGET_COOLDOWN`    | Minimum seconds elapsed before an existing target is eligible for re-checking                                           | `55`                       |
+| `CAMPLY_NOTIFICATION_MODE`  | `summary`: one alert per saved scan/check with new matching openings; `direct`: individual provider booking-link alerts | `summary`                  |
+| `CAMPLY_APP_URL`            | Public frontend base URL, including an optional path prefix, used by summary alerts                                     | `https://camply.rocks`     |
 
 Summary alerts link to `/dashboard/scans/{scan_id}#results` under `CAMPLY_APP_URL`. Set this on the **Celery worker** to the address recipients can open, for example `https://camply.example.com` or `https://example.com/camply/`. Use an absolute HTTP(S) base URL without credentials, a query, or a fragment. Login preserves the scan destination. Docker Compose defaults to `http://localhost:5173`; use a reachable hostname when opening notifications on another device.
 
