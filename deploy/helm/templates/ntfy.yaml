@@ -1,0 +1,164 @@
+{{- if .Values.ntfy.enabled -}}
+{{- $hosts := include "camply.ntfyHostnames" . | fromYamlArray -}}
+{{- $baseUrl := .Values.ntfy.baseUrl -}}
+{{- if and (not $baseUrl) $hosts -}}
+{{- $baseUrl = printf "https://%s" (first $hosts) -}}
+{{- end -}}
+{{- if not $baseUrl -}}
+{{- $baseUrl = printf "http://%s-ntfy:8080" (include "camply.fullname" .) -}}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "camply.fullname" . }}-ntfy-proxy
+  labels: {{ include "camply.labels" . | nindent 4 }}
+data:
+  nginx.conf: |
+    {{- .Files.Get "files/ntfy-nginx.conf" | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "camply.fullname" . }}-ntfy
+  labels: {{ include "camply.labels" . | nindent 4 }}
+  annotations: {{ mergeOverwrite (deepCopy .Values.annotations) (deepCopy .Values.ntfy.annotations) | toYaml | nindent 4 }}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {{ include "camply.selector" (dict "root" . "role" "ntfy") | nindent 6 }}
+  template:
+    metadata:
+      labels: {{ include "camply.selector" (dict "root" . "role" "ntfy") | nindent 8 }}
+      annotations: {{ mergeOverwrite (deepCopy .Values.podAnnotations) (deepCopy .Values.ntfy.podAnnotations) (dict "checksum/config" (printf "%s%s" (toJson .Values.ntfy) $baseUrl | sha256sum) "checksum/proxy" (.Files.Get "files/ntfy-nginx.conf" | sha256sum)) | toYaml | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {{ toYaml .Values.ntfy.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- include "camply.scheduling" . | nindent 6 }}
+      containers:
+        - name: ntfy
+          image: {{ .Values.ntfy.image.repository }}:{{ .Values.ntfy.image.tag }}
+          imagePullPolicy: {{ .Values.ntfy.image.pullPolicy }}
+          args: [serve]
+          securityContext: &security
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources: {{ toYaml .Values.ntfy.resources | nindent 12 }}
+          ports:
+            - {name: http, containerPort: 8080}
+          env:
+            {{- $env := mergeOverwrite (dict "NTFY_BASE_URL" $baseUrl "NTFY_LISTEN_HTTP" ":8080" "NTFY_LOG_FORMAT" "json" "NTFY_CACHE_FILE" "/var/lib/ntfy/cache.db" "NTFY_CACHE_DURATION" "24h" "NTFY_ATTACHMENT_CACHE_DIR" "/var/lib/ntfy/attachments" "NTFY_ATTACHMENT_TOTAL_SIZE_LIMIT" "2G" "NTFY_ATTACHMENT_FILE_SIZE_LIMIT" "15M" "NTFY_ATTACHMENT_EXPIRY_DURATION" "24h" "NTFY_AUTH_DEFAULT_ACCESS" "read-write" "NTFY_ENABLE_LOGIN" "false" "NTFY_REQUIRE_LOGIN" "false" "NTFY_ENABLE_SIGNUP" "false" "NTFY_UPSTREAM_BASE_URL" "https://ntfy.sh") (deepCopy .Values.ntfy.env) }}
+            {{- range $name, $value := $env }}
+            - name: {{ $name }}
+              {{- if kindIs "map" $value }}
+              {{- toYaml $value | nindent 14 }}
+              {{- else }}
+              value: {{ $value | toString | quote }}
+              {{- end }}
+            {{- end }}
+          envFrom: {{ toYaml .Values.ntfy.envFrom | nindent 12 }}
+          startupProbe:
+            httpGet: {path: /v1/health, port: http}
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe: &probe
+            httpGet: {path: /v1/health, port: http}
+            periodSeconds: 10
+          livenessProbe: *probe
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/ntfy}
+            - {name: tmp, mountPath: /tmp}
+        - name: subscriptions
+          image: {{ .Values.ntfy.proxyImage.repository }}:{{ .Values.ntfy.proxyImage.tag }}
+          imagePullPolicy: {{ .Values.ntfy.proxyImage.pullPolicy }}
+          command: [nginx]
+          args: [-g, "daemon off;"]
+          securityContext: *security
+          resources: {{ toYaml .Values.ntfy.proxyResources | nindent 12 }}
+          ports:
+            - {name: subscriptions, containerPort: 8081}
+          readinessProbe:
+            httpGet: {path: /v1/health, port: subscriptions}
+          livenessProbe:
+            httpGet: {path: /v1/health, port: subscriptions}
+          volumeMounts:
+            - {name: proxy, mountPath: /etc/nginx/nginx.conf, subPath: nginx.conf, readOnly: true}
+            - {name: proxy-tmp, mountPath: /tmp}
+      volumes:
+        - name: data
+          {{- include "camply.storage" (merge (dict "name" (printf "%s-ntfy" (include "camply.fullname" .))) .Values.ntfy.persistence) | nindent 10 }}
+        - {name: tmp, emptyDir: {}}
+        - {name: proxy-tmp, emptyDir: {}}
+        - name: proxy
+          configMap:
+            name: {{ include "camply.fullname" . }}-ntfy-proxy
+{{- range $name, $port := dict "ntfy" "http" "ntfy-public" "subscriptions" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "camply.fullname" $ }}-{{ $name }}
+  labels: {{ include "camply.labels" $ | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector: {{ include "camply.selector" (dict "root" $ "role" "ntfy") | nindent 4 }}
+  ports:
+    - {name: http, port: 8080, targetPort: {{ $port }}}
+{{- end }}
+{{- if .Values.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "camply.fullname" . }}-ntfy
+  labels: {{ include "camply.labels" . | nindent 4 }}
+  annotations: {{ toYaml .Values.ntfy.ingress.annotations | nindent 4 }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.ntfy.ingress.tls }}
+  tls: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range $hosts }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "camply.fullname" $ }}-ntfy-public
+                port: {number: 8080}
+    {{- end }}
+{{- end }}
+{{- if .Values.route.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "camply.fullname" . }}-ntfy
+  labels: {{ include "camply.labels" . | nindent 4 }}
+  annotations: {{ toYaml .Values.ntfy.route.annotations | nindent 4 }}
+spec:
+  hostnames: {{ toYaml $hosts | nindent 4 }}
+  parentRefs:
+    {{- if .Values.route.parentRefs }}
+    {{- toYaml .Values.route.parentRefs | nindent 4 }}
+    {{- else }}
+    - name: {{ include "camply.fullname" . }}-gateway
+    {{- end }}
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: {{ include "camply.fullname" . }}-ntfy-public
+          port: 8080
+          weight: 1
+{{- end }}
+{{- end }}

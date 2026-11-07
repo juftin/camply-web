@@ -15,3 +15,5 @@ prometheus:
 envFrom:
   - secretRef:
       name: camply-runtime
+ntfy:
+  enabled: false

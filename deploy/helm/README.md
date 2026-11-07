@@ -2,7 +2,7 @@
 
 This chart deploys the distributed application using one `camply-web` image for
 Nginx, Gunicorn, Celery worker, beat, and migrations. It includes optional single
-instance PostgreSQL 17, Valkey, and Prometheus services. Kubernetes 1.26+ and Helm
+instance PostgreSQL 17, Valkey, Prometheus, and ntfy services. Kubernetes 1.26+ and Helm
 3 or 4 are supported. Gateway API resources additionally require the v1 CRDs and
 a compatible controller; Ingress needs an installed ingress controller.
 
@@ -15,39 +15,17 @@ and optionally `database.passwordKey`.
 
 Copy one of the examples into your own values file, replacing the example
 domain, secret references, and storage class. Charts are published to
-`oci://ghcr.io/juftin/charts/camply-web`, with image defaults matching each OCI tag:
-
-| Chart tag                   | Default upstream image tag  | Updated by                          |
-| --------------------------- | --------------------------- | ----------------------------------- |
-| `v1`                        | `v1`                        | Stable releases in major 1          |
-| `v1.2.3`                    | `v1.2.3`                    | Release 1.2.3                       |
-| `<seven-character-git-sha>` | `<seven-character-git-sha>` | Releases and successful main builds |
-| `latest`                    | `latest`                    | Releases and successful main builds |
-
-The original `1.2.3` chart tag remains available and selects `v1.2.3`.
-Install a specific release with:
+`oci://ghcr.io/juftin/charts/camply-web`. Stable releases publish only the standard
+semantic chart version (for example, `1.2.3`), selecting image `v1.2.3`.
+Main builds publish container images only. Chart aliases (`latest`, major, SHA,
+and v-prefixed versions) are no longer published; existing registry aliases are
+not deleted. Install a release with:
 
 ```sh
 helm upgrade --install camply oci://ghcr.io/juftin/charts/camply-web \
-  --version v1.2.3 --namespace camply --create-namespace \
+  --version 1.2.3 --namespace camply --create-namespace \
   -f my-values.yaml --wait --wait-for-jobs --timeout 15m
 ```
-
-Helm 3/4 filter tags through semantic version rules. To reliably select any OCI
-alias, including `latest` and Git SHAs, resolve it with ORAS and install that chart
-digest. For example, to select the chart whose default image is `latest`:
-
-```sh
-helm upgrade --install camply \
-  "oci://ghcr.io/juftin/charts/camply-web@$(oras resolve ghcr.io/juftin/charts/camply-web:latest)" \
-  --namespace camply --create-namespace \
-  -f my-values.yaml --wait --wait-for-jobs --timeout 15m
-```
-
-Replace `latest` in the resolve command with `v1`, `v1.2.3`, or the short SHA to
-select another tag. For GitOps, use a client that supports arbitrary OCI tags
-or supply the resolved chart digest. The chart digest fixes the chart content;
-moving upstream image tags still move. Set `image.digest` when the container image must also be immutable.
 
 For a source checkout, choose a published image tag or digest explicitly:
 
@@ -276,17 +254,13 @@ CI runs the lifecycle smoke after loading the existing Docker build, using the
 PR's image rather than a published image. Standard chart checks run against Helm
 3 and 4 and need no cluster or credentials.
 
-Publication runs `task helm:publish` after the matching images are available.
-It requires `CI=true`, the checked-out `GITHUB_SHA`, Helm, ORAS, and an authenticated
-Docker registry session. Set `RELEASE_VERSION=1.2.3` for a stable release, or leave
-it empty for a successful main build. Each variant is packaged under
-`dist/helm/TAG/` with appVersion equal to its upstream image tag, without modifying
-source metadata. Chart.version remains semantic: `1.2.3` for release variants,
-`0.0.0-sha-<short-sha>` for main builds. ORAS publishes the registry aliases with
-Helm config/content media types, reusing Docker's GHCR credentials. See
-[release operations](../../docs/operations/RELEASES.md#helm-chart) for permissions
-and recovery. Tests verify real packages and local OCI round trips without
-contacting GHCR.
+Publication runs `task helm:publish` after release images are available.
+It requires `CI=true`, the checked-out `GITHUB_SHA`, a stable
+`RELEASE_VERSION=1.2.3`, Helm, ORAS, and an authenticated Docker registry session.
+It packages one chart under `dist/helm/1.2.3/`, with version `1.2.3` and
+appVersion `v1.2.3`, then uploads only tag `1.2.3` using Helm OCI media types.
+Source metadata is unchanged. Empty versions are rejected; main builds skip
+chart publication. See [release operations](../../docs/operations/RELEASES.md#helm-chart).
 
 ## Configuration validation and probes
 
@@ -362,3 +336,70 @@ for `helm test --logs` on Helm 3. Set `tests.enabled=false` to omit
 this hook when managing connection checks separately. API readiness verifies the
 database connection; the test does not claim to verify provider access or successful
 background task processing.
+
+## Bundled ntfy
+
+The chart includes ntfy v2.37.1, modeled on
+[home-ops](https://github.com/juftin/home-ops/blob/main/kubernetes/workloads/apps/ntfy/values.yaml).
+One non-root replica uses Recreate updates and a retained 5Gi PVC for its 24-hour
+message cache and attachments. Storage settings follow the other bundled services;
+use `ntfy.persistence.existingClaim` to mount an existing claim in the release namespace,
+or `ntfy.persistence.enabled=false` for ephemeral storage. Existing standalone ntfy
+data is not migrated automatically. `ntfy.enabled=false` omits all ntfy resources.
+
+When Camply Ingress hosts or HTTPRoute hostnames contain `example.com`, the chart
+creates a separate route for `ntfy.example.com`, using the same Ingress class or
+Gateway parents. Multiple hostnames are supported. Set `ntfy.hostnames` to override
+the derived names and `ntfy.baseUrl` to override the default `https://<first hostname>`
+(for example, for HTTP-only development). Without public routing, baseUrl defaults
+to the internal publishing Service URL. Set up DNS and a certificate covering
+this extra hostname. Ingress TLS and annotations are configured separately through
+`ntfy.ingress.tls` and `ntfy.ingress.annotations`; Gateway listeners/certificates
+must accept the ntfy hostname. For example:
+
+```yaml
+ingress:
+  enabled: true
+  className: nginx
+  hosts: [example.com]
+ntfy:
+  ingress:
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    tls:
+      - secretName: ntfy-tls
+        hosts: [ntfy.example.com]
+```
+
+Public subscriptions require no login. A non-root Nginx sidecar on the
+`FULLNAME-ntfy-public:8080` ClusterIP Service allowlists topic pages, streaming
+subscriptions, web assets, and attachment downloads. POST/PUT and GET publish,
+send, trigger, clear, and delete endpoints return 404. SSE buffering is disabled
+and WebSocket upgrades are forwarded. Configure your ingress controller's streaming
+timeouts as needed. Camply authentication annotations/route filters are not copied
+to ntfy, so mobile subscriptions work independently of Camply login.
+
+Publishing uses `http://FULLNAME-ntfy:8080/TOPIC` inside the cluster without
+credentials. Keep this full API Service private. All topics/messages are publicly
+readable; topic names are not authorization. This adds the ntfy server only;
+Camply does not yet include an ntfy notification adapter. To verify manually:
+
+```sh
+# From a cluster workload:
+curl -d 'Test notification' http://camply-ntfy:8080/test
+# From a public client:
+curl -N 'https://ntfy.example.com/test/json?poll=1&since=all'
+curl -d 'must fail' https://ntfy.example.com/test # expect 404
+curl 'https://ntfy.example.com/test/publish?message=must-fail' # expect 404
+```
+
+`ntfy.env` supports scalar values and Kubernetes valueFrom references;
+`ntfy.envFrom` accepts Secret/ConfigMap references. Resource requests, images,
+pod security, annotations, and persistence are configurable. Forwarded client
+IP trust is intentionally not enabled by default because proxy CIDRs depend on
+the cluster; set `NTFY_BEHIND_PROXY` and `NTFY_PROXY_TRUSTED_HOSTS` explicitly if
+needed. iOS wake-up messages use `https://ntfy.sh`, matching upstream.
+
+Run `CAMPLY_TEST_NGINX=/path/to/nginx task helm:test` to include live public
+boundary checks against a local fake ntfy. Without a local Nginx binary these
+checks skip; the endpoint allowlist regressions still run.

@@ -36,3 +36,6 @@ route:
     - name: envoy-external
       namespace: network
       sectionName: https
+ntfy:
+  persistence:
+    storageClass: node-local

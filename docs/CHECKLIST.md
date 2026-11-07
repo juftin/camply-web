@@ -244,3 +244,9 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Re-organize documentation site directly under `docs/`, natively representing all operations, architecture, development, roadmap, checklist, and feature specification documents without duplicate files or copy scripts.
 
 - [x] GoingToCamp review follow-up: decode scalar enum attributes, verify PostgreSQL provider seed upgrade expectations, and disclose provider booking restrictions in results.
+
+### Bundled ntfy and semantic Helm releases
+
+- [x] Deploy optional persistent ntfy with public subscription routes derived from Camply hostnames, private publishing, and Ingress/Gateway support. See [plan](specs/024-bundled-ntfy/plan.md).
+- [x] Publish only standard semantic chart versions, selecting matching release images; skip chart publishing on main builds.
+- [x] Add Helm render, public route boundary, and release packaging regressions; document DNS/TLS, persistence, and migration behavior.

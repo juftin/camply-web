@@ -582,6 +582,96 @@
     },
     "global": {
       "type": "object"
+    },
+    "ntfy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "image": {
+          "$ref": "#/definitions/image"
+        },
+        "annotations": {
+          "$ref": "#/definitions/annotations"
+        },
+        "podAnnotations": {
+          "$ref": "#/definitions/annotations"
+        },
+        "podSecurityContext": {
+          "type": "object"
+        },
+        "resources": {
+          "type": "object"
+        },
+        "persistence": {
+          "$ref": "#/definitions/persistence"
+        },
+        "hostnames": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "baseUrl": {
+          "type": "string"
+        },
+        "proxyImage": {
+          "$ref": "#/definitions/image"
+        },
+        "env": {
+          "$ref": "#/definitions/env"
+        },
+        "envFrom": {
+          "$ref": "#/definitions/envFrom"
+        },
+        "proxyResources": {
+          "type": "object"
+        },
+        "ingress": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "annotations": {
+              "$ref": "#/definitions/annotations"
+            },
+            "tls": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "route": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "annotations": {
+              "$ref": "#/definitions/annotations"
+            }
+          }
+        }
+      },
+      "required": [
+        "enabled",
+        "image",
+        "annotations",
+        "podAnnotations",
+        "podSecurityContext",
+        "resources",
+        "persistence",
+        "hostnames",
+        "baseUrl",
+        "proxyImage",
+        "env",
+        "envFrom",
+        "proxyResources",
+        "ingress",
+        "route"
+      ]
     }
   },
   "definitions": {
@@ -1010,6 +1100,7 @@
     "gateway",
     "extraObjects",
     "serviceMonitor",
-    "tests"
+    "tests",
+    "ntfy"
   ]
 }

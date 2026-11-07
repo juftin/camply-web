@@ -216,6 +216,52 @@ prometheus:
     retain: true
     annotations: {}
 
+# Public subscriptions go through a read-only proxy; publishing is cluster-only.
+ntfy:
+  enabled: true
+  # Empty derives ntfy.<Camply hostname>; baseUrl defaults to https://<first hostname>.
+  hostnames: []
+  baseUrl: ""
+  image:
+    repository: docker.io/binwiederhier/ntfy
+    tag: v2.37.1
+    pullPolicy: IfNotPresent
+  proxyImage:
+    repository: docker.io/nginxinc/nginx-unprivileged
+    tag: 1.29.4-alpine
+    pullPolicy: IfNotPresent
+  env: {}
+  envFrom: []
+  annotations: {}
+  podAnnotations: {}
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+    seccompProfile: { type: RuntimeDefault }
+  resources:
+    requests: { cpu: 10m, memory: 64Mi }
+    limits: { memory: 256Mi }
+  proxyResources:
+    requests: { cpu: 5m, memory: 16Mi }
+    limits: { memory: 64Mi }
+  persistence:
+    enabled: true
+    existingClaim: ""
+    storageClass: null
+    accessModes: [ReadWriteOnce]
+    size: 5Gi
+    retain: true
+    annotations: {}
+  ingress:
+    # Separate annotations/TLS: Camply authentication must not gate mobile subscriptions.
+    annotations: {}
+    tls: []
+  route:
+    annotations: {}
+
 # Any networking.k8s.io/v1 controller: nginx, Traefik, HAProxy, Tailscale, etc.
 # API traffic is proxied by the frontend, including when only / is supported.
 ingress:
