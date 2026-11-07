@@ -8,3 +8,6 @@
 - [x] Update provider architecture and global checklist.
 
 - [x] Rebuild auth headers from current request-scoped cookies; cover rotation, deletion, expiry, failed refresh recovery, and concurrent callers.
+
+- [x] Replace the Yellowstone provider-page card with ReserveAmerica; pass frontend types, lint and all 340 tests.
+- [ ] Inspect and accept updated desktop light/dark snapshots from macOS CI.

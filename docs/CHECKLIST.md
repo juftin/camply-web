@@ -252,3 +252,6 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Scan paginated site grids in 14-night windows, map explicit campsite attributes, and preserve failures for worker retry.
 - [x] Keep auth headers aligned with rotated, deleted and expired cookies; recover after unsuccessful refreshes and serialize concurrent callers.
 - [x] Cover synthetic HTTP, persistence, migration and registry regressions; verify live CO metadata and site scanning. See [endpoint research](specs/024-reserve-america/validation.md).
+
+- [x] Replace Yellowstone Lodges with ReserveAmerica in popular/all provider cards.
+- [ ] Update provider-page visual baselines from macOS CI captures.

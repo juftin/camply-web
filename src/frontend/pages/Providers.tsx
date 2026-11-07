@@ -62,18 +62,13 @@ const providers: Provider[] = [
     popular: true,
   },
   {
-    name: "Yellowstone Lodges",
+    name: "ReserveAmerica",
     description:
-      "Official booking system for Yellowstone National Park's campgrounds and lodging facilities.",
-    website: "https://yellowstonenationalparklodges.com",
-    features: [
-      "Yellowstone Campsites",
-      "Lodge Reservations",
-      "RV Sites",
-      "Backcountry Permits",
-    ],
-    campgroundCount: 12,
-    coverage: ["Yellowstone National Park"],
+      "Campsite reservations at state parks and other campgrounds across the United States.",
+    website: "https://a1.reserveamerica.com",
+    features: ["Tent Camping", "RV Sites", "Cabins & Lodging", "Group Camping"],
+    campgroundCount: 1000,
+    coverage: ["State Parks", "United States"],
     popular: true,
   },
   {
