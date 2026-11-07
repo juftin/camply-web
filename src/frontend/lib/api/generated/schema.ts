@@ -448,6 +448,26 @@ export interface paths {
         patch: operations["update_me_api_me_patch"];
         trace?: never;
     };
+    "/api/me/notifications/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Notification
+         * @description Send one test using current form values without persisting preferences.
+         */
+        post: operations["test_notification_api_me_notifications_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/overview": {
         parameters: {
             query?: never;
@@ -1586,6 +1606,23 @@ export interface components {
             ntfy_server_url?: string | null;
             /** Ntfy Access Token */
             ntfy_access_token?: string | null;
+        };
+        /**
+         * NotificationTestResponse
+         * @description Explicit upstream acceptance of a test message, without saving preferences.
+         */
+        NotificationTestResponse: {
+            /**
+             * Status
+             * @default sent
+             * @constant
+             */
+            status: "sent";
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "pushover" | "ntfy";
         };
         /**
          * Provider
@@ -2913,6 +2950,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_notification_api_me_notifications_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationTestResponse"];
                 };
             };
             /** @description Validation Error */

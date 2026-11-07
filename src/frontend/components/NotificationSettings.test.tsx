@@ -1,11 +1,22 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { NotificationSettings } from "./NotificationSettings";
-import { updateMe } from "@/lib/api";
+import { sendTestNotification, updateMe } from "@/lib/api";
 
-vi.mock("@/lib/api", () => ({ updateMe: vi.fn().mockResolvedValue({}) }));
+vi.mock("@/lib/api", () => ({
+  updateMe: vi.fn().mockResolvedValue({}),
+  sendTestNotification: vi
+    .fn()
+    .mockResolvedValue({ status: "sent", provider: "ntfy" }),
+}));
 
 describe("NotificationSettings", () => {
   it("shows the assigned topic and saves custom server settings", async () => {
@@ -291,4 +302,119 @@ describe("notification field copying", () => {
       screen.getByRole("button", { name: "Copy ntfy topic" }),
     ).toHaveTextContent("Copied");
   });
+});
+
+it("tests unsaved ntfy settings once, shows pending/success feedback and does not save", async () => {
+  const user = userEvent.setup();
+  let finish!: (value: { status: "sent"; provider: "ntfy" }) => void;
+  vi.mocked(sendTestNotification)
+    .mockClear()
+    .mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+  vi.mocked(updateMe).mockClear();
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <NotificationSettings
+        refresh={vi.fn()}
+        user={{
+          id: "1234567a-abcd-1234-1234-123456789abc",
+          email: "test@example.test",
+          is_invited: true,
+          is_admin: false,
+          scanning_enabled: true,
+          pushover_token: null,
+          notification_provider: "ntfy",
+          ntfy_topic: "saved-topic",
+        }}
+      />
+    </QueryClientProvider>,
+  );
+  fireEvent.change(screen.getByLabelText("Your ntfy topic"), {
+    target: { value: "draft-topic" },
+  });
+  fireEvent.change(screen.getByLabelText("ntfy server"), {
+    target: { value: "custom" },
+  });
+  expect(
+    screen.getByRole("button", { name: "Send test notification" }),
+  ).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Your ntfy server URL"), {
+    target: { value: "https://custom.example.test/push" },
+  });
+  fireEvent.change(screen.getByLabelText("Access token (optional)"), {
+    target: { value: "draft-token" },
+  });
+  await user.click(
+    screen.getByRole("button", { name: "Send test notification" }),
+  );
+  expect(sendTestNotification).toHaveBeenCalledExactlyOnceWith({
+    notification_provider: "ntfy",
+    ntfy_topic: "draft-topic",
+    ntfy_server_url: "https://custom.example.test/push",
+    ntfy_access_token: "draft-token",
+  });
+  expect(screen.getByRole("button", { name: "Sending test…" })).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Save notification settings" }),
+  ).toBeDisabled();
+  await act(async () => finish({ status: "sent", provider: "ntfy" }));
+  expect(await screen.findByRole("status")).toHaveTextContent(
+    "Test notification sent",
+  );
+  expect(updateMe).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText("Your ntfy topic"), {
+    target: { value: "another-topic" },
+  });
+  expect(
+    screen.queryByText("Test notification sent. Check your device."),
+  ).not.toBeInTheDocument();
+});
+
+it("requires a Pushover key for testing and shows a failed test without saving", async () => {
+  const user = userEvent.setup();
+  vi.mocked(sendTestNotification)
+    .mockClear()
+    .mockRejectedValueOnce(
+      new Error("Pushover is not configured on this server."),
+    );
+  vi.mocked(updateMe).mockClear();
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <NotificationSettings
+        refresh={vi.fn()}
+        user={{
+          id: "user",
+          email: "test@example.test",
+          is_invited: true,
+          is_admin: false,
+          scanning_enabled: true,
+          pushover_token: null,
+          notification_provider: "pushover",
+        }}
+      />
+    </QueryClientProvider>,
+  );
+  expect(
+    screen.getByRole("button", { name: "Send test notification" }),
+  ).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Pushover User Key"), {
+    target: { value: "draft-key" },
+  });
+  await user.click(
+    screen.getByRole("button", { name: "Send test notification" }),
+  );
+  expect(sendTestNotification).toHaveBeenCalledExactlyOnceWith({
+    notification_provider: "pushover",
+    pushover_token: "draft-key",
+  });
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Pushover is not configured",
+  );
+  expect(updateMe).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("button", { name: "Send test notification" }),
+  ).toBeEnabled();
 });

@@ -7,6 +7,7 @@ import type {
   Campground,
   MeResponse,
   MeUpdateRequest,
+  NotificationTestResponse,
   ScanCreateRequest,
   ScanListResponse,
   ScanDetailResponse,
@@ -311,6 +312,29 @@ export async function getMe(): Promise<MeResponse> {
 export async function updateMe(payload: MeUpdateRequest): Promise<MeResponse> {
   const response = await api.patch<MeResponse>("/me", payload);
   return response.data;
+}
+
+export async function sendTestNotification(
+  payload: MeUpdateRequest,
+): Promise<NotificationTestResponse> {
+  try {
+    const response = await api.post<NotificationTestResponse>(
+      "/me/notifications/test",
+      payload,
+      { timeout: 30000 },
+    );
+    return response.data;
+  } catch (error) {
+    if (
+      axios.isAxiosError<{ detail?: unknown }>(error) &&
+      typeof error.response?.data.detail === "string"
+    ) {
+      throw new Error(error.response.data.detail);
+    }
+    throw new Error(
+      "Could not send the test notification. Check your settings and try again.",
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------

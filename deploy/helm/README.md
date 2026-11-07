@@ -207,7 +207,7 @@ variables for database/broker connections, metrics paths/ports, runtime mode,
 backend proxy target, and `SKIP_MIGRATIONS` take precedence over `env`/`envFrom`.
 Configure these through the corresponding chart settings.
 
-Set worker notification credentials (`PUSHOVER_APP_TOKEN`), provider credentials,
+Set notification credentials (`PUSHOVER_APP_TOKEN`) on both the backend (for Profile test sends) and workers, provider credentials,
 Sentry configuration, or polling intervals using these environment settings.
 Use `annotations` (global or per component) for optional reloader integration,
 and `podAnnotations` for pod metadata. `extraObjects` accepts native Kubernetes

@@ -263,3 +263,5 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Show a live ntfy subscription URL containing the current server and topic, including generated defaults before the first save.
 
 - [x] Copy current ntfy server, topic and subscription URL from Profile, with accessible clipboard feedback and disabled empty-value copying.
+
+- [x] Send a test notification from Profile using unsaved provider settings, with explicit acceptance, API-only delivery, eligibility/CSRF checks and safe failure feedback.

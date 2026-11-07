@@ -288,3 +288,9 @@ In **Profile**, users select **Pushover** or **ntfy**. Each user gets an editabl
 An optional per-user ntfy access token supplies publish permission for protected servers. Topics are not automatically reserved or provisioned with access controls. Keep public topics private; anyone who knows a public topic can subscribe or publish. Prefer HTTPS when sending access tokens.
 
 ntfy requires no Pushover application token. Summary/direct mode applies to either selected provider. Standalone persists a delivery intent for the selected channel; distributed mode dispatches its corresponding Celery task. Switching providers skips pending deliveries for the previous channel. Settings and credentials are fetched again at delivery time and never embedded in queued payloads. Publishing follows the [ntfy JSON API](https://docs.ntfy.sh/publish/#publish-as-json).
+
+### Test notification settings
+
+Use **Send test notification** in Profile to send one message through the selected provider using the current form values, including unsaved edits. This does not save your preferences or require an active scan or worker. Subscribe to the displayed ntfy topic first to see its test message. The button shows sending, success or failure feedback and prevents repeated sends while a request is pending.
+
+Tests use the same private default publish URL/custom-server resolution as normal delivery. Pushover tests require `PUSHOVER_APP_TOKEN` on the API process as well as the worker (Compose forwards it to both). Server-only installations can send tests without Celery. Password-change requirements, account suspension, invitation restrictions and session CSRF protection still apply. A success means the provider accepted the message; upstream failures return a safe error without private endpoints or credentials. No automatic retries are made for test sends.

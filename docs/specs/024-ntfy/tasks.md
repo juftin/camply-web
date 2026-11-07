@@ -16,3 +16,5 @@
 - [x] Preview the complete subscription URL live from current fields, including generated topics and unsaved server/topic edits.
 
 - [x] Add clipboard buttons for the selected public server URL, editable topic and live subscription URL, with success/error feedback and empty-value handling.
+
+- [x] Add an authenticated draft-settings test send for Pushover/ntfy using shared providers, preserving API-only operation, eligibility, CSRF, safe errors and UI pending/result feedback.

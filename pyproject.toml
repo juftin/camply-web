@@ -227,7 +227,7 @@ include_external_packages = true
 name = "Component dependency layers"
 type = "layers"
 containers = ["camply"]
-layers = ["cli | server | worker", "providers", "db", "__about__"]
+layers = ["cli | server | worker", "notifications | providers", "db", "__about__"]
 exhaustive = true
 ignore_imports = [
   "camply.server.app -> camply.worker.runtime",
@@ -245,6 +245,8 @@ source_modules = [
   "camply.cli.**",
   "camply.db",
   "camply.db.**",
+  "camply.notifications",
+  "camply.notifications.**",
   "camply.providers",
   "camply.providers.**"
 ]
@@ -310,6 +312,8 @@ forbidden_modules = [
   "camply.cli.**",
   "camply.db",
   "camply.db.**",
+  "camply.notifications",
+  "camply.notifications.**",
   "camply.providers",
   "camply.providers.**",
   "camply.server",

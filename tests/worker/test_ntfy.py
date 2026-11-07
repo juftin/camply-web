@@ -185,3 +185,27 @@ async def test_distributed_ntfy_without_pushover(
         )
         assert result["reason"] == "user_suspended"
         send.assert_awaited_once()
+
+
+@pytest.mark.anyio
+async def test_test_message_has_no_booking_link() -> None:
+    """A settings test must not create a broken booking link on an API-only server."""
+    client = AsyncMock()
+    client.post.return_value = httpx2.Response(
+        200,
+        json={"id": "synthetic", "topic": "test", "event": "message"},
+        request=httpx2.Request("POST", "https://example.test/"),
+    )
+    payload = NotificationDTO(
+        title="Test",
+        message="Test",
+        booking_url="",
+        park_name="Test",
+        campsite_name="Test",
+        start_date=dt.date(2026, 1, 1),
+        end_date=dt.date(2026, 1, 2),
+    )
+    assert await NtfyProvider(client).send_accepted(
+        {"topic": "test", "server_url": "https://example.test"}, payload
+    )
+    assert "click" not in client.post.call_args.kwargs["json"]

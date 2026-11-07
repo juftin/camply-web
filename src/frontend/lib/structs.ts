@@ -103,6 +103,9 @@ export interface MeResponse {
 export type ChangePasswordRequest =
   components["schemas"]["ChangePasswordRequest"];
 
+export type NotificationTestResponse =
+  components["schemas"]["NotificationTestResponse"];
+
 export interface MeUpdateRequest {
   ntfy_topic?: string;
   pushover_token?: string | null;

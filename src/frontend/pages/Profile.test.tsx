@@ -7,7 +7,12 @@ import type { AuthState } from "@/hooks/useAuth";
 import { Profile } from "./Profile";
 import { updateMe } from "@/lib/api";
 
-vi.mock("@/lib/api", () => ({ updateMe: vi.fn().mockResolvedValue({}) }));
+vi.mock("@/lib/api", () => ({
+  updateMe: vi.fn().mockResolvedValue({}),
+  sendTestNotification: vi
+    .fn()
+    .mockResolvedValue({ status: "sent", provider: "ntfy" }),
+}));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },

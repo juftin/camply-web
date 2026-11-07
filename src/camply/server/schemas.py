@@ -115,6 +115,13 @@ class MeUpdateRequest(BaseModel):
         return value or None
 
 
+class NotificationTestResponse(BaseModel):
+    """Explicit upstream acceptance of a test message, without saving preferences."""
+
+    status: Literal["sent"] = "sent"
+    provider: Literal["pushover", "ntfy"]
+
+
 class ChangePasswordRequest(BaseModel):
     """Payload for changing the authenticated user's password."""
 

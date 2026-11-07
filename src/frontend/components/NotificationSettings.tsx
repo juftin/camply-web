@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { updateMe } from "@/lib/api";
-import type { MeResponse } from "@/lib/structs";
+import { sendTestNotification, updateMe } from "@/lib/api";
+import type { MeResponse, MeUpdateRequest } from "@/lib/structs";
 
 export const NotificationSettings = ({
   user,
@@ -49,25 +49,33 @@ export const NotificationSettings = ({
       ? `${subscriptionServer.replace(/\/+$/, "")}/${topic.trim()}`
       : "";
   const [token, setToken] = useState(user.ntfy_access_token ?? "");
+  const settings: MeUpdateRequest = {
+    notification_provider: provider,
+    ...(provider === "ntfy"
+      ? {
+          ntfy_topic: topic.trim(),
+          ntfy_server_url:
+            serverChoice === "default"
+              ? null
+              : serverChoice === "ntfy.sh"
+                ? publicServer
+                : server.trim(),
+          ntfy_access_token: token.trim() || null,
+        }
+      : { pushover_token: pushoverKey.trim() || null }),
+  };
   const mutation = useMutation({
-    mutationFn: () =>
-      updateMe({
-        notification_provider: provider,
-        ...(provider === "ntfy"
-          ? {
-              ntfy_topic: topic.trim(),
-              ntfy_server_url:
-                serverChoice === "default"
-                  ? null
-                  : serverChoice === "ntfy.sh"
-                    ? publicServer
-                    : server.trim(),
-              ntfy_access_token: token.trim() || null,
-            }
-          : { pushover_token: pushoverKey.trim() || null }),
-      }),
+    mutationFn: (payload: MeUpdateRequest) => updateMe(payload),
     onSuccess: refresh,
   });
+  const testMutation = useMutation({
+    mutationFn: (payload: MeUpdateRequest) => sendTestNotification(payload),
+  });
+  const currentTest =
+    JSON.stringify(testMutation.variables) === JSON.stringify(settings);
+  const invalidNtfy =
+    provider === "ntfy" &&
+    (!topic.trim() || (serverChoice === "custom" && !server.trim()));
   return (
     <div className="space-y-2">
       <Label htmlFor="notification-provider">Notification provider</Label>
@@ -203,15 +211,34 @@ export const NotificationSettings = ({
       )}
       <Button
         size="sm"
-        disabled={
-          mutation.isPending ||
-          (provider === "ntfy" &&
-            (!topic.trim() || (serverChoice === "custom" && !server.trim())))
-        }
-        onClick={() => mutation.mutate()}
+        disabled={mutation.isPending || testMutation.isPending || invalidNtfy}
+        onClick={() => mutation.mutate(settings)}
       >
         Save notification settings
       </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={
+          mutation.isPending ||
+          testMutation.isPending ||
+          invalidNtfy ||
+          (provider === "pushover" && !pushoverKey.trim())
+        }
+        onClick={() => testMutation.mutate(settings)}
+      >
+        {testMutation.isPending ? "Sending test…" : "Send test notification"}
+      </Button>
+      <p className="text-xs text-muted-foreground">
+        Send a test using the settings above without saving them.
+      </p>
+      {currentTest && testMutation.isSuccess && (
+        <p role="status">Test notification sent. Check your device.</p>
+      )}
+      {currentTest && testMutation.isError && (
+        <p role="alert">{testMutation.error.message}</p>
+      )}
       {mutation.isSuccess && (
         <p role="status">Notification settings updated.</p>
       )}

@@ -140,7 +140,7 @@ def test_server_only_routes_and_operations(
         import importlib.util
         import socket
         import sys
-        from unittest.mock import patch
+        from unittest.mock import AsyncMock, patch
         import httpx2
         from camply.db.config import db
         from camply.db.models import Base
@@ -168,6 +168,14 @@ def test_server_only_routes_and_operations(
                     response = await client.request(method, path)
                     assert response.status_code == 503, response.text
                     assert 'camply-web[distributed]' in response.text
+
+                from camply.notifications.ntfy import NtfyProvider
+                with patch.object(NtfyProvider, 'send_accepted', new_callable=AsyncMock, return_value=True) as send:
+                    response = await client.post('/api/me/notifications/test', json={
+                        'notification_provider': 'ntfy', 'ntfy_topic': 'synthetic-test-topic',
+                    })
+                    assert response.status_code == 200, response.text
+                    send.assert_awaited_once()
 
                 def unauthorized():
                     """Reject authentication before optional operations are inspected."""
