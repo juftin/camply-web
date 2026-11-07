@@ -254,4 +254,4 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Cover synthetic HTTP, persistence, migration and registry regressions; verify live CO metadata and site scanning. See [endpoint research](specs/024-reserve-america/validation.md).
 
 - [x] Replace Yellowstone Lodges with ReserveAmerica in popular/all provider cards.
-- [ ] Update provider-page visual baselines from macOS CI captures.
+- [x] Update provider-page visual baselines from inspected macOS CI captures.
