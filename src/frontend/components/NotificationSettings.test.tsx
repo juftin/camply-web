@@ -36,12 +36,39 @@ describe("NotificationSettings", () => {
     expect(screen.getByLabelText("Your ntfy topic")).toHaveValue(
       "camply-random",
     );
-    expect(screen.getByLabelText("Your saved subscription URL")).toHaveValue(
+    expect(screen.getByLabelText("Subscription URL")).toHaveValue(
       "https://public.example.test/push/camply-random",
     );
     fireEvent.change(screen.getByLabelText("ntfy server"), {
       target: { value: "custom" },
     });
+    fireEvent.change(screen.getByLabelText("Your ntfy server URL"), {
+      target: { value: "https://custom.example.test/push" },
+    });
+    expect(screen.getByLabelText("Subscription URL")).toHaveValue(
+      "https://custom.example.test/push/camply-random",
+    );
+    fireEvent.change(screen.getByLabelText("ntfy server"), {
+      target: { value: "ntfy.sh" },
+    });
+    expect(screen.getByLabelText("Subscription URL")).toHaveValue(
+      "https://ntfy.sh/camply-random",
+    );
+    fireEvent.change(screen.getByLabelText("ntfy server"), {
+      target: { value: "default" },
+    });
+    expect(screen.getByLabelText("Subscription URL")).toHaveValue(
+      "https://public.example.test/push/camply-random",
+    );
+    fireEvent.change(screen.getByLabelText("ntfy server"), {
+      target: { value: "custom" },
+    });
+    fireEvent.change(screen.getByLabelText("Your ntfy server URL"), {
+      target: { value: " https://custom.example.test/push/// " },
+    });
+    expect(screen.getByLabelText("Subscription URL")).toHaveValue(
+      "https://custom.example.test/push/camply-random",
+    );
     fireEvent.change(screen.getByLabelText("Your ntfy server URL"), {
       target: { value: "https://custom.example.test/push" },
     });
@@ -64,7 +91,7 @@ describe("NotificationSettings", () => {
   });
 });
 
-it("shows only the application subscription server and retains defaults when saving", async () => {
+it("previews the public application server and retains defaults when saving", async () => {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <NotificationSettings
@@ -85,7 +112,7 @@ it("shows only the application subscription server and retains defaults when sav
       />
     </QueryClientProvider>,
   );
-  expect(screen.getByLabelText("Your saved subscription URL")).toHaveValue(
+  expect(screen.getByLabelText("Subscription URL")).toHaveValue(
     "https://push.example.test/prefix/camply-fallback",
   );
   expect(
@@ -145,5 +172,6 @@ it.each([null, "https://application.example.test"])(
     fireEvent.change(select, { target: { value: "custom" } });
     expect(screen.getByLabelText("Your ntfy server URL")).toBeInTheDocument();
     expect(screen.getByText("Save notification settings")).toBeDisabled();
+    expect(screen.getByLabelText("Subscription URL")).toHaveValue("");
   },
 );

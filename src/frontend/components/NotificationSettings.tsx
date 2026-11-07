@@ -37,7 +37,16 @@ export const NotificationSettings = ({
   const [server, setServer] = useState(
     savedServer && savedServer !== publicServer ? savedServer : "",
   );
-  const subscriptionUrl = `${(user.ntfy_subscription_url || "https://ntfy.sh").replace(/\/+$/, "")}/${user.ntfy_topic ?? ""}`;
+  const subscriptionServer =
+    serverChoice === "default"
+      ? user.ntfy_default_subscription_url || publicServer
+      : serverChoice === "ntfy.sh"
+        ? publicServer
+        : server.trim();
+  const subscriptionUrl =
+    subscriptionServer && topic.trim()
+      ? `${subscriptionServer.replace(/\/+$/, "")}/${topic.trim()}`
+      : "";
   const [token, setToken] = useState(user.ntfy_access_token ?? "");
   const mutation = useMutation({
     mutationFn: () =>
@@ -143,15 +152,17 @@ export const NotificationSettings = ({
             Defaults to camply- followed by the first seven characters of your
             user ID. You can change it; subscribe to the new topic after saving.
           </p>
-          <Label htmlFor="ntfy-subscription-url">
-            Your saved subscription URL
-          </Label>
-          <Input id="ntfy-subscription-url" value={subscriptionUrl} readOnly />
+          <Label htmlFor="ntfy-subscription-url">Subscription URL</Label>
+          <Input
+            id="ntfy-subscription-url"
+            value={subscriptionUrl}
+            placeholder="Enter a server and topic"
+            readOnly
+          />
           <p className="text-xs text-muted-foreground">
-            Subscribe using this URL, or use its server and topic in the ntfy
-            app. Save changes to update the URL shown here. Keep the topic
-            private: public servers allow anyone who knows it to read or publish
-            messages.
+            This URL follows your selected server and topic. Save your settings
+            before subscribing in the ntfy app. Keep the topic private: public
+            servers allow anyone who knows it to read or publish messages.
           </p>
           <Label htmlFor="ntfy-token">Access token (optional)</Label>
           <Input

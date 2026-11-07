@@ -12,3 +12,5 @@
 - [x] Show only the selected provider’s settings, save preferences together, and support editable user-ID-prefix topics with duplicate validation and a follow-up migration.
 
 - [x] Prefix generated seven-character user-ID topics with `camply-` and migrate prior generated defaults while preserving custom topics.
+
+- [x] Preview the complete subscription URL live from current fields, including generated topics and unsaved server/topic edits.

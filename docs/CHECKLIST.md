@@ -259,3 +259,5 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Switch provider settings immediately and generate editable ntfy topics using `camply-` plus the first seven user-ID characters, with topic validation and migration coverage.
 
 - [x] Default editable ntfy topics to `camply-<first seven user-ID characters>` and migrate earlier generated defaults.
+
+- [x] Show a live ntfy subscription URL containing the current server and topic, including generated defaults before the first save.

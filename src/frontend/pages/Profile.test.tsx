@@ -159,9 +159,20 @@ it("immediately switches provider fields and saves an editable user ID topic", a
   expect(screen.getByLabelText("Your ntfy topic")).toHaveValue(
     "camply-1234567",
   );
+  expect(screen.getByLabelText("Subscription URL")).toHaveValue(
+    "https://ntfy.sh/camply-1234567",
+  );
+  fireEvent.change(screen.getByLabelText("Your ntfy topic"), {
+    target: { value: "" },
+  });
+  expect(screen.getByLabelText("Subscription URL")).toHaveValue("");
+  expect(screen.getByText("Save notification settings")).toBeDisabled();
   fireEvent.change(screen.getByLabelText("Your ntfy topic"), {
     target: { value: "edited-topic" },
   });
+  expect(screen.getByLabelText("Subscription URL")).toHaveValue(
+    "https://ntfy.sh/edited-topic",
+  );
   fireEvent.click(screen.getByText("Save notification settings"));
   await waitFor(() =>
     expect(updateMe).toHaveBeenLastCalledWith({
