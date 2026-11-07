@@ -6,7 +6,7 @@ fullnameOverride: ""
 image:
   repository: ghcr.io/juftin/camply-web
   # Empty uses Chart.appVersion; each published chart tag selects its matching image tag.
-  tag: ""
+  tag: "@sha256:e942acc06d64dfaf17aeaac6e684b23ab0cb08bcc362a3cd1f637f1c57809073"
   digest: ""
   pullPolicy: Always
 imagePullSecrets: []
@@ -131,7 +131,7 @@ postgresql:
   image:
     {
       repository: docker.io/library/postgres,
-      tag: "17",
+      tag: "17@sha256:ff87138949ad9a46f32ff23bd6852b52ce024a13dffe9b4087be98292cdd3b4f",
       pullPolicy: IfNotPresent,
     }
   annotations: {}
@@ -164,7 +164,7 @@ valkey:
   image:
     {
       repository: docker.io/valkey/valkey,
-      tag: 9-alpine,
+      tag: 9-alpine@sha256:bf09d58e96d6b4524a15396b65b242bbe18beebbcc15a04d8ee75ddac62fae0b,
       pullPolicy: IfNotPresent,
     }
   args: [valkey-server, --save, "60", "1", --loglevel, warning]
@@ -190,7 +190,7 @@ prometheus:
   image:
     {
       repository: docker.io/prom/prometheus,
-      tag: v3.15.1,
+      tag: v3.15.1@sha256:fa3302279710be2f21a8301ec17a8b4f2301fd829bd113839b3b6b02b6f191a2,
       pullPolicy: IfNotPresent,
     }
   retention: 30d
