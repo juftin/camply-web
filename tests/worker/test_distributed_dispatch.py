@@ -8,7 +8,13 @@ from pydantic import HttpUrl
 from sqlalchemy import select
 
 from camply.db.config import DatabaseConfig
-from camply.db.models import NotificationOutbox, ScanResult, UniqueTarget, UserScan
+from camply.db.models import (
+    NotificationOutbox,
+    ScanResult,
+    UniqueTarget,
+    User,
+    UserScan,
+)
 from camply.worker.config import worker_config
 from camply.worker.notifications.base import NotificationDTO
 from camply.worker.tasks import heartbeat, scanner
@@ -18,13 +24,20 @@ from .test_outbox import fake_provider
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("notification_mode", ["summary", "direct"])
+@pytest.mark.parametrize("notification_provider", ["pushover", "ntfy"])
 async def test_discovery_and_alerts_use_celery(
     local_data: tuple[DatabaseConfig, UniqueTarget, UserScan],
     monkeypatch: pytest.MonkeyPatch,
     notification_mode: Literal["summary", "direct"],
+    notification_provider: str,
 ) -> None:
     """Persist results and publish existing scan/alert contracts without local intents."""
     database, target, scan = local_data
+    async with database.get_session() as session:
+        user = await session.get(User, scan.user_id)
+        assert user is not None
+        user.notification_provider = notification_provider
+        await session.commit()
     provider = fake_provider(target)
     monkeypatch.setattr(heartbeat, "db", database)
     monkeypatch.setattr(scanner, "db", database)
@@ -54,7 +67,10 @@ async def test_discovery_and_alerts_use_celery(
         assert result["notifications_sent"] == 1
         publish.assert_called_once()
         alert = publish.call_args.kwargs
-        assert alert["name"] == "camply.notifications.send_pushover_notification"
+        assert (
+            alert["name"]
+            == f"camply.notifications.send_{notification_provider}_notification"
+        )
         assert alert["queue"] == "celery"
         assert alert["kwargs"]["user_id"] == str(scan.user_id)
         assert alert["kwargs"]["scan_id"] == str(scan.id)

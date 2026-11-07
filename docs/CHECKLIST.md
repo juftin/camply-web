@@ -244,3 +244,24 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Re-organize documentation site directly under `docs/`, natively representing all operations, architecture, development, roadmap, checklist, and feature specification documents without duplicate files or copy scripts.
 
 - [x] GoingToCamp review follow-up: decode scalar enum attributes, verify PostgreSQL provider seed upgrade expectations, and disclose provider booking restrictions in results.
+
+### ntfy notifications
+
+- [x] Assign each account an editable ntfy topic defaulting to `camply-` plus the first seven user-ID characters, including migration of existing users.
+- [x] Add per-user provider selection and Profile settings for custom HTTP(S) servers and optional access tokens.
+- [x] Deliver through the selected Pushover or ntfy provider in standalone and distributed runtimes.
+- [x] Test publishing, settings validation, delivery eligibility, provider switching and retries. See [ntfy plan](specs/024-ntfy/plan.md).
+
+- [x] Configure default ntfy publish/subscription URLs server-side, expose only public subscriptions, and support per-user custom servers and publish URL fallback.
+
+- [x] Offer a Profile dropdown for the configured ntfy server (when set), ntfy.sh or a user-provided server URL.
+
+- [x] Switch provider settings immediately and generate editable ntfy topics using `camply-` plus the first seven user-ID characters, with topic validation and migration coverage.
+
+- [x] Default editable ntfy topics to `camply-<first seven user-ID characters>` and migrate earlier generated defaults.
+
+- [x] Copy current ntfy server and topic from Profile, with accessible clipboard feedback and disabled empty-value copying.
+
+- [x] Send a test notification from Profile using unsaved provider settings, with explicit acceptance, API-only delivery, eligibility/CSRF checks and safe failure feedback.
+
+- [x] Remove the redundant Subscription URL section from Profile while retaining server/topic controls and copying.

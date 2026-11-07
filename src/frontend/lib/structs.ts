@@ -91,14 +91,27 @@ export interface MeResponse {
   is_admin: boolean;
   scanning_enabled: boolean;
   pushover_token: string | null;
+  notification_provider?: "pushover" | "ntfy";
+  ntfy_topic?: string | null;
+  ntfy_server_url?: string | null;
+  ntfy_subscription_url?: string;
+  ntfy_default_subscription_url?: string | null;
+  ntfy_access_token?: string | null;
   must_change_password?: boolean;
 }
 
 export type ChangePasswordRequest =
   components["schemas"]["ChangePasswordRequest"];
 
+export type NotificationTestResponse =
+  components["schemas"]["NotificationTestResponse"];
+
 export interface MeUpdateRequest {
+  ntfy_topic?: string;
   pushover_token?: string | null;
+  notification_provider?: "pushover" | "ntfy";
+  ntfy_server_url?: string | null;
+  ntfy_access_token?: string | null;
 }
 
 // ---- Scans ----

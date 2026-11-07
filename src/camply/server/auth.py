@@ -11,7 +11,7 @@ import hashlib
 import hmac
 import secrets
 import uuid
-from typing import Annotated, Optional
+from typing import Annotated, Literal, Optional
 
 import jwt
 import structlog
@@ -21,7 +21,7 @@ from fastapi.security import (
     HTTPBearer,
 )
 from jwt import PyJWKClient
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -165,6 +165,10 @@ class CurrentUser(BaseModel):
     is_admin: bool = False
     scanning_enabled: bool = True
     pushover_token: Optional[str] = None
+    notification_provider: Literal["pushover", "ntfy"] = "pushover"
+    ntfy_topic: str | None = None
+    ntfy_server_url: str | None = None
+    ntfy_access_token: str | None = Field(default=None, repr=False)
     must_change_password: bool = False
 
 
@@ -292,6 +296,10 @@ async def resolve_current_user(
             is_admin=user.is_admin,
             scanning_enabled=user.scanning_enabled,
             pushover_token=user.pushover_token,
+            notification_provider=user.notification_provider,
+            ntfy_topic=user.ntfy_topic,
+            ntfy_server_url=user.ntfy_server_url,
+            ntfy_access_token=user.ntfy_access_token,
             must_change_password=(
                 backend_config.auth_mode == AuthMode.SESSION
                 and user.must_change_password
@@ -342,6 +350,10 @@ async def resolve_current_user(
         is_admin=auth0_user.is_admin,
         scanning_enabled=auth0_user.scanning_enabled,
         pushover_token=auth0_user.pushover_token,
+        notification_provider=auth0_user.notification_provider,
+        ntfy_topic=auth0_user.ntfy_topic,
+        ntfy_server_url=auth0_user.ntfy_server_url,
+        ntfy_access_token=auth0_user.ntfy_access_token,
         must_change_password=False,
     )
 

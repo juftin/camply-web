@@ -25,6 +25,9 @@ class WorkerConfig(BaseSettings):
     sentry_dsn: Optional[str] = None
     sentry_traces_sample_rate: float = 0.0
 
+    invite_only: bool = False
+    """Recheck invitation eligibility before notification delivery."""
+
     # Deployment
     environment: str = "local"
 

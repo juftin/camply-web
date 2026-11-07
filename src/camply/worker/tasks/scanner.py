@@ -52,6 +52,19 @@ def _dispatch_notification(scan: UserScan, opening: NotificationDTO) -> None:
     )
 
 
+def _dispatch_ntfy(scan: UserScan, opening: NotificationDTO) -> None:
+    """Enqueue ntfy with an independent retry budget."""
+    celery_app.send_task(
+        name="camply.notifications.send_ntfy_notification",
+        kwargs={
+            "user_id": str(scan.user_id),
+            "notification": opening.model_dump(mode="json"),
+            "scan_id": str(scan.id),
+        },
+        queue="celery",
+    )
+
+
 @celery_app.task(
     name="camply.search.check_campsite_availability",
     bind=True,
@@ -105,6 +118,7 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
             sessions=db.get_session,
             registry=PROVIDERS,
             dispatch=_dispatch_notification,
+            dispatch_ntfy=_dispatch_ntfy,
             notification_mode=worker_config.notification_mode,
             app_url=str(worker_config.app_url),
             on_provider_result=_record_provider_result,

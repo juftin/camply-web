@@ -9,18 +9,22 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from camply.db.models import User, UserScan
+from camply.db.notification_config import ntfy_config as ntfy_defaults
+from camply.worker.config import worker_config
 from camply.worker.notifications.base import NotificationDTO
+from camply.worker.notifications.ntfy import NtfyProvider
 from camply.worker.notifications.pushover import PushoverProvider
 
 logger = structlog.getLogger(__name__)
 
 
-async def send_notification(
+async def send_notification(  # noqa: C901
     user_id: str,
     notification: dict,
     scan_id: Optional[str] = None,
     *,
     sessions: Callable[[], AsyncSession],
+    channel: str = "pushover",
     provider_factory: Callable[[], PushoverProvider] = PushoverProvider,
 ) -> dict:
     """
@@ -36,6 +40,9 @@ async def send_notification(
         if user is None:
             logger.warning("User not found", user_id=user_id)
             return {"status": "error", "reason": "user_not_found"}
+
+        if worker_config.invite_only and not user.is_invited:
+            return {"status": "skipped", "reason": "invitation_required"}
 
         if not user.scanning_enabled:
             logger.info(
@@ -58,7 +65,14 @@ async def send_notification(
                 logger.info("Scan inactive, skipping notification", scan_id=scan_id)
                 return {"status": "skipped", "reason": "scan_inactive"}
 
-        if not user.pushover_token:
+        if channel != user.notification_provider:
+            return {"status": "skipped", "reason": "provider_changed"}
+        ntfy_config = {
+            "topic": user.ntfy_topic,
+            "server_url": ntfy_defaults.publish_server(user.ntfy_server_url),
+            "access_token": user.ntfy_access_token,
+        }
+        if channel == "pushover" and not user.pushover_token:
             logger.info(
                 "User has no pushover_token, skipping",
                 user_id=user_id,
@@ -78,10 +92,12 @@ async def send_notification(
         )
         return {"status": "error", "reason": str(exc)}
 
-    provider = provider_factory()
+    provider = NtfyProvider() if channel == "ntfy" else provider_factory()
     try:
         await provider.send_alert(
-            user_config={"user_key": pushover_token},
+            user_config=ntfy_config
+            if channel == "ntfy"
+            else {"user_key": pushover_token},
             payload=payload,
         )
         return {
@@ -96,8 +112,8 @@ async def send_notification(
         }
     except Exception as exc:
         logger.error(
-            "Pushover notification failed",
+            "Notification delivery failed",
             user_id=str(user_id),
-            error=str(exc),
+            error_type=type(exc).__name__,
         )
         raise

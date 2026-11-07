@@ -132,3 +132,28 @@ class TestPushoverProvider:
 
                 with pytest.raises(Exception, match="HTTP Error"):
                     await provider.send_alert(user_config, payload)
+
+
+@pytest.mark.anyio
+async def test_test_message_has_no_booking_link(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test messages can be sent without a campsite or application link."""
+    import httpx2
+
+    client = AsyncMock()
+    client.post.return_value = httpx2.Response(
+        200, json={"status": 1}, request=httpx2.Request("POST", "https://example.test/")
+    )
+    monkeypatch.setattr(PushoverProvider.config, "app_token", "synthetic")
+    payload = NotificationDTO(
+        title="Test",
+        message="Test",
+        booking_url="",
+        park_name="Test",
+        campsite_name="Test",
+        start_date=datetime.date(2026, 1, 1),
+        end_date=datetime.date(2026, 1, 2),
+    )
+    assert await PushoverProvider(client).send_accepted("synthetic-user", payload)
+    assert "url" not in client.post.call_args.kwargs["json"]

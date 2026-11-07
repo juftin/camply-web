@@ -40,6 +40,7 @@ vi.mock("@/lib/api", () => ({
   fetchAuthConfig: vi.fn(),
   getMe: vi.fn(),
   updateMe: vi.fn(),
+  sendTestNotification: vi.fn(),
   loginSession: vi.fn(),
   logoutSession: vi.fn(),
   listScans: vi.fn(),

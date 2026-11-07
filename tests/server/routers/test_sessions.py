@@ -119,8 +119,20 @@ def test_session_requires_csrf_for_mutations(
         ).status_code
         == 403
     )
+    assert (
+        test_client.post(
+            "/api/me/notifications/test", json={"notification_provider": "ntfy"}
+        ).status_code
+        == 403
+    )
     test_client.headers["X-CSRF-Token"] = "wrong-token"
     assert test_client.post("/api/logout").status_code == 403
+    assert (
+        test_client.post(
+            "/api/me/notifications/test", json={"notification_provider": "ntfy"}
+        ).status_code
+        == 403
+    )
     test_client.headers["X-CSRF-Token"] = test_client.cookies["camply_csrf"]
     assert (
         test_client.patch(
