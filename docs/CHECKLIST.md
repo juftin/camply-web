@@ -257,3 +257,14 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Update provider-page visual baselines from inspected macOS CI captures.
 
 - [x] Use `www.reserveamerica.com` for public links, retain the separate `a1` API/session URLs, and migrate existing seeded provider URLs with custom-URL preservation.
+
+### Direct provider search (025)
+
+- [x] Add validated database-independent upstream campground and recreation-area search with typed results.
+- [x] Implement Recreation.gov, shared UseDirect regional providers, GoingToCamp, and ReserveAmerica search.
+- [x] Cover all registered providers with synthetic HTTP eligibility, entity selection, filter, validation, and failure tests.
+- [x] Use `SearchEntityType` string enums or plain strings; default to `None` for all types and reject `"both"`.
+- [x] Preserve entities with coinciding park/campground IDs and avoid facility requests for area-only discovery.
+- [x] Resolve independent review findings for Recreation.gov parent-scoped requests and District of Columbia state normalization.
+- [x] Document future CLI consumption; keep web search and CLI commands unchanged.
+- [x] Pass full test and quality workflows, including a final backend rerun after independent-review fixes.

@@ -108,3 +108,35 @@ class RecDotGovAvailabilityParams(BaseModel):
     """
 
     start_date: str
+
+
+class RecDotGovSearchAddress(BaseModel):
+    """Discovery addresses use state codes while top-level states are full names."""
+
+    state_code: str | None = None
+    country_code: str | None = None
+
+
+class RecDotGovSearchResult(BaseModel):
+    """Campground record from the public discovery endpoint."""
+
+    addresses: list[RecDotGovSearchAddress] = Field(default_factory=list)
+    entity_id: str
+    entity_type: str
+    name: str
+    parent_id: str | None = None
+    parent_name: str | None = None
+    reservable: bool = False
+    city: str | None = None
+    state_code: str | None = None
+    country_code: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+
+
+class RecDotGovSearchResponse(BaseModel):
+    """Require explicit results and totals, rejecting upstream error envelopes."""
+
+    results: list[RecDotGovSearchResult]
+    total: int = Field(ge=0)
+    start: int = Field(ge=0)

@@ -10,23 +10,22 @@ _BOOKING_MOORAGE_KEYWORDS : tuple[str, ...]
     Keywords identifying harbor/moorage booking categories rather than camping.
 _RESOURCE_MOORAGE_KEYWORDS : tuple[str, ...]
     Keywords identifying harbor slips/buoys rather than camping or marine trails.
-_STATE_CODE_LENGTH : int
-    Length of a normalized state or province code.
-_COUNTRY_CODE_LENGTH : int
-    Length of a normalized ISO country code.
 _LATITUDE_LIMIT : float
     Maximum valid absolute latitude in decimal degrees.
 _LONGITUDE_LIMIT : float
     Maximum valid absolute longitude in decimal degrees.
 _COORDINATE_PARTS : int
     Expected comma-separated parts in a ``"lat, lng"`` GPS string.
-_REGION_MAP : dict[str, str]
-    Full US state and Canadian province names mapped to two-letter codes.
-_COUNTRY_MAP : dict[str, str]
-    Country aliases mapped to two-letter ISO codes.
 """
 
 from pydantic import BaseModel, Field
+
+from camply.providers.utils import (
+    normalize_country_code as normalize_country_code,
+)
+from camply.providers.utils import (
+    normalize_state_code as normalize_state_code,
+)
 
 _NIGHTLY_BOOKING_MODEL = 0
 _CAMPING_RESOURCE_TYPES = frozenset({0, 3})
@@ -39,87 +38,9 @@ _RESOURCE_MOORAGE_KEYWORDS = (
     "slip",
     "harbor",
 )
-_STATE_CODE_LENGTH = 2
-_COUNTRY_CODE_LENGTH = 2
 _LATITUDE_LIMIT = 90.0
 _LONGITUDE_LIMIT = 180.0
 _COORDINATE_PARTS = 2
-
-_REGION_MAP: dict[str, str] = {
-    "alabama": "AL",
-    "alaska": "AK",
-    "alberta": "AB",
-    "arizona": "AZ",
-    "arkansas": "AR",
-    "british columbia": "BC",
-    "california": "CA",
-    "colorado": "CO",
-    "connecticut": "CT",
-    "delaware": "DE",
-    "florida": "FL",
-    "georgia": "GA",
-    "hawaii": "HI",
-    "idaho": "ID",
-    "illinois": "IL",
-    "indiana": "IN",
-    "iowa": "IA",
-    "kansas": "KS",
-    "kentucky": "KY",
-    "louisiana": "LA",
-    "maine": "ME",
-    "manitoba": "MB",
-    "maryland": "MD",
-    "massachusetts": "MA",
-    "michigan": "MI",
-    "minnesota": "MN",
-    "mississippi": "MS",
-    "missouri": "MO",
-    "montana": "MT",
-    "nebraska": "NE",
-    "nevada": "NV",
-    "new brunswick": "NB",
-    "newfoundland and labrador": "NL",
-    "newfoundland & labrador": "NL",
-    "new hampshire": "NH",
-    "new jersey": "NJ",
-    "new mexico": "NM",
-    "new york": "NY",
-    "north carolina": "NC",
-    "north dakota": "ND",
-    "northwest territories": "NT",
-    "nova scotia": "NS",
-    "nunavut": "NU",
-    "ohio": "OH",
-    "oklahoma": "OK",
-    "ontario": "ON",
-    "oregon": "OR",
-    "pennsylvania": "PA",
-    "prince edward island": "PE",
-    "quebec": "QC",
-    "québec": "QC",
-    "rhode island": "RI",
-    "saskatchewan": "SK",
-    "south carolina": "SC",
-    "south dakota": "SD",
-    "tennessee": "TN",
-    "texas": "TX",
-    "utah": "UT",
-    "vermont": "VT",
-    "virginia": "VA",
-    "washington": "WA",
-    "west virginia": "WV",
-    "wisconsin": "WI",
-    "wyoming": "WY",
-    "yukon": "YT",
-}
-
-_COUNTRY_MAP: dict[str, str] = {
-    "usa": "US",
-    "united states": "US",
-    "united states of america": "US",
-    "can": "CA",
-    "canada": "CA",
-}
 
 
 class LocalizedText(BaseModel):
@@ -178,26 +99,6 @@ def parse_gps_coordinates(
     ):
         return (None, None)
     return (lat, lon)
-
-
-def normalize_state_code(raw: str | None, fallback: str) -> str:
-    """Normalize two-letter state/province codes or full names to uppercase."""
-    if not raw or not raw.strip():
-        return fallback
-    cleaned = raw.strip()
-    if len(cleaned) == _STATE_CODE_LENGTH and cleaned.isalpha():
-        return cleaned.upper()
-    return _REGION_MAP.get(cleaned.lower(), fallback)
-
-
-def normalize_country_code(raw: str | None, fallback: str) -> str:
-    """Normalize ISO country codes or common aliases to uppercase two-letter codes."""
-    if not raw or not raw.strip():
-        return fallback
-    cleaned = raw.strip()
-    if len(cleaned) == _COUNTRY_CODE_LENGTH and cleaned.isalpha():
-        return cleaned.upper()
-    return _COUNTRY_MAP.get(cleaned.lower(), fallback)
 
 
 class TransactionLocation(BaseModel):

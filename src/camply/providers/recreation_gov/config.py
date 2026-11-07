@@ -24,6 +24,7 @@ class RecreationGovConfig(BaseModel):
     referer_header: str = "https://www.recreation.gov/"
 
     # API and Web Endpoints/Prefixes
+    search_endpoint: str = "api/search"
     campsite_search_endpoint: str = "api/search/campsites"
     campsite_availability_endpoint: str = "api/camps/availability/campground"
     ridb_export_endpoint: str = "downloads/RIDBFullExport_V1_JSON.zip"

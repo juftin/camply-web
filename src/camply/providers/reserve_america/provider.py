@@ -23,7 +23,12 @@ from camply.db.config import db
 from camply.db.data.providers import ReserveAmerica
 from camply.db.models import Campground, Provider
 from camply.providers.base import BaseProvider
-from camply.providers.dto import CampsiteDTO
+from camply.providers.dto import (
+    CampgroundSearchResult,
+    CampsiteDTO,
+    ProviderSearchQuery,
+    ProviderSearchResult,
+)
 from camply.providers.reserve_america.models.api import (
     BrandCatalog,
     Facility,
@@ -170,6 +175,58 @@ class ReserveAmericaProvider(BaseProvider):
             )
             for key, site in sites.items()
         ]
+
+    async def _search(self, query: ProviderSearchQuery) -> list[ProviderSearchResult]:
+        """Search verified state endpoints; no synthetic parent park identities."""
+        if (
+            query.recreation_area_id is not None
+            or query.entity_type == "recreation_area"
+        ):
+            return []
+        if query.state is not None:
+            states = [query.state]
+        else:
+            catalog = BrandCatalog.model_validate(
+                await self._request("config/brand", {"brandName": "RA"})
+            )
+            states = sorted(
+                {s.stateCode for s in catalog.states if s.countryCode == "USA"}
+            )
+            if not states:
+                raise ValueError("ReserveAmerica returned no US catalog states")
+        results: dict[str, ProviderSearchResult] = {}
+        for state in states:
+            facilities = await self._pages(
+                "search",
+                {"stype": "state", "tstc": state, "interest": "camping"},
+                Facility,
+            )
+            for facility in facilities:
+                if not facility.eligible:
+                    continue
+                details = facility.details
+                result = CampgroundSearchResult(
+                    provider_id=self.provider.id,
+                    provider_name=self.provider.name,
+                    campground_id=facility.key,
+                    campground_name=normalize_name(facility.name) or facility.name,
+                    state=query.state
+                    if query.state in details.stateCodes
+                    else next(iter(details.stateCodes), None),
+                    country="US",
+                    latitude=details.coordinates.latitude
+                    if details.coordinates
+                    else None,
+                    longitude=details.coordinates.longitude
+                    if details.coordinates
+                    else None,
+                    booking_url=self.get_campground_url(facility.key),
+                )
+                if result.matches(query):
+                    results[facility.key] = result
+            if len(results) >= query.limit:
+                break
+        return list(results.values())
 
     async def sync_metadata(self) -> None:
         """Refresh the public catalog independently of scan selections."""
