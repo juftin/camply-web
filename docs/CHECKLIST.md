@@ -244,3 +244,10 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Re-organize documentation site directly under `docs/`, natively representing all operations, architecture, development, roadmap, checklist, and feature specification documents without duplicate files or copy scripts.
 
 - [x] GoingToCamp review follow-up: decode scalar enum attributes, verify PostgreSQL provider seed upgrade expectations, and disclose provider booking restrictions in results.
+
+### Tauri mobile client
+
+- [x] Add Android/iOS Tauri client for the hosted frontend, trusted-origin notification permissions, opt-in native opening alerts, safe areas, automated tests, and mobile task workflows. See [mobile plan](specs/024-tauri-mobile/plan.md) and [setup guide](development/MOBILE.md).
+- [ ] Verify native compilation/signing and notification delivery on Android/iOS devices with platform tooling.
+- [ ] Add APNs/FCM server push for delivery while the mobile app is suspended or terminated (local notifications currently require the app to be running).
+- [x] Keep native sources, icons, and mobile config tooling under `src/tauri/`, with explicit Tauri project paths in mobile tasks.

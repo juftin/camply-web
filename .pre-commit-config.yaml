@@ -26,8 +26,8 @@ repos:
     hooks:
       - id: pretty-format-toml
         args: [--autofix, --no-sort]
-        # uv owns its generated lockfile formatting.
-        exclude: (^|/)uv\.lock$
+        # uv and Cargo own their generated lockfile formatting.
+        exclude: (^|/)(uv|Cargo)\.lock$
 
   - repo: local
     hooks:

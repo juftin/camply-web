@@ -3,6 +3,9 @@
 version: "3"
 
 includes:
+  mobile:
+    taskfile: tasks/mobile.yaml
+    dir: .
   docs:
     taskfile: tasks/docs.yaml
     dir: .
@@ -44,6 +47,7 @@ tasks:
   test:
     desc: Run All Tests (Backend + Frontend)
     cmds:
+      - task: mobile:config:test
       - task: release:test
       - task: backend:test
       - task: backend:packaging:test

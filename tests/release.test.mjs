@@ -29,6 +29,7 @@ function fixture(t, { sources = false } = {}) {
     "tasks/helm.yaml",
     "tasks/release.yaml",
     "tasks/standalone.yaml",
+    "tasks/mobile.yaml",
     "pyproject.toml",
     "uv.lock",
     "package.json",

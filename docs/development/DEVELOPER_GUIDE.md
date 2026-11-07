@@ -207,3 +207,10 @@ Generated assets and their private integrity manifest live under ignored `build/
 Create and resume features under `docs/specs/NNN-feature-name`. `.specify/` remains at root; `SPECIFY_FEATURE_DIRECTORY` selects a complete feature directory, and ignored `.specify/feature.json` saves the current checkout's relative pointer. Old saved `specs/<feature>` pointers resolve to their relocated directory when it exists; read-only/no-persist operations do not rewrite state. Existing duplicate number prefixes retain distinct feature directories, and new numbering advances past the highest prefix.
 
 The local Gemini specify command and shared shell creator both default to `docs/specs`. These managed defaults differ from upstream scaffolding: after refreshing Spec-Kit, run the feature workflow regressions in `tests/test_specify_workflows.py` and confirm no root `specs` directory is recreated. `AGENTS.md` is canonical; Claude and Gemini instruction files point to it.
+
+## Android and iOS app
+
+The Tauri mobile client opens your hosted frontend and supports opt-in native
+opening notifications while running. Scanning stays on the remote server.
+See the [mobile guide](MOBILE.md) for SDK setup, `CAMPLY_MOBILE_URL`, Android/iOS
+tasks, signing, and background notification limitations.

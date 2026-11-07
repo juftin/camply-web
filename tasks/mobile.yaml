@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+env:
+  TAURI_APP_PATH: "{{.ROOT_DIR}}/src/tauri"
+  TAURI_FRONTEND_PATH: "{{.ROOT_DIR}}"
+
+tasks:
+  configure:
+    summary: Bind the mobile app and notification capability to CAMPLY_MOBILE_URL
+    cmd: node src/tauri/tooling/mobile-config.mjs
+
+  android:init:
+    desc: Generate the Android project (requires Android SDK and NDK)
+    cmds:
+      - task: configure
+      - pnpm exec tauri android init --config build/mobile/tauri.remote.json
+
+  ios:init:
+    desc: Generate the iOS project (requires macOS and Xcode)
+    cmds:
+      - task: configure
+      - pnpm exec tauri ios init --config build/mobile/tauri.remote.json
+
+  android:dev:
+    desc: Run Camply on an Android device or emulator
+    cmds:
+      - task: configure
+      - pnpm exec tauri android dev --config build/mobile/tauri.remote.json {{.CLI_ARGS}}
+
+  ios:dev:
+    desc: Run Camply on an iOS device or simulator
+    cmds:
+      - task: configure
+      - pnpm exec tauri ios dev --config build/mobile/tauri.remote.json {{.CLI_ARGS}}
+
+  android:build:
+    desc: Build the Android Camply app
+    cmds:
+      - task: configure
+      - pnpm exec tauri android build --config build/mobile/tauri.remote.json {{.CLI_ARGS}}
+
+  ios:build:
+    desc: Build the iOS Camply app
+    cmds:
+      - task: configure
+      - pnpm exec tauri ios build --config build/mobile/tauri.remote.json {{.CLI_ARGS}}
+
+  test:
+    desc: Test mobile config and notification behavior
+    cmds:
+      - node --test src/tauri/tooling/mobile-config.node-test.mjs
+      - pnpm run test:run src/frontend/lib/mobile-notifications.test.ts src/frontend/components/MobileNotifications.test.tsx
+
+  check:
+    summary: Check the native application (requires platform development libraries)
+    cmd: cargo check --manifest-path src/tauri/Cargo.toml
+
+  config:test:
+    summary: Verify the trusted mobile deployment configuration
+    cmd: node --test src/tauri/tooling/mobile-config.node-test.mjs

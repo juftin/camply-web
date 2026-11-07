@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { CamplyLogo } from "@/components/CamplyLogo";
 
+import { MobileNotifications } from "@/components/MobileNotifications";
+
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -12,6 +14,7 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      <MobileNotifications />
 
       {/* Main Content */}
       <main>{children}</main>

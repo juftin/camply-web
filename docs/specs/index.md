@@ -56,3 +56,5 @@ This catalog indexes all feature specifications, technical implementation plans,
   - [Plan](022-documentation-site/plan.md) | [Tasks](022-documentation-site/tasks.md)
 - **[023: GoingToCamp Provider](023-going-to-camp/spec.md)**
   - [Plan](023-going-to-camp/plan.md) | [Tasks](023-going-to-camp/tasks.md) | [TODOs](023-going-to-camp/TODO.md) | [Validation](023-going-to-camp/validation.md)
+- **[024: Tauri Mobile Client](024-tauri-mobile/spec.md)**
+  - [Plan](024-tauri-mobile/plan.md) | [Tasks](024-tauri-mobile/tasks.md) | [Setup](../development/MOBILE.md)
