@@ -87,3 +87,7 @@ temp/
 
 # Bundled assets exist only inside release archives.
 src/camply/server/static/
+
+# Tauri native build output and machine-specific mobile projects
+src-tauri/target/
+src-tauri/gen/
