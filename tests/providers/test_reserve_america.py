@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
+from urllib.parse import urlsplit
 
 import httpx2
 import pytest
@@ -139,6 +140,8 @@ async def test_windows_pagination_and_exact_status(
     assert dto.capacity == 6 and dto.is_electric and dto.is_accessible
     assert dto.campsite_type == CampsiteType.RV
     assert "contractCode=CO" in dto.metadata["booking_url"]
+    assert urlsplit(dto.metadata["booking_url"]).hostname == "www.reserveamerica.com"
+    assert all(req.url.host == "a1.reserveamerica.com" for req in requests)
     assert len(requests) == 5
 
 
@@ -577,3 +580,18 @@ async def test_auth_headers_prefer_more_specific_cookie(
     for _ in range(2):
         await provider.find_availabilities("CO_1", date(2030, 1, 1), date(2030, 1, 2))
     assert calls == 2
+
+
+def test_public_provider_urls_use_canonical_website() -> None:
+    """Public provider links must not send campers to the API/session host."""
+    from camply.db.data.providers import ReserveAmerica
+
+    assert ReserveAmerica.url == "https://www.reserveamerica.com"
+    assert (
+        urlsplit(ReserveAmericaProvider.get_campground_url("CO_1")).hostname
+        == "www.reserveamerica.com"
+    )
+    assert (
+        urlsplit(ReserveAmericaProvider.get_rec_area_url("CO_1")).hostname
+        == "www.reserveamerica.com"
+    )

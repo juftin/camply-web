@@ -181,7 +181,7 @@ Alabama State Parks and Maricopa County's legacy catalog endpoints returned HTTP
 
 ## ReserveAmerica
 
-`ReserveAmericaProvider` uses the public `a1.reserveamerica.com/jaxrs-json` API with the shared async retry/circuit breaker and one-request-per-second instance pacing. Provider ID **13** is seeded by migration. Run `task backend:migration-upgrade`, then `task backend:run -- camply db metadata --provider-id 13` to populate it.
+`ReserveAmericaProvider` uses the `a1.reserveamerica.com/jaxrs-json` API and an explicit `a1` session-bootstrap URL with the shared async retry/circuit breaker and one-request-per-second instance pacing. Public provider, campground, and campsite links use `www.reserveamerica.com`; the API/session host is not a public navigation destination. A forward data migration corrects the original provider seed URL for existing installations without changing custom URLs. Provider ID **13** is seeded by migration. Run `task backend:migration-upgrade`, then `task backend:run -- camply db metadata --provider-id 13` to populate it.
 
 Brand metadata supplies US state coverage; paginated state searches discover native, verifiable overnight campgrounds. External directory listings, day-use-only and hidden facilities are excluded. Campground IDs are `{contract}_{facility}`, and campsite IDs add `_{site}`. No artificial parent recreation areas are created. Complete discovery precedes the atomic campground/search transaction; stale campgrounds are disabled while references remain intact.
 

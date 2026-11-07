@@ -43,7 +43,8 @@ class ReserveAmericaProvider(BaseProvider):
     """Use ReserveAmerica's public same-origin API without account credentials."""
 
     api_url: ClassVar[str] = "https://a1.reserveamerica.com/jaxrs-json"
-    booking_url: ClassVar[str] = "https://a1.reserveamerica.com"
+    session_url: ClassVar[str] = "https://a1.reserveamerica.com/explore/search-results"
+    booking_url: ClassVar[str] = "https://www.reserveamerica.com"
 
     def __init__(self) -> None:
         """Reuse retry/circuit-breaker transport and serialize anonymous session setup."""
@@ -69,9 +70,7 @@ class ReserveAmericaProvider(BaseProvider):
         """Establish anonymous cookies and optional upstream token headers."""
         self._session_ready = False
         self.async_client.cookies.clear()
-        response = await self._get(
-            f"{self.booking_url}/explore/search-results", follow_redirects=True
-        )
+        response = await self._get(self.session_url, follow_redirects=True)
         response.raise_for_status()
         self._session_ready = True
 

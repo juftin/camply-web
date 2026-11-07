@@ -11,3 +11,5 @@
 
 - [x] Replace the Yellowstone provider-page card with ReserveAmerica; pass frontend types, lint and all 340 tests.
 - [x] Inspect and accept updated desktop light/dark snapshots from macOS CI.
+
+- [x] Separate canonical public URLs from API/session URLs; migrate existing provider rows and cover frontend links, booking URL generation, session host isolation, and migration round trips.

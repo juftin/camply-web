@@ -255,3 +255,5 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 
 - [x] Replace Yellowstone Lodges with ReserveAmerica in popular/all provider cards.
 - [x] Update provider-page visual baselines from inspected macOS CI captures.
+
+- [x] Use `www.reserveamerica.com` for public links, retain the separate `a1` API/session URLs, and migrate existing seeded provider URLs with custom-URL preservation.

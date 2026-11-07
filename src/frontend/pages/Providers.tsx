@@ -65,7 +65,7 @@ const providers: Provider[] = [
     name: "ReserveAmerica",
     description:
       "Campsite reservations at state parks and other campgrounds across the United States.",
-    website: "https://a1.reserveamerica.com",
+    website: "https://www.reserveamerica.com",
     features: ["Tent Camping", "RV Sites", "Cabins & Lodging", "Group Camping"],
     campgroundCount: 1000,
     coverage: ["State Parks", "United States"],

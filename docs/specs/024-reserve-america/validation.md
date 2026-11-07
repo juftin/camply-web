@@ -40,3 +40,9 @@ Synthetic HTTP regressions reproduced stale token headers after API Set-Cookie r
 Cookie follow-up verification: final full backend run passed (915 tests, 23 opt-in skips), all 38 provider/migration regressions passed, and repository-wide `task check` passed. The reviewer reported no actionable findings and independently verified rotation, expiry, and duplicate-path cookie precedence.
 
 The Providers page now lists ReserveAmerica in both popular/all sections in place of Yellowstone Lodges, with its booking URL, US coverage, camping features and rounded 1,000+ campground count. Frontend types, lint and all 340 tests passed. Desktop light/dark screenshots were inspected locally and on macOS CI run 42411836647; accepted baselines use the macOS captures to match CI rendering.
+
+## Public URL correction
+
+The API-accessible `a1` host also appeared in public links, where the user reported broken navigation. Public provider, campground and campsite links now target `https://www.reserveamerica.com`; API requests and cookie bootstrap retain explicit `a1` URLs. The original seed migration remains unchanged; a forward data migration corrects previously seeded URLs and preserves custom overrides. Regression tests verify both rendered provider-card links, generated booking destinations, API/session host isolation, URL migration round trips, and fresh/existing database upgrades. This environment still receives HTTP 403 from `www`, so successful public navigation is not claimed as a live automated acceptance check here.
+
+Public URL verification: 918 backend tests passed (23 opt-in skips), all 341 frontend tests passed, and repository-wide `task check` passed. The reviewer independently verified the public-host/API-host split, frontend link regression, and guarded migration behavior with no actionable findings. PostgreSQL verification of the new URL migration remains delegated to CI because Docker is unavailable locally.
