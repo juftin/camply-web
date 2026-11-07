@@ -178,7 +178,7 @@ export const NotificationSettings = ({
           </div>
           <p className="text-xs text-muted-foreground">
             Defaults to camply- followed by the first seven characters of your
-            user ID. You can change it; subscribe to the new topic after saving.
+            user ID. You can change it.
           </p>
           <Label htmlFor="ntfy-subscription-url">Subscription URL</Label>
           <div className="flex items-center gap-2">
@@ -192,9 +192,10 @@ export const NotificationSettings = ({
             <CopyButton label="Copy subscription URL" value={subscriptionUrl} />
           </div>
           <p className="text-xs text-muted-foreground">
-            This URL follows your selected server and topic. Save your settings
-            before subscribing in the ntfy app. Keep the topic private: public
-            servers allow anyone who knows it to read or publish messages.
+            Subscribe using this URL in the ntfy app, then send a test. Save
+            your settings to use them for campsite alerts. Keep the topic
+            private: public servers allow anyone who knows it to read or publish
+            messages.
           </p>
           <Label htmlFor="ntfy-token">Access token (optional)</Label>
           <Input
