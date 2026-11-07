@@ -261,3 +261,5 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Default editable ntfy topics to `camply-<first seven user-ID characters>` and migrate earlier generated defaults.
 
 - [x] Show a live ntfy subscription URL containing the current server and topic, including generated defaults before the first save.
+
+- [x] Copy current ntfy server, topic and subscription URL from Profile, with accessible clipboard feedback and disabled empty-value copying.

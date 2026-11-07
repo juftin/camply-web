@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { CopyButton } from "@/components/CopyButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,54 +112,77 @@ export const NotificationSettings = ({
       {provider === "ntfy" && (
         <>
           <Label htmlFor="ntfy-server-choice">ntfy server</Label>
-          <select
-            id="ntfy-server-choice"
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            value={serverChoice}
-            onChange={(event) =>
-              setServerChoice(
-                event.target.value as "default" | "ntfy.sh" | "custom",
-              )
-            }
-          >
-            {user.ntfy_default_subscription_url && (
-              <option value="default">
-                Configured server ({user.ntfy_default_subscription_url})
-              </option>
+          <div className="flex items-center gap-2">
+            <select
+              id="ntfy-server-choice"
+              className="min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={serverChoice}
+              onChange={(event) =>
+                setServerChoice(
+                  event.target.value as "default" | "ntfy.sh" | "custom",
+                )
+              }
+            >
+              {user.ntfy_default_subscription_url && (
+                <option value="default">
+                  Configured server ({user.ntfy_default_subscription_url})
+                </option>
+              )}
+              <option value="ntfy.sh">ntfy.sh</option>
+              <option value="custom">Enter your own server</option>
+            </select>
+            {serverChoice !== "custom" && (
+              <CopyButton
+                label="Copy ntfy server URL"
+                value={subscriptionServer.replace(/\/+$/, "")}
+              />
             )}
-            <option value="ntfy.sh">ntfy.sh</option>
-            <option value="custom">Enter your own server</option>
-          </select>
+          </div>
           {serverChoice === "custom" && (
             <>
               <Label htmlFor="ntfy-server">Your ntfy server URL</Label>
-              <Input
-                id="ntfy-server"
-                type="url"
-                value={server}
-                onChange={(event) => setServer(event.target.value)}
-                placeholder="https://ntfy.example.com"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="ntfy-server"
+                  className="min-w-0 flex-1"
+                  type="url"
+                  value={server}
+                  onChange={(event) => setServer(event.target.value)}
+                  placeholder="https://ntfy.example.com"
+                />
+                <CopyButton
+                  label="Copy ntfy server URL"
+                  value={subscriptionServer.replace(/\/+$/, "")}
+                />
+              </div>
             </>
           )}
           <Label htmlFor="ntfy-topic">Your ntfy topic</Label>
-          <Input
-            id="ntfy-topic"
-            value={topic}
-            onChange={(event) => setTopic(event.target.value)}
-            maxLength={64}
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              id="ntfy-topic"
+              className="min-w-0 flex-1"
+              value={topic}
+              onChange={(event) => setTopic(event.target.value)}
+              maxLength={64}
+            />
+            <CopyButton label="Copy ntfy topic" value={topic.trim()} />
+          </div>
           <p className="text-xs text-muted-foreground">
             Defaults to camply- followed by the first seven characters of your
             user ID. You can change it; subscribe to the new topic after saving.
           </p>
           <Label htmlFor="ntfy-subscription-url">Subscription URL</Label>
-          <Input
-            id="ntfy-subscription-url"
-            value={subscriptionUrl}
-            placeholder="Enter a server and topic"
-            readOnly
-          />
+          <div className="flex items-center gap-2">
+            <Input
+              id="ntfy-subscription-url"
+              className="min-w-0 flex-1"
+              value={subscriptionUrl}
+              placeholder="Enter a server and topic"
+              readOnly
+            />
+            <CopyButton label="Copy subscription URL" value={subscriptionUrl} />
+          </div>
           <p className="text-xs text-muted-foreground">
             This URL follows your selected server and topic. Save your settings
             before subscribing in the ntfy app. Keep the topic private: public

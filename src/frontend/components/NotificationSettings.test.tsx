@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, it, expect, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { NotificationSettings } from "./NotificationSettings";
 import { updateMe } from "@/lib/api";
 
@@ -175,3 +176,119 @@ it.each([null, "https://application.example.test"])(
     expect(screen.getByLabelText("Subscription URL")).toHaveValue("");
   },
 );
+
+describe("notification field copying", () => {
+  const renderCopySettings = () =>
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <NotificationSettings
+          refresh={vi.fn()}
+          user={{
+            id: "1234567a-abcd-1234-1234-123456789abc",
+            email: "test@example.test",
+            is_invited: true,
+            is_admin: false,
+            scanning_enabled: true,
+            pushover_token: null,
+            notification_provider: "ntfy",
+            ntfy_topic: "camply-1234567",
+            ntfy_server_url: null,
+            ntfy_default_subscription_url: "https://push.example.test/prefix",
+            ntfy_subscription_url: "https://push.example.test/prefix",
+          }}
+        />
+      </QueryClientProvider>,
+    );
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it("copies the resolved public server, current topic and complete URL without saving", async () => {
+    const user = userEvent.setup();
+    const copy = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
+    vi.mocked(updateMe).mockClear();
+    renderCopySettings();
+    await user.click(
+      screen.getByRole("button", { name: "Copy ntfy server URL" }),
+    );
+    expect(copy).toHaveBeenLastCalledWith("https://push.example.test/prefix");
+    expect(
+      screen.getByRole("button", { name: "Copy ntfy server URL" }),
+    ).toHaveTextContent("Copied");
+    await user.click(screen.getByRole("button", { name: "Copy ntfy topic" }));
+    expect(copy).toHaveBeenLastCalledWith("camply-1234567");
+    await user.click(
+      screen.getByRole("button", { name: "Copy subscription URL" }),
+    );
+    expect(copy).toHaveBeenLastCalledWith(
+      "https://push.example.test/prefix/camply-1234567",
+    );
+
+    fireEvent.change(screen.getByLabelText("ntfy server"), {
+      target: { value: "ntfy.sh" },
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Copy ntfy server URL" }),
+    );
+    expect(copy).toHaveBeenLastCalledWith("https://ntfy.sh");
+    fireEvent.change(screen.getByLabelText("ntfy server"), {
+      target: { value: "custom" },
+    });
+    expect(
+      screen.getByRole("button", { name: "Copy ntfy server URL" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Copy subscription URL" }),
+    ).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Your ntfy server URL"), {
+      target: { value: " https://custom.example.test/alerts/// " },
+    });
+    fireEvent.change(screen.getByLabelText("Your ntfy topic"), {
+      target: { value: "edited-topic" },
+    });
+    expect(
+      screen.getByRole("button", { name: "Copy ntfy topic" }),
+    ).toHaveTextContent("Copy");
+    await user.click(
+      screen.getByRole("button", { name: "Copy ntfy server URL" }),
+    );
+    expect(copy).toHaveBeenLastCalledWith("https://custom.example.test/alerts");
+    await user.click(screen.getByRole("button", { name: "Copy ntfy topic" }));
+    expect(copy).toHaveBeenLastCalledWith("edited-topic");
+    await user.click(
+      screen.getByRole("button", { name: "Copy subscription URL" }),
+    );
+    expect(copy).toHaveBeenLastCalledWith(
+      "https://custom.example.test/alerts/edited-topic",
+    );
+    fireEvent.change(screen.getByLabelText("Your ntfy topic"), {
+      target: { value: "" },
+    });
+    expect(
+      screen.getByRole("button", { name: "Copy ntfy topic" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Copy subscription URL" }),
+    ).toBeDisabled();
+    expect(updateMe).not.toHaveBeenCalled();
+  });
+
+  it("reports clipboard failures and lets the user retry", async () => {
+    const user = userEvent.setup();
+    const copy = vi
+      .spyOn(navigator.clipboard, "writeText")
+      .mockRejectedValueOnce(new Error("Clipboard denied"))
+      .mockResolvedValue();
+    renderCopySettings();
+    await user.click(screen.getByRole("button", { name: "Copy ntfy topic" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Copy failed");
+    expect(
+      screen.getByRole("button", { name: "Copy ntfy topic" }),
+    ).toHaveTextContent("Copy");
+    await user.click(screen.getByRole("button", { name: "Copy ntfy topic" }));
+    expect(copy).toHaveBeenLastCalledWith("camply-1234567");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Copy ntfy topic" }),
+    ).toHaveTextContent("Copied");
+  });
+});

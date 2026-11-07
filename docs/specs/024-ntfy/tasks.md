@@ -14,3 +14,5 @@
 - [x] Prefix generated seven-character user-ID topics with `camply-` and migrate prior generated defaults while preserving custom topics.
 
 - [x] Preview the complete subscription URL live from current fields, including generated topics and unsaved server/topic edits.
+
+- [x] Add clipboard buttons for the selected public server URL, editable topic and live subscription URL, with success/error feedback and empty-value handling.
