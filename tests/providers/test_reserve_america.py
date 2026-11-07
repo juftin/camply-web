@@ -204,13 +204,12 @@ async def test_http_failures_raise(
 @pytest.mark.parametrize(
     "change",
     [
-        {"reservableType": "CALL_CENTER"},
         {"prodInfo": {"lineOfBusiness": "TOURS", "typeOfUse": "NIGHTLY"}},
-        {"details": {"stayType": "NIGHTLY", "callCenterReservable": True}},
+        {"details": {"stayType": "DAILY"}},
     ],
 )
 def test_ineligible_products(change: dict[str, Any]) -> None:
-    """Phone-only inventory and tours are never bookable camping alerts."""
+    """Day-use inventory and tours are never camping alerts."""
     assert not Site.model_validate(site(**change)).eligible
 
 
@@ -338,3 +337,45 @@ def test_explicit_electricity(value: str, expected: bool) -> None:
         .is_electric
         is expected
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "snapshot", [None, "NOT_AVAILABLE", "CALL_CENTER", "FIELD_AVAILABLE"]
+)
+@pytest.mark.parametrize("call_center", [False, True])
+async def test_daily_grid_independent_of_selected_stay(
+    provider: ReserveAmericaProvider, snapshot: str | None, call_center: bool
+) -> None:
+    """A selected-stay snapshot must not hide later nightly grid openings."""
+
+    def handler(req: httpx2.Request) -> httpx2.Response:
+        if req.url.path == "/explore/search-results":
+            return httpx2.Response(200)
+        return httpx2.Response(
+            200,
+            json=page(
+                [
+                    site(
+                        reservableType=snapshot,
+                        details={
+                            "stayType": "NIGHTLY",
+                            "callCenterReservable": call_center,
+                        },
+                        availabilityGrid=[
+                            {"date": "2030-01-01", "status": "RESERVED"},
+                            {"date": "2030-01-02", "status": "AVAILABLE"},
+                            {"date": "2030-01-03", "status": "WALK_UP"},
+                            {"date": "2030-01-04", "status": "CALL_CENTER"},
+                        ],
+                    )
+                ]
+            ),
+        )
+
+    install_http(provider, handler)
+    results = await provider.find_availabilities(
+        "CO_1", date(2030, 1, 1), date(2030, 1, 5)
+    )
+    assert len(results) == 1
+    assert results[0].available_dates == [date(2030, 1, 2)]

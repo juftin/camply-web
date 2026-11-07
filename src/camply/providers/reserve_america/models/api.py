@@ -130,7 +130,10 @@ class Site(BaseModel):
     prodGrpName: str = ""
     prodInfo: ProductInfo
     details: SiteDetails
-    reservableType: str | None = None
+    reservableType: str | None = Field(
+        default=None,
+        description="Selected-stay snapshot; never a daily-grid eligibility gate",
+    )
     availabilityGrid: list[Night]
 
     def to_dto(
@@ -169,18 +172,17 @@ class Site(BaseModel):
                 "site_type": self.prodGrpName,
                 "attributes": [a.model_dump() for a in self.details.attributes],
                 "non_site_specific": self.details.nonSiteSpecific,
+                "call_center_reservable": self.details.callCenterReservable,
             },
         )
 
     @property
     def eligible(self) -> bool:
-        """Avoid reporting phone-only or non-overnight products."""
+        """Select overnight camping products; online bookability is per dated grid cell."""
         return (
             self.prodInfo.lineOfBusiness == "CAMPING"
             and self.prodInfo.typeOfUse == "NIGHTLY"
             and self.details.stayType == "NIGHTLY"
-            and not self.details.callCenterReservable
-            and self.reservableType == "WEB_AVAILABLE"
         )
 
 
