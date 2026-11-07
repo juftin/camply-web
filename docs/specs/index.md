@@ -56,3 +56,5 @@ This catalog indexes all feature specifications, technical implementation plans,
   - [Plan](022-documentation-site/plan.md) | [Tasks](022-documentation-site/tasks.md)
 - **[023: GoingToCamp Provider](023-going-to-camp/spec.md)**
   - [Plan](023-going-to-camp/plan.md) | [Tasks](023-going-to-camp/tasks.md) | [TODOs](023-going-to-camp/TODO.md) | [Validation](023-going-to-camp/validation.md)
+- **[024: ReserveAmerica Provider](024-reserve-america/spec.md)**
+  - [Plan](024-reserve-america/plan.md) | [Tasks](024-reserve-america/tasks.md) | [Endpoint Research](024-reserve-america/validation.md)

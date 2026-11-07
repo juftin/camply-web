@@ -75,7 +75,14 @@ def test_postgres_populated_upgrade() -> None:
         ) as connection:
             assert connection.execute(
                 "SELECT id, name FROM providers ORDER BY id"
-            ).fetchall() == [*before, (12, "Washington State Parks")]
+            ).fetchall() == [
+                *before,
+                (12, "Washington State Parks"),
+                (13, "ReserveAmerica"),
+            ]
+            assert connection.execute(
+                "SELECT url FROM providers WHERE id = 13"
+            ).fetchone() == ("https://www.reserveamerica.com",)
             assert connection.execute(
                 "SELECT COUNT(*) FROM notification_outbox"
             ).fetchone() == (0,)

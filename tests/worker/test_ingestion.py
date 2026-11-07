@@ -22,7 +22,7 @@ def test_ingestion_fans_out_all_registered_providers(
     monkeypatch.setattr(ingestion.celery_app, "send_task", send)
     result = ingestion.populate_database.run()
     assert result["provider_ids"] == list(PROVIDERS)
-    assert result["providers_fanned_out"] == 12
+    assert result["providers_fanned_out"] == len(PROVIDERS)
     assert send.call_args_list == [
         call(
             name="camply.catalog.sync_provider_catalog",
