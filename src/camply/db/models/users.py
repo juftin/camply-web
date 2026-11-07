@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 def default_ntfy_topic(context: DefaultExecutionContext) -> str:
     """Derive the topic for ORM bulk inserts from the generated account ID."""
-    return str(context.get_current_parameters()["id"])[:7]
+    return f"camply-{str(context.get_current_parameters()['id'])[:7]}"
 
 
 class User(Base):
@@ -35,7 +35,7 @@ class User(Base):
         """Initialize invitation and scanning flags before persistence."""
         if kwargs.get("id") is None:
             kwargs["id"] = uuid.uuid4()
-        kwargs.setdefault("ntfy_topic", str(kwargs["id"])[:7])
+        kwargs.setdefault("ntfy_topic", f"camply-{str(kwargs['id'])[:7]}")
         kwargs.setdefault("notification_provider", "pushover")
         kwargs.setdefault("is_admin", False)
         kwargs.setdefault("scanning_enabled", True)

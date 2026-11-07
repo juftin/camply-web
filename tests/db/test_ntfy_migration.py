@@ -30,7 +30,7 @@ def test_existing_user_topics_and_downgrade(tmp_path: Path) -> None:
             "SELECT ntfy_topic, notification_provider, ntfy_server_url, pushover_token FROM users"
         ).fetchall()
         assert len({row[0] for row in rows}) == 2
-        assert {row[0] for row in rows} == {"aaaaaaa", "bbbbbbb"}
+        assert {row[0] for row in rows} == {"camply-aaaaaaa", "camply-bbbbbbb"}
         assert all(row[1:] == ("pushover", None, "preserve-me") for row in rows)
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
     command.downgrade(config, "c2f84b9d1a3e")
@@ -57,7 +57,7 @@ def test_user_id_topic_upgrade_preserves_custom_topics(
             "INSERT INTO users (id, email, ntfy_topic, is_early_access_user) VALUES (?, ?, ?, 1)",
             rows,
         )
-    command.upgrade(config, "head")
+    command.upgrade(config, "f024b1c2d3e4")
     with sqlite3.connect(database.HOST) as connection:
         topics = dict(connection.execute("SELECT email, ntfy_topic FROM users"))
         assert topics["generated@example.test"] == (
@@ -66,5 +66,36 @@ def test_user_id_topic_upgrade_preserves_custom_topics(
         assert topics["custom@example.test"] == "custom-topic"
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
     command.downgrade(config, "f024a1b2c3d4")
+    with sqlite3.connect(database.HOST) as connection:
+        assert dict(connection.execute("SELECT email, ntfy_topic FROM users")) == topics
+
+
+@pytest.mark.parametrize("prefix_claimed", [False, True])
+def test_prefix_generated_topics_preserves_custom_choices(
+    tmp_path: Path, prefix_claimed: bool
+) -> None:
+    database = DatabaseConfig(HOST=str(tmp_path / "prefix.db"))
+    config = get_alembic_config(database)
+    command.upgrade(config, "f024b1c2d3e4")
+    with sqlite3.connect(database.HOST) as connection:
+        rows = [
+            ("a" * 32, "generated@example.test", "aaaaaaa"),
+            ("b" * 32, "custom@example.test", "custom-topic"),
+        ]
+        if prefix_claimed:
+            rows.append(("c" * 32, "claimed@example.test", "camply-aaaaaaa"))
+        connection.executemany(
+            "INSERT INTO users (id, email, ntfy_topic, is_early_access_user) VALUES (?, ?, ?, 1)",
+            rows,
+        )
+    command.upgrade(config, "head")
+    with sqlite3.connect(database.HOST) as connection:
+        topics = dict(connection.execute("SELECT email, ntfy_topic FROM users"))
+        assert topics["generated@example.test"] == (
+            "aaaaaaa" if prefix_claimed else "camply-aaaaaaa"
+        )
+        assert topics["custom@example.test"] == "custom-topic"
+        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+    command.downgrade(config, "f024b1c2d3e4")
     with sqlite3.connect(database.HOST) as connection:
         assert dict(connection.execute("SELECT email, ntfy_topic FROM users")) == topics

@@ -502,7 +502,7 @@ class TestNtfySettings:
 
     def test_defaults_and_partial_updates(self, test_client: TestClient) -> None:
         user = test_client.get("/api/me").json()
-        assert user["ntfy_topic"] == user["id"][:7]
+        assert user["ntfy_topic"] == f"camply-{user['id'][:7]}"
         assert user["notification_provider"] == "pushover"
         test_client.patch("/api/me", json={"pushover_token": "keep-me"})
         response = test_client.patch(

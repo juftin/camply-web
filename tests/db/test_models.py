@@ -334,4 +334,4 @@ def test_ntfy_default_topic_uses_user_id_for_bulk_insert(session: Session) -> No
     session.execute(insert(User), [{"id": user_id, "email": "bulk@example.test"}])
     session.commit()
     user = session.scalar(select(User).where(User.id == user_id))
-    assert user is not None and user.ntfy_topic == "1234567"
+    assert user is not None and user.ntfy_topic == "camply-1234567"

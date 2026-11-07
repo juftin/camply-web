@@ -156,7 +156,9 @@ it("immediately switches provider fields and saves an editable user ID topic", a
     target: { value: "ntfy" },
   });
   expect(screen.queryByLabelText("Pushover User Key")).not.toBeInTheDocument();
-  expect(screen.getByLabelText("Your ntfy topic")).toHaveValue("1234567");
+  expect(screen.getByLabelText("Your ntfy topic")).toHaveValue(
+    "camply-1234567",
+  );
   fireEvent.change(screen.getByLabelText("Your ntfy topic"), {
     target: { value: "edited-topic" },
   });

@@ -10,3 +10,5 @@
 - [x] Add a server dropdown for the configured application server, ntfy.sh and a user-provided URL, with private publish settings hidden.
 
 - [x] Show only the selected provider’s settings, save preferences together, and support editable user-ID-prefix topics with duplicate validation and a follow-up migration.
+
+- [x] Prefix generated seven-character user-ID topics with `camply-` and migrate prior generated defaults while preserving custom topics.

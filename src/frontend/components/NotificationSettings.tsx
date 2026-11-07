@@ -18,7 +18,9 @@ export const NotificationSettings = ({
     user.notification_provider ?? "pushover",
   );
   const [pushoverKey, setPushoverKey] = useState(user.pushover_token ?? "");
-  const [topic, setTopic] = useState(user.ntfy_topic || user.id.slice(0, 7));
+  const [topic, setTopic] = useState(
+    user.ntfy_topic || `camply-${user.id.slice(0, 7)}`,
+  );
   const publicServer = "https://ntfy.sh";
   const savedServer = user.ntfy_server_url?.replace(/\/+$/, "");
   const [serverChoice, setServerChoice] = useState<
@@ -138,8 +140,8 @@ export const NotificationSettings = ({
             maxLength={64}
           />
           <p className="text-xs text-muted-foreground">
-            Defaults to the first seven characters of your user ID. You can
-            change it; subscribe to the new topic after saving.
+            Defaults to camply- followed by the first seven characters of your
+            user ID. You can change it; subscribe to the new topic after saving.
           </p>
           <Label htmlFor="ntfy-subscription-url">
             Your saved subscription URL
