@@ -6,3 +6,5 @@
 - [x] Add guarded seed migration and lifecycle tests.
 - [x] Run regression tests, types, lint and import checks; document verification.
 - [x] Update provider architecture and global checklist.
+
+- [x] Rebuild auth headers from current request-scoped cookies; cover rotation, deletion, expiry, failed refresh recovery, and concurrent callers.

@@ -1,5 +1,6 @@
 """ReserveAmerica integration regressions with synthetic public API responses."""
 
+import asyncio
 from collections.abc import AsyncGenerator
 from datetime import date, timedelta
 from types import SimpleNamespace
@@ -379,3 +380,200 @@ async def test_daily_grid_independent_of_selected_stay(
     )
     assert len(results) == 1
     assert results[0].available_dates == [date(2030, 1, 2)]
+
+
+@pytest.mark.asyncio
+async def test_auth_headers_follow_cookie_rotation(
+    provider: ReserveAmericaProvider,
+) -> None:
+    """Use rotated cookies, and stop forwarding tokens deleted by API responses."""
+    calls = 0
+
+    def handler(req: httpx2.Request) -> httpx2.Response:
+        nonlocal calls
+        if req.url.path == "/explore/search-results":
+            return httpx2.Response(
+                200,
+                headers=[
+                    ("set-cookie", "idToken=initial; Path=/"),
+                    ("set-cookie", "a1Data=initial%20data; Path=/"),
+                ],
+            )
+        calls += 1
+        if calls == 1:
+            assert req.headers["Authorization"] == "initial"
+            return httpx2.Response(
+                200,
+                json=page([]),
+                headers=[
+                    ("set-cookie", "idToken=rotated; Path=/"),
+                    ("set-cookie", "a1Data=rotated%20data; Path=/"),
+                ],
+            )
+        if calls == 2:
+            assert req.headers["Authorization"] == "rotated"
+            assert req.headers["A1Data"] == "rotated data"
+            return httpx2.Response(
+                200,
+                json=page([]),
+                headers=[
+                    ("set-cookie", "idToken=; Max-Age=0; Path=/"),
+                    ("set-cookie", "a1Data=; Max-Age=0; Path=/"),
+                ],
+            )
+        assert "Authorization" not in req.headers and "A1Data" not in req.headers
+        return httpx2.Response(200, json=page([]))
+
+    install_http(provider, handler)
+    for _ in range(3):
+        await provider.find_availabilities("CO_1", date(2030, 1, 1), date(2030, 1, 2))
+    assert calls == 3
+
+
+@pytest.mark.asyncio
+async def test_failed_auth_refresh_invalidates_session(
+    provider: ReserveAmericaProvider,
+) -> None:
+    """After two 401s, the next operation starts by obtaining a fresh session."""
+    events: list[str] = []
+    boots = 0
+
+    def handler(req: httpx2.Request) -> httpx2.Response:
+        nonlocal boots
+        if req.url.path == "/explore/search-results":
+            events.append("bootstrap")
+            boots += 1
+            return httpx2.Response(200)
+        events.append("api")
+        return (
+            httpx2.Response(200, json=page([])) if boots == 3 else httpx2.Response(401)
+        )
+
+    install_http(provider, handler)
+    with pytest.raises(httpx2.HTTPStatusError):
+        await provider.find_availabilities("CO_1", date(2030, 1, 1), date(2030, 1, 2))
+    assert events == ["bootstrap", "api", "bootstrap", "api"]
+    assert (
+        await provider.find_availabilities("CO_1", date(2030, 1, 1), date(2030, 1, 2))
+        == []
+    )
+    assert events == ["bootstrap", "api", "bootstrap", "api", "bootstrap", "api"]
+
+
+@pytest.mark.asyncio
+async def test_auth_headers_respect_cookie_path(
+    provider: ReserveAmericaProvider,
+) -> None:
+    """Cookies for unrelated paths must not be mirrored into API auth headers."""
+
+    def handler(req: httpx2.Request) -> httpx2.Response:
+        if req.url.path == "/explore/search-results":
+            return httpx2.Response(
+                200,
+                headers=[
+                    ("set-cookie", "idToken=private; Path=/private"),
+                    ("set-cookie", "a1Data=private; Path=/private"),
+                ],
+            )
+        assert "Authorization" not in req.headers and "A1Data" not in req.headers
+        return httpx2.Response(200, json=page([]))
+
+    install_http(provider, handler)
+    assert (
+        await provider.find_availabilities("CO_1", date(2030, 1, 1), date(2030, 1, 2))
+        == []
+    )
+
+
+@pytest.mark.asyncio
+async def test_expired_cookies_are_not_mirrored(
+    provider: ReserveAmericaProvider,
+) -> None:
+    """Do not keep forwarding a token header after its cookie expires locally."""
+    calls = 0
+
+    def handler(req: httpx2.Request) -> httpx2.Response:
+        nonlocal calls
+        if req.url.path == "/explore/search-results":
+            return httpx2.Response(
+                200,
+                headers=[
+                    ("set-cookie", "idToken=initial; Max-Age=3600; Path=/"),
+                    ("set-cookie", "a1Data=initial; Max-Age=3600; Path=/"),
+                ],
+            )
+        calls += 1
+        if calls == 1:
+            assert req.headers["Authorization"] == "initial"
+        else:
+            assert "Authorization" not in req.headers and "A1Data" not in req.headers
+        return httpx2.Response(200, json=page([]))
+
+    install_http(provider, handler)
+    await provider.find_availabilities("CO_1", date(2030, 1, 1), date(2030, 1, 2))
+    for cookie in provider.async_client.cookies.jar:
+        cookie.expires = 1
+    await provider.find_availabilities("CO_1", date(2030, 1, 1), date(2030, 1, 2))
+    assert calls == 2
+
+
+@pytest.mark.asyncio
+async def test_concurrent_requests_share_session_refresh(
+    provider: ReserveAmericaProvider,
+) -> None:
+    """Concurrent callers wait for one refresh rather than replacing each other's cookies."""
+    boots = 0
+    calls = 0
+
+    async def handler(req: httpx2.Request) -> httpx2.Response:
+        nonlocal boots, calls
+        await asyncio.sleep(0)
+        if req.url.path == "/explore/search-results":
+            boots += 1
+            return httpx2.Response(
+                200, headers={"set-cookie": f"idToken=session-{boots}; Path=/"}
+            )
+        calls += 1
+        if req.headers["Authorization"] == "session-1":
+            return httpx2.Response(401)
+        assert req.headers["Authorization"] == "session-2"
+        return httpx2.Response(200, json=page([]))
+
+    install_http(provider, handler)
+    results = await asyncio.gather(
+        *[
+            provider.find_availabilities("CO_1", date(2030, 1, 1), date(2030, 1, 2))
+            for _ in range(5)
+        ]
+    )
+    assert results == [[], [], [], [], []]
+    assert boots == 2 and calls == 6
+
+
+@pytest.mark.asyncio
+async def test_auth_headers_prefer_more_specific_cookie(
+    provider: ReserveAmericaProvider,
+) -> None:
+    """An API-path token rotation must override an older root cookie of the same name."""
+    calls = 0
+
+    def handler(req: httpx2.Request) -> httpx2.Response:
+        nonlocal calls
+        if req.url.path == "/explore/search-results":
+            return httpx2.Response(
+                200, headers={"set-cookie": "idToken=root-token; Path=/"}
+            )
+        calls += 1
+        if calls == 1:
+            return httpx2.Response(
+                200,
+                json=page([]),
+                headers={"set-cookie": "idToken=api-token; Path=/jaxrs-json"},
+            )
+        assert req.headers["Authorization"] == "api-token"
+        return httpx2.Response(200, json=page([]))
+
+    install_http(provider, handler)
+    for _ in range(2):
+        await provider.find_availabilities("CO_1", date(2030, 1, 1), date(2030, 1, 2))
+    assert calls == 2

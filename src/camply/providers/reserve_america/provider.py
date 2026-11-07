@@ -12,6 +12,7 @@ import asyncio
 import time
 from datetime import date, timedelta
 from http import HTTPStatus
+from http.cookies import SimpleCookie
 from typing import Any, ClassVar, TypeVar
 from urllib.parse import unquote, urlencode
 
@@ -50,7 +51,6 @@ class ReserveAmericaProvider(BaseProvider):
         self._lock = asyncio.Lock()
         self._last_request = 0.0
         self._session_ready = False
-        self._auth_headers: dict[str, str] = {}
 
     @property
     def provider(self) -> Provider:
@@ -68,34 +68,44 @@ class ReserveAmericaProvider(BaseProvider):
     async def _bootstrap(self) -> None:
         """Establish anonymous cookies and optional upstream token headers."""
         self._session_ready = False
-        self._auth_headers = {}
         self.async_client.cookies.clear()
         response = await self._get(
             f"{self.booking_url}/explore/search-results", follow_redirects=True
         )
         response.raise_for_status()
-        cookies = {
-            cookie.name: cookie.value for cookie in self.async_client.cookies.jar
-        }
-        if token := cookies.get("idToken"):
-            self._auth_headers["Authorization"] = token
-        if a1_data := cookies.get("a1Data"):
-            self._auth_headers["A1Data"] = unquote(a1_data)
         self._session_ready = True
+
+    def _cookie_auth_headers(self, url: str) -> dict[str, str]:
+        """Mirror current, unexpired cookies applicable to this request URL only."""
+        request = self.async_client.build_request("GET", url)
+        headers: dict[str, str] = {}
+        # The client sends longer paths first. Keep the first matching token;
+        # parsing the whole header would replace it with an older root cookie.
+        for part in request.headers.get("Cookie", "").split(";"):
+            cookie = SimpleCookie()
+            cookie.load(part.strip())
+            if token := cookie.get("idToken"):
+                headers.setdefault("Authorization", token.value)
+            if a1_data := cookie.get("a1Data"):
+                headers.setdefault("A1Data", unquote(a1_data.value))
+        return headers
 
     async def _request(self, path: str, params: dict[str, Any]) -> Any:
         """Refresh an expired session once; never swallow HTTP or JSON errors."""
         async with self._lock:
             if not self._session_ready:
                 await self._bootstrap()
+            url = f"{self.api_url}/{path}"
             response = await self._get(
-                f"{self.api_url}/{path}", params=params, headers=self._auth_headers
+                url, params=params, headers=self._cookie_auth_headers(url)
             )
             if response.status_code == HTTPStatus.UNAUTHORIZED:
                 await self._bootstrap()
                 response = await self._get(
-                    f"{self.api_url}/{path}", params=params, headers=self._auth_headers
+                    url, params=params, headers=self._cookie_auth_headers(url)
                 )
+            if response.status_code == HTTPStatus.UNAUTHORIZED:
+                self._session_ready = False
             response.raise_for_status()
             return response.json()
 
