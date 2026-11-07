@@ -149,7 +149,9 @@ class UseDirectProvider(BaseProvider, ABC):
             current = window_end
         return list(campsites.values())
 
-    async def _search(self, query: ProviderSearchQuery) -> list[ProviderSearchResult]:
+    async def search_upstream(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
         """Fetch current park/facility catalogs and filter bookable campgrounds."""
         response = await self._request("GET", "fd/places")
         places = TypeAdapter(list[Place]).validate_json(response.content)

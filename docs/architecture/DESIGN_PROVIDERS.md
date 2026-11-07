@@ -197,6 +197,10 @@ This discovers upstream entities without database access or metadata ingestion.
 It is a Python API for future CLI use; web search continues to use the database,
 and no CLI search command is introduced here.
 
+`search()` handles argument normalization, validation, deduplication, and limits.
+Provider API families implement the public abstract method
+`search_upstream(query: ProviderSearchQuery)` to perform discovery.
+
 ```python
 from camply.providers import PROVIDERS
 from camply.providers.dto import SearchEntityType

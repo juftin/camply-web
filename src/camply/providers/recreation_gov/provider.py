@@ -124,7 +124,9 @@ class RecreationGovProvider(BaseProvider):
         """
         return RecreationDotGov
 
-    async def _search(self, query: ProviderSearchQuery) -> list[ProviderSearchResult]:
+    async def search_upstream(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
         """Use upstream relevance and paginate until enough eligible results exist."""
         results: dict[tuple[str, str], ProviderSearchResult] = {}
         filters = [

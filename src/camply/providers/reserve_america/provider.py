@@ -176,7 +176,9 @@ class ReserveAmericaProvider(BaseProvider):
             for key, site in sites.items()
         ]
 
-    async def _search(self, query: ProviderSearchQuery) -> list[ProviderSearchResult]:
+    async def search_upstream(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
         """Search verified state endpoints; no synthetic parent park identities."""
         if (
             query.recreation_area_id is not None

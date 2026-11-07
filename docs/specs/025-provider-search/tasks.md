@@ -1,6 +1,7 @@
 # Tasks
 
 - [x] Add validated shared search contract and independent result DTO.
+- [x] Expose the provider implementation hook as public abstract `search_upstream`; keep shared validation in `search`.
 - [x] Implement each API family and inherited regional providers.
 - [x] Verify synthetic upstream responses, invalid input, pagination and failures.
 - [x] Run provider tests, lint, typing and import boundary checks.
@@ -18,3 +19,7 @@ Independent review found two issues (DC state normalization and missing upstream
 parent filters); both were fixed with regressions and independently re-reviewed
 with no remaining actionable findings. Live read-only Recreation.gov checks
 verified all entity modes and Yosemite's 16 campgrounds in a single scoped request.
+
+After exposing the abstract hook as public `search_upstream`, all 398 provider
+tests passed. Backend typing, targeted lint/formatting, and import contracts
+also passed.

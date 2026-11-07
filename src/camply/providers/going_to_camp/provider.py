@@ -284,7 +284,9 @@ class GoingToCampProvider(BaseProvider, ABC):
             is not None
         ]
 
-    async def _search(self, query: ProviderSearchQuery) -> list[ProviderSearchResult]:
+    async def search_upstream(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
         """Search fresh catalogs using the ingestion overnight eligibility rules."""
         response = await self._request("GET", "transactionlocation")
         parks = TypeAdapter(list[TransactionLocation]).validate_json(response.content)

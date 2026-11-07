@@ -591,7 +591,7 @@ class BaseProvider(ABC):
             recreation_area_id=recreation_area_id,
             limit=limit,
         )
-        results = await self._search(request)
+        results = await self.search_upstream(request)
         unique = {
             (
                 result.entity_type,
@@ -604,7 +604,9 @@ class BaseProvider(ABC):
         return list(unique.values())[: request.limit]
 
     @abstractmethod
-    async def _search(self, query: ProviderSearchQuery) -> list[ProviderSearchResult]:
+    async def search_upstream(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
         """Implement upstream discovery for a provider API family."""
 
     @abstractmethod

@@ -268,3 +268,4 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Resolve independent review findings for Recreation.gov parent-scoped requests and District of Columbia state normalization.
 - [x] Document future CLI consumption; keep web search and CLI commands unchanged.
 - [x] Pass full test and quality workflows, including a final backend rerun after independent-review fixes.
+- [x] Keep provider extension methods public: `search_upstream` is the abstract discovery contract.
