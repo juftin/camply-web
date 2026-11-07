@@ -1,7 +1,5 @@
 """Prefix generated ntfy topics with camply-, preserving custom topic choices."""
 
-import re
-
 import sqlalchemy as sa
 from alembic import op
 
@@ -22,8 +20,7 @@ def upgrade() -> None:
     for user_id, topic in rows:
         suffix = str(user_id)[:7]
         candidate = f"camply-{suffix}"
-        generated = topic == suffix or re.fullmatch(r"camply-[0-9a-f]{32}", topic)
-        if generated and candidate not in occupied:
+        if topic == suffix and candidate not in occupied:
             connection.execute(
                 users.update().where(users.c.id == user_id).values(ntfy_topic=candidate)
             )

@@ -71,8 +71,9 @@ def test_user_id_topic_upgrade_preserves_custom_topics(
 
 
 @pytest.mark.parametrize("prefix_claimed", [False, True])
+@pytest.mark.parametrize("custom_topic", ["custom-topic", "camply-" + "f" * 32])
 def test_prefix_generated_topics_preserves_custom_choices(
-    tmp_path: Path, prefix_claimed: bool
+    tmp_path: Path, prefix_claimed: bool, custom_topic: str
 ) -> None:
     database = DatabaseConfig(HOST=str(tmp_path / "prefix.db"))
     config = get_alembic_config(database)
@@ -80,7 +81,7 @@ def test_prefix_generated_topics_preserves_custom_choices(
     with sqlite3.connect(database.HOST) as connection:
         rows = [
             ("a" * 32, "generated@example.test", "aaaaaaa"),
-            ("b" * 32, "custom@example.test", "custom-topic"),
+            ("b" * 32, "custom@example.test", custom_topic),
         ]
         if prefix_claimed:
             rows.append(("c" * 32, "claimed@example.test", "camply-aaaaaaa"))
@@ -94,7 +95,7 @@ def test_prefix_generated_topics_preserves_custom_choices(
         assert topics["generated@example.test"] == (
             "aaaaaaa" if prefix_claimed else "camply-aaaaaaa"
         )
-        assert topics["custom@example.test"] == "custom-topic"
+        assert topics["custom@example.test"] == custom_topic
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
     command.downgrade(config, "f024b1c2d3e4")
     with sqlite3.connect(database.HOST) as connection:
