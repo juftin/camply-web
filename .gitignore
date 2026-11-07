@@ -89,5 +89,5 @@ temp/
 src/camply/server/static/
 
 # Tauri native build output and machine-specific mobile projects
-src-tauri/target/
-src-tauri/gen/
+src/tauri/target/
+src/tauri/gen/

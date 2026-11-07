@@ -1,10 +1,14 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: "3"
 
+env:
+  TAURI_APP_PATH: "{{.ROOT_DIR}}/src/tauri"
+  TAURI_FRONTEND_PATH: "{{.ROOT_DIR}}"
+
 tasks:
   configure:
     summary: Bind the mobile app and notification capability to CAMPLY_MOBILE_URL
-    cmd: node src/frontend/tooling/mobile-config.mjs
+    cmd: node src/tauri/tooling/mobile-config.mjs
 
   android:init:
     desc: Generate the Android project (requires Android SDK and NDK)
@@ -45,13 +49,13 @@ tasks:
   test:
     desc: Test mobile config and notification behavior
     cmds:
-      - node --test src/frontend/tooling/mobile-config.node-test.mjs
+      - node --test src/tauri/tooling/mobile-config.node-test.mjs
       - pnpm run test:run src/frontend/lib/mobile-notifications.test.ts src/frontend/components/MobileNotifications.test.tsx
 
   check:
     summary: Check the native application (requires platform development libraries)
-    cmd: cargo check --manifest-path src-tauri/Cargo.toml
+    cmd: cargo check --manifest-path src/tauri/Cargo.toml
 
   config:test:
     summary: Verify the trusted mobile deployment configuration
-    cmd: node --test src/frontend/tooling/mobile-config.node-test.mjs
+    cmd: node --test src/tauri/tooling/mobile-config.node-test.mjs

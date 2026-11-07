@@ -10,3 +10,7 @@
 - Android initialization could not proceed: workspace lacks Java/JAVA_HOME and the Android SDK. iOS compilation requires a macOS/Xcode host.
 
 No signed APK, AAB or IPA has been produced or device-tested. Device validation and server-side APNs/FCM push remain unchecked in tasks.md. Local notifications only run while the frontend is active; server-side scanning is unaffected by phone suspension.
+
+## Source layout verification
+
+After moving the native application and config tooling to `src/tauri/`, `task mobile:configure`, all 16 mobile tests, repository frontend lint/format checks, Cargo metadata, and Tauri CLI project discovery passed. Native compilation still requires the platform toolchains noted above.

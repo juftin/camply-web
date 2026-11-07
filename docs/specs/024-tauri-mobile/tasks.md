@@ -11,3 +11,4 @@
 - [ ] Compile Android/iOS artifacts on platform-equipped hosts.
 - [ ] Verify permission and notification delivery on physical Android/iOS devices.
 - [ ] Future: APNs/FCM registration and server-side push for suspended/terminated apps.
+- [x] Consolidate native sources, icons, and config tooling under `src/tauri/` and update task environment, ignore rules, and documentation.
