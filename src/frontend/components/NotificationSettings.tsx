@@ -44,10 +44,6 @@ export const NotificationSettings = ({
       : serverChoice === "ntfy.sh"
         ? publicServer
         : server.trim();
-  const subscriptionUrl =
-    subscriptionServer && topic.trim()
-      ? `${subscriptionServer.replace(/\/+$/, "")}/${topic.trim()}`
-      : "";
   const [token, setToken] = useState(user.ntfy_access_token ?? "");
   const settings: MeUpdateRequest = {
     notification_provider: provider,
@@ -179,23 +175,6 @@ export const NotificationSettings = ({
           <p className="text-xs text-muted-foreground">
             Defaults to camply- followed by the first seven characters of your
             user ID. You can change it.
-          </p>
-          <Label htmlFor="ntfy-subscription-url">Subscription URL</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="ntfy-subscription-url"
-              className="min-w-0 flex-1"
-              value={subscriptionUrl}
-              placeholder="Enter a server and topic"
-              readOnly
-            />
-            <CopyButton label="Copy subscription URL" value={subscriptionUrl} />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Subscribe using this URL in the ntfy app, then send a test. Save
-            your settings to use them for campsite alerts. Keep the topic
-            private: public servers allow anyone who knows it to read or publish
-            messages.
           </p>
           <Label htmlFor="ntfy-token">Access token (optional)</Label>
           <Input

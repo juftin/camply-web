@@ -48,39 +48,34 @@ describe("NotificationSettings", () => {
     expect(screen.getByLabelText("Your ntfy topic")).toHaveValue(
       "camply-random",
     );
-    expect(screen.getByLabelText("Subscription URL")).toHaveValue(
-      "https://public.example.test/push/camply-random",
-    );
+    expect(screen.queryByLabelText("Subscription URL")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Copy subscription URL" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Copy ntfy server URL" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Copy ntfy topic" }),
+    ).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("ntfy server"), {
       target: { value: "custom" },
     });
     fireEvent.change(screen.getByLabelText("Your ntfy server URL"), {
       target: { value: "https://custom.example.test/push" },
     });
-    expect(screen.getByLabelText("Subscription URL")).toHaveValue(
-      "https://custom.example.test/push/camply-random",
-    );
     fireEvent.change(screen.getByLabelText("ntfy server"), {
       target: { value: "ntfy.sh" },
     });
-    expect(screen.getByLabelText("Subscription URL")).toHaveValue(
-      "https://ntfy.sh/camply-random",
-    );
     fireEvent.change(screen.getByLabelText("ntfy server"), {
       target: { value: "default" },
     });
-    expect(screen.getByLabelText("Subscription URL")).toHaveValue(
-      "https://public.example.test/push/camply-random",
-    );
     fireEvent.change(screen.getByLabelText("ntfy server"), {
       target: { value: "custom" },
     });
     fireEvent.change(screen.getByLabelText("Your ntfy server URL"), {
       target: { value: " https://custom.example.test/push/// " },
     });
-    expect(screen.getByLabelText("Subscription URL")).toHaveValue(
-      "https://custom.example.test/push/camply-random",
-    );
     fireEvent.change(screen.getByLabelText("Your ntfy server URL"), {
       target: { value: "https://custom.example.test/push" },
     });
@@ -123,9 +118,6 @@ it("previews the public application server and retains defaults when saving", as
         }}
       />
     </QueryClientProvider>,
-  );
-  expect(screen.getByLabelText("Subscription URL")).toHaveValue(
-    "https://push.example.test/prefix/camply-fallback",
   );
   expect(
     screen.queryByLabelText("Your ntfy server URL"),
@@ -184,7 +176,6 @@ it.each([null, "https://application.example.test"])(
     fireEvent.change(select, { target: { value: "custom" } });
     expect(screen.getByLabelText("Your ntfy server URL")).toBeInTheDocument();
     expect(screen.getByText("Save notification settings")).toBeDisabled();
-    expect(screen.getByLabelText("Subscription URL")).toHaveValue("");
   },
 );
 
@@ -213,7 +204,7 @@ describe("notification field copying", () => {
 
   afterEach(() => vi.restoreAllMocks());
 
-  it("copies the resolved public server, current topic and complete URL without saving", async () => {
+  it("copies the resolved public server and current topic without saving", async () => {
     const user = userEvent.setup();
     const copy = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
     vi.mocked(updateMe).mockClear();
@@ -227,12 +218,6 @@ describe("notification field copying", () => {
     ).toHaveTextContent("Copied");
     await user.click(screen.getByRole("button", { name: "Copy ntfy topic" }));
     expect(copy).toHaveBeenLastCalledWith("camply-1234567");
-    await user.click(
-      screen.getByRole("button", { name: "Copy subscription URL" }),
-    );
-    expect(copy).toHaveBeenLastCalledWith(
-      "https://push.example.test/prefix/camply-1234567",
-    );
 
     fireEvent.change(screen.getByLabelText("ntfy server"), {
       target: { value: "ntfy.sh" },
@@ -246,9 +231,6 @@ describe("notification field copying", () => {
     });
     expect(
       screen.getByRole("button", { name: "Copy ntfy server URL" }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Copy subscription URL" }),
     ).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Your ntfy server URL"), {
       target: { value: " https://custom.example.test/alerts/// " },
@@ -265,20 +247,11 @@ describe("notification field copying", () => {
     expect(copy).toHaveBeenLastCalledWith("https://custom.example.test/alerts");
     await user.click(screen.getByRole("button", { name: "Copy ntfy topic" }));
     expect(copy).toHaveBeenLastCalledWith("edited-topic");
-    await user.click(
-      screen.getByRole("button", { name: "Copy subscription URL" }),
-    );
-    expect(copy).toHaveBeenLastCalledWith(
-      "https://custom.example.test/alerts/edited-topic",
-    );
     fireEvent.change(screen.getByLabelText("Your ntfy topic"), {
       target: { value: "" },
     });
     expect(
       screen.getByRole("button", { name: "Copy ntfy topic" }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Copy subscription URL" }),
     ).toBeDisabled();
     expect(updateMe).not.toHaveBeenCalled();
   });

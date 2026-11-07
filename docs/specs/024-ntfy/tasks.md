@@ -13,8 +13,8 @@
 
 - [x] Prefix generated seven-character user-ID topics with `camply-` and migrate prior generated defaults while preserving custom topics.
 
-- [x] Preview the complete subscription URL live from current fields, including generated topics and unsaved server/topic edits.
-
-- [x] Add clipboard buttons for the selected public server URL, editable topic and live subscription URL, with success/error feedback and empty-value handling.
+- [x] Add clipboard buttons for the selected public server URL and editable topic, with success/error feedback and empty-value handling.
 
 - [x] Add an authenticated draft-settings test send for Pushover/ntfy using shared providers, preserving API-only operation, eligibility, CSRF, safe errors and UI pending/result feedback.
+
+- [x] Simplify Profile to separate server/topic fields and copy buttons without a combined Subscription URL section.
