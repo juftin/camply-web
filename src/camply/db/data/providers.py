@@ -120,3 +120,11 @@ WashingtonStateParks = Provider(
     url="https://washington.goingtocamp.com",
     enabled=True,
 )
+
+ReserveAmerica = Provider(
+    id=13,
+    name="ReserveAmerica",
+    description="ReserveAmerica native overnight campsite reservations.",
+    url="https://a1.reserveamerica.com",
+    enabled=True,
+)

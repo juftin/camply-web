@@ -244,3 +244,10 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Re-organize documentation site directly under `docs/`, natively representing all operations, architecture, development, roadmap, checklist, and feature specification documents without duplicate files or copy scripts.
 
 - [x] GoingToCamp review follow-up: decode scalar enum attributes, verify PostgreSQL provider seed upgrade expectations, and disclose provider booking restrictions in results.
+
+### ReserveAmerica provider
+
+- [x] Register ReserveAmerica (ID 13), guarded seed migration, and contract-scoped campground/site IDs.
+- [x] Discover native US overnight campgrounds from bulk brand metadata and paginated state searches; refresh metadata/search atomically.
+- [x] Scan paginated site grids in 14-night windows, map explicit campsite attributes, and preserve failures for worker retry.
+- [x] Cover synthetic HTTP, persistence, migration and registry regressions; verify live CO metadata and site scanning. See [endpoint research](specs/024-reserve-america/validation.md).
