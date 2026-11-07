@@ -124,3 +124,19 @@ emptyDir: {}
 {{ .name }}: {{ toYaml $probe | nindent 2 }}
 {{- end -}}
 {{- end -}}
+
+{{- define "camply.ntfyHostnames" -}}
+{{- $hosts := .Values.ntfy.hostnames -}}
+{{- if not $hosts -}}
+{{- $source := list -}}
+{{- if .Values.route.enabled -}}
+{{- $source = .Values.route.hostnames -}}
+{{- else if .Values.ingress.enabled -}}
+{{- $source = .Values.ingress.hosts -}}
+{{- end -}}
+{{- range $source -}}
+{{- $hosts = append $hosts (printf "ntfy.%s" .) -}}
+{{- end -}}
+{{- end -}}
+{{- toYaml $hosts -}}
+{{- end -}}

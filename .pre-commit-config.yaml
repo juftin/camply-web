@@ -52,8 +52,8 @@ repos:
         pass_filenames: false
         files: ^(src/camply/.*\.py|pyproject\.toml)$
       - id: oxfmt
-        # TOML is already formatted by pretty-format-toml above.
-        exclude: \.toml$
+        # TOML has its own formatter; Helm Go templates are checked by helm lint.
+        exclude: (\.toml$|^deploy/helm/templates/)
         name: oxfmt
         description: Opinionated Code Formatter
         entry: pnpm run format

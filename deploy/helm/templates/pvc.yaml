@@ -1,5 +1,5 @@
 {{- $root := . -}}
-{{- range $role := list "postgresql" "valkey" "prometheus" -}}
+{{- range $role := list "postgresql" "valkey" "prometheus" "ntfy" -}}
 {{- $config := index $root.Values $role -}}
 {{- if and $config.enabled $config.persistence.enabled (not $config.persistence.existingClaim) }}
 ---

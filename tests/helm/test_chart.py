@@ -48,7 +48,7 @@ def test_default_stack_and_migration_barrier() -> None:
     )
     assert "migrate.py" in resource(items, "ConfigMap", "-startup")["data"]
     deployments = [item for item in items if item["kind"] == "Deployment"]
-    assert len(deployments) == 7
+    assert len(deployments) == 8
     for role in ("backend", "worker", "beat"):
         pod = resource(items, "Deployment", f"-{role}")["spec"]["template"]["spec"]
         gate = pod["initContainers"][0]
@@ -448,3 +448,113 @@ def test_notes_render_release_specific_commands(tmp_path: Path) -> None:
     assert "helm test operator-notes -n camply --logs" in notes
     assert "svc/operator-notes-frontend 8080:8080" in notes
     assert "logs job/operator-notes-migrate-" in notes
+
+
+def test_ntfy_persistence_and_private_publishing() -> None:
+    """One persistent writer exposes separate full-API and public read services."""
+    items = render()
+    deployment = resource(items, "Deployment", "-ntfy")
+    assert deployment["spec"]["replicas"] == 1
+    assert deployment["spec"]["strategy"] == {"type": "Recreate"}
+    pod = deployment["spec"]["template"]["spec"]
+    assert pod["automountServiceAccountToken"] is False
+    assert pod["securityContext"]["runAsNonRoot"] is True
+    ntfy, proxy = pod["containers"]
+    assert ntfy["image"] == "docker.io/binwiederhier/ntfy:v2.37.1"
+    assert ntfy["args"] == ["serve"]
+    env = {e["name"]: e["value"] for e in ntfy["env"]}
+    assert env["NTFY_CACHE_FILE"] == "/var/lib/ntfy/cache.db"
+    assert env["NTFY_AUTH_DEFAULT_ACCESS"] == "read-write"
+    assert ntfy["readinessProbe"]["httpGet"]["path"] == "/v1/health"
+    assert proxy["securityContext"]["readOnlyRootFilesystem"] is True
+    assert pod["volumes"][0]["persistentVolumeClaim"]["claimName"] == "test-camply-ntfy"
+    claim = resource(items, "PersistentVolumeClaim", "-ntfy")
+    assert claim["metadata"]["annotations"]["helm.sh/resource-policy"] == "keep"
+    internal = resource(items, "Service", "-ntfy")
+    public = resource(items, "Service", "-ntfy-public")
+    assert internal["spec"]["type"] == public["spec"]["type"] == "ClusterIP"
+    assert internal["spec"]["ports"][0]["targetPort"] == "http"
+    assert public["spec"]["ports"][0]["targetPort"] == "subscriptions"
+
+
+@pytest.mark.parametrize("network", ["ingress", "route"])
+def test_ntfy_derives_public_hostname(network: str) -> None:
+    """Both public routing APIs target only the read-only proxy, never publishing."""
+    field = "hosts" if network == "ingress" else "hostnames"
+    args = [
+        "--set",
+        f"{network}.enabled=true",
+        "--set",
+        f"{network}.{field}={{example.com,other.example.com}}",
+    ]
+    if network == "route":
+        args += ["--set", "route.parentRefs[0].name=external"]
+    items = render(*args)
+    kind = "Ingress" if network == "ingress" else "HTTPRoute"
+    route = resource(items, kind, "-ntfy")["spec"]
+    if network == "ingress":
+        assert [r["host"] for r in route["rules"]] == [
+            "ntfy.example.com",
+            "ntfy.other.example.com",
+        ]
+        backend = route["rules"][0]["http"]["paths"][0]["backend"]["service"]
+    else:
+        assert route["hostnames"] == ["ntfy.example.com", "ntfy.other.example.com"]
+        assert route["parentRefs"] == [{"name": "external"}]
+        backend = route["rules"][0]["backendRefs"][0]
+    assert backend["name"] == "test-camply-ntfy-public"
+    pod = resource(items, "Deployment", "-ntfy")["spec"]["template"]["spec"]
+    env = {e["name"]: e["value"] for e in pod["containers"][0]["env"]}
+    assert env["NTFY_BASE_URL"] == "https://ntfy.example.com"
+
+
+def test_ntfy_overrides_storage_and_disable() -> None:
+    """Custom URL and claims work; disabling removes every ntfy resource."""
+    items = render(
+        "--set",
+        "ntfy.baseUrl=http://notify.local",
+        "--set",
+        "ntfy.persistence.existingClaim=restored",
+    )
+    pod = resource(items, "Deployment", "-ntfy")["spec"]["template"]["spec"]
+    assert pod["volumes"][0]["persistentVolumeClaim"]["claimName"] == "restored"
+    assert not any(
+        i["kind"] == "PersistentVolumeClaim" and i["metadata"]["name"].endswith("-ntfy")
+        for i in items
+    )
+    assert {e["name"]: e["value"] for e in pod["containers"][0]["env"]}[
+        "NTFY_BASE_URL"
+    ] == "http://notify.local"
+    items = render("--set", "ntfy.persistence.enabled=false")
+    assert (
+        resource(items, "Deployment", "-ntfy")["spec"]["template"]["spec"]["volumes"][
+            0
+        ]["emptyDir"]
+        == {}
+    )
+    items = render(
+        "--set", "ntfy.enabled=false", "-f", str(CHART / "examples/gateway.yaml")
+    )
+    assert not any("-ntfy" in i["metadata"]["name"] for i in items)
+
+
+def test_ntfy_custom_hostname_and_separate_tls() -> None:
+    """Public hostname overrides and certificates remain separate from Camply auth."""
+    items = render(
+        "--set",
+        "ingress.enabled=true",
+        "--set",
+        "ntfy.hostnames={notify.example.net}",
+        "--set",
+        "ntfy.ingress.tls[0].secretName=notify-tls",
+        "--set",
+        "ntfy.ingress.tls[0].hosts={notify.example.net}",
+        "--set",
+        "ingress.annotations.auth=camply-only",
+    )
+    route = resource(items, "Ingress", "-ntfy")
+    assert route["spec"]["rules"][0]["host"] == "notify.example.net"
+    assert route["spec"]["tls"] == [
+        {"secretName": "notify-tls", "hosts": ["notify.example.net"]}
+    ]
+    assert "auth" not in route["metadata"]["annotations"]

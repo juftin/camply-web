@@ -29,7 +29,7 @@ tasks:
       - helm package deploy/helm --destination dist {{.CLI_ARGS}}
 
   publish:
-    summary: Publish camply-web chart tags with matching upstream image defaults
+    summary: Publish the semantic camply-web chart release with its matching image
     cmd: uv run --all-extras -- python deploy/publish_chart.py
     requires:
       vars: [GITHUB_SHA]

@@ -1,4 +1,4 @@
-"""Verify OCI chart aliases and image defaults without credentials or uploads."""
+"""Verify semantic OCI chart releases and image defaults without credentials or uploads."""
 
 import json
 import os
@@ -87,9 +87,8 @@ def publish(directory: Path, env: dict[str, str]) -> subprocess.CompletedProcess
 @pytest.mark.parametrize(
     "release,version,expected",
     [
-        ("1.2.3", "1.2.3", ["1.2.3,v1.2.3", "0123456", "v1", "latest"]),
-        ("2.0.0", "2.0.0", ["2.0.0,v2.0.0", "0123456", "v2", "latest"]),
-        ("", "0.0.0-sha-0123456", ["0123456", "latest"]),
+        ("1.2.3", "1.2.3", ["1.2.3"]),
+        ("2.0.0", "2.0.0", ["2.0.0"]),
     ],
 )
 def test_publish_matching_chart_images(
@@ -98,7 +97,7 @@ def test_publish_matching_chart_images(
     version: str,
     expected: list[str],
 ) -> None:
-    """Each alias packages its matching image, including latest after main builds."""
+    """Only the unprefixed semantic chart release selects its matching release image."""
     directory, env = publisher
     originals = {
         name: (directory / "deploy/helm" / name).read_text()
@@ -116,7 +115,7 @@ def test_publish_matching_chart_images(
         reference = next(a for a in args if a.startswith("ghcr.io/"))
         tag = reference.removeprefix("ghcr.io/juftin/charts/camply-web:")
         tags.append(tag)
-        image_tag = tag.split(",")[-1]
+        image_tag = f"v{tag}"
         config_arg = args[args.index("--config") + 1]
         config_file, config_type = config_arg.split(":")
         assert config_type == "application/vnd.cncf.helm.config.v1+json"
@@ -170,6 +169,7 @@ def test_publish_matching_chart_images(
     [
         {"CI": ""},
         {"CI": "false"},
+        {"RELEASE_VERSION": ""},
         {"RELEASE_VERSION": "latest"},
         {"RELEASE_VERSION": "1.2.3-beta.1"},
         {"RELEASE_VERSION": "01.2.3"},
@@ -193,7 +193,7 @@ def test_publish_rejects_invalid_context(
 
 
 def test_publish_stops_on_push_failure(publisher: tuple[Path, dict[str, str]]) -> None:
-    """A failed upload fails the Task and cannot advance the remaining aliases."""
+    """A failed upload fails the publication task."""
     directory, env = publisher
     result = publish(directory, {**env, "HELM_TEST_PUSH_STATUS": "1"})
     assert result.returncode != 0
@@ -201,12 +201,12 @@ def test_publish_stops_on_push_failure(publisher: tuple[Path, dict[str, str]]) -
 
 
 def test_workflow_publishes_chart_after_matching_images() -> None:
-    """Both publication contexts push charts only after their image upload succeeds."""
+    """Only stable releases publish charts, after their matching image upload succeeds."""
     workflow = yaml.safe_load((ROOT / ".github/workflows/publish.yaml").read_text())
     assert workflow["permissions"]["packages"] == "write"
     steps = workflow["jobs"]["publish"]["steps"]
     chart = next(s for s in steps if s.get("run") == "task helm:publish")
-    assert "if" not in chart
+    assert chart["if"] == "steps.source.outputs.version != ''"
     assert chart["env"]["RELEASE_VERSION"] == "${{ steps.source.outputs.version }}"
     assert chart["env"]["GITHUB_SHA"] == "${{ steps.revision.outputs.sha }}"
     for command in ("task publish", "task publish:latest"):
@@ -214,7 +214,7 @@ def test_workflow_publishes_chart_after_matching_images() -> None:
             next(s for s in steps if s.get("run") == command)
         ) < steps.index(chart)
     tools = next(s for s in steps if "ORAS_VERSION" in s.get("env", {}))
-    assert "if" not in tools
+    assert tools["if"] == chart["if"]
     assert steps.index(tools) < steps.index(chart)
     login = next(
         s for s in steps if s.get("uses", "").startswith("docker/login-action@")
@@ -223,11 +223,11 @@ def test_workflow_publishes_chart_after_matching_images() -> None:
 
 
 @pytest.mark.skipif(ORAS is None, reason="ORAS is required for OCI round trips")
-@pytest.mark.parametrize("release", ["1.2.3", ""])
-def test_oci_aliases_install_by_digest(
+@pytest.mark.parametrize("release", ["1.2.3"])
+def test_oci_release_installs_by_digest(
     publisher: tuple[Path, dict[str, str]], release: str
 ) -> None:
-    """Real ORAS manifests install through Helm, including non-semantic aliases."""
+    """The semantic release installs through Helm from an actual ORAS manifest."""
     directory, env = publisher
     layout = directory / "oci"
     result = publish(
@@ -269,10 +269,7 @@ def test_oci_aliases_install_by_digest(
     thread.start()
     try:
         index = json.loads((layout / "index.json").read_text())
-        expected = (
-            {"v1.2.3": "v1.2.3", "1.2.3": "v1.2.3", "v1": "v1"} if release else {}
-        )
-        expected.update({"abcdef0": "abcdef0", "latest": "latest"})
+        expected = {"1.2.3": "v1.2.3"}
         aliases = {
             m["annotations"]["org.opencontainers.image.ref.name"]: m["digest"]
             for m in index["manifests"]
