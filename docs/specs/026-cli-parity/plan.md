@@ -51,6 +51,7 @@ Implementation gates: `task test`, `task check`, `task lint`, appropriate instal
 
 ## Implementation decisions
 
+- Command ownership is split across `camply.cli.serve`, `db`, `providers`, `recreation_areas`, `campgrounds` and `campsites`; `main` contains only the root command and lazy routing. `options` centralizes reusable Click options without loading providers or database configuration. Shared `discovery`, `output` and `execution` modules handle resolution, rendering and cancellation respectively; commands never import the root router.
 - `camply.core.search` is the smallest shared foreground adapter. It reuses the existing `camply.db.availability.matching_available_dates` function, so web matching needs no relocation or behavior change. The explicit exhaustive import order is `cli | server | worker` → `core` → `providers` → `db` → `__about__`; core is included in optional-free and package-root contracts, with negative boundary tests.
 - `BaseProvider.get_campground`, `get_recreation_area` and `iter_campgrounds` resolve exact metadata and complete eligible targets without a database. Complete catalogs back UseDirect/GoingToCamp; Recreation.gov and ReserveAmerica exhaust native pagination independently of the public discovery limit. All target resolution completes before availability checks.
 - The CLI owns and closes one provider client; sequential awaited operations bound concurrency and prevent duplicate overlapping checks. Existing HTTP pacing/retry/circuit-breaker behavior is reused. SIGINT/SIGTERM cancellation unwinds owned resources.

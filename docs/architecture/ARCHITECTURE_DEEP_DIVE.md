@@ -30,6 +30,25 @@ implementation default is not the deferred public scheduling/mode contract.
 Provider failures remain errors rather than empty availability. CLI output is
 console-only. See the [CLI guide](../cli.md) and [feature 026](../specs/026-cli-parity/spec.md).
 
+## CLI organization
+
+`camply.cli.main` owns the root command and lazily loads each command module.
+`serve.py`, `db.py`, `providers.py`, `recreation_areas.py`, `campgrounds.py` and
+`campsites.py` own their respective commands; `healthcheck.py` owns the nested
+serving health checks. Serving helpers remain with the serving group.
+
+`options.py` defines reusable Click options, strict calendar-date parsing and debug
+precedence. It imports no providers or application configuration, keeping root
+imports and version reporting lightweight. Shared discovery validation and target
+resolution live in `discovery.py`; terminal rendering lives in `output.py`; async
+execution, diagnostic sanitization and signal cleanup live in `execution.py`.
+`runtime.py` checks optional runtime dependencies before serving side effects.
+
+Command modules compose these helpers without importing the root router. New
+commands should reuse the option decorators rather than duplicate their defaults,
+repeatability or help text. User-visible options and provider precedence remain
+defined by the [initial command contract](../specs/026-cli-parity/spec.md#initial-command-contract).
+
 ## Optional local execution
 
 `camply.worker.engine` contains shared asynchronous discovery, scanning/filtering, catalog, and notification functions. Distributed Celery adapters keep locks, retries, and metrics; `camply.worker.runtime` runs the same engine in the API lifespan for standalone. Discovery begins immediately, pages 100 targets, honors subscriber eligibility and cooldown, and excludes queued/running/deferred targets. One scan consumer retries exceptions after 60/120/240 seconds, then records a failure and waits for the next heartbeat cycle. Separate consumers handle catalog work and durable delivery without creating one task per target.

@@ -21,6 +21,7 @@
 - [x] T024 Verify console-only output with absent/malformed notification settings and zero notification-service requests, web-user lookup or delivery dispatch; reject `--notifications`/`test-notifications` and preserve existing web Pushover behavior (FR-010–012).
 - [x] T020 Publish initial coverage, unsupported/deferred features and safe package setup examples; no deferred flag/YAML/cron examples in initial guidance (SC-001).
 - [x] T021 Run relevant quality, installed wheel/sdist, Python 3.11/3.14, docs and existing serve/db/web/worker gates for initial scope (SC-001–006).
+- [x] T025 Split CLI commands/groups into focused modules, centralize shared Click options and isolate execution/discovery/output helpers. Preserve lazy loading, option precedence and existing command contracts through the CLI/import and installed-package regressions.
 
 Original broader implementation tasks T010–T012 and T013–T019 are superseded by the TODO registry below. They do not schedule future implementation automatically.
 

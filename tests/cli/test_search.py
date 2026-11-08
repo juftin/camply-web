@@ -10,7 +10,7 @@ import pytest
 from click.testing import CliRunner
 
 from camply.cli.main import cli
-from camply.cli.search import _entries
+from camply.cli.providers import provider_entries
 from camply.core import search as core
 from camply.providers import PROVIDERS
 from camply.providers.base import BaseProvider
@@ -185,11 +185,11 @@ def test_provider_capabilities_are_truthful(transcript: Transcript) -> None:
     "name,expected",
     [
         (name, provider_class.__name__)
-        for name, (provider_class, _) in _entries().items()
+        for name, (provider_class, _) in provider_entries().items()
     ]
     + [
         (provider_class.__name__.swapcase(), provider_class.__name__)
-        for provider_class, _ in _entries().values()
+        for provider_class, _ in provider_entries().values()
     ],
 )
 def test_canonical_names_and_registered_class_aliases(
