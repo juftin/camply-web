@@ -16,7 +16,10 @@ import { spawn, execSync, type ChildProcess } from "child_process";
 import { chromium, type Browser, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
 import { setupAdminSnapshotMocks } from "./admin-snapshot-mocks";
-import { navigateToSnapshot } from "./snapshot-navigation";
+import {
+  navigateToSnapshot,
+  waitForSnapshotAssets,
+} from "./snapshot-navigation";
 import {
   generateHtmlReport,
   recordSnapshot,
@@ -1377,9 +1380,6 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
     `,
   });
 
-  // Ensure fonts are loaded
-  await page.evaluate(() => document.fonts.ready);
-
   if (scenario.route === "/dashboard" && !scenario.emptyScans) {
     try {
       await page.waitForSelector("text=Upper Pines Campground", {
@@ -1413,6 +1413,7 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
   }
   if (scenario.name.startsWith("map-"))
     await page.evaluate(() => window.scrollTo(0, 0));
+  await waitForSnapshotAssets(page);
 }
 
 /**
