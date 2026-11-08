@@ -6,7 +6,7 @@
 
 This file preserves the complete historical baseline. Its replacement ideas describe possible future work, not the initial implementation scope. The [specification's scope registry](spec.md#initial-scope-and-deferred-work) governs: **D01–D13 are TODOs and must not be implemented yet**. That includes site listing/selection, full notification/campground parity, YAML, permits/non-camping inventory, equipment, TUI, Rich-click, configure, legacy mode compatibility, first-batch flags and offline history.
 
-The intended new default is **search forever**; run-mode design is deferred for brainstorming. Statements below about legacy one-pass defaults, YAML modes, 5/20 notification caps, lifetime suppression or proposed state migration document the old behavior or earlier replacement ideas. They do not select those behaviors for the initial CLI. General permits are a future requested feature, not established legacy support.
+The intended new default is **search forever**; run-mode design is deferred for brainstorming. Statements below about legacy one-pass defaults, YAML modes, 5/20 notification caps, lifetime suppression or proposed state migration document the old behavior or earlier replacement ideas. They do not select those behaviors for the initial CLI. Initial CLI output is console-only: Pushover, all other external delivery, `--notifications`, credential migration and `test-notifications` are deferred under D03. Existing server/web notification behavior remains unchanged. General permits are a future requested feature, not established legacy support.
 
 ## Evidence
 
