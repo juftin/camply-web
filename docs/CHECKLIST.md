@@ -8,7 +8,8 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] Write the [parity specification](specs/026-cli-parity/spec.md), [design outline](specs/026-cli-parity/plan.md), [delivery backlog](specs/026-cli-parity/tasks.md) and [readiness checklist](specs/026-cli-parity/checklists/requirements.md).
 - [x] Narrow initial CLI scope and track D01–D13 as [deferred TODOs](specs/026-cli-parity/tasks.md#deferred-todo-registry), including site listing/selection, full notification/campground parity, YAML, permits, equipment, TUI, Rich-click, configure, notification caps and offline history.
 - [x] Address command-contract and test-coverage review gaps: specify option precedence/repeatability, exact campground lookup and real installed-command monitoring/cancellation acceptance gates. Keep initial CLI output console-only; defer Pushover and all external notification setup/delivery.
-- [ ] Restore current-provider discovery and campground-based availability through shared base-only capabilities.
+- [x] Restore current-provider discovery and campground-based availability through shared base-only capabilities: exact metadata lookup, complete area expansion, paired date/day matching, continuous console output and cancellation cleanup.
+- [x] Verify initial CLI acceptance with full test/lint/type/docs gates and installed wheel/sdist checks on Python 3.11/3.14; keep all D01–D13 deferred.
 - [ ] Brainstorm CLI lifecycle and `--continuous` / `--search-forever` / `--search-once`; intended default is search forever. Deferred TODO implementation is outside the initial release gate.
 
 ---

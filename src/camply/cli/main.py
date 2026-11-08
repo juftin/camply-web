@@ -26,8 +26,17 @@ class CamplyCLI(click.Group):
 
     def list_commands(self, ctx: click.Context) -> list[str]:
         commands = super().list_commands(ctx)
-        if "db" not in commands:
-            commands.append("db")
+        commands.extend(
+            name
+            for name in (
+                "db",
+                "providers",
+                "recreation-areas",
+                "campgrounds",
+                "campsites",
+            )
+            if name not in commands
+        )
         return sorted(commands)
 
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
@@ -38,6 +47,10 @@ class CamplyCLI(click.Group):
             from camply.cli.db import db_group
 
             return db_group
+        if cmd_name in {"providers", "recreation-areas", "campgrounds", "campsites"}:
+            from camply.cli.search import COMMANDS
+
+            return COMMANDS[cmd_name]
         return None
 
 
@@ -52,13 +65,23 @@ class CamplyCLI(click.Group):
     prog_name=__application__,
     message="%(prog)s, version %(version)s",
 )
+@click.option(
+    "--provider",
+    default=None,
+    help="Camping provider (default: RecreationDotGov; CAMPLY_PROVIDER fallback).",
+)
+@click.option(
+    "--debug/--no-debug", default=None, help="Show safe diagnostic messages on stderr."
+)
 @click.pass_context
-def cli(ctx: click.Context) -> None:
+def cli(ctx: click.Context, provider: str | None, debug: bool | None) -> None:
     """
     camply, the campsite finder ⛺️.
 
     Find campsites at sold-out campgrounds.
     """
+    ctx.ensure_object(dict)
+    ctx.obj.update(provider=provider, debug=debug)
     if ctx.invoked_subcommand is None:
         click.echo(ctx.get_help())
 

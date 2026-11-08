@@ -5,13 +5,30 @@ This document explains the technical implementation and reasoning behind the cor
 ## Python package boundaries
 
 The Python backend is one `camply` distribution with internal
-`camply.providers`, `camply.db`, `camply.server`, and `camply.worker`
+`camply.core`, `camply.providers`, `camply.db`, `camply.server`, and `camply.worker`
 subpackages. Base includes providers and SQLite; `server`, `distributed`,
 `postgres`, and `sentry` independently add runtime dependencies. Server and
-worker application bootstrap must remain independent. Adding local CLI
-subcommands to `camply.cli` is future work. Existing
+worker application bootstrap must remain independent. The foreground CLI discovers
+locations and monitors live availability without application state or service
+bootstraps. Existing
 Celery JSON task names, beat schedule names, and database revisions are
 preserved through the module migration.
+
+The enforced layer order is `cli | server | worker` → `core` → `providers` →
+`db` → `__about__`. `camply.core.search` normalizes local date windows, constructs
+exact-length stays from provider observations, and runs cancellable foreground
+checks. It reuses `camply.db.availability.matching_available_dates`, the same
+consecutive-night matcher used by saved web scans. Database adapters retain
+subscriber filtering and persistence; the CLI never creates subscribers, targets
+or notification deliveries. The core imports no optional service dependencies.
+
+The CLI owns one provider client across discovery and monitoring, closes it on
+success, failure or cancellation, and awaits checks sequentially so the same
+target cannot overlap. Requests use existing provider pacing, retries and circuit
+breakers. An internal 60-second wait separates successful cycles; this provisional
+implementation default is not the deferred public scheduling/mode contract.
+Provider failures remain errors rather than empty availability. CLI output is
+console-only. See the [CLI guide](../cli.md) and [feature 026](../specs/026-cli-parity/spec.md).
 
 ## Optional local execution
 

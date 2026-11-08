@@ -15,4 +15,4 @@
 - [x] Initial command/option/default/precedence contract matches the approved tree, including exact campground lookup and complete area expansion.
 - [x] Installed-command tests must cover real argument parsing, displayed stays, continued checking after a match and cancellation cleanup; internal tests alone cannot pass acceptance.
 - [x] Initial CLI is console-only: Pushover, notification flags/credentials and test-notifications are deferred; no new recipient environment variable is required.
-- [ ] Implement and execute runtime acceptance checks; this specification does not certify CLI parity.
+- [x] Implement and execute initial runtime acceptance checks, including installed base wheel/sdist commands on Python 3.11/3.14. This certifies the initial scope; D01–D13 remain deferred.

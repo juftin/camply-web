@@ -1,6 +1,6 @@
 # Legacy Camply CLI inventory
 
-**Audited**: 2026-11-08. **Baseline**: [juftin/camply v0.34.4](https://github.com/juftin/camply/releases/tag/v0.34.4), the latest published release observed during this audit. “v1” means the legacy product generation; the upstream release is not tagged v1.0. Runtime behavior below is a static source audit, supported by upstream tests, not a claim that old endpoints still work. New behavior is proposed, not implemented.
+**Audited**: 2026-11-08. **Baseline**: [juftin/camply v0.34.4](https://github.com/juftin/camply/releases/tag/v0.34.4), the latest published release observed during this audit. “v1” means the legacy product generation; the upstream release is not tagged v1.0. Runtime behavior below is a static source audit, supported by upstream tests, not a claim that old endpoints still work. Replacement ideas record the design at audit time; the [specification](spec.md) and [CLI guide](../../cli.md) define the implemented initial scope.
 
 ## Implementation scope notice
 

@@ -2,7 +2,7 @@
 
 **Feature**: `026-cli-parity`
 **Created**: 2026-11-08
-**Status**: Draft — specification and source audit only; CLI parity is not implemented
+**Status**: Initial implementation — current-provider discovery and console-only campground monitoring; D01–D13 remain deferred
 **Input**: Give users of `juftin/camply` the CLI experience they know while using the current architecture and capabilities.
 
 ## Goal and compatibility baseline
@@ -101,7 +101,7 @@ This resolves the initial credential question by deferring delivery, not by inve
 
 ## Representative initial workflows
 
-These are proposed syntax examples, not commands implemented by this change. IDs come from discovery. The availability invocation follows the intended search-forever default; detailed run-mode design remains TODO D11.
+IDs come from discovery. The availability invocation follows the search-forever default; detailed run-mode design remains TODO D11. See the [CLI guide](../../cli.md) for installation and supported behavior.
 
 ```bash
 camply providers
@@ -203,7 +203,7 @@ Persistent history, YAML models, equipment/permit/slot models and additional cha
 
 ## Assumptions and boundaries
 
-- This is a specification change, with no runtime behavior or migration implemented. The legacy audit remains intact while D01–D13 defer implementation. Later work must explicitly bring a TODO into scope before designing or implementing it.
+- Initial runtime implementation requires no database migration. The legacy audit remains intact while D01–D13 defer implementation. Later work must explicitly bring a TODO into scope before designing or implementing it.
 - The legacy name/release distinction and current package publication remain explicit. Users install `camply-web` to obtain the `camply` executable; parallel installation with legacy `camply` conflicts and requires an isolated environment or deliberate replacement. Legacy PyPI/image ownership and major-version cutover are separate release decisions.
 - Local foreground execution is the parity target. Remote hosted CLI authentication, saved web-scan administration, shell completion and machine-readable output are potential future features, not prerequisites.
 - No auto-booking, reservation guarantees, exact terminal formatting or public legacy Python API parity. Network access to upstream booking providers remains necessary; initial CLI operation makes no notification-service requests.

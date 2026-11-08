@@ -1,6 +1,6 @@
 # CLI parity: design outline
 
-**Status**: Proposed; no runtime implementation. See [specification](spec.md), [source audit](legacy-audit.md) and [tasks](tasks.md).
+**Status**: Initial implementation. See [specification](spec.md), [source audit](legacy-audit.md) and [tasks](tasks.md).
 
 ## Existing logic audit
 
@@ -47,7 +47,14 @@ Initial order: scope/capability fixtures → current-provider discovery and inte
 
 Use Click runner tests for every public option, precedence and validation rule, synthetic HTTP contracts for current providers, matching/stay fixtures and installed wheel/sdist checks on Python 3.11/3.14. Verify current provider aliases/identities and unsupported inputs without requiring all historical deployment/channel mappings to execute. Protect existing serve/db/standalone/distributed behavior and optional-free imports. The minimum public-command monitoring/cleanup tests below are initial acceptance gates; only additional D11 policies wait for later design. YAML/state/permit/equipment/TUI/new-channel tests wait for their TODOs.
 
-Implementation gates: `task test`, `task check`, `task lint`, appropriate installed-artifact tasks and `task docs:check`. For this documentation change, verify formatting, site rendering/links and consistency between initial requirements and the TODO registry.
+Implementation gates: `task test`, `task check`, `task lint`, appropriate installed-artifact tasks and `task docs:check`.
+
+## Implementation decisions
+
+- `camply.core.search` is the smallest shared foreground adapter. It reuses the existing `camply.db.availability.matching_available_dates` function, so web matching needs no relocation or behavior change. The explicit exhaustive import order is `cli | server | worker` → `core` → `providers` → `db` → `__about__`; core is included in optional-free and package-root contracts, with negative boundary tests.
+- `BaseProvider.get_campground`, `get_recreation_area` and `iter_campgrounds` resolve exact metadata and complete eligible targets without a database. Complete catalogs back UseDirect/GoingToCamp; Recreation.gov and ReserveAmerica exhaust native pagination independently of the public discovery limit. All target resolution completes before availability checks.
+- The CLI owns and closes one provider client; sequential awaited operations bound concurrency and prevent duplicate overlapping checks. Existing HTTP pacing/retry/circuit-breaker behavior is reused. SIGINT/SIGTERM cancellation unwinds owned resources.
+- Successful cycles use a provisional internal 60-second wait with a test seam. This adds no public scheduling option or settled D11 lifecycle policy. Provider failures remain errors, and no persistence, notification or legacy mode machinery is introduced.
 
 ## Public command acceptance strategy
 
