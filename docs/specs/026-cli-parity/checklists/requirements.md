@@ -8,5 +8,8 @@
 - [x] Prioritized journeys, edge cases, requirements and measurable acceptance outcomes are defined.
 - [x] Intentional changes are separated from deferred/blocked parity gaps.
 - [x] Shared-engine reuse accounts for current peer import boundaries and optional dependencies.
-- [x] Planned work covers each requirement and preserves existing CLI/web behavior.
+- [x] Initial tasks cover only current-provider discovery, campground availability and existing capability reuse; all D01–D13 TODOs are excluded from initial acceptance gates.
+- [x] Search forever is the intended default; legacy mode switches and detailed lifecycle semantics remain open for later brainstorming.
+- [x] `--notify-first-try` and both offline-search flags are explicitly deferred.
+- [x] Permits and Rich-click are tracked explicitly without claiming unverified legacy permit support.
 - [ ] Implement and execute runtime acceptance checks; this specification does not certify CLI parity.

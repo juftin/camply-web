@@ -1,39 +1,44 @@
 # CLI parity delivery backlog
 
-**Status**: Specification complete; implementation tasks below are pending. IDs reference [requirements](spec.md) and [inventory](legacy-audit.md). These are delivery slices; detailed code-level tasks follow contract design for each slice.
+**Status**: Specification only. Initial implementation is limited to current-provider discovery and campground-based availability. D01–D13 are tracked TODOs, not queued implementation slices or initial release prerequisites. See [specification](spec.md), [inventory](legacy-audit.md) and [design outline](plan.md).
 
-## Foundations
+## Specification work
 
-- [x] T001 Audit pinned upstream release, command/option/YAML/environment surface, provider/deployment/channel coverage and known discrepancies.
-- [x] T002 Specify acceptance scenarios, deliberate differences, architectural constraints, staged delivery and validation gates.
-- [ ] T003 Freeze sanitized contract fixtures for C01–C12/S01–S16, YAML/JSON imports, 19 provider aliases, 17 deployment selectors and 10 channels (FR-001–018, SC-001).
-- [ ] T004 Design typed requests, capabilities, stay/slot results and public provider resolution/site/equipment contracts (FR-002–004, FR-013).
-- [ ] T005 Extract shared core, update architecture/governance/import contracts, and verify optional-free/negative boundary regressions before connecting CLI (FR-017–018, SC-004/006).
+- [x] T001 Audit the pinned legacy CLI, YAML/environment/state surface and provider/deployment/channel coverage.
+- [x] T002 Define requirements and acceptance scenarios, preserving the full historical inventory.
+- [x] T022 Separate initial scope from explicitly deferred TODOs; record search-forever direction without settling run-mode design.
 
-## First useful delivery: discovery and one-pass search
+## Initial implementation backlog
 
-- [ ] T006 Add lazy legacy commands, module entrypoint, provider aliases, help/debug/plain rendering and truthful capability listing; protect serve/db behavior (C01–C08, FR-001–003/015).
-- [ ] T007 Implement complete area/site/ID target resolution, public catalogs, paired windows, weekday union, exact-length stays and equipment filters for registered providers (S01–S06/S13–S14, FR-003–004).
-- [ ] T008 Verify fresh base-wheel discover/search and invalid-input preflight with synthetic upstreams, no catalog/database/services (SC-002/004/006).
+- [ ] T003 Create fixtures for initial provider listing, discovery, area/campground selectors, date/day/stay matching and errors; deferred entries need dispositions, not runtime fixtures (FR-001–004/015, SC-001).
+- [ ] T004 Design typed requests and current-provider campground/area resolution using existing discovery/availability capabilities; no site/equipment/permit/history contracts (FR-002–004).
+- [ ] T005 Extract only shared code needed by this scope; update architecture/import contracts and optional-free regressions without adding deferred-feature abstractions (FR-017–018).
+- [ ] T006 Add lazy initial commands, compatible current-provider selection, plain Click help/debug/output and truthful capability listing; preserve serve/db (FR-001–003/015).
+- [ ] T007 Implement complete area/campground target enumeration, paired windows, weekday union and exact-length stays (FR-003–004).
+- [ ] T008 Verify fresh base-wheel discovery/internal availability checks, invalid-input preflight, no catalog/database/services, and provider failure handling (SC-002–005).
+- [ ] T009 Use search-forever as the default direction for initial availability, with existing provider pacing and resource cleanup. Leave the three legacy switches and detailed mode/cron design to D11; no legacy mode restoration (FR-005–006/016).
+- [ ] T012 Reuse current Pushover capability and environment settings where needed, with direct booking links and visible failures. Additional channels, legacy caps and configure are excluded (FR-010–012).
+- [ ] T020 Publish initial coverage, unsupported/deferred features and safe package setup examples; no deferred flag/YAML/cron examples in initial guidance (SC-001).
+- [ ] T021 Run relevant quality, installed wheel/sdist, Python 3.11/3.14, docs and existing serve/db/web/worker gates for initial scope (SC-001–006).
 
-## Monitoring and configuration delivery
+Original broader implementation tasks T010–T011 and T013–T019 are superseded by the TODO registry below. They do not schedule future implementation automatically.
 
-- [ ] T009 Implement foreground modes, effective pacing, bounded retry/concurrency, expiry, signals and exit statuses (S07–S12, FR-005–006/016).
-- [ ] T010 Implement YAML compatibility/repairs and masked `.camply` resolver/wizard (C10, S15, FR-009–010).
-- [ ] T011 Implement JSON import/history, per-channel outcomes, atomic save/single-writer guard, lifetime deduplication and pickle rejection guidance (S16, FR-007–008).
-- [ ] T012 Share Pushover delivery with explicit token migration, booking links, 5/20 caps, test notifications and sanitized terminal error events (C11, FR-007/010–012).
-- [ ] T013 Verify fake-clock mode matrix, cron restart suppression, partial delivery failures, corrupt/concurrent state and shutdown within five seconds (SC-003/005).
+## Deferred TODO registry
 
-## Remaining interface and channel delivery
+All entries below are TODOs; do not implement yet.
 
-- [ ] T014 Implement/verify silent, email, ntfy, Apprise, Pushbullet, Slack, Telegram, Twilio and generic webhook compatibility, including multi-recipient/payload/error contracts (FR-011–012).
-- [ ] T015 Add optional TUI with command preview, shared validation and missing-extra guidance; verify installed extras in isolation (C12, FR-014/017).
+- [ ] D01 TODO: `list-campsites` and supporting site catalogs.
+- [ ] D02 TODO: Search by campsite ID and site-to-parent resolution.
+- [ ] D03 TODO: Full notification provider parity, additional adapters and multi-channel test-notification compatibility.
+- [ ] D04 TODO: Full campground parity, missing providers/catalogs and broader GoingToCamp deployment mappings.
+- [ ] D05 TODO: YAML files, aliases, schema/defaults, environment expansion and precedence.
+- [ ] D06 TODO: Permits and non-camping inventory, including legacy ticket/tour/timed-entry variants.
+- [ ] D07 TODO: Equipment filtering and equipment lookup/category/length capabilities.
+- [ ] D08 TODO: TUI.
+- [ ] D09 TODO: Rich-click.
+- [ ] D10 TODO: Configure command and legacy `.camply` import/write behavior.
+- [ ] D11 TODO: Brainstorm `--continuous` / `--search-forever` / `--search-once`; intended default is search forever. Flags, cron, stopping behavior, pacing and notification suppression remain open.
+- [ ] D12 TODO: `--notify-first-try` and legacy notification caps.
+- [ ] D13 TODO: `--offline-search`, `--offline-search-path`, persistent JSON history/import and cross-process duplicate suppression.
 
-## Full provider parity gate
-
-- [ ] T016 Verify/restore Alabama and Maricopa endpoints through feature 007; implement corresponding capabilities and contracts (FR-013).
-- [ ] T017 Verify/implement Yellowstone facility inventory, legacy string-ID mappings, booking URLs and provider-specific pacing (FR-013).
-- [ ] T018 Implement GoingToCamp compatibility facade and verify every legacy deployment, with public equipment/catalog contracts and native park translation (FR-002–004/013).
-- [ ] T019 Implement all four Recreation.gov ticket/timed-entry variants, slot/quantity constraints and inventory-aware output/notification contracts (FR-013).
-- [ ] T020 Publish migration/coverage documentation and safe install/cron/container examples; preserve current package/image names and state intentional differences (SC-001).
-- [ ] T021 Run full quality, installed wheel/sdist, Python 3.11/3.14, docs and web/standalone/distributed regression gates; claim full parity only after every required gap is closed (SC-001–006).
+Bring each TODO into scope explicitly before creating detailed implementation tasks or acceptance gates for it.

@@ -2,6 +2,12 @@
 
 **Audited**: 2026-11-08. **Baseline**: [juftin/camply v0.34.4](https://github.com/juftin/camply/releases/tag/v0.34.4), the latest published release observed during this audit. “v1” means the legacy product generation; the upstream release is not tagged v1.0. Runtime behavior below is a static source audit, supported by upstream tests, not a claim that old endpoints still work. New behavior is proposed, not implemented.
 
+## Implementation scope notice
+
+This file preserves the complete historical baseline. Its replacement ideas describe possible future work, not the initial implementation scope. The [specification's scope registry](spec.md#initial-scope-and-deferred-work) governs: **D01–D13 are TODOs and must not be implemented yet**. That includes site listing/selection, full notification/campground parity, YAML, permits/non-camping inventory, equipment, TUI, Rich-click, configure, legacy mode compatibility, first-batch flags and offline history.
+
+The intended new default is **search forever**; run-mode design is deferred for brainstorming. Statements below about legacy one-pass defaults, YAML modes, 5/20 notification caps, lifetime suppression or proposed state migration document the old behavior or earlier replacement ideas. They do not select those behaviors for the initial CLI. General permits are a future requested feature, not established legacy support.
+
 ## Evidence
 
 All upstream links are pinned to the baseline tag. When prose and source disagree, executable source takes precedence.

@@ -6,9 +6,9 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 - [x] Audit legacy `juftin/camply` v0.34.4 CLI commands, options, YAML/configuration, providers, deployment IDs and notifications; map replacements and gaps in the [baseline inventory](specs/026-cli-parity/legacy-audit.md).
 - [x] Write the [parity specification](specs/026-cli-parity/spec.md), [design outline](specs/026-cli-parity/plan.md), [delivery backlog](specs/026-cli-parity/tasks.md) and [readiness checklist](specs/026-cli-parity/checklists/requirements.md).
-- [ ] Restore discovery/one-pass CLI searches through shared base-only capabilities.
-- [ ] Restore monitoring, YAML, JSON history, configuration and notification workflows.
-- [ ] Complete optional TUI, all legacy channels and missing provider/deployment/inventory coverage before claiming full parity.
+- [x] Narrow initial CLI scope and track D01–D13 as [deferred TODOs](specs/026-cli-parity/tasks.md#deferred-todo-registry), including site listing/selection, full notification/campground parity, YAML, permits, equipment, TUI, Rich-click, configure, notification caps and offline history.
+- [ ] Restore current-provider discovery and campground-based availability through shared base-only capabilities.
+- [ ] Brainstorm CLI lifecycle and `--continuous` / `--search-forever` / `--search-once`; intended default is search forever. Deferred TODO implementation is outside the initial release gate.
 
 ---
 
