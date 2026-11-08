@@ -24,7 +24,13 @@ from sqlalchemy import update
 from camply.db.config import db
 from camply.db.models import Campground, Provider, RecreationArea
 from camply.providers.base import BaseProvider
-from camply.providers.dto import CampsiteDTO
+from camply.providers.dto import (
+    CampgroundSearchResult,
+    CampsiteDTO,
+    ProviderSearchQuery,
+    ProviderSearchResult,
+    RecreationAreaSearchResult,
+)
 from camply.providers.usedirect.models.api import AvailabilityResponse, SearchFilters
 from camply.providers.usedirect.models.metadata import Facility, Place
 from camply.providers.utils import normalize_name
@@ -142,6 +148,68 @@ class UseDirectProvider(BaseProvider, ABC):
                         campsites[dto.campsite_id] = dto
             current = window_end
         return list(campsites.values())
+
+    async def search_upstream(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
+        """Fetch current park/facility catalogs and filter bookable campgrounds."""
+        response = await self._request("GET", "fd/places")
+        places = TypeAdapter(list[Place]).validate_json(response.content)
+        parks = {
+            p.PlaceId: p
+            for p in places
+            if p.Name and p.Name.strip() and p.IsWebViewable is not False
+        }
+        results: list[ProviderSearchResult] = []
+        if query.entity_type != "campground":
+            for area in parks.values():
+                result_area = RecreationAreaSearchResult(
+                    provider_id=self.provider.id,
+                    provider_name=self.provider.name,
+                    recreation_area_id=str(area.PlaceId),
+                    recreation_area_name=normalize_name(area.Name) or "",
+                    city=area.City,
+                    state=self._metadata_state(area),
+                    country=self.country_code,
+                    latitude=area.Latitude,
+                    longitude=area.Longitude,
+                    booking_url=self.get_rec_area_url(str(area.PlaceId)),
+                )
+                if result_area.matches(query):
+                    results.append(result_area)
+        if query.entity_type == "recreation_area":
+            return results
+        response = await self._request("GET", "fd/facilities")
+        facilities = TypeAdapter(list[Facility]).validate_json(response.content)
+        for facility in facilities:
+            park = parks.get(facility.PlaceId)
+            if (
+                park is None
+                or park.AllowWebBooking is not True
+                or not facility.Name
+                or not facility.Name.strip()
+                or facility.AllowWebBooking is not True
+            ):
+                continue
+            result = CampgroundSearchResult(
+                provider_id=self.provider.id,
+                provider_name=self.provider.name,
+                campground_id=str(facility.FacilityId),
+                campground_name=normalize_name(facility.Name) or facility.Name,
+                recreation_area_id=str(park.PlaceId),
+                recreation_area_name=normalize_name(park.Name),
+                city=park.City,
+                state=self._metadata_state(park),
+                country=self.country_code,
+                latitude=park.Latitude,
+                longitude=park.Longitude,
+                booking_url=self.get_campground_url(
+                    str(facility.FacilityId), rec_area_id=str(park.PlaceId)
+                ),
+            )
+            if result.matches(query):
+                results.append(result)
+        return results
 
     async def sync_metadata(self) -> None:
         """Refresh parks, campgrounds, and search using the ingestion workflow."""

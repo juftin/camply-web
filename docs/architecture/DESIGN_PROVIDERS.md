@@ -188,3 +188,73 @@ Brand metadata supplies US state coverage; paginated state searches discover nat
 Site scans fetch every products page in 14-day grids and clip exact `AVAILABLE` daily statuses to the exclusive checkout boundary. A one-day `gal` triggered an upstream array-index server error during live verification, so even a one-night scan requests the full grid. Only nightly camping products qualify; phone-only bookings are excluded. Selected-stay `reservableType` snapshots never gate grid scanning: they may be null or reflect another date even when daily cells are `AVAILABLE`. Source capacity, electrical hookup and accessibility attributes map explicitly to the DTO, with raw attributes retained in metadata. Provider restrictions and minimum stays remain subject to the shared worker's existing limits.
 
 Anonymous session setup uses the public search page. Before each API attempt, optional `idToken`/`a1Data` headers are rebuilt from the current URL-scoped, unexpired cookie jar, including rotations and deletions. An expired session refreshes once on 401; a second 401 invalidates the session so the next operation bootstraps first. Concurrent callers share a serialized refresh. HTTP/schema/pagination errors propagate without publishing partial results. Pacing is per instance, not distributed. Live CO state discovery and a complete facility availability scan were verified on 2026-11-07. A later read-only crawl of all 50 US states validated 8,172 unique directory facilities, including 1,004 eligible campgrounds. Full-country database ingestion has not been exercised live. Additional NY and FLFS sample scans parsed successfully with no available sites on the selected night; their campground booking links resolved to HTTP 200. See [endpoint research and validation](../specs/024-reserve-america/validation.md).
+
+## Direct upstream campground and recreation-area search
+
+Every registered provider supports `await provider.search(query="", state=None,
+recreation_area_id=None, entity_type=None, limit=50)` through `BaseProvider`.
+This discovers upstream entities without database access or metadata ingestion.
+It is a Python API for future CLI use; web search continues to use the database,
+and no CLI search command is introduced here.
+
+`search()` handles argument normalization, validation, deduplication, and limits.
+Provider API families implement the public abstract method
+`search_upstream(query: ProviderSearchQuery)` to perform discovery.
+
+```python
+from camply.providers import PROVIDERS
+from camply.providers.dto import SearchEntityType
+
+provider = PROVIDERS[2]()
+try:
+    parks = await provider.search("redwood", entity_type=SearchEntityType.RECREATION_AREA)
+    campgrounds = await provider.search("redwood", entity_type="campground")
+    combined = await provider.search("redwood", entity_type=None, limit=20)
+finally:
+    await provider.async_client.aclose()
+```
+
+The selector accepts `SearchEntityType.CAMPGROUND` / `"campground"` or
+`SearchEntityType.RECREATION_AREA` / `"recreation_area"`. `SearchEntityType` is a
+string enum; `None` (the default) searches both types. `"both"` is not a valid
+selector. Results extend `ProviderSearchResult` and identify
+their type through `entity_type`. `CampgroundSearchResult` requires campground
+ID/name and optionally includes its parent. `RecreationAreaSearchResult` requires
+recreation-area ID/name and has no campground ID/name. Both carry provider
+identity, location fields, and a public booking URL. Results deduplicate by
+entity type and native ID, so coinciding campground and park IDs remain distinct.
+The limit applies to the combined result list, preserving source ordering
+rather than promising global relevance or a quota for each entity type.
+
+Pass a campground result's `campground_id` to `find_availabilities` (whose
+argument is historically named `park_id`) to scan dates. A recreation-area ID
+is a discovery scope: use `search(recreation_area_id=park_id,
+entity_type="campground")` to discover its campgrounds before scanning.
+The recreation-area filter applies to an area's own ID and a campground's
+parent ID. Search makes no claim about availability on a particular night.
+
+Queries are stripped; blank queries browse. State codes are stripped and
+uppercased, parent IDs match exactly, and limits must be integers from 1 to 1000.
+Catalog providers match a case-insensitive substring across entity names and
+city names. Recreation.gov delegates text relevance to `/api/search`, which
+can include nearby results, and uses upstream `entity_type` filters with
+pagination. Campground-only searches with a parent park send `parent_asset_id`
+upstream as well as checking parent IDs locally, avoiding a national catalog
+walk for a single park. Address state codes take precedence over top-level state names;
+shared location helpers also normalize full state/province names.
+
+UseDirect fetches visible parks from `fd/places`, adding `fd/facilities` for
+campground searches. GoingToCamp fetches enabled named transaction locations,
+adding resource locations and overnight categories for campground searches.
+Visible recreation areas are discoverable even without bookable campgrounds;
+campgrounds retain existing overnight/online-booking eligibility rules. Each
+call fetches fresh metadata through the existing retry/pacing client.
+
+ReserveAmerica has no separate recreation-area catalog: area-only searches
+return an empty list without making requests, and combined searches return only
+campgrounds. It keeps composite `CONTRACT_facility` IDs without invented parents.
+It uses verified paginated state endpoints and filters names locally. Without a
+state filter it gets US states from `config/brand`, visiting sorted states until
+enough matches exist. This can be slow for uncommon names; supply a state for
+interactive use. HTTP, validation, and incomplete-page errors propagate without
+returning partial results. See the [specification](../specs/025-provider-search/spec.md).

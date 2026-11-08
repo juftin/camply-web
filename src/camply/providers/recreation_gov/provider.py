@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, ClassVar, cast
+from urllib.parse import urljoin
 
 import platformdirs
 import rich.progress
@@ -14,7 +15,14 @@ from camply.db.config import db
 from camply.db.data.providers import RecreationDotGov
 from camply.db.models import Provider
 from camply.providers.base import BaseProvider
-from camply.providers.dto import CampsiteDTO, CampsiteType
+from camply.providers.dto import (
+    CampgroundSearchResult,
+    CampsiteDTO,
+    CampsiteType,
+    ProviderSearchQuery,
+    ProviderSearchResult,
+    RecreationAreaSearchResult,
+)
 from camply.providers.recreation_gov.config import RecreationGovConfig
 from camply.providers.recreation_gov.models.address import AddressData, AddressPopulator
 from camply.providers.recreation_gov.models.api import (
@@ -23,6 +31,8 @@ from camply.providers.recreation_gov.models.api import (
     RecDotGovCampsite,
     RecDotGovCampsiteResponse,
     RecDotGovCampsiteSearchParams,
+    RecDotGovSearchResponse,
+    RecDotGovSearchResult,
     RecreationGovCampsiteMetadata,
 )
 from camply.providers.recreation_gov.models.campgrounds import RecDotGovCampgroundData
@@ -36,6 +46,9 @@ from camply.providers.recreation_gov.models.enums import (
 from camply.providers.recreation_gov.models.recreation_area import (
     RecDotGovRecreationAreaData,
 )
+from camply.providers.utils import normalize_country_code, normalize_state_code
+
+_MAX_SEARCH_RECORDS = 500000
 
 logger = structlog.getLogger()
 
@@ -110,6 +123,97 @@ class RecreationGovProvider(BaseProvider):
         Return the provider instance.
         """
         return RecreationDotGov
+
+    async def search_upstream(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
+        """Use upstream relevance and paginate until enough eligible results exist."""
+        results: dict[tuple[str, str], ProviderSearchResult] = {}
+        filters = [
+            {
+                "campground": "entity_type:campground",
+                "recreation_area": "entity_type:recarea",
+                None: "entity_type:(campground OR recarea)",
+            }[query.entity_type]
+        ]
+        if query.entity_type == "campground" and query.recreation_area_id is not None:
+            filters.append(f"parent_asset_id:{query.recreation_area_id}")
+        start = 0
+        expected_total = None
+        while True:
+            response = await self.async_client.get(
+                urljoin(self.config.base_url, self.config.search_endpoint),
+                params={
+                    "q": query.query,
+                    "fq": filters,
+                    "start": start,
+                    "size": 50,
+                },
+                headers={**self.headers, "Referer": self.config.referer_header},
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            page = RecDotGovSearchResponse.model_validate_json(response.content)
+            if page.start != start:
+                raise ValueError("Recreation.gov returned an unexpected search page")
+            if expected_total is None:
+                expected_total = page.total
+            if page.total != expected_total:
+                raise ValueError("Recreation.gov search changed during pagination")
+            for item in page.results:
+                result = self._to_search_result(item)
+                if result is not None and result.matches(query, match_text=False):
+                    results[(item.entity_type, item.entity_id)] = result
+            start += len(page.results)
+            if len(results) >= query.limit or start >= page.total:
+                return list(results.values())
+            if not page.results or start >= _MAX_SEARCH_RECORDS:
+                raise ValueError("Recreation.gov search pagination made no progress")
+
+    def _to_search_result(
+        self, item: RecDotGovSearchResult
+    ) -> ProviderSearchResult | None:
+        """Translate the two upstream entity types without inventing park parents."""
+        if item.entity_type not in {"campground", "recarea"} or not item.name.strip():
+            return None
+        if item.entity_type == "campground" and not item.reservable:
+            return None
+        common: dict[str, Any] = {
+            "provider_id": self.provider.id,
+            "provider_name": self.provider.name,
+            "city": item.city,
+            "state": normalize_state_code(
+                next(
+                    (a.state_code for a in item.addresses if a.state_code),
+                    item.state_code,
+                ),
+                "",
+            )
+            or None,
+            "country": normalize_country_code(item.country_code, "") or None,
+            "latitude": item.latitude,
+            "longitude": item.longitude,
+        }
+        result: ProviderSearchResult
+        if item.entity_type == "recarea":
+            result = RecreationAreaSearchResult(
+                **common,
+                recreation_area_id=item.entity_id,
+                recreation_area_name=item.name,
+                booking_url=self.get_rec_area_url(item.entity_id),
+            )
+        else:
+            result = CampgroundSearchResult(
+                **common,
+                campground_id=item.entity_id,
+                campground_name=item.name,
+                recreation_area_id=item.parent_id,
+                recreation_area_name=item.parent_name,
+                booking_url=self.get_campground_url(
+                    item.entity_id, rec_area_id=item.parent_id
+                ),
+            )
+        return result
 
     async def sync_metadata(self) -> None:
         """

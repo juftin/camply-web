@@ -17,7 +17,12 @@ from sqlalchemy import Insert, and_, delete, func, insert, literal, null, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from camply.db.models import Campground, Provider, RecreationArea, Search
-from camply.providers.dto import CampsiteDTO
+from camply.providers.dto import (
+    CampsiteDTO,
+    ProviderSearchQuery,
+    ProviderSearchResult,
+    SearchEntityType,
+)
 from camply.providers.errors import CircuitBreakerOpenError, ProviderRateLimitedError
 
 logger = structlog.getLogger()
@@ -559,6 +564,50 @@ class BaseProvider(ABC):
                 provider_name=provider_name,
             )
         return cls._circuit_breakers[provider_name]
+
+    async def search(
+        self,
+        query: str = "",
+        *,
+        state: str | None = None,
+        entity_type: SearchEntityType | str | None = None,
+        recreation_area_id: str | None = None,
+        limit: int = 50,
+    ) -> list[ProviderSearchResult]:
+        """Discover campgrounds and recreation areas upstream without database access.
+
+        None selects both entity types; strings and SearchEntityType members
+        select a single type. Blank text browses the catalog. State codes are
+        normalized to uppercase;
+        parent IDs are exact strings. Failures propagate rather than appearing
+        as an empty result. Results are unique within this provider.
+        """
+        request = ProviderSearchQuery(
+            query=query.strip(),
+            entity_type=SearchEntityType(entity_type)
+            if entity_type is not None
+            else None,
+            state=state.strip().upper() if state is not None else None,
+            recreation_area_id=recreation_area_id,
+            limit=limit,
+        )
+        results = await self.search_upstream(request)
+        unique = {
+            (
+                result.entity_type,
+                result.campground_id
+                if result.entity_type == "campground"
+                else result.recreation_area_id,
+            ): result
+            for result in results
+        }
+        return list(unique.values())[: request.limit]
+
+    @abstractmethod
+    async def search_upstream(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
+        """Implement upstream discovery for a provider API family."""
 
     @abstractmethod
     async def find_availabilities(

@@ -31,6 +31,9 @@ from camply.providers.errors import CircuitBreakerOpenError, ProviderRateLimited
 class ConcreteProvider(BaseProvider):
     """Minimal concrete subclass of BaseProvider for testing."""
 
+    async def search_upstream(self, query):
+        return []
+
     async def find_availabilities(self, park_id, start_date, end_date):
         return []
 
