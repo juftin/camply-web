@@ -8,7 +8,7 @@ from unittest.mock import Mock, call
 import pytest
 from click.testing import CliRunner
 
-import camply.cli.main
+import camply.cli.serve
 from camply.__about__ import __application__, __version__
 from camply.cli.main import cli
 
@@ -112,7 +112,9 @@ def test_frontend_serve_rejects_missing_assets(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Editable installs without a prepared UI report a useful error on stderr."""
-    monkeypatch.setattr(camply.cli.main, "__file__", str(tmp_path / "cli" / "main.py"))
+    monkeypatch.setattr(
+        camply.cli.serve, "__file__", str(tmp_path / "cli" / "serve.py")
+    )
     monkeypatch.setattr("shutil.which", lambda name: "/synthetic/bin/nginx")
 
     result = CliRunner().invoke(cli, ["serve", "frontend"])
@@ -316,7 +318,7 @@ def test_frontend_serve_renders_packaged_configuration(
     static = package / "server" / "static"
     static.mkdir(parents=True)
     (static / "index.html").write_text("synthetic frontend")
-    monkeypatch.setattr(camply.cli.main, "__file__", str(package / "cli" / "main.py"))
+    monkeypatch.setattr(camply.cli.serve, "__file__", str(package / "cli" / "serve.py"))
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("shutil.which", lambda name: "/synthetic/bin/nginx")
     captured: dict[str, str | list[str]] = {}

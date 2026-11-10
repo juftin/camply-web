@@ -60,3 +60,5 @@ This catalog indexes all feature specifications, technical implementation plans,
   - [Plan](024-reserve-america/plan.md) | [Tasks](024-reserve-america/tasks.md) | [Endpoint Research](024-reserve-america/validation.md)
 - **[025: Direct Upstream Provider Search](025-provider-search/spec.md)**
   - [Plan](025-provider-search/plan.md) | [Tasks](025-provider-search/tasks.md)
+- **[026: Legacy CLI Parity](026-cli-parity/spec.md)**
+  - [Legacy Inventory](026-cli-parity/legacy-audit.md) | [Plan](026-cli-parity/plan.md) | [Tasks](026-cli-parity/tasks.md) | [Readiness](026-cli-parity/checklists/requirements.md)

@@ -11,6 +11,7 @@ from pathlib import Path
 import click
 import jiter
 
+from camply.cli import options
 from camply.cli.runtime import require_modules
 
 
@@ -66,12 +67,7 @@ def healthcheck(ctx: click.Context, url: str | None, timeout: float | None) -> N
 
 @healthcheck.command(name="backend")
 @click.option("--url", default="http://127.0.0.1:8000/api/health", show_default=True)
-@click.option(
-    "--timeout",
-    default=5.0,
-    type=click.FloatRange(min=0, min_open=True),
-    show_default=True,
-)
+@options.timeout()
 def backend(url: str, timeout: float) -> None:
     """Check the API's existing HTTP health endpoint."""
     _check_http(url, timeout=timeout)
@@ -79,12 +75,7 @@ def backend(url: str, timeout: float) -> None:
 
 @healthcheck.command(name="frontend")
 @click.option("--url", default="http://127.0.0.1:8080/healthz", show_default=True)
-@click.option(
-    "--timeout",
-    default=5.0,
-    type=click.FloatRange(min=0, min_open=True),
-    show_default=True,
-)
+@options.timeout()
 def frontend(url: str, timeout: float) -> None:
     """Check Nginx's health endpoint independently of its API upstream."""
     _check_http(url, timeout=timeout)
@@ -94,12 +85,7 @@ def frontend(url: str, timeout: float) -> None:
 @click.option(
     "--destination", help="Celery node name (default: celery@<local hostname>)."
 )
-@click.option(
-    "--timeout",
-    default=5.0,
-    type=click.FloatRange(min=0, min_open=True),
-    show_default=True,
-)
+@options.timeout()
 def worker(destination: str | None, timeout: float) -> None:
     """Require a reply from this worker through its configured broker."""
     require_modules("distributed", ("celery", "redis", "prometheus_client"))

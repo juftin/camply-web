@@ -2,6 +2,10 @@
 
 Start at **[camply.rocks](https://camply.rocks)**, or open your own instance. Sign in if the instance requires it.
 
+To discover campgrounds and monitor availability locally in your terminal, see the
+[command-line guide](cli.md). The CLI uses live provider APIs and console output
+without a web account or database.
+
 ## Find a campground
 
 Use Explore to search for a campground or browse the map. Open a campground to see its details and start monitoring it. Available providers and campgrounds depend on the instance's catalog.

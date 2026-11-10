@@ -22,6 +22,7 @@ from camply.providers.dto import (
     ProviderSearchQuery,
     ProviderSearchResult,
     RecreationAreaSearchResult,
+    SearchEntityType,
 )
 from camply.providers.recreation_gov.config import RecreationGovConfig
 from camply.providers.recreation_gov.models.address import AddressData, AddressPopulator
@@ -128,16 +129,90 @@ class RecreationGovProvider(BaseProvider):
         self, query: ProviderSearchQuery
     ) -> list[ProviderSearchResult]:
         """Use upstream relevance and paginate until enough eligible results exist."""
+        return await self._search_pages(query)
+
+    async def _complete_search(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
+        """Exhaust native search pages independently of the public display limit."""
+        return await self._search_pages(query, complete=True)
+
+    async def get_campground(self, campground_id: str) -> CampgroundSearchResult:
+        """Resolve a native campground using exact entity filtering upstream."""
+        campground_id = self._native_id(campground_id)
+        results = await self._search_pages(
+            ProviderSearchQuery(entity_type=SearchEntityType.CAMPGROUND),
+            complete=True,
+            entity_id=campground_id,
+        )
+        for result in results:
+            if (
+                isinstance(result, CampgroundSearchResult)
+                and result.campground_id == campground_id
+            ):
+                return result
+        raise ValueError(f"Unknown or unbookable campground ID: {campground_id}")
+
+    async def get_recreation_area(
+        self, recreation_area_id: str
+    ) -> RecreationAreaSearchResult:
+        """Resolve an exact recreation-area entity independently of its children."""
+        recreation_area_id = self._native_id(recreation_area_id)
+        results = await self._search_pages(
+            ProviderSearchQuery(entity_type=SearchEntityType.RECREATION_AREA),
+            complete=True,
+            entity_id=recreation_area_id,
+        )
+        for result in results:
+            if (
+                isinstance(result, RecreationAreaSearchResult)
+                and result.recreation_area_id == recreation_area_id
+            ):
+                return result
+        raise ValueError(f"Unknown recreation-area ID: {recreation_area_id}")
+
+    async def filter_campgrounds(
+        self,
+        campgrounds: list[CampgroundSearchResult],
+        *,
+        query: str = "",
+        state: str | None = None,
+    ) -> list[CampgroundSearchResult]:
+        """Retain native relevance within bounded batches of selected identities."""
+        request = ProviderSearchQuery(
+            query=query.strip(),
+            state=state.strip().upper() if state is not None else None,
+            entity_type=SearchEntityType.CAMPGROUND,
+        )
+        if not request.query:
+            return await super().filter_campgrounds(campgrounds, state=state)
+        matched: set[str] = set()
+        native_ids = list(dict.fromkeys(c.campground_id for c in campgrounds))
+        batch_size = 50
+        for start in range(0, len(native_ids), batch_size):
+            records = await self._search_pages(
+                request,
+                complete=True,
+                entity_ids=native_ids[start : start + batch_size],
+            )
+            matched.update(
+                result.campground_id
+                for result in records
+                if isinstance(result, CampgroundSearchResult)
+            )
+        return [result for result in campgrounds if result.campground_id in matched]
+
+    async def _search_pages(
+        self,
+        query: ProviderSearchQuery,
+        *,
+        complete: bool = False,
+        entity_id: str | None = None,
+        entity_ids: list[str] | None = None,
+    ) -> list[ProviderSearchResult]:
+        """Validate and aggregate complete pages or stop at a discovery limit."""
         results: dict[tuple[str, str], ProviderSearchResult] = {}
-        filters = [
-            {
-                "campground": "entity_type:campground",
-                "recreation_area": "entity_type:recarea",
-                None: "entity_type:(campground OR recarea)",
-            }[query.entity_type]
-        ]
-        if query.entity_type == "campground" and query.recreation_area_id is not None:
-            filters.append(f"parent_asset_id:{query.recreation_area_id}")
+        filters = self._search_filters(query, entity_id, entity_ids)
         start = 0
         expected_total = None
         while True:
@@ -165,10 +240,32 @@ class RecreationGovProvider(BaseProvider):
                 if result is not None and result.matches(query, match_text=False):
                     results[(item.entity_type, item.entity_id)] = result
             start += len(page.results)
-            if len(results) >= query.limit or start >= page.total:
+            if (not complete and len(results) >= query.limit) or start >= page.total:
                 return list(results.values())
             if not page.results or start >= _MAX_SEARCH_RECORDS:
                 raise ValueError("Recreation.gov search pagination made no progress")
+
+    @staticmethod
+    def _search_filters(
+        query: ProviderSearchQuery,
+        entity_id: str | None,
+        entity_ids: list[str] | None,
+    ) -> list[str]:
+        """Keep exact native identities separate from relevance text."""
+        filters = [
+            {
+                "campground": "entity_type:campground",
+                "recreation_area": "entity_type:recarea",
+                None: "entity_type:(campground OR recarea)",
+            }[query.entity_type]
+        ]
+        if query.entity_type == "campground" and query.recreation_area_id is not None:
+            filters.append(f"parent_asset_id:{query.recreation_area_id}")
+        if entity_id is not None:
+            filters.append(f"entity_id:{entity_id}")
+        if entity_ids is not None:
+            filters.append(f"entity_id:({' OR '.join(entity_ids)})")
+        return filters
 
     def _to_search_result(
         self, item: RecDotGovSearchResult

@@ -180,6 +180,18 @@ class ReserveAmericaProvider(BaseProvider):
         self, query: ProviderSearchQuery
     ) -> list[ProviderSearchResult]:
         """Search verified state endpoints; no synthetic parent park identities."""
+        return await self._search_catalog(query)
+
+    async def _complete_search(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
+        """Visit all states for exact resolution, without the discovery limit."""
+        return await self._search_catalog(query, complete=True)
+
+    async def _search_catalog(
+        self, query: ProviderSearchQuery, *, complete: bool = False
+    ) -> list[ProviderSearchResult]:
+        """Aggregate complete state pages using ordinary eligibility rules."""
         if (
             query.recreation_area_id is not None
             or query.entity_type == "recreation_area"
@@ -226,7 +238,7 @@ class ReserveAmericaProvider(BaseProvider):
                 )
                 if result.matches(query):
                     results[facility.key] = result
-            if len(results) >= query.limit:
+            if not complete and len(results) >= query.limit:
                 break
         return list(results.values())
 

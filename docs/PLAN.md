@@ -35,8 +35,11 @@ and the population utility; optional extras supply `server`, `distributed`,
 independent. API-only installs do not execute scheduled scans unless standalone mode is selected.
 Standalone provides bounded local scheduling and serves the bundled frontend from one
 Python process. Root source builds produce complete wheels and sdists; prepared
-sdists rebuild without JavaScript tooling. New CLI subcommands and PyPI publication
-remain separate work.
+sdists rebuild without JavaScript tooling. The base CLI provides current-provider
+discovery and foreground campground availability monitoring; see the
+[command-line guide](cli.md). Full legacy CLI parity remains tracked through
+[feature 026's deferred TODOs](specs/026-cli-parity/tasks.md#deferred-todo-registry).
+PyPI publication remains separate work.
 
 ## 🚀 Strategic Feature Requirements
 

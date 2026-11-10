@@ -194,8 +194,7 @@ Anonymous session setup uses the public search page. Before each API attempt, op
 Every registered provider supports `await provider.search(query="", state=None,
 recreation_area_id=None, entity_type=None, limit=50)` through `BaseProvider`.
 This discovers upstream entities without database access or metadata ingestion.
-It is a Python API for future CLI use; web search continues to use the database,
-and no CLI search command is introduced here.
+The foreground CLI consumes this API; web search continues to use the database.
 
 `search()` handles argument normalization, validation, deduplication, and limits.
 Provider API families implement the public abstract method
@@ -258,3 +257,30 @@ state filter it gets US states from `config/brand`, visiting sorted states until
 enough matches exist. This can be slow for uncommon names; supply a state for
 interactive use. HTTP, validation, and incomplete-page errors propagate without
 returning partial results. See the [specification](../specs/025-provider-search/spec.md).
+
+### Exact CLI targets and complete area expansion
+
+`get_campground(campground_id)` returns a typed `CampgroundSearchResult` for one
+exact eligible native ID; `get_recreation_area(recreation_area_id)` returns a
+visible area. Blank, unknown, hidden or unbookable campground IDs raise `ValueError`.
+IDs remain trimmed opaque strings, including ReserveAmerica's composite IDs.
+
+`iter_campgrounds(recreation_area_id)` validates the area and enumerates every
+eligible child without a display limit. An unknown area is an error; a known area
+with no eligible campgrounds is empty. Complete metadata pages are validated before
+yielding targets, so a late page failure does not expose a partial selection.
+Catalog families reuse native full catalogs; paginated families exhaust their
+source independently of `search`'s 1–1000 limit. Recreation.gov exact lookup uses
+native entity-type and entity-ID filters. ReserveAmerica has no parent areas and
+uses complete native state catalogs for exact campground resolution.
+
+`filter_campgrounds(campgrounds, query=..., state=...)` applies the provider's
+discovery relevance to already resolved candidates. Catalog providers use local
+name/city and state matching; Recreation.gov queries upstream relevance in bounded
+ID batches and intersects it with the selected targets. Resolving IDs first keeps
+an invalid selection distinct from a valid selection excluded by text/state.
+
+The CLI probes up to 51 unique discovery results, displays 50, and reports actual
+truncation. Availability area expansion uses the uncapped target contract. No site
+catalog, equipment contract or application database is added for these operations.
+See [feature 026](../specs/026-cli-parity/plan.md).

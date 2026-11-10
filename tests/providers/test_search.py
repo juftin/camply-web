@@ -539,3 +539,308 @@ async def test_recreation_gov_parent_filter_is_sent_upstream(monkeypatch):
         )
         assert [result.campground_id for result in results] == ["10"]
         assert len(requests) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("provider_cls", PROVIDERS.values())
+async def test_exact_campground_resolution_is_native_and_eligible(
+    provider_cls, monkeypatch
+):
+    """Every variant resolves exact native IDs without ingesting metadata."""
+    async with upstream(provider_cls, monkeypatch) as (provider, requests):
+        native = "CO_10" if isinstance(provider, ReserveAmericaProvider) else "10"
+        result = await provider.get_campground(f"  {native}  ")
+        assert result.campground_id == native
+        assert result.provider_id == provider.provider.id
+        assert result.campground_name == "Pine Camp"
+        assert result.booking_url.startswith("https://")
+        with pytest.raises(ValueError, match="Unknown or unbookable"):
+            await provider.get_campground("CO_11" if native == "CO_10" else "11")
+        with pytest.raises(ValueError, match="Unknown or unbookable"):
+            await provider.get_campground("missing")
+        assert requests
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("provider_cls", PROVIDERS.values())
+async def test_blank_native_selectors_fail_before_io(provider_cls, monkeypatch):
+    """Opaque IDs are normalized without permitting empty catalog selectors."""
+    async with upstream(provider_cls, monkeypatch) as (provider, requests):
+        with pytest.raises(ValueError, match="blank"):
+            await provider.get_campground("  ")
+        with pytest.raises(ValueError, match="blank"):
+            await provider.get_recreation_area("  ")
+        with pytest.raises(ValueError, match="blank"):
+            _ = [item async for item in provider.iter_campgrounds("  ")]
+        assert not requests
+
+
+def complete_catalog(provider):
+    """Build more targets than the public provider-search maximum accepts."""
+    data = catalog(provider)
+    count = 1005
+    if isinstance(provider, UseDirectProvider):
+        template = data["fd/facilities"][0]
+        data["fd/facilities"] = [
+            {**template, "FacilityId": n, "Name": f"Camp {n}"} for n in range(count)
+        ]
+        data["fd/places"].append(
+            {"PlaceId": 3, "Name": "Empty Park", "AllowWebBooking": True}
+        )
+    elif isinstance(provider, GoingToCampProvider):
+        template = data["resourceLocation"][0]
+        data["resourceLocation"] = [
+            {
+                **template,
+                "resourceLocationId": n,
+                "localizedValues": [{"name": f"Camp {n}"}],
+            }
+            for n in range(count)
+        ]
+        data["transactionlocation"].append(
+            {"transactionLocationId": 3, "localizedValues": [{"name": "Empty Park"}]}
+        )
+    else:
+        data["api/search"] = [
+            {
+                "entity_id": str(n),
+                "entity_type": "campground",
+                "name": f"Camp {n}",
+                "reservable": True,
+                "parent_id": "1",
+            }
+            for n in range(count)
+        ]
+    return data
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "provider_cls", [p for key, p in PROVIDERS.items() if key != 13]
+)
+async def test_area_expansion_has_no_display_or_search_cap(provider_cls, monkeypatch):
+    """Availability target resolution exhausts large areas, including later pages."""
+    provider = provider_cls()
+    await provider.async_client.aclose()
+    data = complete_catalog(provider)
+    starts = []
+
+    def respond(request):
+        if request.url.path.endswith("/api/search"):
+            filters = request.url.params.get_list("fq")
+            if "entity_type:recarea" in filters:
+                native = next(f[10:] for f in filters if f.startswith("entity_id:"))
+                records = (
+                    [{"entity_id": native, "entity_type": "recarea", "name": "Park"}]
+                    if native in {"1", "3"}
+                    else []
+                )
+            else:
+                records = data["api/search"]
+                identity = next(
+                    (f[10:] for f in filters if f.startswith("entity_id:")), None
+                )
+                if identity is not None:
+                    records = [r for r in records if r["entity_id"] == identity]
+                if "parent_asset_id:3" in filters:
+                    records = []
+            start = int(request.url.params["start"])
+            starts.append(start)
+            return httpx2.Response(
+                200,
+                json={
+                    "start": start,
+                    "total": len(records),
+                    "results": records[start : start + 50],
+                },
+            )
+        key = next(key for key in data if request.url.path.endswith("/" + key))
+        return httpx2.Response(200, json=data[key])
+
+    async with upstream(provider_cls, monkeypatch, respond) as (provider, requests):
+        area_id = "-1" if isinstance(provider, GoingToCampProvider) else "1"
+        result = [item async for item in provider.iter_campgrounds(area_id)]
+        assert len(result) == 1005
+        assert {r.campground_id for r in result} == {str(n) for n in range(1005)}
+        assert (await provider.get_campground("1004")).campground_id == "1004"
+        assert [item async for item in provider.iter_campgrounds("3")] == []
+        with pytest.raises(ValueError, match="Unknown recreation-area"):
+            _ = [item async for item in provider.iter_campgrounds("missing")]
+        assert requests
+    if starts:
+        assert 1000 in starts
+
+
+@pytest.mark.asyncio
+async def test_reserveamerica_exact_lookup_exhausts_later_states(monkeypatch):
+    """An exact composite ID cannot be lost behind a first-state display limit."""
+    requests = []
+
+    def respond(request):
+        requests.append(request)
+        if request.url.path.endswith("config/brand"):
+            return httpx2.Response(
+                200,
+                json={
+                    "states": [
+                        {"stateCode": s, "countryCode": "USA"} for s in ("CO", "UT")
+                    ]
+                },
+            )
+        if request.url.path.endswith("/search"):
+            state = request.url.params["tstc"]
+            start = int(request.url.params["rcp"]) * 50
+            count = 60
+            records = [
+                {
+                    "name": f"Camp {n}",
+                    "details": {
+                        "id": n,
+                        "contrCode": state,
+                        "stateCodes": [state],
+                        "verifiableAvailability": True,
+                        "nonClientFacility": False,
+                        "dayUseOnly": False,
+                        "facilityTypes": ["camping"],
+                    },
+                }
+                for n in range(start, min(start + 50, count))
+            ]
+            return httpx2.Response(
+                200,
+                json={
+                    "control": {"currentPage": start // 50, "pageSize": 50},
+                    "totalRecords": count,
+                    "totalPages": 2,
+                    "records": records,
+                },
+            )
+        return httpx2.Response(200)
+
+    async with upstream(ReserveAmericaProvider, monkeypatch, respond) as (provider, _):
+        result = await provider.get_campground("UT_59")
+        assert result.campground_id == "UT_59"
+        assert result.recreation_area_id is None
+        assert any(r.url.params.get("tstc") == "UT" for r in requests)
+        before = len(requests)
+        with pytest.raises(ValueError, match="Unknown recreation-area"):
+            _ = [item async for item in provider.iter_campgrounds("1")]
+        assert len(requests) == before
+
+
+@pytest.mark.asyncio
+async def test_area_expansion_does_not_publish_partial_pages(monkeypatch):
+    """A failed later page cannot turn an incomplete area into polling targets."""
+    requests = []
+
+    def respond(request):
+        requests.append(request)
+        if "entity_type:recarea" in request.url.params.get_list("fq"):
+            return httpx2.Response(
+                200,
+                json={
+                    "start": 0,
+                    "total": 1,
+                    "results": [
+                        {"entity_id": "1", "entity_type": "recarea", "name": "Park"}
+                    ],
+                },
+            )
+        if request.url.params["start"] != "0":
+            return httpx2.Response(503)
+        return httpx2.Response(
+            200,
+            json={
+                "start": 0,
+                "total": 100,
+                "results": [
+                    {
+                        "entity_id": str(n),
+                        "entity_type": "campground",
+                        "name": f"Camp {n}",
+                        "reservable": True,
+                        "parent_id": "1",
+                    }
+                    for n in range(50)
+                ],
+            },
+        )
+
+    async with upstream(PROVIDERS[1], monkeypatch, respond) as (provider, _):
+        targets = provider.iter_campgrounds("1")
+        with pytest.raises(httpx2.HTTPStatusError):
+            await anext(targets)
+        assert len(requests) == 3
+
+
+@pytest.mark.asyncio
+async def test_selected_recgov_text_uses_native_relevance_in_bounded_batches(
+    monkeypatch,
+):
+    """Selected IDs beyond the display limit retain upstream relevance semantics."""
+    from camply.providers.dto import CampgroundSearchResult
+
+    candidates = [
+        CampgroundSearchResult(
+            provider_id=1,
+            provider_name="Recreation.gov",
+            campground_id=str(n),
+            campground_name="A name without the query",
+            state="CA",
+            booking_url=f"https://example.test/camp/{n}",
+        )
+        for n in range(105)
+    ]
+    calls = []
+
+    def respond(request):
+        calls.append(request)
+        assert request.url.params["q"] == "wild forest"
+        filters = request.url.params.get_list("fq")
+        native_filter = next(f for f in filters if f.startswith("entity_id:"))
+        ids = native_filter.removeprefix("entity_id:(").removesuffix(")").split(" OR ")
+        assert len(ids) <= 50
+        records = [
+            {
+                "entity_id": native,
+                "entity_type": "campground",
+                "name": "Upstream related result",
+                "reservable": True,
+                "state_code": "CA",
+            }
+            for native in ids
+            if native in {"50", "101"}
+        ]
+        return httpx2.Response(
+            200, json={"start": 0, "total": len(records), "results": records}
+        )
+
+    async with upstream(PROVIDERS[1], monkeypatch, respond) as (provider, _):
+        matched = await provider.filter_campgrounds(
+            candidates, query="  wild forest  ", state=" ca "
+        )
+        assert [result.campground_id for result in matched] == ["50", "101"]
+        assert matched[0] is candidates[50]
+        assert len(calls) == 3
+        assert await provider.filter_campgrounds(candidates, state="OR") == []
+        assert len(calls) == 3
+        assert await provider.filter_campgrounds([], query="wild forest") == []
+        assert len(calls) == 3
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "provider_cls", [p for key, p in PROVIDERS.items() if key != 1]
+)
+async def test_selected_catalog_filters_use_native_metadata(provider_cls, monkeypatch):
+    """Catalog families retain their substring and normalized state semantics."""
+    async with upstream(provider_cls, monkeypatch) as (provider, requests):
+        identity = "CO_10" if isinstance(provider, ReserveAmericaProvider) else "10"
+        candidate = await provider.get_campground(identity)
+        count = len(requests)
+        assert await provider.filter_campgrounds([candidate], query="  pInE  ") == [
+            candidate
+        ]
+        assert await provider.filter_campgrounds([candidate], query="unrelated") == []
+        assert await provider.filter_campgrounds([candidate], state="zz") == []
+        assert len(requests) == count
