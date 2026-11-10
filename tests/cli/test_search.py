@@ -299,8 +299,8 @@ def test_discovery_normalizes_search_state_and_requests_probe(
     assert result.exit_code == 0, result.output
     assert 'Searching for Recreation Areas: "Yosemite"' in result.stdout
     assert "1 recreation areas found." in result.stdout
-    assert "Recreation Areas" in result.stdout
-    assert "│ Recreation.gov │ park │ Yosemite" in result.stdout
+    assert "Recreation.gov Recreation Areas" in result.stdout
+    assert "│ park │ Yosemite" in result.stdout
     assert transcript.searches[0][1] == "Yosemite"
     assert transcript.searches[0][2] == {
         "state": "CA",
@@ -317,7 +317,9 @@ def test_display_limit_distinguishes_exactly_fifty(
     transcript.results = [campground(f"{index:03}") for index in reversed(range(count))]
     result = CliRunner().invoke(cli, ["campgrounds"])
     assert result.exit_code == 0, result.output
-    assert result.stdout.count("│ Recreation.gov │ ") == min(count, 50)
+    assert sum(line.startswith("│ 0") for line in result.stdout.splitlines()) == min(
+        count, 50
+    )
     assert ("more results exist" in result.stderr) is truncated
     if count:
         assert "50 Matching Campgrounds Found" in result.stdout
@@ -493,10 +495,10 @@ def test_real_command_prints_sliding_stays_and_continues_after_matches(
     )
     assert result.exit_code == 1  # Simulated cancellation after two successful cycles.
     assert transcript.checks == [("001", date(2027, 7, 9), date(2027, 7, 13))] * 2
-    assert "Available Campsites" in result.stdout
+    assert "Recreation.gov Available Campsites" in result.stdout
     assert "2 Reservable Campsites Matching Search Preferences" in result.stdout
-    assert result.stdout.count("│ 2027-07-09 │ 2027-07-12 │ 3 night(s) │") == 2
-    assert result.stdout.count("│ 2027-07-10 │ 2027-07-13 │ 3 night(s) │") == 2
+    assert result.stdout.count("│ 2027-07-09 to 2027-07-12 (3 night(s)) │") == 2
+    assert result.stdout.count("│ 2027-07-10 to 2027-07-13 (3 night(s)) │") == 2
     assert "Site One (#site-01)" in result.stdout
     assert "National Park (#parent)" in result.stdout
     assert "https://booking.example.invalid/campgrounds/001" in result.stdout
@@ -525,8 +527,8 @@ def test_weekend_and_repeated_weekday_union_reaches_matching(
         ],
     )
     assert result.exit_code == 1
-    assert result.stdout.count("│ 2027-07-09 │ 2027-07-12 │") == 2
-    assert "│ 2027-07-10 │ 2027-07-13 │" not in result.stdout
+    assert result.stdout.count("│ 2027-07-09 to 2027-07-12 (3 night(s)) │") == 2
+    assert "│ 2027-07-10 to 2027-07-13 (3 night(s)) │" not in result.stdout
 
 
 def test_repeated_windows_merge_without_gap_or_duplicate_requests(
@@ -725,8 +727,9 @@ def test_rich_and_python_log_handlers_log_banners_and_tables(
     assert 'Using Camply Provider: "RecreationDotGov"' in result.stdout
     assert 'Searching for Campgrounds: "Pine"' in result.stdout
     assert "1 Matching Campgrounds Found" in result.stdout
-    assert "Campgrounds" in result.stdout
-    assert "│ Recreation.gov │ 001 │ Pine Camp  │" in result.stdout
+    assert "Recreation.gov Campgrounds" in result.stdout
+    assert "│ 001 │ Pine Camp (CA) │" in result.stdout
+    assert any(line.startswith("┏") for line in result.stdout.splitlines())
     assert "Exiting camply 👋" in result.stdout
     assert "Setting up camply debugging" in result.stderr
     assert "Camply Version:" in result.stderr

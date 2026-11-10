@@ -11,7 +11,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] Restore current-provider discovery and campground-based availability through shared base-only capabilities: exact metadata lookup, complete area expansion, paired date/day matching, continuous console output and cancellation cleanup.
 - [x] Verify initial CLI acceptance with full test/lint/type/docs gates and installed wheel/sdist checks on Python 3.11/3.14; keep all D01–D13 deferred.
 - [x] Separate CLI commands/groups into dedicated modules, centralize reusable options and share discovery/output/execution helpers while preserving lazy imports and command behavior.
-- [x] Add `camply` v1-style Rich CLI logging (`CAMPLY` log level, welcome/exit banners, debug diagnostics, `CAMPLY_LOG_HANDLER=python` fallback, and stdout/stderr stream separation), log provider/discovery/availability results in Rich `Table`s without truncation, and verify CLI terminal screenshots in Chromium and `pytest`.
+- [x] Add `camply` v1-style Rich CLI logging (`CAMPLY` log level, welcome/exit banners, debug diagnostics, `CAMPLY_LOG_HANDLER=python` fallback, and stdout/stderr stream separation), print provider/discovery/availability results in compact Rich `Table`s without truncation, and verify CLI terminal screenshots in Chromium and `pytest`.
 - [x] Stabilize snapshot capture by waiting for visible image/font readiness, cover delayed lazy-image loading without network-idle waits, and refresh the complete desktop light profile baseline from macOS CI.
 - [ ] Brainstorm CLI lifecycle and `--continuous` / `--search-forever` / `--search-once`; intended default is search forever. Deferred TODO implementation is outside the initial release gate.
 
