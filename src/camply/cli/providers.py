@@ -6,7 +6,7 @@ import click
 
 from camply.cli import options
 from camply.cli.options import resolve_debug
-from camply.cli.output import diagnostic
+from camply.cli.output import diagnostic, log_camply, render_providers
 from camply.db.data import providers as identities
 from camply.db.models import Provider
 from camply.providers import PROVIDERS
@@ -49,12 +49,7 @@ def providers_cmd(ctx: click.Context, debug: bool | None) -> None:
         "Listing registered providers without network access.",
         resolve_debug(ctx, debug),
     )
-    for name, (_, identity) in provider_entries().items():
-        areas = (
-            "no recreation-area catalog"
-            if name == "ReserveAmerica"
-            else "recreation-area discovery"
-        )
-        click.echo(
-            f"{name} | {identity.name} | {areas}; campground discovery; campground availability"
-        )
+    try:
+        render_providers(provider_entries())
+    finally:
+        log_camply("Exiting camply 👋")

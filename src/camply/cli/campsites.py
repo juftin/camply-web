@@ -8,7 +8,7 @@ from camply.cli import options
 from camply.cli.discovery import normalize_ids, resolve_targets
 from camply.cli.execution import run
 from camply.cli.options import ISODate, resolve_debug
-from camply.cli.output import diagnostic, render_stays
+from camply.cli.output import diagnostic, logger, render_stays
 from camply.cli.providers import selected_provider
 
 
@@ -81,27 +81,39 @@ def campsites_cmd(
         )
     except ValueError as exc:
         raise click.UsageError(str(exc)) from exc
-    for warning in request.warnings:
-        click.echo(f"Warning: {warning}", err=True)
-    if areas and campgrounds:
-        click.echo(
-            "Ignoring --rec-area because explicit --campground IDs take precedence.",
-            err=True,
-        )
     diagnostic(
         f"Watching campground availability on {name}; cancel with Ctrl-C.",
         resolve_debug(ctx, debug),
+        provider=name,
     )
+    for warning in request.warnings:
+        logger.warning("Warning: %s", warning)
+    if areas and campgrounds:
+        logger.warning(
+            "Ignoring --rec-area because explicit --campground IDs take precedence."
+        )
+    logger.info(
+        "%s booking nights selected for search, ranging from %s to %s",
+        len(request.eligible_dates),
+        min(request.eligible_dates).isoformat(),
+        max(request.eligible_dates).isoformat(),
+    )
+    if request.nights > 1:
+        logger.info(
+            "Searching for availabilities with %s consecutive night stays.",
+            request.nights,
+        )
 
     async def watch() -> None:
         instance = provider_class()
         try:
             targets = await resolve_targets(instance, areas, campgrounds)
             if not targets:
-                click.echo(
+                logger.info(
                     "No eligible campgrounds found in the selected recreation areas."
                 )
                 return
+            logger.info("Found %s campgrounds to search", len(targets))
             await monitor(instance, targets, request, render_stays)
         finally:
             await instance.async_client.aclose()

@@ -6,7 +6,7 @@ from camply.cli import options
 from camply.cli.discovery import RESULT_PROBE, discovery_query
 from camply.cli.execution import run
 from camply.cli.options import resolve_debug
-from camply.cli.output import diagnostic, render_discovery
+from camply.cli.output import diagnostic, logger, render_discovery
 from camply.cli.providers import selected_provider
 from camply.providers.dto import SearchEntityType
 
@@ -27,7 +27,15 @@ def recreation_areas_cmd(
     """Discover recreation areas directly from the booking provider."""
     name, provider_class = selected_provider(ctx, provider)
     query = discovery_query(search, state)
-    diagnostic(f"Discovering recreation areas on {name}.", resolve_debug(ctx, debug))
+    diagnostic(
+        f"Discovering recreation areas on {name}.",
+        resolve_debug(ctx, debug),
+        provider=name,
+    )
+    if query.query:
+        logger.info('Searching for Recreation Areas: "%s"', query.query)
+    else:
+        logger.info("Searching for Recreation Areas")
 
     async def discover() -> None:
         instance = provider_class()
