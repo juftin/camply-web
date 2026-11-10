@@ -110,12 +110,13 @@ def synthetic_environment(installation: Installation, endpoint: str) -> dict[str
     seam = installation.directory / "synthetic-upstream"
     seam.mkdir(exist_ok=True)
     (seam / "sitecustomize.py").write_text(
+        "import os\n"
         "import sys\n"
         "from pathlib import Path\n"
         "import camply.core.search as search\n"
         "import camply.providers.usedirect.provider as usedirect\n"
         "from camply.providers.usedirect.variations import ReserveCaliforniaProvider\n"
-        f"ReserveCaliforniaProvider.api_url = {endpoint!r}\n"
+        "ReserveCaliforniaProvider.api_url = os.environ['CAMPLY_TEST_ENDPOINT']\n"
         "usedirect._REQUEST_INTERVAL = 0\n"
         "search.POLL_INTERVAL_SECONDS = 0.02\n"
         "def audit(event, args):\n"
@@ -129,6 +130,8 @@ def synthetic_environment(installation: Installation, endpoint: str) -> dict[str
     return {
         **clean_environment(),
         "PYTHONPATH": str(seam),
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "CAMPLY_TEST_ENDPOINT": endpoint,
         "PUSHOVER_APP_TOKEN": "malformed:synthetic-secret",
         "PUSHOVER_USER_KEY": "malformed:synthetic-recipient",
         "CAMPLY_PROVIDER": "ReserveCalifornia",
