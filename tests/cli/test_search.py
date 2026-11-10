@@ -173,12 +173,16 @@ def test_help_and_listing_never_construct_a_provider(
 def test_provider_capabilities_are_truthful(transcript: Transcript) -> None:
     result = CliRunner().invoke(cli, ["providers"])
     assert result.exit_code == 0
-    assert len(result.stdout.splitlines()) == 13
-    assert "RecreationDotGov | Recreation.gov" in result.stdout
+    assert "camply, the campsite finder ⛺️" in result.stdout
+    assert "camply currently supports 13 providers:" in result.stdout
+    assert sum('":    ' in line for line in result.stdout.splitlines()) == 13
+    assert '"RecreationDotGov":    Recreation.gov' in result.stdout
     assert (
-        "ReserveAmerica | ReserveAmerica | no recreation-area catalog" in result.stdout
+        '"ReserveAmerica":    ReserveAmerica (no recreation-area catalog'
+        in result.stdout
     )
     assert "GoingToCamp" not in result.stdout
+    assert "Exiting camply 👋" in result.stdout
 
 
 @pytest.mark.parametrize(
@@ -292,7 +296,9 @@ def test_discovery_normalizes_search_state_and_requests_probe(
         cli, ["recreation-areas", "--search", "  Yosemite  ", "--state", " ca "]
     )
     assert result.exit_code == 0, result.output
-    assert "Recreation area park: Yosemite" in result.stdout
+    assert 'Searching for Recreation Areas: "Yosemite"' in result.stdout
+    assert "1 recreation areas found." in result.stdout
+    assert "⛰  Yosemite (#park)" in result.stdout
     assert transcript.searches[0][1] == "Yosemite"
     assert transcript.searches[0][2] == {
         "state": "CA",
@@ -309,11 +315,12 @@ def test_display_limit_distinguishes_exactly_fifty(
     transcript.results = [campground(f"{index:03}") for index in reversed(range(count))]
     result = CliRunner().invoke(cli, ["campgrounds"])
     assert result.exit_code == 0, result.output
-    assert result.stdout.count("| Campground ") == min(count, 50)
+    assert result.stdout.count("🏕  Pine Camp (#") == min(count, 50)
     assert ("more results exist" in result.stderr) is truncated
     if count:
-        assert result.stdout.index("Campground 000") < result.stdout.index(
-            "Campground 049"
+        assert "50 Matching Campgrounds Found" in result.stdout
+        assert result.stdout.index("🏕  Pine Camp (#000)") < result.stdout.index(
+            "🏕  Pine Camp (#049)"
         )
     else:
         assert "No eligible campgrounds" in result.stdout
@@ -486,10 +493,16 @@ def test_real_command_prints_sliding_stays_and_continues_after_matches(
     )
     assert result.exit_code == 1  # Simulated cancellation after two successful cycles.
     assert transcript.checks == [("001", date(2027, 7, 9), date(2027, 7, 13))] * 2
-    assert result.stdout.count("2027-07-09 to 2027-07-12 | 3 night(s)") == 2
-    assert result.stdout.count("2027-07-10 to 2027-07-13 | 3 night(s)") == 2
-    assert "Site One" in result.stdout and "National Park" in result.stdout
-    assert "https://booking.example.invalid" in result.stdout
+    assert "1 Matching Campgrounds Found" in result.stdout
+    assert "⛰  National Park, CA (#parent) - 🏕  Pine Camp (#001)" in result.stdout
+    assert "Searching across 1 campgrounds" in result.stdout
+    assert "2 Reservable Campsites Matching Search Preferences" in result.stdout
+    assert result.stdout.count("📅 Fri, July 09 🏕  1 sites") == 2
+    assert result.stdout.count("📅 Sat, July 10 🏕  1 sites") == 2
+    assert "⛰️  National Park, CA  🏕  Pine Camp: ⛺ 1 sites" in result.stdout
+    assert (
+        "🔗 https://booking.example.invalid/campgrounds/001 (3 nights)" in result.stdout
+    )
     assert "Ignoring --rec-area" in result.stderr
     assert transcript.areas == []
     transcript.clients[0].aclose.assert_awaited_once()
@@ -515,8 +528,8 @@ def test_weekend_and_repeated_weekday_union_reaches_matching(
         ],
     )
     assert result.exit_code == 1
-    assert result.stdout.count("2027-07-09 to 2027-07-12") == 2
-    assert "2027-07-10 to 2027-07-13" not in result.stdout
+    assert result.stdout.count("📅 Fri, July 09 🏕  1 sites") == 2
+    assert "📅 Sat, July 10" not in result.stdout
 
 
 def test_repeated_windows_merge_without_gap_or_duplicate_requests(
@@ -699,3 +712,96 @@ def test_provider_without_area_catalog_returns_explained_empty(
     assert "No recreation areas found" in result.stdout
     assert "may not have a recreation-area catalog" in result.stdout
     transcript.clients[0].aclose.assert_awaited_once()
+
+
+@pytest.mark.parametrize("handler", ["rich", "python"])
+def test_rich_and_python_log_handlers_log_banners_and_tables(
+    transcript: Transcript, monkeypatch: pytest.MonkeyPatch, handler: str
+) -> None:
+    monkeypatch.setenv("CAMPLY_LOG_HANDLER", handler)
+    result = CliRunner().invoke(
+        cli, ["campgrounds", "--debug", "--search", "Pine", "--state", "CA"]
+    )
+    assert result.exit_code == 0, result.output
+    assert "CAMPLY" in result.stdout
+    assert "camply, the campsite finder ⛺️" in result.stdout
+    assert 'Using Camply Provider: "RecreationDotGov"' in result.stdout
+    assert 'Searching for Campgrounds: "Pine"' in result.stdout
+    assert "1 Matching Campgrounds Found" in result.stdout
+    assert "⛰  National Park, CA (#parent) - 🏕  Pine Camp (#001)" in result.stdout
+    assert "Exiting camply 👋" in result.stdout
+    assert "Setting up camply debugging" in result.stderr
+    assert "Camply Version:" in result.stderr
+    assert "Python Version:" in result.stderr
+    assert "Platform:" in result.stderr
+
+
+def test_rich_cli_screenshot_html_and_svg_export() -> None:
+    """Rich CLI handler exports full-width HTML and SVG terminal captures."""
+    import io
+    import logging
+
+    from rich.console import Console
+
+    from camply.cli.output import (
+        CAMPLY_LOG_LEVEL,
+        CamplyRichHandler,
+        log_camply,
+        render_discovery,
+        render_providers,
+        render_stays,
+    )
+    from camply.core.search import AvailabilityStay
+
+    console = Console(
+        file=io.StringIO(),
+        record=True,
+        force_terminal=True,
+        color_system="truecolor",
+        width=120,
+    )
+    handler = CamplyRichHandler(
+        console=console,
+        show_path=False,
+        markup=False,
+        rich_tracebacks=True,
+        log_time_format="[%Y-%m-%d %H:%M:%S]",
+    )
+    cli_logger = logging.getLogger("camply.cli")
+    previous_handlers = list(cli_logger.handlers)
+    previous_level = cli_logger.level
+    cli_logger.handlers = [handler]
+    cli_logger.setLevel(logging.DEBUG)
+    target = campground("232450", name="Lower Pines")
+    try:
+        log_camply("camply, the campsite finder ⛺️")
+        cli_logger.info('Using Camply Provider: "RecreationDotGov"')
+        render_providers(dict(list(provider_entries().items())[:3]))
+        render_discovery([target], empty="No campgrounds found.")
+        render_stays(
+            [
+                AvailabilityStay(
+                    campground=target,
+                    campsite_id="1001",
+                    campsite_name="Site 014",
+                    arrival=date(2030, 7, 10),
+                    checkout=date(2030, 7, 13),
+                    booking_url="https://www.recreation.gov/camping/campsites/1001",
+                )
+            ]
+        )
+        log_camply("Exiting camply 👋")
+    finally:
+        cli_logger.handlers = previous_handlers
+        cli_logger.setLevel(previous_level)
+
+    assert logging.getLevelName(CAMPLY_LOG_LEVEL) == "CAMPLY"
+    html = console.export_html(inline_styles=True, clear=False)
+    svg = console.export_svg(title="camply cli").replace("&#160;", " ")
+    for export in (html, svg):
+        assert "camply, the campsite finder" in export
+        assert "RecreationDotGov" in export
+        assert "Lower Pines" in export and "232450" in export
+        assert "Wed, July" in export
+        assert "https://www.recreation.gov/camping/campsites/1001" in export
+        assert "Exiting camply" in export

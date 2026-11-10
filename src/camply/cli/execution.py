@@ -10,6 +10,8 @@ import click
 import structlog
 from pydantic import ValidationError
 
+from camply.cli.output import log_camply, logger
+
 _T = TypeVar("_T")
 
 
@@ -63,6 +65,7 @@ def run(operation: Callable[[], Awaitable[_T]]) -> _T:
         with _quiet_provider_logs():
             return asyncio.run(_cancellable(operation))
     except (KeyboardInterrupt, asyncio.CancelledError) as exc:
+        logger.debug("Handling Exit Request")
         raise click.Abort() from exc
     except ValidationError as exc:
         raise click.ClickException(
@@ -74,3 +77,5 @@ def run(operation: Callable[[], Awaitable[_T]]) -> _T:
         raise click.ClickException(
             f"Provider request failed ({type(exc).__name__}); check connectivity and try again."
         ) from exc
+    finally:
+        log_camply("Exiting camply 👋")

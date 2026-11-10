@@ -11,7 +11,7 @@ from camply.cli.discovery import (
 )
 from camply.cli.execution import run
 from camply.cli.options import resolve_debug
-from camply.cli.output import diagnostic, render_discovery
+from camply.cli.output import diagnostic, logger, render_discovery
 from camply.cli.providers import selected_provider
 from camply.providers.dto import ProviderSearchResult, SearchEntityType
 
@@ -40,12 +40,19 @@ def campgrounds_cmd(
         normalize_ids(rec_area, "--rec-area"),
         normalize_ids(campground, "--campground"),
     )
+    diagnostic(
+        f"Discovering campgrounds on {name}.",
+        resolve_debug(ctx, debug),
+        provider=name,
+    )
     if areas and campgrounds:
-        click.echo(
-            "Ignoring --rec-area because explicit --campground IDs take precedence.",
-            err=True,
+        logger.warning(
+            "Ignoring --rec-area because explicit --campground IDs take precedence."
         )
-    diagnostic(f"Discovering campgrounds on {name}.", resolve_debug(ctx, debug))
+    if query.query:
+        logger.info('Searching for Campgrounds: "%s"', query.query)
+    elif not areas and not campgrounds:
+        logger.info("Searching for Campgrounds")
 
     async def discover() -> None:
         instance = provider_class()

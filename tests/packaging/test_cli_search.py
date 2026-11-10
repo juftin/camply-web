@@ -110,12 +110,13 @@ def synthetic_environment(installation: Installation, endpoint: str) -> dict[str
     seam = installation.directory / "synthetic-upstream"
     seam.mkdir(exist_ok=True)
     (seam / "sitecustomize.py").write_text(
+        "import os\n"
         "import sys\n"
         "from pathlib import Path\n"
         "import camply.core.search as search\n"
         "import camply.providers.usedirect.provider as usedirect\n"
         "from camply.providers.usedirect.variations import ReserveCaliforniaProvider\n"
-        f"ReserveCaliforniaProvider.api_url = {endpoint!r}\n"
+        "ReserveCaliforniaProvider.api_url = os.environ['CAMPLY_TEST_ENDPOINT']\n"
         "usedirect._REQUEST_INTERVAL = 0\n"
         "search.POLL_INTERVAL_SECONDS = 0.02\n"
         "def audit(event, args):\n"
@@ -129,6 +130,8 @@ def synthetic_environment(installation: Installation, endpoint: str) -> dict[str
     return {
         **clean_environment(),
         "PYTHONPATH": str(seam),
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "CAMPLY_TEST_ENDPOINT": endpoint,
         "PUSHOVER_APP_TOKEN": "malformed:synthetic-secret",
         "PUSHOVER_USER_KEY": "malformed:synthetic-recipient",
         "CAMPLY_PROVIDER": "ReserveCalifornia",
@@ -167,8 +170,10 @@ def test_installed_discovery_and_preflight(
         assert "Synthetic Park" in areas.stdout
         campground = run(["campgrounds", "--campground", "60"])
         assert campground.returncode == 0, campground.stderr
-        assert "Synthetic Campground 60" in campground.stdout
-        assert "https://www.reservecalifornia.com/park/1/60" in campground.stdout
+        assert (
+            "⛰  Synthetic Park, CA (#1) - 🏕  Synthetic Campground 60 (#60)"
+            in campground.stdout
+        )
         transcript.clear()
         invalid = run(
             [
@@ -247,7 +252,13 @@ def test_installed_monitor_continues_after_match(
         reader.start()
         try:
             deadline = time.monotonic() + 20
-            while sum("Synthetic Site" in line for line in lines) < 2:
+            while (
+                sum(
+                    "Reservable Campsites Matching Search Preferences" in line
+                    for line in lines
+                )
+                < 2
+            ):
                 if process.poll() is not None or time.monotonic() >= deadline:
                     process.terminate()
                     process.wait(timeout=5)
@@ -268,10 +279,10 @@ def test_installed_monitor_continues_after_match(
             reader.join(timeout=5)
             process.stdout.close()
             process.stderr.close()
-        assert output.count("Synthetic Site") >= 2
+        assert output.count("Reservable Campsites Matching Search Preferences") >= 2
         assert "Aborted" in error
-        assert "2030-01-01" in output and "2030-01-03" in output
-        assert "https://www.reservecalifornia.com/park/1/60" in output
+        assert "📅 Tue, January 01 🏕  1 sites" in output
+        assert "https://www.reservecalifornia.com/park/1/60 (2 nights)" in output
         assert "malformed:synthetic" not in output + error
         grids = [payload for path, payload in transcript if path == "/search/grid"]
         assert len(grids) >= 2
