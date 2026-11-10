@@ -5,10 +5,10 @@ from datetime import date
 import click
 
 from camply.cli import options
-from camply.cli.discovery import normalize_ids, resolve_targets
+from camply.cli.discovery import DISPLAY_LIMIT, normalize_ids, resolve_targets
 from camply.cli.execution import run
 from camply.cli.options import ISODate, resolve_debug
-from camply.cli.output import diagnostic, logger, render_stays
+from camply.cli.output import diagnostic, format_campground_log, logger, render_stays
 from camply.cli.providers import selected_provider
 
 
@@ -113,7 +113,10 @@ def campsites_cmd(
                     "No eligible campgrounds found in the selected recreation areas."
                 )
                 return
-            logger.info("Found %s campgrounds to search", len(targets))
+            logger.info("%s Matching Campgrounds Found", len(targets))
+            for target in targets[:DISPLAY_LIMIT]:
+                logger.info(format_campground_log(target))
+            logger.info("Searching across %s campgrounds", len(targets))
             await monitor(instance, targets, request, render_stays)
         finally:
             await instance.async_client.aclose()

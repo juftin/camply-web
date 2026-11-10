@@ -1,4 +1,4 @@
-/** Render Rich CLI logging and tables in Chromium and verify terminal screenshots. */
+/** Render Rich CLI logging in Chromium and verify terminal screenshots. */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -33,6 +33,7 @@ from rich.console import Console
 from rich.terminal_theme import SVG_EXPORT_THEME
 from camply.cli.output import (
     CamplyRichHandler,
+    format_campground_log,
     log_camply,
     render_discovery,
     render_providers,
@@ -65,6 +66,7 @@ def capture(width, fn):
         show_path=False,
         markup=False,
         rich_tracebacks=True,
+        omit_repeated_times=False,
         log_time_format="[%Y-%m-%d %H:%M:%S]",
     )
     logger = logging.getLogger("camply.cli")
@@ -85,44 +87,41 @@ def run_providers(logger):
 def run_discovery(logger):
     log_camply("camply, the campsite finder ⛺️")
     logger.info('Using Camply Provider: "RecreationDotGov"')
-    logger.info("Searching for Campgrounds across 1 recreation area(s)")
+    logger.info('Searching for Campgrounds: "dunes"')
     render_discovery(
         [
             CampgroundSearchResult(
                 provider_id=1,
                 provider_name="Recreation.gov",
-                campground_id="232447",
-                campground_name="Upper Pines",
-                recreation_area_id="2991",
-                recreation_area_name="Yosemite National Park",
-                city="Yosemite Valley",
-                state="CA",
+                campground_id="234685",
+                campground_name="Pinon Flats Campground",
+                recreation_area_id="2738",
+                recreation_area_name="Great Sand Dunes National Park & Preserve",
+                state="CO",
                 country="USA",
-                booking_url="https://www.recreation.gov/camping/campgrounds/232447",
+                booking_url="https://www.recreation.gov/camping/campgrounds/234685",
             ),
             CampgroundSearchResult(
                 provider_id=1,
                 provider_name="Recreation.gov",
-                campground_id="232450",
-                campground_name="Lower Pines",
-                recreation_area_id="2991",
-                recreation_area_name="Yosemite National Park",
-                city="Yosemite Valley",
-                state="CA",
+                campground_id="258887",
+                campground_name="Dunewood Campground",
+                recreation_area_id="2767",
+                recreation_area_name="Indiana Dunes National Park",
+                state="IN",
                 country="USA",
-                booking_url="https://www.recreation.gov/camping/campgrounds/232450",
+                booking_url="https://www.recreation.gov/camping/campgrounds/258887",
             ),
             CampgroundSearchResult(
                 provider_id=1,
                 provider_name="Recreation.gov",
-                campground_id="232449",
-                campground_name="North Pines",
-                recreation_area_id="2991",
-                recreation_area_name="Yosemite National Park",
-                city="Yosemite Valley",
-                state="CA",
+                campground_id="232458",
+                campground_name="Platte River Campground",
+                recreation_area_id="2937",
+                recreation_area_name="Sleeping Bear Dunes National Lakeshore",
+                state="MI",
                 country="USA",
-                booking_url="https://www.recreation.gov/camping/campgrounds/232449",
+                booking_url="https://www.recreation.gov/camping/campgrounds/232458",
             ),
         ],
         empty="No campgrounds found.",
@@ -132,62 +131,86 @@ def run_discovery(logger):
 def run_campsites(logger):
     log_camply("camply, the campsite finder ⛺️")
     logger.info('Using Camply Provider: "RecreationDotGov"')
-    logger.info("8 booking nights selected for search, ranging from 2027-07-10 to 2027-07-17")
-    logger.info("Searching for 3 consecutive nights stays.")
-    logger.info("Searching across 1 campgrounds")
+    logger.info("1 booking nights selected for search, ranging from 2026-12-10 to 2026-12-10")
     target = CampgroundSearchResult(
         provider_id=1,
         provider_name="Recreation.gov",
-        campground_id="232450",
-        campground_name="Lower Pines",
-        recreation_area_id="2991",
-        recreation_area_name="Yosemite National Park",
-        city="Yosemite Valley",
+        campground_id="233117",
+        campground_name="Cerro Alto Campground",
+        recreation_area_id="1067",
+        recreation_area_name="Los Padres National Forest",
         state="CA",
         country="USA",
-        booking_url="https://www.recreation.gov/camping/campgrounds/232450",
+        booking_url="https://www.recreation.gov/camping/campgrounds/233117",
     )
+    logger.info("1 Matching Campgrounds Found")
+    logger.info(format_campground_log(target))
+    logger.info("Searching across 1 campgrounds")
     render_stays([
         AvailabilityStay(
             campground=target,
-            campsite_id="1001",
-            campsite_name="Site 014",
-            arrival=date(2027, 7, 10),
-            checkout=date(2027, 7, 13),
-            booking_url="https://www.recreation.gov/camping/campsites/1001",
+            campsite_id="90005",
+            campsite_name="001",
+            arrival=date(2026, 12, 10),
+            checkout=date(2026, 12, 11),
+            booking_url="https://www.recreation.gov/camping/campsites/90005",
         ),
         AvailabilityStay(
             campground=target,
-            campsite_id="1008",
-            campsite_name="Site 042",
-            arrival=date(2027, 7, 14),
-            checkout=date(2027, 7, 17),
-            booking_url="https://www.recreation.gov/camping/campsites/1008",
+            campsite_id="90024",
+            campsite_name="002",
+            arrival=date(2026, 12, 10),
+            checkout=date(2026, 12, 11),
+            booking_url="https://www.recreation.gov/camping/campsites/90024",
+        ),
+        AvailabilityStay(
+            campground=target,
+            campsite_id="90116",
+            campsite_name="003",
+            arrival=date(2026, 12, 10),
+            checkout=date(2026, 12, 11),
+            booking_url="https://www.recreation.gov/camping/campsites/90116",
         ),
     ])
-    logger.info("Handling Exit Request")
     log_camply("Exiting camply 👋")
 
 def run_debug(logger):
+    log_camply("camply, the campsite finder ⛺️")
     logger.debug("Setting up camply debugging")
     logger.debug("Camply Version: 0.1.0")
     logger.debug("Python Version: 3.14.0")
     logger.debug("Platform: linux")
-    log_camply("camply, the campsite finder ⛺️")
     logger.info('Using Camply Provider: "RecreationDotGov"')
-    logger.debug("recreation-areas provider=RecreationDotGov search='Yosemite' state='CA'")
-    logger.info('Searching for Recreation Areas: "Yosemite"')
+    logger.debug("Debug: Discovering recreation areas on RecreationDotGov.")
+    logger.info('Searching for Recreation Areas: "dune"')
     render_discovery(
         [
             RecreationAreaSearchResult(
                 provider_id=1,
                 provider_name="Recreation.gov",
-                recreation_area_id="2991",
-                recreation_area_name="Yosemite National Park",
-                city="Yosemite Valley",
-                state="CA",
+                recreation_area_id="2738",
+                recreation_area_name="Great Sand Dunes National Park & Preserve",
+                state="CO",
                 country="USA",
-                booking_url="https://www.recreation.gov/camping/gateways/2991",
+                booking_url="https://www.recreation.gov/camping/gateways/2738",
+            ),
+            RecreationAreaSearchResult(
+                provider_id=1,
+                provider_name="Recreation.gov",
+                recreation_area_id="2767",
+                recreation_area_name="Indiana Dunes National Park",
+                state="IN",
+                country="USA",
+                booking_url="https://www.recreation.gov/camping/gateways/2767",
+            ),
+            RecreationAreaSearchResult(
+                provider_id=1,
+                provider_name="Recreation.gov",
+                recreation_area_id="2937",
+                recreation_area_name="Sleeping Bear Dunes National Lakeshore",
+                state="MI",
+                country="USA",
+                booking_url="https://www.recreation.gov/camping/gateways/2937",
             ),
         ],
         empty="No recreation areas found.",
@@ -198,30 +221,30 @@ scenarios = [
     {
         "name": "cli-providers",
         "command": "camply providers",
-        "description": "Rich CLI provider catalog table and welcome/exit banners",
-        "html": capture(108, run_providers),
-        "expectedText": ["camply, the campsite finder", "Camping Providers", "RecreationDotGov (Recreation.gov)", "Exiting camply"],
+        "description": "Classic camply provider catalog logs and welcome/exit banners",
+        "html": capture(120, run_providers),
+        "expectedText": ["camply, the campsite finder", '"RecreationDotGov":    Recreation.gov', "Exiting camply"],
     },
     {
         "name": "cli-discovery",
-        "command": "camply campgrounds --rec-area 2991",
-        "description": "Rich CLI campground discovery logs and results table",
-        "html": capture(96, run_discovery),
-        "expectedText": ["Using Camply Provider", "3 Matching Campgrounds Found", "Recreation.gov Campgrounds", "Upper Pines", "Lower Pines"],
+        "command": "camply campgrounds --search dunes",
+        "description": "Classic camply campground discovery logs",
+        "html": capture(120, run_discovery),
+        "expectedText": ["Using Camply Provider", "3 Matching Campgrounds Found", "Pinon Flats Campground (#234685)", "Dunewood Campground (#258887)"],
     },
     {
         "name": "cli-campsites",
-        "command": "camply campsites --campground 232450 --start-date 2027-07-10 --end-date 2027-07-18 --nights 3",
-        "description": "Rich CLI campsite availability logs and stays table",
-        "html": capture(108, run_campsites),
-        "expectedText": ["8 booking nights selected", "2 Reservable Campsites Matching Search Preferences", "Recreation.gov Available Campsites", "Site 014", "Handling Exit Request"],
+        "command": "camply campsites --campground 233117 --start-date 2026-12-10 --end-date 2026-12-11",
+        "description": "Classic camply campsite availability logs grouped by date and campground",
+        "html": capture(120, run_campsites),
+        "expectedText": ["1 booking nights selected", "3 Reservable Campsites Matching Search Preferences", "📅 Thu, December 10 🏕  3 sites", "https://www.recreation.gov/camping/campsites/90005 (1 night)"],
     },
     {
         "name": "cli-debug",
-        "command": "camply --debug recreation-areas --search Yosemite --state CA",
-        "description": "Rich CLI debug diagnostics and recreation area discovery table",
-        "html": capture(96, run_debug),
-        "expectedText": ["Setting up camply debugging", "Camply Version: 0.1.0", "Recreation.gov Recreation Areas", "Yosemite National Park"],
+        "command": "camply --debug recreation-areas --search dune",
+        "description": "Classic camply debug diagnostics and recreation area discovery logs",
+        "html": capture(120, run_debug),
+        "expectedText": ["Setting up camply debugging", "Camply Version: 0.1.0", "3 recreation areas found.", "Great Sand Dunes National Park & Preserve, CO (#2738)"],
     },
 ]
 print(json.dumps(scenarios))
@@ -246,7 +269,7 @@ function buildTerminalDocument(scenario: CliScenario): string {
     border-radius: 16px;
     padding: 24px 28px;
     color: #e6edf3;
-    font-family: "DejaVu Sans Mono", "Liberation Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-family: "Liberation Mono", "DejaVu Sans Mono", "Noto Color Emoji", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 13.5px;
     line-height: 1.45;
     display: inline-block;
@@ -324,9 +347,6 @@ async function main(): Promise<void> {
       await expect(card).toBeVisible();
       for (const expected of scenario.expectedText) {
         await expect(card).toContainText(expected);
-      }
-      for (const borderChar of ["┏", "┃", "┡", "│", "└"]) {
-        await expect(card).toContainText(borderChar);
       }
       const noHorizontalOverflow = await card
         .locator("pre.cli-output")

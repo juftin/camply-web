@@ -167,8 +167,10 @@ def test_installed_discovery_and_preflight(
         assert "Synthetic Park" in areas.stdout
         campground = run(["campgrounds", "--campground", "60"])
         assert campground.returncode == 0, campground.stderr
-        assert "Synthetic Campground 60" in campground.stdout
-        assert "Booking URL" not in campground.stdout
+        assert (
+            "⛰  Synthetic Park, CA (#1) - 🏕  Synthetic Campground 60 (#60)"
+            in campground.stdout
+        )
         transcript.clear()
         invalid = run(
             [
@@ -247,7 +249,13 @@ def test_installed_monitor_continues_after_match(
         reader.start()
         try:
             deadline = time.monotonic() + 20
-            while sum("Synthetic Site" in line for line in lines) < 2:
+            while (
+                sum(
+                    "Reservable Campsites Matching Search Preferences" in line
+                    for line in lines
+                )
+                < 2
+            ):
                 if process.poll() is not None or time.monotonic() >= deadline:
                     process.terminate()
                     process.wait(timeout=5)
@@ -268,10 +276,10 @@ def test_installed_monitor_continues_after_match(
             reader.join(timeout=5)
             process.stdout.close()
             process.stderr.close()
-        assert output.count("Synthetic Site") >= 2
+        assert output.count("Reservable Campsites Matching Search Preferences") >= 2
         assert "Aborted" in error
-        assert "2030-01-01" in output and "2030-01-03" in output
-        assert "Booking URL" not in output
+        assert "📅 Tue, January 01 🏕  1 sites" in output
+        assert "https://www.reservecalifornia.com/park/1/60 (2 nights)" in output
         assert "malformed:synthetic" not in output + error
         grids = [payload for path, payload in transcript if path == "/search/grid"]
         assert len(grids) >= 2

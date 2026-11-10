@@ -1,10 +1,11 @@
-"""Configure Rich CLI logging and print discovery and availability tables."""
+"""Configure Rich CLI logging and log discovery and availability in classic camply style."""
 
 import asyncio
 import logging
 import os
 import sys
 from collections.abc import Mapping, Sequence
+from datetime import date
 from typing import TYPE_CHECKING
 
 import click
@@ -12,7 +13,6 @@ import rich.traceback
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.measure import Measurement
-from rich.table import Table
 from rich.text import Text
 
 from camply.__about__ import __version__
@@ -28,7 +28,7 @@ CAMPLY_LOG_LEVEL = logging.INFO + 1
 logging.addLevelName(CAMPLY_LOG_LEVEL, "CAMPLY")
 logger = logging.getLogger("camply.cli")
 
-_LOG_PREFIX_WIDTH = 36
+_LOG_PREFIX_WIDTH = 64
 _PROBE_WIDTH = 2000
 _DEFAULT_HEIGHT = 25
 
@@ -65,30 +65,6 @@ class CamplyRichHandler(RichHandler):
 def log_camply(message: str, *args: object) -> None:
     """Log a message at the custom CAMPLY notification level."""
     logger.log(CAMPLY_LOG_LEVEL, message, *args)
-
-
-def _stdout_console() -> Console:
-    """Return the active stdout Rich console or a plain stdout console fallback."""
-    for handler in logger.handlers:
-        if isinstance(handler, CamplyRichHandler) and not handler.console.stderr:
-            return handler.console
-    return Console(stderr=False, no_color=True, highlight=False)
-
-
-def print_table(table: Table) -> None:
-    """Print a Rich table directly to stdout without logging prefixes or truncation."""
-    console = _stdout_console()
-    probe = console.options.update_width(_PROBE_WIDTH)
-    needed = Measurement.get(console, probe, table).maximum
-    old_width, old_height = console._width, console._height
-    if console.width < needed:
-        console._width = needed
-        console._height = old_height or _DEFAULT_HEIGHT
-    try:
-        console.print(table)
-    finally:
-        if not console.record:
-            console._width, console._height = old_width, old_height
 
 
 def set_up_logging(*, debug: bool = False) -> logging.Logger:
@@ -157,47 +133,60 @@ def diagnostic(message: str, debug: bool, *, provider: str | None = None) -> Non
     logger.debug("Debug: %s", message)
 
 
-def _format_parent(name: str | None, identifier: str | None) -> str:
-    """Format recreation-area name and ID consistently for table cells."""
-    if name and identifier is not None:
-        return f"{name} (#{identifier})"
-    if name:
-        return name
-    if identifier is not None:
-        return f"#{identifier}"
-    return ""
+def _format_recreation_area_name(
+    name: str | None, state: str | None, country: str | None = None
+) -> str:
+    """Format a recreation-area name with state or country suffix like classic camply."""
+    area = name or ""
+    location = state or country or ""
+    if area and location:
+        return f"{area}, {location}"
+    return area or location
 
 
-def _format_location(name: str, city: str | None, state: str | None) -> str:
-    """Append concise city/state context to an entity name when available."""
-    place = ", ".join(value for value in (city, state) if value)
-    return f"{name} ({place})" if place else name
+def format_recreation_area_log(result: ProviderSearchResult) -> str:
+    """Format a recreation-area search result in classic camply log style."""
+    area = _format_recreation_area_name(
+        result.recreation_area_name, result.state, result.country
+    )
+    return f"⛰  {area} (#{result.recreation_area_id})"
+
+
+def format_campground_log(result: ProviderSearchResult) -> str:
+    """Format a campground search result in classic camply log style."""
+    area = _format_recreation_area_name(
+        result.recreation_area_name, result.state, result.country
+    )
+    if result.recreation_area_id is not None:
+        prefix = f"⛰  {area} (#{result.recreation_area_id}) - "
+    elif area:
+        prefix = f"⛰  {area} - "
+    else:
+        prefix = ""
+    return f"{prefix}🏕  {result.campground_name} (#{result.campground_id})"
 
 
 def render_providers(
     entries: Mapping[str, tuple[type["BaseProvider"], "Provider"]],
 ) -> None:
-    """Print supported camping providers and capabilities in a Rich table."""
+    """Log supported camping providers and capabilities in classic camply style."""
     logger.info("camply currently supports %s providers:", len(entries))
-    table = Table(title="Camping Providers")
-    table.add_column("Provider", style="cyan", no_wrap=True)
-    table.add_column("Capabilities", no_wrap=True)
     for name, (_, identity) in entries.items():
         areas = (
             "no recreation-area catalog"
             if name == "ReserveAmerica"
             else "recreation-area discovery"
         )
-        label = f"{name} ({identity.name})" if name != identity.name else name
-        table.add_row(
-            label,
-            f"{areas}; campground discovery; campground availability",
+        logger.info(
+            '    "%s":    %s (%s; campground discovery; campground availability)',
+            name,
+            identity.name,
+            areas,
         )
-    print_table(table)
 
 
 def render_discovery(results: Sequence[ProviderSearchResult], *, empty: str) -> None:
-    """Print unique discovery results in a Rich table and report display truncation."""
+    """Log unique discovery results in classic camply style and report truncation."""
     ordered = sorted(
         {identity_key(result): result for result in results}.values(),
         key=identity_key,
@@ -206,51 +195,32 @@ def render_discovery(results: Sequence[ProviderSearchResult], *, empty: str) -> 
         logger.info(empty)
         return
     displayed = ordered[:DISPLAY_LIMIT]
-    provider_name = displayed[0].provider_name
     is_rec_area = all(
         result.entity_type == SearchEntityType.RECREATION_AREA for result in displayed
     )
     if is_rec_area:
         logger.info("%s recreation areas found.", len(displayed))
-        table = Table(title=f"{provider_name} Recreation Areas")
-        table.add_column("ID", style="magenta", no_wrap=True)
-        table.add_column("Recreation Area", style="green", no_wrap=True)
-        table.add_column("Location", no_wrap=True)
         for result in displayed:
-            location = ", ".join(
-                value for value in (result.city, result.state, result.country) if value
-            )
-            table.add_row(
-                result.recreation_area_id or "",
-                result.recreation_area_name or "",
-                location,
-            )
+            logger.info(format_recreation_area_log(result))
     else:
         logger.info("%s Matching Campgrounds Found", len(displayed))
-        table = Table(title=f"{provider_name} Campgrounds")
-        table.add_column("ID", style="magenta", no_wrap=True)
-        table.add_column("Campground", style="green", no_wrap=True)
-        table.add_column("Recreation Area", no_wrap=True)
         for result in displayed:
-            rec_area = _format_parent(
-                result.recreation_area_name, result.recreation_area_id
-            )
-            table.add_row(
-                result.campground_id or "",
-                _format_location(
-                    result.campground_name or "", result.city, result.state
-                ),
-                rec_area,
-            )
-    print_table(table)
+            logger.info(format_campground_log(result))
     if len(ordered) > DISPLAY_LIMIT:
         logger.warning(
             "Showing 50 results; more results exist. Narrow --search or --state."
         )
 
 
+def _stay_booking_url(stay: "AvailabilityStay") -> str:
+    """Resolve campsite-level booking URL when using Recreation.gov campground URLs."""
+    if stay.booking_url.startswith("https://www.recreation.gov/camping/campgrounds/"):
+        return f"https://www.recreation.gov/camping/campsites/{stay.campsite_id}"
+    return stay.booking_url
+
+
 def render_stays(stays: list["AvailabilityStay"]) -> None:
-    """Print qualifying stays in a Rich table."""
+    """Log qualifying stays grouped by arrival date and campground in classic camply style."""
     emoji = "⛺️" if stays else "❌"
     logger.info(
         "%s%s Reservable Campsites Matching Search Preferences",
@@ -260,24 +230,49 @@ def render_stays(stays: list["AvailabilityStay"]) -> None:
     if not stays:
         logger.info("No matching campsite stays found in this check.")
         return
-    provider_name = stays[0].campground.provider_name
-    table = Table(title=f"{provider_name} Available Campsites")
-    table.add_column("Campground", style="green", no_wrap=True)
-    table.add_column("Campsite", style="magenta", no_wrap=True)
-    table.add_column("Dates", no_wrap=True)
-    for stay in stays:
-        target = stay.campground
-        rec_area = _format_parent(
-            target.recreation_area_name, target.recreation_area_id
+    by_arrival: dict[date, list[AvailabilityStay]] = {}
+    for stay in sorted(
+        stays,
+        key=lambda item: (
+            item.arrival,
+            item.campground.recreation_area_name or "",
+            item.campground.campground_name,
+            (item.checkout - item.arrival).days,
+            item.campsite_id,
+        ),
+    ):
+        by_arrival.setdefault(stay.arrival, []).append(stay)
+    for arrival, date_stays in by_arrival.items():
+        logger.info(
+            "📅 %s 🏕  %s sites",
+            arrival.strftime("%a, %B %d"),
+            len(date_stays),
         )
-        campground_label = f"{target.campground_name} (#{target.campground_id})"
-        if rec_area:
-            campground_label = f"{campground_label} — {rec_area}"
-        campsite_label = f"{stay.campsite_name} (#{stay.campsite_id})"
-        nights = (stay.checkout - stay.arrival).days
-        table.add_row(
-            campground_label,
-            campsite_label,
-            f"{stay.arrival.isoformat()} to {stay.checkout.isoformat()} ({nights} night(s))",
-        )
-    print_table(table)
+        by_location: dict[tuple[str, str], list[AvailabilityStay]] = {}
+        for stay in date_stays:
+            target = stay.campground
+            rec_area = _format_recreation_area_name(
+                target.recreation_area_name, target.state, target.country
+            )
+            by_location.setdefault((rec_area, target.campground_name), []).append(stay)
+        for (rec_area, campground_name), campground_stays in by_location.items():
+            location_label = (
+                f"{rec_area}  🏕  {campground_name}"
+                if rec_area
+                else f"🏕  {campground_name}"
+            )
+            logger.info(
+                "\t⛰️  %s: ⛺ %s sites",
+                location_label,
+                len(campground_stays),
+            )
+            by_nights: dict[int, set[str]] = {}
+            for stay in campground_stays:
+                nights = (stay.checkout - stay.arrival).days
+                url = _stay_booking_url(stay)
+                if url:
+                    by_nights.setdefault(nights, set()).add(url)
+            for nights, urls in sorted(by_nights.items()):
+                suffix = "s" if nights > 1 else ""
+                for url in sorted(urls):
+                    logger.info("\t\t🔗 %s (%s night%s)", url, nights, suffix)

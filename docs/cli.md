@@ -23,7 +23,7 @@ camply campgrounds --rec-area 2991
 camply --provider ReserveCalifornia campgrounds --search redwood
 ```
 
-![Campground discovery output with Rich logging and table](assets/camply-cli-discovery.png)
+![Campground discovery output with Rich logging](assets/camply-cli-discovery.png)
 
 `providers` lists the current 13 camping providers. Provider names and registered
 class aliases are case-insensitive. The default is `RecreationDotGov`. Set
@@ -51,7 +51,7 @@ camply campsites --campground 232450 \
   --start-date 2027-07-10 --end-date 2027-07-18 --nights 3
 ```
 
-![Campsite availability monitoring output with Rich logging and table](assets/camply-cli-campsites.png)
+![Campsite availability monitoring output with Rich logging](assets/camply-cli-campsites.png)
 
 The command checks immediately, prints qualifying stays and booking links, and
 continues checking after empty or matching results. Stop it with Ctrl-C. It uses
