@@ -215,14 +215,15 @@ def render_discovery(results: Sequence[ProviderSearchResult], *, empty: str) -> 
         table = Table(title=f"{provider_name} Recreation Areas")
         table.add_column("ID", style="magenta", no_wrap=True)
         table.add_column("Recreation Area", style="green", no_wrap=True)
-        table.add_column("Booking URL", style="bright_blue", no_wrap=True)
+        table.add_column("Location", no_wrap=True)
         for result in displayed:
+            location = ", ".join(
+                value for value in (result.city, result.state, result.country) if value
+            )
             table.add_row(
                 result.recreation_area_id or "",
-                _format_location(
-                    result.recreation_area_name or "", result.city, result.state
-                ),
-                result.booking_url,
+                result.recreation_area_name or "",
+                location,
             )
     else:
         logger.info("%s Matching Campgrounds Found", len(displayed))
@@ -230,7 +231,6 @@ def render_discovery(results: Sequence[ProviderSearchResult], *, empty: str) -> 
         table.add_column("ID", style="magenta", no_wrap=True)
         table.add_column("Campground", style="green", no_wrap=True)
         table.add_column("Recreation Area", no_wrap=True)
-        table.add_column("Booking URL", style="bright_blue", no_wrap=True)
         for result in displayed:
             rec_area = _format_parent(
                 result.recreation_area_name, result.recreation_area_id
@@ -241,7 +241,6 @@ def render_discovery(results: Sequence[ProviderSearchResult], *, empty: str) -> 
                     result.campground_name or "", result.city, result.state
                 ),
                 rec_area,
-                result.booking_url,
             )
     print_table(table)
     if len(ordered) > DISPLAY_LIMIT:
@@ -251,7 +250,7 @@ def render_discovery(results: Sequence[ProviderSearchResult], *, empty: str) -> 
 
 
 def render_stays(stays: list["AvailabilityStay"]) -> None:
-    """Print qualifying stays and booking links in a Rich table."""
+    """Print qualifying stays in a Rich table."""
     emoji = "⛺️" if stays else "❌"
     logger.info(
         "%s%s Reservable Campsites Matching Search Preferences",
@@ -266,7 +265,6 @@ def render_stays(stays: list["AvailabilityStay"]) -> None:
     table.add_column("Campground", style="green", no_wrap=True)
     table.add_column("Campsite", style="magenta", no_wrap=True)
     table.add_column("Dates", no_wrap=True)
-    table.add_column("Booking URL", style="bright_blue", no_wrap=True)
     for stay in stays:
         target = stay.campground
         rec_area = _format_parent(
@@ -281,6 +279,5 @@ def render_stays(stays: list["AvailabilityStay"]) -> None:
             campground_label,
             campsite_label,
             f"{stay.arrival.isoformat()} to {stay.checkout.isoformat()} ({nights} night(s))",
-            stay.booking_url,
         )
     print_table(table)

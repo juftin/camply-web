@@ -168,7 +168,7 @@ def test_installed_discovery_and_preflight(
         campground = run(["campgrounds", "--campground", "60"])
         assert campground.returncode == 0, campground.stderr
         assert "Synthetic Campground 60" in campground.stdout
-        assert "https://www.reservecalifornia.com/park/1/60" in campground.stdout
+        assert "Booking URL" not in campground.stdout
         transcript.clear()
         invalid = run(
             [
@@ -271,7 +271,7 @@ def test_installed_monitor_continues_after_match(
         assert output.count("Synthetic Site") >= 2
         assert "Aborted" in error
         assert "2030-01-01" in output and "2030-01-03" in output
-        assert "https://www.reservecalifornia.com/park/1/60" in output
+        assert "Booking URL" not in output
         assert "malformed:synthetic" not in output + error
         grids = [payload for path, payload in transcript if path == "/search/grid"]
         assert len(grids) >= 2

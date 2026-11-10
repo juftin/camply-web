@@ -501,7 +501,7 @@ def test_real_command_prints_sliding_stays_and_continues_after_matches(
     assert result.stdout.count("│ 2027-07-10 to 2027-07-13 (3 night(s)) │") == 2
     assert "Site One (#site-01)" in result.stdout
     assert "National Park (#parent)" in result.stdout
-    assert "https://booking.example.invalid/campgrounds/001" in result.stdout
+    assert "https://booking.example.invalid/campgrounds/001" not in result.stdout
     assert "Ignoring --rec-area" in result.stderr
     assert transcript.areas == []
     transcript.clients[0].aclose.assert_awaited_once()
@@ -805,5 +805,6 @@ def test_rich_cli_screenshot_html_and_svg_export() -> None:
         assert "Campgrounds" in export
         assert "Available Campsites" in export
         assert "Lower Pines" in export
-        assert "https://www.recreation.gov/camping/campsites/1001" in export
+        assert "Site 014 (#1001)" in export
+        assert "https://www.recreation.gov/camping/campsites/1001" not in export
         assert "Exiting camply" in export
