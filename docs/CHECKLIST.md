@@ -282,3 +282,7 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Document future CLI consumption; keep web search and CLI commands unchanged.
 - [x] Pass full test and quality workflows, including a final backend rerun after independent-review fixes.
 - [x] Keep provider extension methods public: `search_upstream` is the abstract discovery contract.
+
+### Dependency Maintenance
+
+- [x] Consolidate verified Renovate dependency upgrades into a single release PR, excluding risky or incompatible upgrades (Python 3.15, Postgres 18, React 19, Tailwind CSS v4, TypeScript 7, Lucide React 1.x, @types/node 26, and major Redis/Hookform bumps).
