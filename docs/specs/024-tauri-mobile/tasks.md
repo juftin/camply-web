@@ -12,3 +12,5 @@
 - [ ] Verify permission and notification delivery on physical Android/iOS devices.
 - [ ] Future: APNs/FCM registration and server-side push for suspended/terminated apps.
 - [x] Consolidate native sources, icons, and config tooling under `src/tauri/` and update task environment, ignore rules, and documentation.
+- [x] Resolve a compatible Android JDK, SDK, and NDK and export them for init/dev/build regardless of inherited Task environment precedence.
+- [x] Verify toolchain selection and Taskfile environment forwarding using synthetic installations; document the required JDK and failure guidance.

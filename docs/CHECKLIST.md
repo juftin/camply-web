@@ -251,3 +251,4 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [ ] Verify native compilation/signing and notification delivery on Android/iOS devices with platform tooling.
 - [ ] Add APNs/FCM server push for delivery while the mobile app is suspended or terminated (local notifications currently require the app to be running).
 - [x] Keep native sources, icons, and mobile config tooling under `src/tauri/`, with explicit Tauri project paths in mobile tasks.
+- [x] Select JDK 21 and export Android SDK/NDK/PATH explicitly for mobile init/dev/build, overriding an unsupported shell Java; verify environment forwarding and document setup errors.

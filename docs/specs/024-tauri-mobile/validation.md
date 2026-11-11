@@ -14,3 +14,9 @@ No signed APK, AAB or IPA has been produced or device-tested. Device validation 
 ## Source layout verification
 
 After moving the native application and config tooling to `src/tauri/`, `task mobile:configure`, all 16 mobile tests, repository frontend lint/format checks, Cargo metadata, and Tauri CLI project discovery passed. Native compilation still requires the platform toolchains noted above.
+
+## Android toolchain environment regression
+
+`task fix`, `task lint`, `task check`, and `task test` passed after adding explicit Android environment selection. The full run included 8 tooling/configuration tests, 17 release tests, 876 backend tests (24 skipped), 69 packaging tests, 354 frontend tests, and 10 Pages tests plus Pages artifact verification. The 14 focused notification tests also passed through `task mobile:test`.
+
+Synthetic toolchains verify JDK 21 selection, rejection of Java 27, SDK/NDK overrides, standard macOS/Linux SDK paths, latest stable NDK selection, missing-installation errors, and environment/argument forwarding through all three Android Taskfile entrypoints. The Taskfile regression starts with an incompatible exported JAVA_HOME and paths containing spaces. CI runs these tooling tests without an Android installation. Gradle/APK compilation still requires an Android-equipped host.

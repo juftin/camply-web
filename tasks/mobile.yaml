@@ -14,7 +14,23 @@ tasks:
     desc: Generate the Android project (requires Android SDK and NDK)
     cmds:
       - task: configure
-      - pnpm exec tauri android init --config build/mobile/tauri.remote.json
+      - task: android:run
+        vars:
+          ACTION: init
+
+  android:run:
+    internal: true
+    vars:
+      ANDROID_TOOLCHAIN:
+        sh: node src/tauri/tooling/android-env.mjs
+    # Explicit env overrides exported shell values, unlike Task's env block.
+    cmd: >-
+      env
+      JAVA_HOME={{shellQuote (fromJson .ANDROID_TOOLCHAIN).JAVA_HOME}}
+      ANDROID_HOME={{shellQuote (fromJson .ANDROID_TOOLCHAIN).ANDROID_HOME}}
+      NDK_HOME={{shellQuote (fromJson .ANDROID_TOOLCHAIN).NDK_HOME}}
+      PATH={{shellQuote (fromJson .ANDROID_TOOLCHAIN).PATH}}
+      pnpm exec tauri android {{.ACTION}} --config build/mobile/tauri.remote.json {{.CLI_ARGS}}
 
   ios:init:
     desc: Generate the iOS project (requires macOS and Xcode)
@@ -26,7 +42,9 @@ tasks:
     desc: Run Camply on an Android device or emulator
     cmds:
       - task: configure
-      - pnpm exec tauri android dev --config build/mobile/tauri.remote.json {{.CLI_ARGS}}
+      - task: android:run
+        vars:
+          ACTION: dev
 
   ios:dev:
     desc: Run Camply on an iOS device or simulator
@@ -38,7 +56,9 @@ tasks:
     desc: Build the Android Camply app
     cmds:
       - task: configure
-      - pnpm exec tauri android build --config build/mobile/tauri.remote.json {{.CLI_ARGS}}
+      - task: android:run
+        vars:
+          ACTION: build
 
   ios:build:
     desc: Build the iOS Camply app
@@ -49,7 +69,7 @@ tasks:
   test:
     desc: Test mobile config and notification behavior
     cmds:
-      - node --test src/tauri/tooling/mobile-config.node-test.mjs
+      - node --test src/tauri/tooling/*.node-test.mjs
       - pnpm run test:run src/frontend/lib/mobile-notifications.test.ts src/frontend/components/MobileNotifications.test.tsx
 
   check:
@@ -58,4 +78,4 @@ tasks:
 
   config:test:
     summary: Verify the trusted mobile deployment configuration
-    cmd: node --test src/tauri/tooling/mobile-config.node-test.mjs
+    cmd: node --test src/tauri/tooling/*.node-test.mjs

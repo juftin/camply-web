@@ -148,6 +148,10 @@ jobs:
             task: release:test
             install: true
 
+          - name: mobile - tooling test
+            task: mobile:config:test
+            install: true
+
           - name: api - contract check
             task: api:check
             install: true

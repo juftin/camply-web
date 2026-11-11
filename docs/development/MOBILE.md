@@ -12,9 +12,13 @@ identity provider permits embedded WebViews before distributing an Auth0 build.
 
 Install the normal Node/pnpm dependencies (`task frontend:install`) and Rust.
 Follow the [Tauri mobile prerequisites](https://v2.tauri.app/start/prerequisites/)
-for Android Studio, SDK, NDK, Java and Rust Android targets. iOS requires macOS,
+for Android Studio, SDK, NDK, JDK 21 and Rust Android targets. iOS requires macOS,
 Xcode, Apple signing configuration and the Rust iOS targets. Put Cargo's bin
 directory on PATH. There is no Python runtime in the app.
+
+Android tasks select JDK 21 from a compatible `JAVA_HOME`, Android Studio's bundled JBR, or an installed macOS JDK discovered by `/usr/libexec/java_home -v 21`. An inherited Java 27 is skipped. If JDK 21 is unavailable, install it and set `JAVA_HOME` to its installation directory; the task fails early with that guidance.
+
+The Taskfile explicitly exports `JAVA_HOME`, `ANDROID_HOME`, `NDK_HOME`, and a `PATH` with the selected JDK and Android platform-tools first. This overrides conflicting exported shell variables. Existing `ANDROID_HOME` and `NDK_HOME` values are preserved. Otherwise the SDK defaults to `~/Library/Android/sdk` on macOS or `~/Android/Sdk` on Linux, and the newest stable installed NDK under the SDK's `ndk/` directory is selected. Install missing SDK/NDK components through Android Studio's SDK Manager. iOS and non-Android tasks do not perform Android toolchain discovery.
 
 From the repository root:
 
