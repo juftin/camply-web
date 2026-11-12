@@ -45,7 +45,7 @@ postgres = [
   "psycopg[binary]==3.3.7"
 ]
 sentry = [
-  "sentry-sdk==2.73.0"
+  "sentry-sdk==2.74.0"
 ]
 
 [build-system]
