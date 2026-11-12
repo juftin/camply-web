@@ -152,7 +152,7 @@ dev = [
   "pytest-asyncio==1.4.1.post1",
   "pytest-cov==7.1.0",
   "pytest-vcr==1.0.2",
-  "ruff==0.17.3",
+  "ruff==0.17.4",
   "types-pyyaml==6.0.12.20261103",
   "types-ujson==5.10.0.20250822"
 ]
