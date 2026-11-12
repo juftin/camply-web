@@ -36,7 +36,7 @@ server = [
   "uvicorn==0.54.0"
 ]
 distributed = [
-  "celery[redis]==5.6.3",
+  "celery[redis]==5.7.0",
   "msgpack==1.2.4",
   "prometheus-client==0.26.0",
   "redis==6.4.0"
