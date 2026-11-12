@@ -42,7 +42,7 @@ distributed = [
   "redis==6.4.0"
 ]
 postgres = [
-  "psycopg[binary]==3.3.7"
+  "psycopg[binary]==3.3.8"
 ]
 sentry = [
   "sentry-sdk==2.73.0"
