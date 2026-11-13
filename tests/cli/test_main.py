@@ -455,6 +455,34 @@ def test_db_metadata_subcommand_exposed() -> None:
     assert "all" in result.output
 
 
+def test_db_metadata_applies_pending_migrations(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Invoking db metadata applies pending migrations before populating."""
+    import sqlite3
+    from unittest.mock import AsyncMock, patch
+
+    database_file = tmp_path / "metadata_test.sqlite"
+    monkeypatch.setenv("CAMPLY_DB_DRIVERNAME", "sqlite+aiosqlite")
+    monkeypatch.setenv("CAMPLY_DB_HOST", str(database_file))
+
+    runner = CliRunner()
+    mock_populate = AsyncMock()
+    with patch(
+        "camply.providers.recreation_gov.provider.RecreationGovProvider.populate_database",
+        mock_populate,
+    ):
+        result = runner.invoke(cli, ["db", "metadata", "--provider-id", "1"])
+        assert result.exit_code == 0, result.output
+        mock_populate.assert_awaited_once()
+
+    with sqlite3.connect(database_file) as connection:
+        assert connection.execute(
+            "SELECT version_num FROM alembic_version"
+        ).fetchone() == ("f024d1e2f3a4",)
+
+
 def test_db_info_prints_safe_json_configuration(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
