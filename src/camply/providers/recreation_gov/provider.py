@@ -689,6 +689,7 @@ class RecreationGovProvider(BaseProvider):
                     f"Provider {self.provider.name} (ID {self.provider.id}) not found in database. "
                     "Run database migrations before syncing provider metadata."
                 )
+        async with db.get_session() as session:
             data_file = await self.download_offline_data()
             for data in self.data_files:
                 parsed = await asyncio.to_thread(_read_catalog, data_file, data)

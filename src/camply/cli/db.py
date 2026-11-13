@@ -4,7 +4,6 @@ Database and provider metadata CLI commands.
 
 import asyncio
 import json
-import os
 
 import click
 import rich.traceback
@@ -105,8 +104,6 @@ def metadata_cmd(provider_id: str) -> None:
     provider_id : str
         Specific provider ID to populate, or 'all' to populate all registered providers.
     """
-    if os.environ.get("SKIP_MIGRATIONS", "0") != "1":
-        upgrade()
 
     async def populate() -> None:
         """Populate the selected provider (or all providers) and release HTTP connections."""
