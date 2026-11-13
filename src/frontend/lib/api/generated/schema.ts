@@ -1567,7 +1567,7 @@ export interface components {
             ntfy_server_url?: string | null;
             /**
              * Ntfy Default Subscription Url
-             * @description Configured public application server, when different from ntfy.sh.
+             * @description Configured public application server, when custom publishing or subscription defaults are in use.
              */
             ntfy_default_subscription_url?: string | null;
             /**

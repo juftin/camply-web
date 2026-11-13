@@ -19,6 +19,42 @@ from tests.server.conftest import maker
 PATH = "/api/me/notifications/test"
 
 
+@pytest.mark.parametrize("server", [None, "https://new.example.test"])
+def test_server_draft_does_not_inherit_saved_token(
+    test_client: TestClient, server: str | None
+) -> None:
+    """Drafts aimed at another server do not send the saved server's token."""
+    before = test_client.get("/api/me").json()
+    try:
+        test_client.patch(
+            "/api/me",
+            json={
+                "notification_provider": "ntfy",
+                "ntfy_server_url": "https://old.example.test",
+                "ntfy_access_token": "synthetic-old",
+            },
+        )
+        with patch.object(
+            NtfyProvider, "send_accepted", new_callable=AsyncMock, return_value=True
+        ) as send:
+            response = test_client.post(PATH, json={"ntfy_server_url": server})
+        assert response.status_code == 200
+        assert send.call_args.args[0]["access_token"] is None
+        assert test_client.get("/api/me").json()["ntfy_access_token"] == "synthetic-old"
+    finally:
+        test_client.patch(
+            "/api/me",
+            json={
+                field: before[field]
+                for field in (
+                    "notification_provider",
+                    "ntfy_server_url",
+                    "ntfy_access_token",
+                )
+            },
+        )
+
+
 @pytest.mark.parametrize("custom_server", [None, "https://custom.example.test/prefix"])
 def test_ntfy_draft_send_without_persisting(
     test_client: TestClient, monkeypatch: pytest.MonkeyPatch, custom_server: str | None

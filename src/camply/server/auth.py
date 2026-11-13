@@ -30,6 +30,7 @@ from camply.db.models import User
 from camply.server.config import AuthMode, backend_config
 from camply.server.dependencies import SessionDep
 from camply.server.metrics import USERS_CREATED_TOTAL
+from camply.server.services.users import flush_new_user
 
 logger = structlog.getLogger(__name__)
 
@@ -190,7 +191,7 @@ async def _get_or_create_admin_user(session: AsyncSession) -> User:
             is_admin=True,
             scanning_enabled=True,
         )
-        session.add(user)
+        await flush_new_user(session, user)
         await session.commit()
         await session.refresh(user)
         try:
@@ -327,8 +328,8 @@ async def resolve_current_user(
             is_admin=False,
             scanning_enabled=True,
         )
-        session.add(auth0_user)
         try:
+            await flush_new_user(session, auth0_user)
             await session.commit()
         except IntegrityError:
             await session.rollback()

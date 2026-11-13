@@ -265,3 +265,5 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Send a test notification from Profile using unsaved provider settings, with explicit acceptance, API-only delivery, eligibility/CSRF checks and safe failure feedback.
 
 - [x] Remove the redundant Subscription URL section from Profile while retaining server/topic controls and copying.
+
+- [x] Resolve notification review findings: clear tokens when switching servers, preserve private publishing defaults with ntfy.sh subscriptions, recover generated-topic collisions in every account-creation flow, tie save feedback to submitted values, and explain subscribing before testing.

@@ -5,6 +5,7 @@ User profile router — ``/api/me`` endpoints.
 from __future__ import annotations
 
 import datetime as dt
+from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -17,6 +18,7 @@ from camply.notifications.base import NotificationDTO
 from camply.notifications.ntfy import NtfyProvider
 from camply.notifications.pushover import PushoverProvider
 from camply.server.auth import (
+    CurrentUser,
     CurrentUserDep,
     require_invitation,
     require_password_not_expired,
@@ -27,6 +29,21 @@ from camply.server.schemas import MeResponse, MeUpdateRequest, NotificationTestR
 logger = structlog.getLogger(__name__)
 
 me_router = APIRouter(tags=["me"])
+
+
+def _profile_updates(
+    body: MeUpdateRequest, current_user: CurrentUser
+) -> dict[str, Any]:
+    """Clear inherited credentials when a partial update changes the publisher."""
+    updates = body.model_dump(exclude_unset=True)
+    if (
+        "ntfy_server_url" in updates
+        and "ntfy_access_token" not in updates
+        and ntfy_config.publish_server(updates["ntfy_server_url"])
+        != ntfy_config.publish_server(current_user.ntfy_server_url)
+    ):
+        updates["ntfy_access_token"] = None
+    return updates
 
 
 # ---------------------------------------------------------------------------
@@ -48,6 +65,7 @@ async def get_me(current_user: CurrentUserDep) -> MeResponse:
         ntfy_default_subscription_url=(
             ntfy_config.subscription_url
             if ntfy_config.subscription_url != "https://ntfy.sh"
+            or ntfy_config.publish_url
             else None
         ),
         ntfy_topic=current_user.ntfy_topic,
@@ -89,7 +107,7 @@ async def update_me(
             detail="User not found",
         )
 
-    for field, value in body.model_dump(exclude_unset=True).items():
+    for field, value in _profile_updates(body, current_user).items():
         setattr(user, field, (value or None) if field == "pushover_token" else value)
 
     try:
@@ -115,6 +133,7 @@ async def update_me(
         ntfy_default_subscription_url=(
             ntfy_config.subscription_url
             if ntfy_config.subscription_url != "https://ntfy.sh"
+            or ntfy_config.publish_url
             else None
         ),
         ntfy_topic=user.ntfy_topic,
@@ -150,7 +169,7 @@ async def test_notification(
                 if current_user.ntfy_topic
                 else {}
             ),
-            **body.model_dump(exclude_unset=True),
+            **_profile_updates(body, current_user),
         }
     )
     topic = settings.ntfy_topic or f"camply-{str(current_user.id)[:7]}"

@@ -65,7 +65,7 @@ class MeResponse(BaseModel):
     )
     ntfy_default_subscription_url: str | None = Field(
         default=None,
-        description="Configured public application server, when different from ntfy.sh.",
+        description="Configured public application server, when custom publishing or subscription defaults are in use.",
     )
     ntfy_subscription_url: str = Field(
         default="https://ntfy.sh",

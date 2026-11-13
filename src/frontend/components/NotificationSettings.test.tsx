@@ -10,6 +10,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { NotificationSettings } from "./NotificationSettings";
 import { sendTestNotification, updateMe } from "@/lib/api";
+import type { MeResponse } from "@/lib/structs";
 
 vi.mock("@/lib/api", () => ({
   updateMe: vi.fn().mockResolvedValue({}),
@@ -17,6 +18,151 @@ vi.mock("@/lib/api", () => ({
     .fn()
     .mockResolvedValue({ status: "sent", provider: "ntfy" }),
 }));
+
+const renderReviewSettings = (overrides: Partial<MeResponse> = {}) => {
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <NotificationSettings
+        refresh={vi.fn().mockResolvedValue(undefined)}
+        user={{
+          id: "1234567a-abcd-1234-1234-123456789abc",
+          email: "review@example.test",
+          is_invited: true,
+          is_admin: false,
+          scanning_enabled: true,
+          pushover_token: null,
+          notification_provider: "ntfy",
+          ntfy_topic: "camply-1234567",
+          ntfy_server_url: "https://old.example.test",
+          ntfy_access_token: "synthetic-old-token",
+          ...overrides,
+        }}
+      />
+    </QueryClientProvider>,
+  );
+};
+
+it.each(["ntfy.sh", "default", "custom"])(
+  "clears the saved token when changing to %s and never tests with the old token",
+  async (choice) => {
+    vi.mocked(sendTestNotification).mockClear();
+    renderReviewSettings({
+      ntfy_default_subscription_url: "https://app.example.test",
+    });
+    fireEvent.change(screen.getByLabelText("ntfy server"), {
+      target: { value: choice },
+    });
+    if (choice === "custom") {
+      fireEvent.change(screen.getByLabelText("Your ntfy server URL"), {
+        target: { value: "https://new.example.test" },
+      });
+    }
+    expect(screen.getByLabelText("Access token (optional)")).toHaveValue("");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Send test notification" }),
+    );
+    await waitFor(() =>
+      expect(sendTestNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ ntfy_access_token: null }),
+      ),
+    );
+  },
+);
+
+it("keeps a new server's token when editing only its topic", async () => {
+  vi.mocked(updateMe).mockClear();
+  renderReviewSettings();
+  fireEvent.change(screen.getByLabelText("Your ntfy topic"), {
+    target: { value: "edited-topic" },
+  });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Save notification settings" }),
+  );
+  await waitFor(() =>
+    expect(updateMe).toHaveBeenCalledWith(
+      expect.objectContaining({ ntfy_access_token: "synthetic-old-token" }),
+    ),
+  );
+});
+
+it("retains a private application's default when subscriptions use ntfy.sh", async () => {
+  vi.mocked(updateMe).mockClear();
+  renderReviewSettings({
+    ntfy_server_url: null,
+    ntfy_default_subscription_url: "https://ntfy.sh",
+  });
+  expect(screen.getByLabelText("ntfy server")).toHaveValue("default");
+  fireEvent.click(
+    screen.getByRole("button", { name: "Save notification settings" }),
+  );
+  await waitFor(() =>
+    expect(updateMe).toHaveBeenCalledWith(
+      expect.objectContaining({ ntfy_server_url: null }),
+    ),
+  );
+});
+
+it.each(["Your ntfy topic", "Notification provider"])(
+  "hides saved feedback after editing %s",
+  async (field) => {
+    renderReviewSettings();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Save notification settings" }),
+    );
+    await screen.findByText("Notification settings updated.");
+    fireEvent.change(screen.getByLabelText(field), {
+      target: {
+        value: field === "Your ntfy topic" ? "unsaved-topic" : "pushover",
+      },
+    });
+    expect(
+      screen.queryByText("Notification settings updated."),
+    ).not.toBeInTheDocument();
+  },
+);
+
+it("does not confirm edits made while a save is pending", async () => {
+  let finish!: (value: MeResponse) => void;
+  vi.mocked(updateMe).mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    }),
+  );
+  renderReviewSettings();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Save notification settings" }),
+  );
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Save notification settings" }),
+    ).toBeDisabled(),
+  );
+  fireEvent.change(screen.getByLabelText("Your ntfy topic"), {
+    target: { value: "unsaved-during-request" },
+  });
+  await act(async () =>
+    finish({
+      id: "user",
+      email: "review@example.test",
+      is_invited: true,
+      is_admin: false,
+      scanning_enabled: true,
+      pushover_token: null,
+    }),
+  );
+  expect(
+    screen.queryByText("Notification settings updated."),
+  ).not.toBeInTheDocument();
+});
+
+it("explains subscribing in the ntfy app before testing", () => {
+  renderReviewSettings();
+  expect(
+    screen.getByText(
+      /In the ntfy app, subscribe using this server and topic, then send a test/,
+    ),
+  ).toBeInTheDocument();
+});
 
 describe("NotificationSettings", () => {
   it("shows the assigned topic and saves custom server settings", async () => {

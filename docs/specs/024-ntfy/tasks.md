@@ -18,3 +18,11 @@
 - [x] Add an authenticated draft-settings test send for Pushover/ntfy using shared providers, preserving API-only operation, eligibility, CSRF, safe errors and UI pending/result feedback.
 
 - [x] Simplify Profile to separate server/topic fields and copy buttons without a combined Subscription URL section.
+
+## Review fixes
+
+- [x] T001 Clear ntfy tokens when changing servers in Profile, partial saves and draft tests; verify no old token reaches the new server.
+- [x] T002 Retry generated-topic collisions in all account-creation paths without changing IDs or explicit topics; test collisions and unrelated uniqueness failures.
+- [x] T003 Preserve the configured-default choice for ntfy.sh subscription servers with private publishers; test privacy and null/default persistence.
+- [x] T004 Tie save feedback to submitted values, including edits during a pending save; test provider and field edits.
+- [x] T005 Restore subscribe-first guidance alongside server/topic, run all checks, and update the feature checklist and PR.

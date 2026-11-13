@@ -547,6 +547,51 @@ class TestNtfySettings:
             != User(email="b@example.test").ntfy_topic
         )
 
+    def test_private_publisher_with_ntfy_sh_subscriptions(
+        self, test_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Public ntfy.sh subscriptions still expose an application-default choice."""
+        from camply.db.notification_config import ntfy_config
+
+        monkeypatch.setattr(ntfy_config, "subscription_url", "https://ntfy.sh")
+        monkeypatch.setattr(ntfy_config, "publish_url", "http://ntfy.internal")
+        test_client.patch("/api/me", json={"ntfy_server_url": None})
+        for response in [
+            test_client.get("/api/me"),
+            test_client.patch("/api/me", json={"ntfy_server_url": None}),
+        ]:
+            assert response.status_code == 200
+            assert response.json()["ntfy_default_subscription_url"] == "https://ntfy.sh"
+            assert "ntfy.internal" not in response.text
+
+    def test_server_changes_clear_tokens_unless_replaced(
+        self, test_client: TestClient
+    ) -> None:
+        """Partial server updates cannot carry the old server's credentials forward."""
+        test_client.patch(
+            "/api/me",
+            json={
+                "ntfy_server_url": "https://old.example.test",
+                "ntfy_access_token": "synthetic-old",
+            },
+        )
+        response = test_client.patch(
+            "/api/me", json={"ntfy_server_url": "https://old.example.test/"}
+        )
+        assert response.json()["ntfy_access_token"] == "synthetic-old"
+        response = test_client.patch(
+            "/api/me", json={"ntfy_server_url": "https://new.example.test"}
+        )
+        assert response.json()["ntfy_access_token"] is None
+        response = test_client.patch(
+            "/api/me",
+            json={
+                "ntfy_server_url": None,
+                "ntfy_access_token": "synthetic-replacement",
+            },
+        )
+        assert response.json()["ntfy_access_token"] == "synthetic-replacement"
+
     def test_invalid_notification_provider(self, test_client: TestClient) -> None:
         assert (
             test_client.patch(

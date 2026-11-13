@@ -69,6 +69,8 @@ export const NotificationSettings = ({
   });
   const currentTest =
     JSON.stringify(testMutation.variables) === JSON.stringify(settings);
+  const currentSave =
+    JSON.stringify(mutation.variables) === JSON.stringify(settings);
   const invalidNtfy =
     provider === "ntfy" &&
     (!topic.trim() || (serverChoice === "custom" && !server.trim()));
@@ -121,11 +123,12 @@ export const NotificationSettings = ({
               id="ntfy-server-choice"
               className="min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={serverChoice}
-              onChange={(event) =>
+              onChange={(event) => {
+                setToken("");
                 setServerChoice(
                   event.target.value as "default" | "ntfy.sh" | "custom",
-                )
-              }
+                );
+              }}
             >
               {user.ntfy_default_subscription_url && (
                 <option value="default">
@@ -151,7 +154,10 @@ export const NotificationSettings = ({
                   className="min-w-0 flex-1"
                   type="url"
                   value={server}
-                  onChange={(event) => setServer(event.target.value)}
+                  onChange={(event) => {
+                    setToken("");
+                    setServer(event.target.value);
+                  }}
                   placeholder="https://ntfy.example.com"
                 />
                 <CopyButton
@@ -174,7 +180,11 @@ export const NotificationSettings = ({
           </div>
           <p className="text-xs text-muted-foreground">
             Defaults to camply- followed by the first seven characters of your
-            user ID. You can change it.
+            user ID, with a suffix if already taken. You can change it.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            In the ntfy app, subscribe using this server and topic, then send a
+            test.
           </p>
           <Label htmlFor="ntfy-token">Access token (optional)</Label>
           <Input
@@ -186,6 +196,7 @@ export const NotificationSettings = ({
           />
           <p className="text-xs text-muted-foreground">
             Use a token with publish permission for your selected server.
+            Changing servers clears the token.
           </p>
         </>
       )}
@@ -219,10 +230,10 @@ export const NotificationSettings = ({
       {currentTest && testMutation.isError && (
         <p role="alert">{testMutation.error.message}</p>
       )}
-      {mutation.isSuccess && (
+      {currentSave && mutation.isSuccess && (
         <p role="status">Notification settings updated.</p>
       )}
-      {mutation.isError && (
+      {currentSave && mutation.isError && (
         <p role="alert">
           Could not save notification settings. Check your settings and choose
           an unused topic.
