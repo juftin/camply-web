@@ -20,6 +20,11 @@ Open <http://127.0.0.1:8000> and use **Sync Providers** in Admin Operations to l
 
 See the [standalone guide](docs/self-hosting/standalone.md) for installation and storage, or self-host with [Docker Compose](docs/self-hosting/containers.md) or [Kubernetes/Helm](deploy/helm/README.md).
 
+For terminal-only discovery and availability monitoring, run
+`uvx --from camply-web camply providers` and follow the [command-line guide](docs/cli.md).
+This workflow needs no web account, database or server extras; results appear in
+your terminal.
+
 ## Docs
 
 Start with the [camply docs](https://camply.rocks/docs/) for using the app, configuration, and self-hosting ([browse the source](docs/index.md)). Every installation includes docs at `/docs/`, linked from the app footer. Contributors can follow the [contributing guide](docs/CONTRIBUTING.md) and [developer guide](docs/development/DEVELOPER_GUIDE.md); detailed [runtime and packaging](docs/operations/RUNNING.md) and [architecture](docs/architecture/ARCHITECTURE_DEEP_DIVE.md) references are also available.

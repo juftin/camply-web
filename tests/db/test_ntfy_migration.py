@@ -10,6 +10,41 @@ from camply.db.config import DatabaseConfig
 from camply.db.migration import get_alembic_config
 
 
+@pytest.mark.parametrize("previous_head", ["f024c1d2e3f4", "f42d8b10c6aa"])
+def test_upgrade_from_either_notification_or_provider_head(
+    tmp_path: Path, previous_head: str
+) -> None:
+    """Merge both deployed histories while preserving accounts and custom topics."""
+    database = DatabaseConfig(HOST=str(tmp_path / "merge.db"))
+    config = get_alembic_config(database)
+    command.upgrade(config, previous_head)
+    with sqlite3.connect(database.HOST) as connection:
+        connection.execute(
+            "INSERT INTO users (id, email, is_early_access_user, pushover_token) VALUES (?, ?, 1, ?)",
+            ("a" * 32, "merge@example.test", "synthetic-key"),
+        )
+        if previous_head == "f024c1d2e3f4":
+            connection.execute("UPDATE users SET ntfy_topic = 'custom-kept-topic'")
+    command.upgrade(config, "head")
+    with sqlite3.connect(database.HOST) as connection:
+        assert connection.execute(
+            "SELECT version_num FROM alembic_version"
+        ).fetchall() == [("f024d1e2f3a4",)]
+        assert connection.execute(
+            "SELECT email, pushover_token, ntfy_topic FROM users"
+        ).fetchone() == (
+            "merge@example.test",
+            "synthetic-key",
+            "custom-kept-topic"
+            if previous_head == "f024c1d2e3f4"
+            else "camply-aaaaaaa",
+        )
+        assert connection.execute(
+            "SELECT url FROM providers WHERE id = 13"
+        ).fetchone() == ("https://www.reserveamerica.com",)
+        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+
+
 def test_existing_user_topics_and_downgrade(tmp_path: Path) -> None:
     database = DatabaseConfig(HOST=str(tmp_path / "ntfy.db"))
     config = get_alembic_config(database)

@@ -87,6 +87,7 @@ export default defineConfig({
         items: [
           { text: "Overview", link: "/" },
           { text: "Using camply", link: "/using-camply" },
+          { text: "Command line", link: "/cli" },
         ],
       },
       {

@@ -26,3 +26,5 @@
 - [x] T003 Preserve the configured-default choice for ntfy.sh subscription servers with private publishers; test privacy and null/default persistence.
 - [x] T004 Tie save feedback to submitted values, including edits during a pending save; test provider and field edits.
 - [x] T005 Restore subscribe-first guidance alongside server/topic, run all checks, and update the feature checklist and PR.
+
+- [x] T006 Merge current main without rewriting history, join ntfy/provider migration heads, and validate upgrades from both histories and the integrated application, including desktop/mobile Profile screenshots.

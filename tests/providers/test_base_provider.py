@@ -31,6 +31,9 @@ from camply.providers.errors import CircuitBreakerOpenError, ProviderRateLimited
 class ConcreteProvider(BaseProvider):
     """Minimal concrete subclass of BaseProvider for testing."""
 
+    async def search_upstream(self, query):
+        return []
+
     async def find_availabilities(self, park_id, start_date, end_date):
         return []
 
@@ -788,3 +791,25 @@ async def test_search_keeps_nonreservable_parks_with_bookable_campgrounds() -> N
     finally:
         await provider.async_client.aclose()
         await engine.dispose()
+
+
+@pytest.mark.anyio
+async def test_client_close_reaps_circuit_breaker_updates() -> None:
+    """Closing an owned provider leaves no background breaker task running."""
+    provider = ConcreteProvider()
+    transport = provider.async_client._transport
+    assert isinstance(transport, RetryTransport)
+    assert transport._circuit_breaker is not None
+    release = asyncio.Event()
+    with patch.object(
+        transport._circuit_breaker, "on_success", side_effect=release.wait
+    ):
+        transport._record_success()
+        tasks = tuple(transport._cb_tasks)
+        close = asyncio.create_task(provider.async_client.aclose())
+        await asyncio.sleep(0)
+        assert not close.done()
+        release.set()
+        await close
+        assert all(task.done() for task in tasks)
+        assert not transport._cb_tasks

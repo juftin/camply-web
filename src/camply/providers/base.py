@@ -6,6 +6,7 @@ import asyncio
 import random
 import time
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from datetime import date
 from typing import Any, ClassVar
@@ -17,7 +18,14 @@ from sqlalchemy import Insert, and_, delete, func, insert, literal, null, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from camply.db.models import Campground, Provider, RecreationArea, Search
-from camply.providers.dto import CampsiteDTO
+from camply.providers.dto import (
+    CampgroundSearchResult,
+    CampsiteDTO,
+    ProviderSearchQuery,
+    ProviderSearchResult,
+    RecreationAreaSearchResult,
+    SearchEntityType,
+)
 from camply.providers.errors import CircuitBreakerOpenError, ProviderRateLimitedError
 
 logger = structlog.getLogger()
@@ -248,11 +256,15 @@ class RetryTransport(httpx2.AsyncHTTPTransport):
         super().__init__()
 
     async def aclose(self) -> None:
-        """Release the connection pool used by retries when the client closes."""
+        """Release retry sockets and reap owned circuit-breaker update tasks."""
         try:
             await self._inner.aclose()
         finally:
-            await super().aclose()
+            try:
+                await super().aclose()
+            finally:
+                if self._cb_tasks:
+                    await asyncio.gather(*self._cb_tasks, return_exceptions=True)
 
     async def handle_async_request(
         self,
@@ -559,6 +571,155 @@ class BaseProvider(ABC):
                 provider_name=provider_name,
             )
         return cls._circuit_breakers[provider_name]
+
+    async def search(
+        self,
+        query: str = "",
+        *,
+        state: str | None = None,
+        entity_type: SearchEntityType | str | None = None,
+        recreation_area_id: str | None = None,
+        limit: int = 50,
+    ) -> list[ProviderSearchResult]:
+        """Discover campgrounds and recreation areas upstream without database access.
+
+        None selects both entity types; strings and SearchEntityType members
+        select a single type. Blank text browses the catalog. State codes are
+        normalized to uppercase;
+        parent IDs are exact strings. Failures propagate rather than appearing
+        as an empty result. Results are unique within this provider.
+        """
+        request = ProviderSearchQuery(
+            query=query.strip(),
+            entity_type=SearchEntityType(entity_type)
+            if entity_type is not None
+            else None,
+            state=state.strip().upper() if state is not None else None,
+            recreation_area_id=recreation_area_id,
+            limit=limit,
+        )
+        results = await self.search_upstream(request)
+        unique = {
+            (
+                result.entity_type,
+                result.campground_id
+                if result.entity_type == "campground"
+                else result.recreation_area_id,
+            ): result
+            for result in results
+        }
+        return list(unique.values())[: request.limit]
+
+    @abstractmethod
+    async def search_upstream(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
+        """Implement upstream discovery for a provider API family."""
+
+    async def _complete_search(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
+        """Read complete native catalogs; paginated families override this method.
+
+        Catalog-backed providers already return all matching rows from
+        ``search_upstream``. Pagination-backed providers must exhaust their
+        source rather than interpreting the public search display limit as a
+        target limit.
+        """
+        return await self.search_upstream(query)
+
+    async def get_campground(self, campground_id: str) -> CampgroundSearchResult:
+        """Resolve an exact eligible native campground ID without a database.
+
+        Raises
+        ------
+        ValueError
+            If the ID is blank, unknown, hidden or unavailable for online camping.
+        """
+        campground_id = self._native_id(campground_id)
+        results = await self._complete_search(
+            ProviderSearchQuery(entity_type=SearchEntityType.CAMPGROUND)
+        )
+        for result in results:
+            if (
+                isinstance(result, CampgroundSearchResult)
+                and result.campground_id == campground_id
+            ):
+                return result
+        raise ValueError(f"Unknown or unbookable campground ID: {campground_id}")
+
+    async def get_recreation_area(
+        self, recreation_area_id: str
+    ) -> RecreationAreaSearchResult:
+        """Resolve a visible native recreation area, including an empty area."""
+        recreation_area_id = self._native_id(recreation_area_id)
+        results = await self._complete_search(
+            ProviderSearchQuery(
+                entity_type=SearchEntityType.RECREATION_AREA,
+                recreation_area_id=recreation_area_id,
+            )
+        )
+        for result in results:
+            if (
+                isinstance(result, RecreationAreaSearchResult)
+                and result.recreation_area_id == recreation_area_id
+            ):
+                return result
+        raise ValueError(f"Unknown recreation-area ID: {recreation_area_id}")
+
+    async def filter_campgrounds(
+        self,
+        campgrounds: list[CampgroundSearchResult],
+        *,
+        query: str = "",
+        state: str | None = None,
+    ) -> list[CampgroundSearchResult]:
+        """Apply provider-defined discovery filters to resolved campground targets.
+
+        Catalog providers use local substring matching. Providers whose search
+        relevance is defined upstream override this hook to retain that behavior
+        for explicit selections. A valid target filtered out here is not an
+        unknown-ID error.
+        """
+        request = ProviderSearchQuery(
+            query=query.strip(),
+            state=state.strip().upper() if state is not None else None,
+            entity_type=SearchEntityType.CAMPGROUND,
+        )
+        return [result for result in campgrounds if result.matches(request)]
+
+    async def iter_campgrounds(
+        self, recreation_area_id: str
+    ) -> AsyncIterator[CampgroundSearchResult]:
+        """Enumerate every eligible child of a valid area without a result cap.
+
+        Complete upstream responses are validated before yielding any target.
+        Unknown areas fail; a known area without camping produces no targets.
+        """
+        recreation_area_id = self._native_id(recreation_area_id)
+        await self.get_recreation_area(recreation_area_id)
+        results = await self._complete_search(
+            ProviderSearchQuery(
+                entity_type=SearchEntityType.CAMPGROUND,
+                recreation_area_id=recreation_area_id,
+            )
+        )
+        unique = {
+            result.campground_id: result
+            for result in results
+            if isinstance(result, CampgroundSearchResult)
+            and result.recreation_area_id == recreation_area_id
+        }
+        for result in unique.values():
+            yield result
+
+    @staticmethod
+    def _native_id(value: str) -> str:
+        """Normalize opaque selectors without coercing their native identity."""
+        value = value.strip()
+        if not value:
+            raise ValueError("Native IDs must not be blank")
+        return value
 
     @abstractmethod
     async def find_availabilities(

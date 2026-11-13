@@ -138,6 +138,7 @@ tasks:
     cmds:
       - pnpm exec tsx src/frontend/tooling/verify-snapshot-navigation.ts
       - pnpm exec tsx src/frontend/tooling/verify-snapshot-gallery.ts
+      - pnpm exec tsx src/frontend/tooling/verify-cli-snapshots.ts
     deps: [install]
 
   pages:check:

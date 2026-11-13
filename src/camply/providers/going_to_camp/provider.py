@@ -23,7 +23,13 @@ from sqlalchemy import update
 from camply.db.config import db
 from camply.db.models import Campground, Provider, RecreationArea
 from camply.providers.base import BaseProvider
-from camply.providers.dto import CampsiteDTO
+from camply.providers.dto import (
+    CampgroundSearchResult,
+    CampsiteDTO,
+    ProviderSearchQuery,
+    ProviderSearchResult,
+    RecreationAreaSearchResult,
+)
 from camply.providers.going_to_camp.models.api import (
     AVAILABLE_STATUS,
     MAP_LINK_OPEN_STATUSES,
@@ -277,6 +283,85 @@ class GoingToCampProvider(BaseProvider, ABC):
             )
             is not None
         ]
+
+    async def search_upstream(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
+        """Search fresh catalogs using the ingestion overnight eligibility rules."""
+        response = await self._request("GET", "transactionlocation")
+        parks = TypeAdapter(list[TransactionLocation]).validate_json(response.content)
+        parents = {
+            p.transactionLocationId: p
+            for p in parks
+            if p.display_name is not None and p.isDisabled is not True
+        }
+        results: list[ProviderSearchResult] = []
+        if query.entity_type != "campground":
+            results.extend(self._search_recreation_areas(query, parents))
+        if query.entity_type == "recreation_area":
+            return results
+        response = await self._request("GET", "resourceLocation")
+        facilities = TypeAdapter(list[ResourceLocation]).validate_json(response.content)
+        response = await self._request("GET", "bookingcategories")
+        bookings = TypeAdapter(list[BookingCategory]).validate_json(response.content)
+        response = await self._request("GET", "resourcecategory")
+        categories = TypeAdapter(list[ResourceCategory]).validate_json(response.content)
+        _, overnight = resolve_overnight_categories(bookings, categories)
+        for facility in facilities:
+            if facility.transactionLocationId is None:
+                continue
+            park = parents.get(facility.transactionLocationId)
+            if park is None or facility.display_name is None:
+                continue
+            row = self._build_campground_row(
+                facility, parent_park=park, overnight_resource_ids=set(overnight)
+            )
+            if not row.reservable:
+                continue
+            result = CampgroundSearchResult(
+                provider_id=self.provider.id,
+                provider_name=self.provider.name,
+                campground_id=row.id,
+                campground_name=row.name,
+                recreation_area_id=str(park.transactionLocationId),
+                recreation_area_name=normalize_name(park.display_name),
+                city=row.city,
+                state=row.state,
+                country=row.country,
+                latitude=row.latitude,
+                longitude=row.longitude,
+                booking_url=self.get_campground_url(
+                    row.id, rec_area_id=str(park.transactionLocationId)
+                ),
+            )
+            if result.matches(query):
+                results.append(result)
+        return results
+
+    def _search_recreation_areas(
+        self,
+        query: ProviderSearchQuery,
+        parents: dict[int, TransactionLocation],
+    ) -> list[ProviderSearchResult]:
+        """Translate visible parks independently of campground matches."""
+        results: list[ProviderSearchResult] = []
+        for area in parents.values():
+            row_area = self._build_park_row(area, has_overnight_campground=False)
+            result_area = RecreationAreaSearchResult(
+                provider_id=self.provider.id,
+                provider_name=self.provider.name,
+                recreation_area_id=row_area.id,
+                recreation_area_name=row_area.name,
+                city=row_area.city,
+                state=row_area.state,
+                country=row_area.country,
+                latitude=row_area.latitude,
+                longitude=row_area.longitude,
+                booking_url=self.get_rec_area_url(row_area.id),
+            )
+            if result_area.matches(query):
+                results.append(result_area)
+        return results
 
     async def sync_metadata(self) -> None:
         """Refresh parks, campgrounds, and search rows using the ingestion workflow."""

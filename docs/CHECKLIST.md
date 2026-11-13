@@ -2,6 +2,19 @@
 
 This checklist tracks the granular progress of `camply`. Agents **MUST** update this file by marking tasks as completed (`[x]`) before finalizing any PR.
 
+## Legacy CLI parity (026)
+
+- [x] Audit legacy `juftin/camply` v0.34.4 CLI commands, options, YAML/configuration, providers, deployment IDs and notifications; map replacements and gaps in the [baseline inventory](specs/026-cli-parity/legacy-audit.md).
+- [x] Write the [parity specification](specs/026-cli-parity/spec.md), [design outline](specs/026-cli-parity/plan.md), [delivery backlog](specs/026-cli-parity/tasks.md) and [readiness checklist](specs/026-cli-parity/checklists/requirements.md).
+- [x] Narrow initial CLI scope and track D01–D13 as [deferred TODOs](specs/026-cli-parity/tasks.md#deferred-todo-registry), including site listing/selection, full notification/campground parity, YAML, permits, equipment, TUI, Rich-click, configure, notification caps and offline history.
+- [x] Address command-contract and test-coverage review gaps: specify option precedence/repeatability, exact campground lookup and real installed-command monitoring/cancellation acceptance gates. Keep initial CLI output console-only; defer Pushover and all external notification setup/delivery.
+- [x] Restore current-provider discovery and campground-based availability through shared base-only capabilities: exact metadata lookup, complete area expansion, paired date/day matching, continuous console output and cancellation cleanup.
+- [x] Verify initial CLI acceptance with full test/lint/type/docs gates and installed wheel/sdist checks on Python 3.11/3.14; keep all D01–D13 deferred.
+- [x] Separate CLI commands/groups into dedicated modules, centralize reusable options and share discovery/output/execution helpers while preserving lazy imports and command behavior.
+- [x] Add `camply` v1-style Rich CLI logging (`CAMPLY` log level, welcome/exit banners, debug diagnostics, `CAMPLY_LOG_HANDLER=python` fallback, and stdout/stderr stream separation), log provider/discovery/availability results in classic `camply` emoji hierarchy (`⛰`, `🏕`, `📅`, `🔗`) without truncation, and verify CLI terminal screenshots in Chromium and `pytest`.
+- [x] Stabilize snapshot capture by waiting for visible image/font readiness, cover delayed lazy-image loading without network-idle waits, and refresh the complete desktop light profile baseline from macOS CI.
+- [ ] Brainstorm CLI lifecycle and `--continuous` / `--search-forever` / `--search-once`; intended default is search forever. Deferred TODO implementation is outside the initial release gate.
+
 ---
 
 ## 🛠️ Phase 1: Smart Poller & Single-Scan MVP (Current Focus)
@@ -267,3 +280,33 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Remove the redundant Subscription URL section from Profile while retaining server/topic controls and copying.
 
 - [x] Resolve notification review findings: clear tokens when switching servers, preserve private publishing defaults with ntfy.sh subscriptions, recover generated-topic collisions in every account-creation flow, tie save feedback to submitted values, and explain subscribing before testing.
+- [x] Integrate current provider/CLI changes, join deployed ntfy and provider migration histories, and cover ntfy settings in desktop/mobile visual checks.
+
+### ReserveAmerica provider
+
+- [x] Register ReserveAmerica (ID 13), guarded seed migration, and contract-scoped campground/site IDs; update installed-artifact and PostgreSQL smoke provider expectations.
+- [x] Discover native US overnight campgrounds from bulk brand metadata and paginated state searches; refresh metadata/search atomically.
+- [x] Scan paginated site grids in 14-night windows, map explicit campsite attributes, and preserve failures for worker retry.
+- [x] Keep auth headers aligned with rotated, deleted and expired cookies; recover after unsuccessful refreshes and serialize concurrent callers.
+- [x] Cover synthetic HTTP, persistence, migration and registry regressions; verify live CO metadata and site scanning. See [endpoint research](specs/024-reserve-america/validation.md).
+
+- [x] Replace Yellowstone Lodges with ReserveAmerica in popular/all provider cards.
+- [x] Update provider-page visual baselines from inspected macOS CI captures.
+
+- [x] Use `www.reserveamerica.com` for public links, retain the separate `a1` API/session URLs, and migrate existing seeded provider URLs with custom-URL preservation.
+
+### Direct provider search (025)
+
+- [x] Add validated database-independent upstream campground and recreation-area search with typed results.
+- [x] Implement Recreation.gov, shared UseDirect regional providers, GoingToCamp, and ReserveAmerica search.
+- [x] Cover all registered providers with synthetic HTTP eligibility, entity selection, filter, validation, and failure tests.
+- [x] Use `SearchEntityType` string enums or plain strings; default to `None` for all types and reject `"both"`.
+- [x] Preserve entities with coinciding park/campground IDs and avoid facility requests for area-only discovery.
+- [x] Resolve independent review findings for Recreation.gov parent-scoped requests and District of Columbia state normalization.
+- [x] Document future CLI consumption; keep web search and CLI commands unchanged.
+- [x] Pass full test and quality workflows, including a final backend rerun after independent-review fixes.
+- [x] Keep provider extension methods public: `search_upstream` is the abstract discovery contract.
+
+### Dependency Maintenance
+
+- [x] Consolidate verified Renovate dependency upgrades into a single release PR, excluding risky or incompatible upgrades (Python 3.15, Postgres 18, React 19, Tailwind CSS v4, TypeScript 7, Lucide React 1.x, @types/node 26, and major Redis/Hookform bumps).

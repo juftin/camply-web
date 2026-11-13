@@ -16,7 +16,10 @@ import { spawn, execSync, type ChildProcess } from "child_process";
 import { chromium, type Browser, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
 import { setupAdminSnapshotMocks } from "./admin-snapshot-mocks";
-import { navigateToSnapshot } from "./snapshot-navigation";
+import {
+  navigateToSnapshot,
+  waitForSnapshotAssets,
+} from "./snapshot-navigation";
 import {
   generateHtmlReport,
   recordSnapshot,
@@ -545,6 +548,34 @@ const SCENARIOS: Scenario[] = [
     theme: "dark",
     description:
       "User profile settings and Pushover notification config (Desktop, Dark)",
+  },
+  {
+    name: "profile-ntfy-desktop-dark",
+    route: "/profile",
+    viewport: { width: 1280, height: 800 },
+    theme: "dark",
+    description:
+      "ntfy server/topic copying and notification testing (Desktop, Dark)",
+    action: async (page: Page) => {
+      await page.getByLabel("Notification provider").selectOption("ntfy");
+    },
+  },
+  {
+    name: "profile-ntfy-mobile-light",
+    route: "/profile",
+    viewport: { width: 390, height: 844 },
+    theme: "light",
+    description:
+      "Custom ntfy server, topic copying and notification testing (Mobile, Light)",
+    action: async (page: Page) => {
+      await page.getByLabel("Notification provider").selectOption("ntfy");
+      await page
+        .getByLabel("ntfy server", { exact: true })
+        .selectOption("custom");
+      await page
+        .getByLabel("Your ntfy server URL")
+        .fill("https://ntfy.example.test");
+    },
   },
   {
     name: "scan-detail-desktop-light",
@@ -1377,9 +1408,6 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
     `,
   });
 
-  // Ensure fonts are loaded
-  await page.evaluate(() => document.fonts.ready);
-
   if (scenario.route === "/dashboard" && !scenario.emptyScans) {
     try {
       await page.waitForSelector("text=Upper Pines Campground", {
@@ -1413,6 +1441,7 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
   }
   if (scenario.name.startsWith("map-"))
     await page.evaluate(() => window.scrollTo(0, 0));
+  await waitForSnapshotAssets(page);
 }
 
 /**

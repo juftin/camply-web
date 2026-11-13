@@ -6,6 +6,7 @@ from camply.db.data import providers as identities
 from camply.providers.base import BaseProvider
 from camply.providers.going_to_camp.variations import WashingtonStateParksProvider
 from camply.providers.recreation_gov.provider import RecreationGovProvider
+from camply.providers.reserve_america.provider import ReserveAmericaProvider
 from camply.providers.usedirect.variations import (
     ArizonaStateParksProvider,
     FairfaxCountyParksProvider,
@@ -32,6 +33,7 @@ PROVIDERS: dict[int, type[BaseProvider]] = {
     identities.OregonMetro.id: OregonMetroProvider,
     identities.NorthernTerritory.id: NorthernTerritoryProvider,
     identities.WashingtonStateParks.id: WashingtonStateParksProvider,
+    identities.ReserveAmerica.id: ReserveAmericaProvider,
 }
 
 __all__ = ["PROVIDERS"]

@@ -65,6 +65,18 @@ def test_source_directories_are_packages() -> None:
     [
         ({"db/probe.py": "import camply.providers.dto"}, "Component dependency layers"),
         (
+            {"providers/probe.py": "import camply.core.search"},
+            "Component dependency layers",
+        ),
+        (
+            {"core/probe.py": "import camply.worker.engine"},
+            "Component dependency layers",
+        ),
+        ({"core/probe.py": "import camply.cli.main"}, "Component dependency layers"),
+        ({"core/probe.py": "import celery"}, "Base dependencies stay optional-free"),
+        ({"core/probe.py": "import fastapi"}, "Base dependencies stay optional-free"),
+        ({"__init__.py": "import camply.core"}, "Package root stays lightweight"),
+        (
             {"providers/probe.py": "import camply.server.config"},
             "Component dependency layers",
         ),

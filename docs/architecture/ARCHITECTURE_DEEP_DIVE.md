@@ -5,13 +5,49 @@ This document explains the technical implementation and reasoning behind the cor
 ## Python package boundaries
 
 The Python backend is one `camply` distribution with internal
-`camply.providers`, `camply.db`, `camply.server`, and `camply.worker`
+`camply.core`, `camply.providers`, `camply.db`, `camply.server`, and `camply.worker`
 subpackages. Base includes providers and SQLite; `server`, `distributed`,
 `postgres`, and `sentry` independently add runtime dependencies. Server and
-worker application bootstrap must remain independent. Adding local CLI
-subcommands to `camply.cli` is future work. Existing
+worker application bootstrap must remain independent. The foreground CLI discovers
+locations and monitors live availability without application state or service
+bootstraps. Existing
 Celery JSON task names, beat schedule names, and database revisions are
 preserved through the module migration.
+
+The enforced layer order is `cli | server | worker` → `core` → `providers` →
+`db` → `__about__`. `camply.core.search` normalizes local date windows, constructs
+exact-length stays from provider observations, and runs cancellable foreground
+checks. It reuses `camply.db.availability.matching_available_dates`, the same
+consecutive-night matcher used by saved web scans. Database adapters retain
+subscriber filtering and persistence; the CLI never creates subscribers, targets
+or notification deliveries. The core imports no optional service dependencies.
+
+The CLI owns one provider client across discovery and monitoring, closes it on
+success, failure or cancellation, and awaits checks sequentially so the same
+target cannot overlap. Requests use existing provider pacing, retries and circuit
+breakers. An internal 60-second wait separates successful cycles; this provisional
+implementation default is not the deferred public scheduling/mode contract.
+Provider failures remain errors rather than empty availability. CLI output is
+console-only. See the [CLI guide](../cli.md) and [feature 026](../specs/026-cli-parity/spec.md).
+
+## CLI organization
+
+`camply.cli.main` owns the root command and lazily loads each command module.
+`serve.py`, `db.py`, `providers.py`, `recreation_areas.py`, `campgrounds.py` and
+`campsites.py` own their respective commands; `healthcheck.py` owns the nested
+serving health checks. Serving helpers remain with the serving group.
+
+`options.py` defines reusable Click options, strict calendar-date parsing and debug
+precedence. It imports no providers or application configuration, keeping root
+imports and version reporting lightweight. Shared discovery validation and target
+resolution live in `discovery.py`; terminal rendering lives in `output.py`; async
+execution, diagnostic sanitization and signal cleanup live in `execution.py`.
+`runtime.py` checks optional runtime dependencies before serving side effects.
+
+Command modules compose these helpers without importing the root router. New
+commands should reuse the option decorators rather than duplicate their defaults,
+repeatability or help text. User-visible options and provider precedence remain
+defined by the [initial command contract](../specs/026-cli-parity/spec.md#initial-command-contract).
 
 ## Optional local execution
 
