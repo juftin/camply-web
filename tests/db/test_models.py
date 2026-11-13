@@ -322,3 +322,16 @@ def test_scan_result_creation(session: Session, target: UniqueTarget):
     # Verify relationship
     assert result.target.hash == target.hash
     assert len(target.scan_results) == 1
+
+
+def test_ntfy_default_topic_uses_user_id_for_bulk_insert(session: Session) -> None:
+    """Bulk-created accounts also derive their topic from the persisted user ID."""
+    import uuid
+
+    from sqlalchemy import insert, select
+
+    user_id = uuid.UUID("12345678-abcd-1234-1234-123456789abc")
+    session.execute(insert(User), [{"id": user_id, "email": "bulk@example.test"}])
+    session.commit()
+    user = session.scalar(select(User).where(User.id == user_id))
+    assert user is not None and user.ntfy_topic == "camply-1234567"

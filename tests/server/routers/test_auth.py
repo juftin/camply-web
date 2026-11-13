@@ -495,3 +495,195 @@ def test_deployed_requests_require_application_login(
     response = test_client.get(path)
     assert response.status_code == 401
     assert response.headers.get("www-authenticate", "").lower() != "basic"
+
+
+class TestNtfySettings:
+    """Account-owned settings and safe partial updates."""
+
+    def test_defaults_and_partial_updates(self, test_client: TestClient) -> None:
+        user = test_client.get("/api/me").json()
+        assert user["ntfy_topic"] == f"camply-{user['id'][:7]}"
+        assert user["notification_provider"] == "pushover"
+        test_client.patch("/api/me", json={"pushover_token": "keep-me"})
+        response = test_client.patch(
+            "/api/me",
+            json={
+                "notification_provider": "ntfy",
+                "ntfy_server_url": "http://ntfy.internal/prefix/",
+                "ntfy_access_token": "synthetic",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["ntfy_topic"] == user["ntfy_topic"]
+        assert data["ntfy_server_url"] == "http://ntfy.internal/prefix"
+        assert data["pushover_token"] == "keep-me"
+        data = test_client.patch("/api/me", json={"pushover_token": None}).json()
+        assert data["notification_provider"] == "ntfy"
+        assert data["ntfy_access_token"] == "synthetic"
+
+    @pytest.mark.parametrize(
+        "server",
+        [
+            "ftp://example.test",
+            "https://user:pass@example.test",
+            "https://example.test?token=secret",
+            "https://example.test/#fragment",
+            "http://",
+            "https://example.test:invalid",
+        ],
+    )
+    def test_invalid_server(self, test_client: TestClient, server: str) -> None:
+        assert (
+            test_client.patch("/api/me", json={"ntfy_server_url": server}).status_code
+            == 422
+        )
+
+    def test_distinct_topics(self) -> None:
+        from camply.db.models import User
+
+        assert (
+            User(email="a@example.test").ntfy_topic
+            != User(email="b@example.test").ntfy_topic
+        )
+
+    def test_private_publisher_with_ntfy_sh_subscriptions(
+        self, test_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Public ntfy.sh subscriptions still expose an application-default choice."""
+        from camply.db.notification_config import ntfy_config
+
+        monkeypatch.setattr(ntfy_config, "subscription_url", "https://ntfy.sh")
+        monkeypatch.setattr(ntfy_config, "publish_url", "http://ntfy.internal")
+        test_client.patch("/api/me", json={"ntfy_server_url": None})
+        for response in [
+            test_client.get("/api/me"),
+            test_client.patch("/api/me", json={"ntfy_server_url": None}),
+        ]:
+            assert response.status_code == 200
+            assert response.json()["ntfy_default_subscription_url"] == "https://ntfy.sh"
+            assert "ntfy.internal" not in response.text
+
+    def test_server_changes_clear_tokens_unless_replaced(
+        self, test_client: TestClient
+    ) -> None:
+        """Partial server updates cannot carry the old server's credentials forward."""
+        test_client.patch(
+            "/api/me",
+            json={
+                "ntfy_server_url": "https://old.example.test",
+                "ntfy_access_token": "synthetic-old",
+            },
+        )
+        response = test_client.patch(
+            "/api/me", json={"ntfy_server_url": "https://old.example.test/"}
+        )
+        assert response.json()["ntfy_access_token"] == "synthetic-old"
+        response = test_client.patch(
+            "/api/me", json={"ntfy_server_url": "https://new.example.test"}
+        )
+        assert response.json()["ntfy_access_token"] is None
+        response = test_client.patch(
+            "/api/me",
+            json={
+                "ntfy_server_url": None,
+                "ntfy_access_token": "synthetic-replacement",
+            },
+        )
+        assert response.json()["ntfy_access_token"] == "synthetic-replacement"
+
+    def test_invalid_notification_provider(self, test_client: TestClient) -> None:
+        assert (
+            test_client.patch(
+                "/api/me", json={"notification_provider": "unknown"}
+            ).status_code
+            == 422
+        )
+
+    def test_deployment_defaults_stay_private(
+        self, test_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from camply.db.notification_config import ntfy_config
+
+        monkeypatch.setattr(
+            ntfy_config, "subscription_url", "https://push.example.test/public"
+        )
+        monkeypatch.setattr(
+            ntfy_config, "publish_url", "http://ntfy.internal:80/publish"
+        )
+        test_client.patch("/api/me", json={"ntfy_server_url": None})
+        for response in [
+            test_client.get("/api/me"),
+            test_client.patch("/api/me", json={"notification_provider": "ntfy"}),
+        ]:
+            assert response.status_code == 200
+            assert response.json()["ntfy_server_url"] is None
+            assert (
+                response.json()["ntfy_subscription_url"]
+                == "https://push.example.test/public"
+            )
+            assert "ntfy.internal" not in response.text
+            assert (
+                response.json()["ntfy_default_subscription_url"]
+                == "https://push.example.test/public"
+            )
+        data = test_client.patch(
+            "/api/me", json={"ntfy_server_url": "https://custom.example.test/push/"}
+        ).json()
+        assert data["ntfy_subscription_url"] == "https://custom.example.test/push"
+        assert data["ntfy_server_url"] == "https://custom.example.test/push"
+        assert (
+            data["ntfy_default_subscription_url"] == "https://push.example.test/public"
+        )
+        data = test_client.patch(
+            "/api/me", json={"pushover_token": "keep-custom"}
+        ).json()
+        assert data["ntfy_server_url"] == "https://custom.example.test/push"
+        response = test_client.patch("/api/me", json={"ntfy_server_url": None})
+        assert (
+            response.json()["ntfy_subscription_url"]
+            == "https://push.example.test/public"
+        )
+        assert response.json()["ntfy_server_url"] is None
+        assert "ntfy.internal" not in response.text
+
+    def test_edit_ntfy_topic_and_preserve_partial_updates(
+        self, test_client: TestClient
+    ) -> None:
+        response = test_client.patch("/api/me", json={"ntfy_topic": "my-camping-topic"})
+        assert response.status_code == 200
+        assert response.json()["ntfy_topic"] == "my-camping-topic"
+        assert test_client.get("/api/me").json()["ntfy_topic"] == "my-camping-topic"
+        assert (
+            test_client.patch("/api/me", json={"pushover_token": "synthetic"}).json()[
+                "ntfy_topic"
+            ]
+            == "my-camping-topic"
+        )
+
+    @pytest.mark.parametrize(
+        "topic", ["", None, "has spaces", "with/slash", "a?token=secret", "a" * 65]
+    )
+    def test_invalid_topic(self, test_client: TestClient, topic: str | None) -> None:
+        assert (
+            test_client.patch("/api/me", json={"ntfy_topic": topic}).status_code == 422
+        )
+
+    def test_duplicate_topic_returns_conflict(self, test_client: TestClient) -> None:
+        import asyncio
+
+        from camply.db.models import User
+        from tests.server.conftest import maker
+
+        async def seed() -> None:
+            async with maker() as session:
+                session.add(
+                    User(email="topic-owner@example.test", ntfy_topic="already-claimed")
+                )
+                await session.commit()
+
+        asyncio.run(seed())
+        previous = test_client.get("/api/me").json()["ntfy_topic"]
+        response = test_client.patch("/api/me", json={"ntfy_topic": "already-claimed"})
+        assert response.status_code == 409
+        assert test_client.get("/api/me").json()["ntfy_topic"] == previous

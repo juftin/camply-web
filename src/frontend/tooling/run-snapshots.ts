@@ -550,6 +550,34 @@ const SCENARIOS: Scenario[] = [
       "User profile settings and Pushover notification config (Desktop, Dark)",
   },
   {
+    name: "profile-ntfy-desktop-dark",
+    route: "/profile",
+    viewport: { width: 1280, height: 800 },
+    theme: "dark",
+    description:
+      "ntfy server/topic copying and notification testing (Desktop, Dark)",
+    action: async (page: Page) => {
+      await page.getByLabel("Notification provider").selectOption("ntfy");
+    },
+  },
+  {
+    name: "profile-ntfy-mobile-light",
+    route: "/profile",
+    viewport: { width: 390, height: 844 },
+    theme: "light",
+    description:
+      "Custom ntfy server, topic copying and notification testing (Mobile, Light)",
+    action: async (page: Page) => {
+      await page.getByLabel("Notification provider").selectOption("ntfy");
+      await page
+        .getByLabel("ntfy server", { exact: true })
+        .selectOption("custom");
+      await page
+        .getByLabel("Your ntfy server URL")
+        .fill("https://ntfy.example.test");
+    },
+  },
+  {
     name: "scan-detail-desktop-light",
     route: "/dashboard/scans/scan-mock-1",
     viewport: { width: 1280, height: 800 },

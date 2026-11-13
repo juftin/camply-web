@@ -103,8 +103,8 @@ See the [implementation plan](../specs/014-campsite-alerts/plan.md) and [configu
    - _Config_: `email_address`
    - _Status_: Medium Priority (Universal wrapper for 50+ services)
 5. **Ntfy**:
-   - _Config_: `topic_url`
-   - _Status_: Medium Priority
+   - _Config_: Per-user generated topic, server URL and optional access token
+   - _Status_: Implemented (user-selected)
 
 ---
 
@@ -113,3 +113,15 @@ See the [implementation plan](../specs/014-campsite-alerts/plan.md) and [configu
 - **Secrets Management**: User notification tokens must be handled securely in the database.
 - **Rate Limiting**: Implementation of provider-specific rate limiting (e.g., Twilio/SMS limits) to prevent excessive costs or API bans.
 - **Failover**: If a primary notification method fails, we can optionally fall back to a secondary method if configured.
+
+## ntfy delivery
+
+Each user selects exactly one notification provider: Pushover (the default) or ntfy. Users receive editable topics defaulting to `camply-` plus the first seven characters of their user ID. All account-creation paths recover from generated-topic uniqueness collisions by adding a random suffix, while preserving IDs, existing subscriptions and explicit topic choices. Shared deployment settings supply the public `CAMPLY_NTFY_SUBSCRIPTION_URL` (default `https://ntfy.sh`) and private optional `CAMPLY_NTFY_PUBLISH_URL`. An absent publish URL falls back to the subscription URL. Only the subscription default is exposed to users; delivery adapters resolve the private endpoint server-side. Users may configure a custom server, which replaces both defaults for their account, and an optional publish bearer token. A null custom server follows deployment defaults without copying them into the user record. The configured-default choice is retained when subscriptions use ntfy.sh but publishing uses a private override. Changing servers clears inherited access tokens unless a replacement is explicitly supplied. The ntfy provider implements the shared interface, publishes JSON with the title, message and click URL, and verifies the response event, topic and message ID. Redirects are disabled to avoid forwarding credentials.
+
+Standalone stores one outbox row for the selected channel, preserving the existing uniqueness constraint. Existing rows migrate to `pushover`. The queued channel retains its acknowledgment and retry state; delivery is skipped if that channel is no longer selected. Distributed delivery uses `camply.notifications.send_ntfy_notification`; existing Pushover task contracts remain intact. Both adapters recheck the selected provider, user scanning status and scan ownership before publishing.
+
+## Test notifications
+
+Shared implementations live in `camply.notifications` so API-only installations and workers use the same provider contract and acceptance checks. The original `camply.worker.notifications` imports remain compatible.
+
+`POST /api/me/notifications/test` validates current/draft owner settings and sends one fixed test message directly through the selected provider, without saving preferences or creating a scan/outbox record. The endpoint applies authentication, invitation, password-change, suspension and topic-ownership checks. It releases the topic lookup transaction before HTTP, requires explicit provider acceptance, and exposes only allowlisted failures. Save and test UI feedback is tied to the submitted form values so subsequent edits are not presented as already saved or verified. Profile explains subscribing in the ntfy app using the server and topic before testing.

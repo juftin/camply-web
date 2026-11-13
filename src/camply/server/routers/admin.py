@@ -70,6 +70,7 @@ from camply.server.services.operations import (
     trigger_provider_sync,
 )
 from camply.server.services.trends import get_admin_trends
+from camply.server.services.users import flush_new_user
 
 logger = structlog.getLogger(__name__)
 
@@ -342,8 +343,7 @@ async def create_user(
         is_invited=body.is_invited,
         scanning_enabled=body.scanning_enabled,
     )
-    session.add(new_user)
-    await session.flush()
+    await flush_new_user(session, new_user)
 
     audit = AdminAuditEvent(
         actor_id=admin.id,

@@ -44,6 +44,7 @@ async def check_target(
     sessions: Callable[[], AsyncSession],
     registry: dict[int, type[BaseProvider]],
     dispatch: Callable[[UserScan, NotificationDTO], None] | None = None,
+    dispatch_ntfy: Callable[[UserScan, NotificationDTO], None] | None = None,
     persistent: bool = False,
     notification_mode: Literal["summary", "direct"] = "summary",
     app_url: str = "https://camply.rocks",
@@ -274,6 +275,8 @@ async def check_target(
                     if notification_mode == "summary"
                     else matching
                 )
+                recipient = await session.get(User, scan.user_id)
+                channel = recipient.notification_provider if recipient else "pushover"
                 for notification in notifications:
                     if persistent:
                         session.add(
@@ -282,6 +285,7 @@ async def check_target(
                                 user_id=scan.user_id,
                                 scan_id=scan.id,
                                 target_id=target_uuid,
+                                channel=channel,
                                 delivery_key="summary"
                                 if notification_mode == "summary"
                                 else notification.metadata["campsite_id"],
@@ -290,7 +294,9 @@ async def check_target(
                                 next_attempt_at=target.last_checked_at,
                             )
                         )
-                    elif dispatch is not None:
+                    elif channel == "ntfy" and dispatch_ntfy is not None:
+                        dispatch_ntfy(scan, notification)
+                    elif channel == "pushover" and dispatch is not None:
                         dispatch(scan, notification)
                     notifications_sent += 1
 

@@ -448,6 +448,26 @@ export interface paths {
         patch: operations["update_me_api_me_patch"];
         trace?: never;
     };
+    "/api/me/notifications/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Notification
+         * @description Send one test using current form values without persisting preferences.
+         */
+        post: operations["test_notification_api_me_notifications_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/overview": {
         parameters: {
             query?: never;
@@ -1533,6 +1553,32 @@ export interface components {
             /** Pushover Token */
             pushover_token?: string | null;
             /**
+             * Notification Provider
+             * @default pushover
+             * @enum {string}
+             */
+            notification_provider: "pushover" | "ntfy";
+            /** Ntfy Topic */
+            ntfy_topic?: string | null;
+            /**
+             * Ntfy Server Url
+             * @description Optional user-selected custom ntfy server; null uses deployment defaults.
+             */
+            ntfy_server_url?: string | null;
+            /**
+             * Ntfy Default Subscription Url
+             * @description Configured public application server, when custom publishing or subscription defaults are in use.
+             */
+            ntfy_default_subscription_url?: string | null;
+            /**
+             * Ntfy Subscription Url
+             * @description Effective public subscription server. The deployment publish URL is never exposed.
+             * @default https://ntfy.sh
+             */
+            ntfy_subscription_url: string;
+            /** Ntfy Access Token */
+            ntfy_access_token?: string | null;
+            /**
              * Must Change Password
              * @default false
              */
@@ -1540,11 +1586,43 @@ export interface components {
         };
         /**
          * MeUpdateRequest
-         * @description Payload for ``PATCH /me``.
+         * @description Payload for ``PATCH /me``; omitted fields are preserved.
          */
         MeUpdateRequest: {
             /** Pushover Token */
             pushover_token?: string | null;
+            /** Ntfy Topic */
+            ntfy_topic?: string | null;
+            /**
+             * Notification Provider
+             * @default pushover
+             * @enum {string}
+             */
+            notification_provider: "pushover" | "ntfy";
+            /**
+             * Ntfy Server Url
+             * @description Custom server used for publishing and subscribing; null restores deployment defaults.
+             */
+            ntfy_server_url?: string | null;
+            /** Ntfy Access Token */
+            ntfy_access_token?: string | null;
+        };
+        /**
+         * NotificationTestResponse
+         * @description Explicit upstream acceptance of a test message, without saving preferences.
+         */
+        NotificationTestResponse: {
+            /**
+             * Status
+             * @default sent
+             * @constant
+             */
+            status: "sent";
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "pushover" | "ntfy";
         };
         /**
          * Provider
@@ -2872,6 +2950,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_notification_api_me_notifications_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationTestResponse"];
                 };
             };
             /** @description Validation Error */

@@ -8,7 +8,9 @@ import datetime
 import uuid
 from typing import Annotated, Literal, Optional
 
-from pydantic import AfterValidator, BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field, field_validator
+
+from camply.db.notification_config import validate_ntfy_url
 
 
 def _ensure_utc(v: datetime.datetime) -> datetime.datetime:
@@ -55,13 +57,69 @@ class MeResponse(BaseModel):
     is_admin: bool = False
     scanning_enabled: bool = True
     pushover_token: Optional[str] = None
+    notification_provider: Literal["pushover", "ntfy"] = "pushover"
+    ntfy_topic: str | None = None
+    ntfy_server_url: str | None = Field(
+        default=None,
+        description="Optional user-selected custom ntfy server; null uses deployment defaults.",
+    )
+    ntfy_default_subscription_url: str | None = Field(
+        default=None,
+        description="Configured public application server, when custom publishing or subscription defaults are in use.",
+    )
+    ntfy_subscription_url: str = Field(
+        default="https://ntfy.sh",
+        description="Effective public subscription server. The deployment publish URL is never exposed.",
+    )
+    ntfy_access_token: str | None = Field(default=None, repr=False)
     must_change_password: bool = False
 
 
 class MeUpdateRequest(BaseModel):
-    """Payload for ``PATCH /me``."""
+    """Payload for ``PATCH /me``; omitted fields are preserved."""
 
     pushover_token: Optional[str] = None
+    ntfy_topic: str | None = Field(
+        default=None, min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$"
+    )
+    notification_provider: Literal["pushover", "ntfy"] = "pushover"
+    ntfy_server_url: str | None = Field(
+        default=None,
+        max_length=2048,
+        description="Custom server used for publishing and subscribing; null restores deployment defaults.",
+    )
+    ntfy_access_token: str | None = Field(default=None, max_length=1024, repr=False)
+
+    @field_validator("ntfy_topic")
+    @classmethod
+    def validate_ntfy_topic(cls, value: str | None) -> str:
+        """Omit the field to preserve a topic; explicit null is not a topic."""
+        if value is None:
+            raise ValueError("Topic cannot be null")
+        return value
+
+    @field_validator("ntfy_server_url")
+    @classmethod
+    def validate_ntfy_server(cls, value: str | None) -> str | None:
+        """Validate an optional custom server without exposing deployment internals."""
+        return validate_ntfy_url(value) if value is not None else None
+
+    @field_validator("ntfy_access_token")
+    @classmethod
+    def validate_ntfy_token(cls, value: str | None) -> str | None:
+        """Reject header control characters."""
+        if value and any(
+            not char.isprintable() or not char.isascii() for char in value
+        ):
+            raise ValueError("Access token must contain printable ASCII characters")
+        return value or None
+
+
+class NotificationTestResponse(BaseModel):
+    """Explicit upstream acceptance of a test message, without saving preferences."""
+
+    status: Literal["sent"] = "sent"
+    provider: Literal["pushover", "ntfy"]
 
 
 class ChangePasswordRequest(BaseModel):
