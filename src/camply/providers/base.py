@@ -133,27 +133,31 @@ class ProviderCircuitBreaker:
         self._provider_name = provider_name
         self._failure_threshold = failure_threshold
         self._recovery_timeout = recovery_timeout
+        self._ensure_state()
 
-        # Bootstrap class-level state on first instantiation
-        if provider_name not in self._state:
-            self._state[provider_name] = {
+    def _ensure_state(self) -> None:
+        """Ensure class-level state and lock exist for this provider."""
+        if self._provider_name not in self._state:
+            self._state[self._provider_name] = {
                 "state": self.CLOSED,
                 "consecutive_failures": 0,
                 "last_failure_time": 0.0,
             }
-        if provider_name not in self._locks:
-            self._locks[provider_name] = asyncio.Lock()
+        if self._provider_name not in self._locks:
+            self._locks[self._provider_name] = asyncio.Lock()
 
     # ── public API ─────────────────────────────────────────────────────
 
     @property
     def state(self) -> str:
         """Return the current circuit state (CLOSED / OPEN / HALF_OPEN)."""
+        self._ensure_state()
         return self._state[self._provider_name]["state"]
 
     @property
     def consecutive_failures(self) -> int:
         """Return the number of consecutive failures recorded."""
+        self._ensure_state()
         return self._state[self._provider_name]["consecutive_failures"]
 
     async def check(self) -> None:
@@ -165,6 +169,7 @@ class ProviderCircuitBreaker:
         CircuitBreakerOpenError
             If the circuit is OPEN and the recovery timeout has not elapsed.
         """
+        self._ensure_state()
         async with self._locks[self._provider_name]:
             st = self._state[self._provider_name]
             if st["state"] == self.OPEN:
@@ -182,6 +187,7 @@ class ProviderCircuitBreaker:
         """
         Record a successful request.  Resets the circuit to CLOSED.
         """
+        self._ensure_state()
         async with self._locks[self._provider_name]:
             st = self._state[self._provider_name]
             if st["state"] != self.CLOSED:
@@ -199,6 +205,7 @@ class ProviderCircuitBreaker:
         Increments the consecutive-failure counter.  If the threshold is
         reached the circuit transitions to OPEN.
         """
+        self._ensure_state()
         async with self._locks[self._provider_name]:
             st = self._state[self._provider_name]
             st["consecutive_failures"] += 1
@@ -215,6 +222,7 @@ class ProviderCircuitBreaker:
         """
         Force-reset the circuit breaker to CLOSED (useful in testing).
         """
+        self._ensure_state()
         st = self._state[self._provider_name]
         st["state"] = self.CLOSED
         st["consecutive_failures"] = 0

@@ -455,6 +455,41 @@ def test_db_metadata_subcommand_exposed() -> None:
     assert "all" in result.output
 
 
+def test_db_metadata_fails_without_provider_record(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Invoking db metadata fails if the provider record does not exist in the database."""
+    import asyncio
+
+    from camply.db.config import DatabaseConfig
+    from camply.db.models import Base
+
+    database_file = tmp_path / "metadata_test.sqlite"
+    test_db_config = DatabaseConfig(
+        drivername="sqlite+aiosqlite",
+        host=str(database_file),
+    )
+    monkeypatch.setattr(
+        "camply.providers.recreation_gov.provider.db",
+        test_db_config,
+    )
+
+    async def _init_schema() -> None:
+        engine = test_db_config.create_async_engine()
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        await engine.dispose()
+
+    asyncio.run(_init_schema())
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["db", "metadata", "--provider-id", "1"])
+    assert result.exit_code != 0
+    assert isinstance(result.exception, RuntimeError)
+    assert "not found in database" in str(result.exception)
+
+
 def test_db_info_prints_safe_json_configuration(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

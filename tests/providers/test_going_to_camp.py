@@ -383,6 +383,30 @@ def test_metadata_cli_lists_and_invokes_washington(
     instance.async_client.aclose.assert_awaited_once()
 
 
+@pytest.mark.anyio
+async def test_going_to_camp_populate_fails_without_provider_record(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Provider metadata refresh must fail if the database record is missing."""
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    maker = async_sessionmaker(engine, expire_on_commit=False)
+    monkeypatch.setattr(
+        "camply.providers.going_to_camp.provider.db", SimpleNamespace(get_session=maker)
+    )
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    provider = WashingtonStateParksProvider()
+    try:
+        provider.async_client = httpx2.AsyncClient(
+            transport=httpx2.MockTransport(lambda req: httpx2.Response(200, json=[]))
+        )
+        with pytest.raises(RuntimeError, match=r"Provider .* not found in database"):
+            await provider.populate_database()
+    finally:
+        await provider.async_client.aclose()
+        await engine.dispose()
+
+
 def test_dynamic_overnight_category_resolution() -> None:
     """Resolve nightly frontcountry/backcountry categories while excluding day use and moorage."""
     booking_cats, resource_cats = resolve_overnight_categories(
@@ -924,6 +948,13 @@ async def test_metadata_ingestion_atomicity_and_provider_isolation(
 
     async with maker() as session:
         session.add(Provider(id=1, name="Other Provider", url="https://example.com"))
+        session.add(
+            Provider(
+                id=12,
+                name="Washington State Parks",
+                url="https://washington.goingtocamp.com",
+            )
+        )
         await session.flush()
         session.add(
             RecreationArea(id="-2147483640", provider_id=1, name="Colliding Other Park")

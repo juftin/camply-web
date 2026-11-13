@@ -267,16 +267,10 @@ class ReserveAmericaProvider(BaseProvider):
         async with db.get_session() as session:
             async with session.begin():
                 if await session.get(Provider, self.provider.id) is None:
-                    session.add(
-                        Provider(
-                            id=self.provider.id,
-                            name=self.provider.name,
-                            description=self.provider.description,
-                            url=self.provider.url,
-                            enabled=True,
-                        )
+                    raise RuntimeError(
+                        f"Provider {self.provider.name} (ID {self.provider.id}) not found in database. "
+                        "Run database migrations before syncing provider metadata."
                     )
-                    await session.flush()
                 await session.execute(
                     update(Campground)
                     .where(Campground.provider_id == self.provider.id)

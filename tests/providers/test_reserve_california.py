@@ -263,6 +263,13 @@ async def test_metadata_ingestion_and_provider_isolation(
         await connection.run_sync(Base.metadata.create_all)
     async with maker() as session:
         session.add(Provider(id=1, name="Other provider", url="https://example.com"))
+        session.add(
+            Provider(
+                id=2,
+                name="ReserveCalifornia",
+                url="https://www.reservecalifornia.com",
+            )
+        )
         await session.flush()
         session.add(RecreationArea(id="1", provider_id=1, name="Other park"))
         await session.commit()

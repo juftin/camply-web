@@ -318,6 +318,38 @@ async def test_catalog_atomic_refresh(
     await engine.dispose()
 
 
+@pytest.mark.anyio
+async def test_reserve_america_populate_fails_without_provider_record(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Provider metadata refresh must fail if the database record is missing."""
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    monkeypatch.setattr(
+        "camply.providers.reserve_america.provider.db",
+        SimpleNamespace(get_session=sessions),
+    )
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    provider = ReserveAmericaProvider()
+    record = facility(1)
+
+    def handler(req: httpx2.Request) -> httpx2.Response:
+        if "brand" in req.url.path:
+            return httpx2.Response(
+                200, json={"states": [{"stateCode": "CO", "countryCode": "USA"}]}
+            )
+        return httpx2.Response(200, json=page([record], 0, 1, 1))
+
+    install_http(provider, handler)
+    try:
+        with pytest.raises(RuntimeError, match=r"Provider .* not found in database"):
+            await provider.populate_database()
+    finally:
+        await provider.async_client.aclose()
+        await engine.dispose()
+
+
 @pytest.mark.parametrize(
     "value,expected",
     [

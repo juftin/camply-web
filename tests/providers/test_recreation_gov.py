@@ -122,3 +122,31 @@ async def test_sync_metadata():
     ) as mock_populate:
         await provider.sync_metadata()
         mock_populate.assert_called_once()
+
+
+@pytest.mark.anyio
+async def test_recreation_gov_populate_fails_without_provider_record(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Provider metadata refresh must fail if the database record is missing."""
+    from types import SimpleNamespace
+
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    from camply.db.models import Base
+
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    maker = async_sessionmaker(engine, expire_on_commit=False)
+    monkeypatch.setattr(
+        "camply.providers.recreation_gov.provider.db",
+        SimpleNamespace(get_session=maker),
+    )
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    provider = RecreationGovProvider()
+    try:
+        with pytest.raises(RuntimeError, match=r"Provider .* not found in database"):
+            await provider.populate_database()
+    finally:
+        await provider.async_client.aclose()
+        await engine.dispose()
