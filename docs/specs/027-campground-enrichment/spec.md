@@ -16,6 +16,7 @@ The user authorized the complete planning and implementation workflow. No additi
 - Remote photos remain on verified upstream hosts; retain supplied credits and source links. No mirroring or automated license claims are introduced.
 - The user requested a single-photo carousel in place of the photo grid, and requested that practical details move below the map with a better title. Use “Know before you go” and the amended [UI/UX plan](ui-ux.md); preserve the existing overview when enrichment or coordinates are absent.
 - The user rejected navigation below the photo and asked about established carousel components. Use Embla's React adapter with overlaid left/right controls, swipe/drag navigation, and a counter on the image; retain the existing full-screen dialog with matching overlay controls.
+- In PR review, the user requested caption-only images: omit the credit line and “Photo source” link from both views, and display the photo count only after opening the full-screen viewer. Retain source metadata in cached snapshots and keep destination-level provenance below the visit details.
 
 ## User scenarios and acceptance criteria
 
@@ -23,7 +24,7 @@ The user authorized the complete planning and implementation workflow. No additi
 
 A visitor opens a campground or recreation area and sees available upstream photos, directions, accessibility information, activities, and useful links alongside its existing description.
 
-- Photos retain available captions, credits, and source links.
+- Cached photos retain available captions, credits, and source links. The UI displays captions; the count appears only in the full-screen viewer, and neither view shows credit lines or photo-source links.
 - Campground photos belong to that campground. Recreation-area and campsite photos are not silently presented as campground photos.
 - Missing details or broken images leave descriptions, maps, booking links, and monitoring actions usable.
 

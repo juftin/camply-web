@@ -57,15 +57,25 @@ describe("Destination enrichment", () => {
     const trigger = screen.getByRole("button", {
       name: "View Synthetic park photo 1",
     });
+    const carousel = screen.getByRole("region", {
+      name: "Synthetic park photos",
+    });
+    expect(within(carousel).getByText("A synthetic lake view")).toBeVisible();
+    expect(within(carousel).queryByText(/^Photo \d+ of \d+$/)).toBeNull();
+    expect(within(carousel).queryByText(/Credit:/)).toBeNull();
+    expect(
+      within(carousel).queryByRole("link", { name: "Photo source" }),
+    ).toBeNull();
     await user.click(trigger);
     const dialog = screen.getByRole("dialog", {
       name: "Synthetic park photos",
     });
     expect(within(dialog).getByText("Photo 1 of 2")).toBeVisible();
     expect(within(dialog).getByText("A synthetic lake view")).toBeVisible();
+    expect(within(dialog).queryByText(/Credit:/)).toBeNull();
     expect(
-      within(dialog).getByText("Credit: Synthetic park archive"),
-    ).toBeVisible();
+      within(dialog).queryByRole("link", { name: "Photo source" }),
+    ).toBeNull();
     within(dialog).getByRole("button", { name: "Close" }).focus();
     await user.tab();
     expect(
@@ -126,9 +136,17 @@ describe("Destination enrichment", () => {
     await user.keyboard("{Escape}");
     expect(trigger).toHaveFocus();
     await user.keyboard("{ArrowRight}");
-    expect(within(carousel).getByText("Photo 1 of 2")).toBeVisible();
+    expect(
+      within(carousel).getByRole("group", {
+        name: "Photo 1 of 2",
+      }),
+    ).toBeVisible();
     await user.keyboard("{ArrowLeft}");
-    expect(within(carousel).getByText("Photo 2 of 2")).toBeVisible();
+    expect(
+      within(carousel).getByRole("group", {
+        name: "Photo 2 of 2",
+      }),
+    ).toBeVisible();
   });
 
   it("removes failed images and keeps useful details after all images fail", async () => {
@@ -160,7 +178,11 @@ describe("Destination enrichment", () => {
       name: "Synthetic park photos",
     });
     fireEvent.error(within(carousel).getByRole("img"));
-    expect(within(carousel).getByText("Photo 1 of 1")).toBeVisible();
+    expect(
+      within(carousel).getByRole("group", {
+        name: "Photo 1 of 1",
+      }),
+    ).toBeVisible();
     expect(
       within(carousel).queryByRole("button", { name: "Next photo" }),
     ).toBeNull();

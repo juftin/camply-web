@@ -723,15 +723,28 @@ for (const [name, width] of [
             .getByRole("heading", { name: "Know before you go" })
             .waitFor();
           const carousel = page.getByRole("region", { name: / photos$/ });
+          if (
+            (await carousel.getByText(/^Photo \d+ of \d+$/).count()) ||
+            (await carousel.getByText(/^Credit:/).count()) ||
+            (await carousel.getByRole("link", { name: "Photo source" }).count())
+          ) {
+            throw new Error(
+              "The page carousel must omit photo counts and credit/source lines.",
+            );
+          }
           if ((await carousel.getByRole("img").count()) !== 1) {
             throw new Error("The photo carousel must show exactly one image.");
           }
           await carousel.getByRole("button", { name: "Next photo" }).click();
-          await carousel.getByText("Photo 2 of 2", { exact: true }).waitFor();
+          await carousel
+            .getByRole("group", { name: "Photo 2 of 2", exact: true })
+            .waitFor();
           await carousel
             .getByRole("button", { name: "Previous photo" })
             .click();
-          await carousel.getByText("Photo 1 of 2", { exact: true }).waitFor();
+          await carousel
+            .getByRole("group", { name: "Photo 1 of 2", exact: true })
+            .waitFor();
           const image = await carousel.getByRole("img").boundingBox();
           const previous = await carousel
             .getByRole("button", { name: "Previous photo" })
@@ -790,7 +803,9 @@ for (const [name, width] of [
             });
             await page.mouse.up();
           }
-          await carousel.getByText("Photo 2 of 2", { exact: true }).waitFor();
+          await carousel
+            .getByRole("group", { name: "Photo 2 of 2", exact: true })
+            .waitFor();
           if (await page.getByRole("dialog").count()) {
             throw new Error(
               "Dragging a photo must not open the full-screen viewer.",
@@ -799,7 +814,9 @@ for (const [name, width] of [
           await carousel
             .getByRole("button", { name: "Previous photo" })
             .click();
-          await carousel.getByText("Photo 1 of 2", { exact: true }).waitFor();
+          await carousel
+            .getByRole("group", { name: "Photo 1 of 2", exact: true })
+            .waitFor();
           // Paint the below-fold map before capturing the larger photo layout.
           await page.locator(".camply-map").scrollIntoViewIfNeeded();
           await page.evaluate(async () => {
@@ -807,6 +824,11 @@ for (const [name, width] of [
             await new Promise(requestAnimationFrame);
             window.scrollTo(0, 0);
           });
+          await page.waitForFunction(
+            () =>
+              document.querySelector("header")?.getBoundingClientRect().top ===
+              0,
+          );
           if (
             await page.evaluate(
               () => document.documentElement.scrollWidth > innerWidth,

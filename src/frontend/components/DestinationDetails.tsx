@@ -240,13 +240,6 @@ function DestinationContent({
                     onNext={() => changePhoto(1)}
                   />
                 )}
-                <p
-                  className="pointer-events-none absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs text-white"
-                  aria-live="polite"
-                  aria-atomic="true"
-                >
-                  Photo {activeIndex + 1} of {photos.length}
-                </p>
               </div>
               <PhotoCaption photo={activePhoto} />
             </figure>
@@ -441,24 +434,7 @@ function PhotoCaption({
 }: {
   photo: NonNullable<DetailsSnapshot["photos"]>[number];
 }) {
-  const sourceUrl = safeUrl(photo.source_url);
-  if (!photo.caption && !photo.credit && !sourceUrl) return null;
-  return (
-    <figcaption className="space-y-1 text-sm">
-      {photo.caption && <p>{photo.caption}</p>}
-      {photo.credit && (
-        <p className="text-muted-foreground">Credit: {photo.credit}</p>
-      )}
-      {sourceUrl && (
-        <a
-          href={sourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary underline"
-        >
-          Photo source
-        </a>
-      )}
-    </figcaption>
-  );
+  return photo.caption ? (
+    <figcaption className="text-sm">{photo.caption}</figcaption>
+  ) : null;
 }

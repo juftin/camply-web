@@ -17,7 +17,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ## Destination enrichment research (027)
 
-- [x] Replace destination photo grids with an Embla carousel supporting overlaid controls, keyboard, swipe/drag, reduced motion, and full-screen viewing; move the renamed “Know before you go” section below the overview/map on both pages. See the [UI/UX plan](specs/027-campground-enrichment/ui-ux.md).
+- [x] Replace destination photo grids with an Embla carousel supporting overlaid controls, keyboard, swipe/drag, reduced motion, captions without credit/source lines, and a photo count shown only in the opened viewer; move the renamed “Know before you go” section below the overview/map on both pages. See the [UI/UX plan](specs/027-campground-enrichment/ui-ux.md).
 - [x] Review the ten carousel captures from macOS PR CI and align their visual baselines with the CI platform while retaining the 78 other views and existing comparison thresholds. See the [validation report](specs/027-campground-enrichment/validation.md#carousel-pr-ci-follow-up).
 - [x] Fix enrichment rollout beyond the initial 100 destinations with independent periodic discovery and bounded continuations in both runtimes; add backlog, recovery, and client-lifecycle regressions. See the [rollout plan](specs/028-enrichment-rollout/plan.md).
 

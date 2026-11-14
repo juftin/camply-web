@@ -52,6 +52,7 @@
 - [x] T028 Place “Know before you go” after the overview/map on both destination pages; preserve the overview without enrichment and verify section order.
 - [x] T029 Run frontend quality/tests and inspect affected desktop/mobile light/dark captures; update visual baselines, validation evidence, and the global checklist.
 - [x] T030 Verify the first PR CI artifact identity, inspect all ten macOS carousel captures, and align only those baselines with the CI platform; retain all comparison thresholds and unrelated views.
+- [ ] T031 Apply the PR review refinements: show captions without credit/source lines in both views, show the photo count only in the opened dialog, and update regressions and affected visual baselines.
 
 ## Dependencies and independent checks
 
