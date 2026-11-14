@@ -5,7 +5,7 @@ import datetime as dt
 import sqlite3
 import time
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, call, patch
 
 import pytest
 from sqlalchemy.exc import OperationalError
@@ -31,6 +31,11 @@ async def test_runner_shutdown_cancels_waiters() -> None:
         patch("camply.worker.runtime.prune_finished", new_callable=AsyncMock),
         patch("camply.worker.runtime.recover_deliveries", new_callable=AsyncMock),
         patch(
+            "camply.worker.runtime.enrich_provider_details",
+            new_callable=AsyncMock,
+            return_value={"status": "skipped", "has_more": False},
+        ) as enrich,
+        patch(
             "camply.worker.runtime.due_targets", new_callable=AsyncMock, return_value=[]
         ),
         patch(
@@ -42,6 +47,7 @@ async def test_runner_shutdown_cancels_waiters() -> None:
         await runner.start()
         await asyncio.sleep(0.01)
         assert runner.healthy
+        assert enrich.await_count > 0
         await runner.close()
         assert all(task.done() for task in runner.tasks)
         assert not runner.healthy
@@ -178,6 +184,11 @@ async def test_storage_fault_stops_notification_readiness() -> None:
         patch("camply.worker.runtime.recover_deliveries", new_callable=AsyncMock),
         patch("camply.worker.runtime.prune_finished", new_callable=AsyncMock),
         patch(
+            "camply.worker.runtime.enrich_provider_details",
+            new_callable=AsyncMock,
+            return_value={"status": "skipped", "has_more": False},
+        ),
+        patch(
             "camply.worker.runtime.due_targets", new_callable=AsyncMock, return_value=[]
         ),
         patch(
@@ -193,3 +204,56 @@ async def test_storage_fault_stops_notification_readiness() -> None:
             assert runner.tasks[-1].exception() is failure
         finally:
             await runner.close()
+
+
+@pytest.mark.anyio
+async def test_local_enrichment_continues_backlog_then_waits_heartbeat() -> None:
+    """Standalone backfill repeats successful batches without another catalog sync."""
+    runner = LocalRunner(DatabaseConfig(HOST=":memory:"), heartbeat=300, cooldown=55)
+    with (
+        patch("camply.worker.runtime.PROVIDERS", {1: object}),
+        patch(
+            "camply.worker.runtime.enrich_provider_details",
+            new_callable=AsyncMock,
+            side_effect=[
+                {"status": "success", "has_more": True},
+                {"status": "success", "has_more": False},
+            ],
+        ) as enrich,
+        patch(
+            "camply.worker.runtime.asyncio.sleep",
+            new_callable=AsyncMock,
+            side_effect=[None, asyncio.CancelledError],
+        ) as pause,
+    ):
+        with pytest.raises(asyncio.CancelledError):
+            await runner._enrich()
+    assert enrich.await_args_list == [call(1, object), call(1, object)]
+    assert pause.await_args_list == [call(1), call(300)]
+
+
+@pytest.mark.anyio
+async def test_local_enrichment_failure_yields_and_preserves_other_providers() -> None:
+    """An unavailable source does not spin, hide its outcome, or stop other work."""
+    runner = LocalRunner(DatabaseConfig(HOST=":memory:"), heartbeat=300, cooldown=55)
+    with (
+        patch("camply.worker.runtime.PROVIDERS", {1: object, 2: object}),
+        patch(
+            "camply.worker.runtime.enrich_provider_details",
+            new_callable=AsyncMock,
+            side_effect=[
+                ValueError("synthetic"),
+                {"status": "error", "has_more": True},
+            ],
+        ) as enrich,
+        patch(
+            "camply.worker.runtime.asyncio.sleep",
+            new_callable=AsyncMock,
+            side_effect=asyncio.CancelledError,
+        ) as pause,
+    ):
+        with pytest.raises(asyncio.CancelledError):
+            await runner._enrich()
+    assert enrich.await_count == 2
+    pause.assert_awaited_once_with(300)
+    assert [row["outcome"] for row in runner.recent()] == ["error", "error"]

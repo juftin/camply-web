@@ -214,11 +214,14 @@ def test_worker_only_registration(install: Callable[[str], Installation]) -> Non
                 'camply.search.check_campsite_availability',
                 'camply.catalog.sync_all_providers',
                 'camply.catalog.sync_provider_catalog',
+                'camply.catalog.enrich_all_providers',
+                'camply.catalog.enrich_provider_details',
                 'camply.notifications.send_pushover_notification',
                 'camply.notifications.send_ntfy_notification',
             }
             assert celery_app.conf.beat_schedule['schedule-availability-checks']['task'] == 'camply.search.schedule_checks'
             assert celery_app.conf.beat_schedule['sync-provider-catalogs-daily']['task'] == 'camply.catalog.sync_all_providers'
+            assert celery_app.conf.beat_schedule['enrich-provider-details']['task'] == 'camply.catalog.enrich_all_providers'
         assert not any(name.startswith('camply.server') for name in sys.modules)
     """)
 

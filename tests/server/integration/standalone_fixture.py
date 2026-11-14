@@ -6,7 +6,9 @@ import os
 from camply.db.config import db
 from camply.db.models import Campground, Search
 from camply.providers import PROVIDERS
+from camply.providers.details import DestinationDetails
 from camply.providers.dto import CampsiteDTO, CampsiteType
+from camply.providers.enrichment import Destination, refresh_destinations
 from camply.providers.recreation_gov.provider import RecreationGovProvider
 from camply.worker.notifications.pushover import PushoverProvider
 
@@ -34,6 +36,19 @@ class SyntheticProvider(RecreationGovProvider):
                     )
                 )
                 await session.commit()
+
+    async def enrich_metadata(self) -> None:
+        """Exercise real cache persistence without downloading a live RIDB archive."""
+
+        async def fetch(destination: Destination) -> DestinationDetails:
+            """Provide generated practical details for the test-owned destination."""
+            return DestinationDetails(
+                source_url=f"https://parks.example.com/{destination.id}",
+                fetched_at=dt.datetime.now(dt.timezone.utc),
+                directions="Synthetic source directions",
+            )
+
+        await refresh_destinations(provider_id=1, fetch=fetch)
 
     async def find_availabilities(
         self, park_id: str, start_date: dt.date, end_date: dt.date

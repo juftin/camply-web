@@ -13,7 +13,7 @@ from sqlalchemy.exc import OperationalError
 from camply.db.config import DatabaseConfig
 from camply.providers import PROVIDERS
 from camply.worker.config import worker_config
-from camply.worker.engine.catalog import populate_provider
+from camply.worker.engine.catalog import enrich_provider_details, populate_provider
 from camply.worker.engine.discovery import due_targets
 from camply.worker.engine.scanner import check_target
 from camply.worker.outbox import (
@@ -128,7 +128,13 @@ class LocalRunner:
         await prune_finished(self.database)
         self.tasks = [
             asyncio.create_task(loop(), name=f"camply-{loop.__name__}")
-            for loop in (self._discover, self._scan, self._catalog, self._notifications)
+            for loop in (
+                self._discover,
+                self._scan,
+                self._catalog,
+                self._enrich,
+                self._notifications,
+            )
         ]
 
     async def close(self) -> None:
@@ -296,6 +302,36 @@ class LocalRunner:
             finally:
                 self.catalog_job = None
                 self.catalog_queue.task_done()
+
+    async def _enrich(self) -> None:
+        """Continue due detail batches without waiting for another catalog import."""
+        while True:
+            has_more = False
+            for provider_id, provider_cls in PROVIDERS.items():
+                started = time.monotonic()
+                self.active += 1
+                try:
+                    result = await enrich_provider_details(provider_id, provider_cls)
+                    outcome = result["status"]
+                    has_more |= outcome == "success" and result["has_more"]
+                except Exception as exc:
+                    outcome = "failure"
+                    logger.warning(
+                        "Local destination enrichment failed",
+                        provider_id=provider_id,
+                        error_type=type(exc).__name__,
+                    )
+                finally:
+                    self.active -= 1
+                if outcome != "skipped":
+                    self.record(
+                        "camply.catalog.enrich_provider_details",
+                        outcome=outcome,
+                        duration_ms=(time.monotonic() - started) * 1000,
+                        provider_id=provider_id,
+                        provider_name=provider_cls.__name__,
+                    )
+            await asyncio.sleep(1 if has_more else self.heartbeat)
 
     async def _notifications(self) -> None:
         """Drain due durable alerts without blocking provider checks or HTTP."""
