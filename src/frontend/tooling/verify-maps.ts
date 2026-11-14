@@ -429,6 +429,27 @@ try {
   await expect(page.getByLabel("Interactive campground map")).toBeVisible();
   await page.goto(`${origin}rec-area/1/area`);
   await expect(page.getByLabel("Interactive campground map")).toBeVisible();
+  for (const [path, name] of [
+    ["campground/1/zero", "Placeholder zero"],
+    ["campground/2/02498", "Synthetic Pines 4997"],
+    ["campground/1/02499", "Synthetic Pines 4998"],
+  ]) {
+    await page.goto(`${origin}${path}`);
+    await expect(page.getByLabel("Interactive campground map")).toBeVisible();
+    await expect(page.getByRole("img", { name, exact: true })).toBeVisible();
+  }
+  for (const [path, name] of [
+    ["rec-area/1/unlocated", "Unlocated Area"],
+    ["campground/1/unlocated", "Placeholder unlocated"],
+  ]) {
+    await page.goto(`${origin}${path}`);
+    await expect(
+      page.getByRole("heading", { name, exact: true }),
+    ).toBeVisible();
+    await expect(page.getByLabel("Interactive campground map")).toHaveCount(0);
+  }
+  report.detail_coordinate_fallback =
+    "passed: placeholder, missing and invalid campground coordinates inherit the parent; unusable parent locations omit maps";
   expect(tileRequests.length).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 

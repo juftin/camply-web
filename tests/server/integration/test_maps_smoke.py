@@ -42,13 +42,37 @@ async def _seed(session: AsyncSession) -> None:
                 id="area",
                 provider_id=provider,
                 name="Synthetic Area",
+                latitude=1,
+                longitude=1,
+                enabled=True,
+                reservable=True,
+            )
+        )
+    await session.flush()
+    session.add(
+        RecreationArea(
+            id="unlocated",
+            provider_id=1,
+            name="Unlocated Area",
+            latitude=0,
+            longitude=0,
+            enabled=True,
+            reservable=True,
+        )
+    )
+    for identifier, area_id in (("zero", "area"), ("unlocated", "unlocated")):
+        session.add(
+            Campground(
+                id=identifier,
+                provider_id=1,
+                recreation_area_id=area_id,
+                name=f"Placeholder {identifier}",
                 latitude=0,
                 longitude=0,
                 enabled=True,
                 reservable=True,
             )
         )
-    await session.flush()
     latitude: float | None
     longitude: float | None
     for index in range(5000):
