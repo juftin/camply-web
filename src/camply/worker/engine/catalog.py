@@ -3,6 +3,7 @@
 import structlog
 
 from camply.providers.base import BaseProvider
+from camply.providers.enrichment import enrich_provider
 
 logger = structlog.getLogger(__name__)
 
@@ -26,6 +27,7 @@ async def populate_provider(provider_id: int, provider_cls: type[BaseProvider]) 
     provider = provider_cls()
     try:
         await provider.populate_database()
+        await enrich_provider(provider)
     finally:
         try:
             await provider.async_client.aclose()

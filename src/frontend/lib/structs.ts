@@ -57,7 +57,11 @@ export interface RecreationArea {
   reservable: boolean;
   enabled: boolean;
   url: string;
+  details?: DestinationDetails | null;
 }
+
+export type DestinationPhoto = components["schemas"]["DestinationPhoto"];
+export type DestinationDetails = components["schemas"]["DestinationDetails"];
 
 export interface Provider {
   id: number;
@@ -80,6 +84,10 @@ export interface Campground {
   reservable: boolean;
   enabled: boolean;
   url: string;
+}
+
+export interface CampgroundDetail extends Campground {
+  details?: DestinationDetails | null;
 }
 
 // ---- Auth / Profile ----

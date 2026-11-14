@@ -4,9 +4,9 @@ RecreationArea
 
 import datetime
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import ForeignKey, Integer, String, func
+from sqlalchemy import JSON, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from camply.db.models.base import Base
@@ -32,6 +32,14 @@ class RecreationArea(Base):
     )
     name: Mapped[str] = mapped_column(String(255), index=True)
     description: Mapped[str | None] = mapped_column(String(32768))
+    details: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON(none_as_null=True), nullable=True
+    )
+    """Last successful provider enrichment; never inherited by child campgrounds."""
+    details_attempted_at: Mapped[datetime.datetime | None] = mapped_column(
+        nullable=True
+    )
+    """Last refresh attempt; separate from successful content provenance."""
     city: Mapped[str | None] = mapped_column(String(50))
     country: Mapped[str | None] = mapped_column(String(50))
     state: Mapped[str | None] = mapped_column(String(50))

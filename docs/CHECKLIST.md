@@ -15,6 +15,12 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] Stabilize snapshot capture by waiting for visible image/font readiness, cover delayed lazy-image loading without network-idle waits, and refresh the complete desktop light profile baseline from macOS CI.
 - [ ] Brainstorm CLI lifecycle and `--continuous` / `--search-forever` / `--search-once`; intended default is search forever. Deferred TODO implementation is outside the initial release gate.
 
+## Destination enrichment research (027)
+
+- [x] Audit retained metadata and verify upstream enrichment sources; document Recreation.gov export/media and California park-information evidence, access limitations, and a [phased implementation proposal](specs/027-campground-enrichment/plan.md).
+- [x] Expand the [provider research matrix](specs/027-campground-enrichment/provider-matrix.md) across all ten UseDirect deployments, verified ReserveAmerica galleries/details, and Washington's official operator-site gallery; identify placeholder URLs, missing assets, photo scope, and remaining native GoingToCamp access limits.
+- [x] Implement cached destination photos and practical details for Recreation.gov, all ten UseDirect deployments, and ReserveAmerica; add portable JSON persistence/migration, bounded seven-day refreshes with failure retention and retry continuation, detail-only API responses, accessible galleries, provenance, synthetic regressions, and enriched visual baselines. See the [feature plan](specs/027-campground-enrichment/plan.md).
+
 ---
 
 ## 🛠️ Phase 1: Smart Poller & Single-Scan MVP (Current Focus)

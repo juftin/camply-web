@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import * as api from "@/lib/api";
 import { RecreationArea } from "./RecreationArea";
+import { destinationDetails } from "@/test/destination-details";
 vi.mock("@/lib/api", () => ({
   getCampground: vi.fn(),
   getProvider: vi.fn(),
@@ -61,6 +62,29 @@ function open() {
   );
 }
 describe("RecreationArea location coordinates", () => {
+  it("shows area enrichment and preserves the campground list", async () => {
+    vi.mocked(api.getProvider).mockResolvedValue({
+      id: 2,
+      name: "Fixture",
+      description: null,
+      url: "",
+      enabled: true,
+    });
+    vi.mocked(api.getRecreationArea).mockResolvedValue({
+      ...area,
+      details: destinationDetails(),
+    });
+    vi.mocked(api.getCampgrounds).mockResolvedValue([campground]);
+    open();
+    expect(
+      await screen.findByRole("button", {
+        name: "View Synthetic area photo 1",
+      }),
+    ).toBeVisible();
+    expect(screen.getByText("Synthetic zero")).toBeVisible();
+    expect(screen.getByText("Follow the signed road.")).toBeVisible();
+  });
+
   it("renders zero primary and related coordinates", async () => {
     vi.mocked(api.getProvider).mockResolvedValue({
       id: 2,

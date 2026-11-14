@@ -134,6 +134,12 @@ Typing searches the backend after a 300 ms pause. Filters and explicit Search su
 
 ## 📱 Responsiveness Requirements
 
+### Destination photos and practical information
+
+Campground and recreation-area detail pages display their own cached photos in a responsive gallery, with a keyboard-accessible dialog for larger images, captions, available credits, and source links. Previous/next controls, arrow keys, Escape, focus trapping, and focus restoration support keyboard users. Failed images are removed without affecting maps or monitoring actions; missing snapshots produce the existing page layout.
+
+Populated directions, accessibility, fees, stay limits, activities, distance-qualified amenities, hours/seasons, vehicle limits, and official links use the existing sanitized narrative renderer and semantic lists. Source and last successful update remain visible even without photos. Enrichment does not add upstream requests during rendering. The [UI/UX plan](../specs/027-campground-enrichment/ui-ux.md) defines loading, empty, failure, and mobile behavior.
+
 - **Mobile (< 640px)**: Single-column scan cards, simplified search, bottom navigation.
 - **Desktop (> 1024px)**: Multi-column grid (up to 3 columns), detailed scan cards.
 - Both views share the same component tree — grid layout adjusts via Tailwind `sm:`/`lg:` breakpoints.

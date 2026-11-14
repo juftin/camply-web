@@ -215,6 +215,12 @@ class UseDirectProvider(BaseProvider, ABC):
         """Refresh parks, campgrounds, and search using the ingestion workflow."""
         await self.populate_database()
 
+    async def enrich_metadata(self) -> None:
+        """Refresh cached destination photos and practical information separately."""
+        from camply.providers.usedirect.enrichment import enrich_metadata
+
+        await enrich_metadata(self)
+
     async def populate_database(self) -> None:
         """Fetch metadata before opening a transaction and upsert provider rows."""
         places_response = await self._request("GET", "fd/places")

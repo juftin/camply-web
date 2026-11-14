@@ -114,6 +114,9 @@ def metadata_cmd(provider_id: str) -> None:
             provider = PROVIDERS[pid]()
             try:
                 await provider.populate_database()
+                from camply.providers.enrichment import enrich_provider
+
+                await enrich_provider(provider)
             finally:
                 await provider.async_client.aclose()
 

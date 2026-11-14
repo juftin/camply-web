@@ -318,6 +318,12 @@ class RecreationGovProvider(BaseProvider):
         """
         await self.populate_database()
 
+    async def enrich_metadata(self) -> None:
+        """Retain destination photos and practical details from the cached export."""
+        from camply.providers.recreation_gov.enrichment import enrich_metadata
+
+        await enrich_metadata(self)
+
     async def paginate_recdotgov_campsites(
         self, facility_id: int
     ) -> list[RecDotGovCampsite]:

@@ -5,6 +5,7 @@ import type {
   RecreationArea,
   Provider,
   Campground,
+  CampgroundDetail,
   MeResponse,
   MeUpdateRequest,
   NotificationTestResponse,
@@ -239,8 +240,8 @@ export async function getCampgrounds(
 export async function getCampground(
   provider: number,
   campgroundId: string,
-): Promise<Campground> {
-  const response = await api.get<Campground>(
+): Promise<CampgroundDetail> {
+  const response = await api.get<CampgroundDetail>(
     `/campground/${provider}/${campgroundId}`,
   );
   return response.data;
