@@ -717,11 +717,118 @@ for (const [name, width] of [
         viewport: { width, height: 1000 },
         theme,
         enrichment: true,
-        description: `${surface} photos, attribution, and practical information at ${width}px in ${theme} theme`,
+        description: `${surface} photo carousel, attribution, and Know before you go below the map at ${width}px in ${theme} theme`,
         action: async (page) => {
           await page
-            .getByRole("heading", { name: "Practical information" })
+            .getByRole("heading", { name: "Know before you go" })
             .waitFor();
+          const carousel = page.getByRole("region", { name: / photos$/ });
+          if (
+            (await carousel.getByText(/^Photo \d+ of \d+$/).count()) ||
+            (await carousel.getByText(/^Credit:/).count()) ||
+            (await carousel.getByRole("link", { name: "Photo source" }).count())
+          ) {
+            throw new Error(
+              "The page carousel must omit photo counts and credit/source lines.",
+            );
+          }
+          if ((await carousel.getByRole("img").count()) !== 1) {
+            throw new Error("The photo carousel must show exactly one image.");
+          }
+          await carousel.getByRole("button", { name: "Next photo" }).click();
+          await carousel
+            .getByRole("group", { name: "Photo 2 of 2", exact: true })
+            .waitFor();
+          await carousel
+            .getByRole("button", { name: "Previous photo" })
+            .click();
+          await carousel
+            .getByRole("group", { name: "Photo 1 of 2", exact: true })
+            .waitFor();
+          const image = await carousel.getByRole("img").boundingBox();
+          const previous = await carousel
+            .getByRole("button", { name: "Previous photo" })
+            .boundingBox();
+          const next = await carousel
+            .getByRole("button", { name: "Next photo" })
+            .boundingBox();
+          if (
+            !image ||
+            !previous ||
+            !next ||
+            [previous, next].some(
+              (control) =>
+                Math.abs(
+                  control.y + control.height / 2 - image.y - image.height / 2,
+                ) > 1 ||
+                control.x < image.x ||
+                control.x + control.width > image.x + image.width,
+            )
+          ) {
+            throw new Error(
+              "Photo navigation must overlay the image at its vertical center.",
+            );
+          }
+          const y = image.y + image.height / 2;
+          if (width < 640) {
+            const touch = await page.context().newCDPSession(page);
+            try {
+              await touch.send("Input.dispatchTouchEvent", {
+                type: "touchStart",
+                touchPoints: [{ x: image.x + image.width * 0.75, y }],
+              });
+              for (let step = 1; step <= 15; step++) {
+                await touch.send("Input.dispatchTouchEvent", {
+                  type: "touchMove",
+                  touchPoints: [
+                    {
+                      x: image.x + image.width * (0.75 - step * (0.7 / 15)),
+                      y,
+                    },
+                  ],
+                });
+              }
+              await touch.send("Input.dispatchTouchEvent", {
+                type: "touchEnd",
+                touchPoints: [],
+              });
+            } finally {
+              await touch.detach();
+            }
+          } else {
+            await page.mouse.move(image.x + image.width * 0.75, y);
+            await page.mouse.down();
+            await page.mouse.move(image.x + image.width * 0.05, y, {
+              steps: 15,
+            });
+            await page.mouse.up();
+          }
+          await carousel
+            .getByRole("group", { name: "Photo 2 of 2", exact: true })
+            .waitFor();
+          if (await page.getByRole("dialog").count()) {
+            throw new Error(
+              "Dragging a photo must not open the full-screen viewer.",
+            );
+          }
+          await carousel
+            .getByRole("button", { name: "Previous photo" })
+            .click();
+          await carousel
+            .getByRole("group", { name: "Photo 1 of 2", exact: true })
+            .waitFor();
+          // Paint the below-fold map before capturing the larger photo layout.
+          await page.locator(".camply-map").scrollIntoViewIfNeeded();
+          await page.evaluate(async () => {
+            await new Promise(requestAnimationFrame);
+            await new Promise(requestAnimationFrame);
+            window.scrollTo(0, 0);
+          });
+          await page.waitForFunction(
+            () =>
+              document.querySelector("header")?.getBoundingClientRect().top ===
+              0,
+          );
           if (
             await page.evaluate(
               () => document.documentElement.scrollWidth > innerWidth,
@@ -763,13 +870,17 @@ for (const [name, width, theme] of [
       await trigger.click();
       await page.getByRole("dialog").waitFor();
       await page.keyboard.press("ArrowLeft");
-      await page.getByText("Photo 2 of 2", { exact: true }).waitFor();
+      await page
+        .getByRole("dialog")
+        .getByText("Photo 2 of 2", { exact: true })
+        .waitFor();
       await page.keyboard.press("Escape");
       await page.getByRole("dialog").waitFor({ state: "hidden" });
       await page.waitForFunction(
         (label) => document.activeElement?.getAttribute("aria-label") === label,
-        "View Upper Pines Campground photo 1",
+        "View Upper Pines Campground photo 2",
       );
+      await page.keyboard.press("ArrowRight");
       await trigger.click();
     },
   });
@@ -1461,9 +1572,10 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
   await page.setViewportSize(scenario.viewport);
   await page.emulateMedia({
     colorScheme: scenario.theme,
-    reducedMotion: scenario.route.startsWith("/admin")
-      ? "reduce"
-      : "no-preference",
+    reducedMotion:
+      scenario.enrichment || scenario.route.startsWith("/admin")
+        ? "reduce"
+        : "no-preference",
   });
 
   // Set theme via localStorage and DOM initialization

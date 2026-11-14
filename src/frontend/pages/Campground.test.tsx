@@ -5,6 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 import * as api from "@/lib/api";
 import { Campground } from "./Campground";
 import { destinationDetails } from "@/test/destination-details";
+
+// Layout and dragging are exercised with the real Embla engine in browser snapshots.
+vi.mock("embla-carousel-react", () => ({
+  default: () => [() => {}, undefined],
+}));
 vi.mock("@/lib/api", () => ({
   getCampground: vi.fn(),
   getProvider: vi.fn(),
@@ -97,6 +102,19 @@ describe("Campground location coordinates", () => {
     ).toBeVisible();
     expect(screen.getByText("A richer campground description.")).toBeVisible();
     expect(screen.queryByAltText("Parent-only photo")).toBeNull();
+    const map = screen.getByTestId("map");
+    const information = screen.getByRole("heading", {
+      name: "Know before you go",
+    });
+    expect(
+      map.compareDocumentPosition(information) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole("heading", { name: "Photos" })
+        .compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("keeps an unenriched campground free of its parent's gallery", async () => {

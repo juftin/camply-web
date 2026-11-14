@@ -47,7 +47,7 @@ Validate complete members before replacing their results; use staging if necessa
 
 - Add optional details to the single-campground and single-area responses; regenerate types with `task api:generate`.
 - Keep galleries out of search, maps, and area-child lists. Child lists currently reuse the campground model; introduce an explicit summary representation if necessary.
-- Read cached data only. Show a responsive gallery, captions/credits, source and freshness, plus populated practical sections. Lazy-load images with dimensions and handle failures gracefully.
+- Read cached data only. Use `embla-carousel-react` (the engine behind shadcn/ui Carousel) for single-photo swipe/drag navigation above the overview/map. Overlay existing shadcn arrow buttons on the image, retain captions and a full-screen dialog with matching overlay arrows and a photo count shown only in that dialog, and honor reduced-motion preferences. Place populated “Know before you go” sections and provenance below the map. Pass the existing overview/map as children through `DestinationDetails` so pages without snapshots retain their content. Lazy-load images with dimensions and handle failures gracefully. See the [updated UI/UX plan](ui-ux.md).
 - Reuse `CollapsibleDescription` and the existing HTML sanitizer for narrative content; verify new URL/image contexts separately. Keep park-level information on its area or label parent information explicitly.
 
 ## Subsequent providers, informed by expanded research

@@ -54,3 +54,38 @@ The macOS visual job reported 76 unchanged views and 12 differences: precisely t
 ## Convergence result
 
 **Converged for implemented feature scope:** the source, API, UI, persistence, and regression coverage satisfy the recorded behavior. Local tests and static checks pass, and live PostgreSQL verification passed in PR CI. Reviewed macOS visual baselines are updated; their independent CI confirmation follows the baseline-fix commit. The reviewer-owned UX checklist remains available for user review.
+
+## Carousel and layout amendment (2026-11-14)
+
+The requested UI amendment uses `embla-carousel-react` 8.6.0, the engine behind [shadcn/ui Carousel](https://ui.shadcn.com/docs/components/carousel), with existing shadcn buttons. Arrows overlay the left/right image edges in both the carousel and dialog; the photo count appears only in the opened dialog. Only captions appear below images; the credit line and “Photo source” link are omitted. Both destination pages place “Know before you go” after the overview/map, preserving the overview without a snapshot. No API, provider, database, or caching behavior changed.
+
+| Check                                                 | Result                                                                                                                                                                         |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Test-first regressions                                | New carousel/title tests and both page-order tests failed against the original implementation before the changes                                                               |
+| `task frontend:test`                                  | 39 files, 372 tests passed; covers navigation/wrapping, selected-photo focus, single/failed/all-failed images, source validation, destination reset, and overview preservation |
+| `task frontend:check` / `task frontend:lint`          | Passed                                                                                                                                                                         |
+| `task frontend:build:static`                          | Production app and bundled documentation built successfully                                                                                                                    |
+| `task docs:check`                                     | Documentation build and all three documentation checks passed                                                                                                                  |
+| `task frontend:snapshot:check -- --filter=enrichment` | All 10 affected views match updated local baselines                                                                                                                            |
+
+Browser scenarios exercise the real Embla engine: overlaid-control geometry and one accessible slide, explicit navigation, desktop mouse dragging, mobile Chromium touch input, no accidental dialog after dragging, and keyboard/focus behavior in the full-screen viewer. Unit tests isolate Embla because jsdom does not supply browser layout. The swipe fixture moves beyond the half-slide snap boundary to avoid an ambiguous endpoint. Enriched captures paint the below-fold map before capture; a repeated check confirmed stable images.
+
+Inspected all 10 updated views across campground/area pages, desktop/mobile, light/dark, and two photo dialogs. Only those 10 baselines changed. These amendment captures were produced on Linux; independent macOS CI confirmation remains a PR release check, as described in the visual environment notes above. The amended UI requirements and T027–T029 are complete, with the reviewer-owned UX checklist still available for user review.
+
+Before opening the PR, `task fix`, `task lint`, `task check`, and the full `task test` passed: 17 release checks, 1,428 backend tests (23 environment-dependent skips), 81 packaging tests, 372 frontend tests, 10 Pages tests, and the Pages static/proxy HTTP checks. Pre-commit hooks passed for all changed files. The full macOS visual suite remains a CI check; only the ten affected views were rerun locally.
+
+### Carousel PR CI follow-up
+
+[PR #332](https://github.com/juftin/camply-web/pull/332), [initial CI run 43641711391](https://github.com/juftin/camply-web/actions/runs/43641711391), checked commit `752e94eddd0c39e5ba63f7e36060f85686d97db4`. The full macOS visual suite reported 78 unchanged views and differences only in the ten updated enrichment views. Inspection of all ten current images and representative highlighted diffs confirmed macOS font/emoji rendering and resulting text wrapping, with correctly placed overlay controls and visit information below the map. The browser gesture/geometry assertions completed successfully.
+
+Replaced only those ten baselines with the reviewed macOS captures from [artifact 14131744760](https://github.com/juftin/camply-web/actions/runs/43641711391/artifacts/14131744760), after verifying each artifact's prior baseline byte-for-byte against the checked commit. Comparison thresholds and the 78 unrelated baselines remain unchanged. The baseline follow-up requires independent CI confirmation; runtime code is unchanged from the fully tested commit.
+
+### Caption-only review refinements
+
+The user subsequently requested removal of per-photo credit/source lines from both views and a count shown only after opening a photo. Updated unit assertions failed against the earlier UI, then passed with these display changes. The full frontend suite (372 tests), `task fix`, `task lint`, `task check`, the production build, and the ten browser scenarios were rerun. The browser assertions now check selection through accessible slide names and explicitly reject visible count or credit/source text in the page carousel. Captions and the opened viewer's count remain visible, and stored photo metadata is unchanged. The updated layout requires new macOS baselines.
+
+The intermediate macOS check of commit `f64e3ff0f277a966780466363588f1374c82ba64` matched 87 of 88 views; the remaining difference was the auto-hiding header captured before it finished returning after the map scroll. The enriched scenario now waits for the header to reach the top before capture. This changes only screenshot timing, without changing comparison thresholds or product behavior.
+
+[CI run 43643072704](https://github.com/juftin/camply-web/actions/runs/43643072704) exercised the refined UI at commit `581c8adc514b9bd78dd50fb5cbffe47ab1a9c026`: all browser assertions completed, 78 unrelated views matched, and the ten changed views reflected the requested removal of credit/source lines and the inline count. Reviewed all ten captures from [artifact 14132946312](https://github.com/juftin/camply-web/actions/runs/43643072704/artifacts/14132946312), verified each prior baseline against that commit, and replaced only those ten images. T031 is complete; independent confirmation of the final baselines follows in PR CI.
+
+Verified the updated Many Glacier preview in a fresh, unauthenticated Chromium browser with real provider data: decoded all eight photos, checked carousel wrapping and full-screen navigation, checked selected-photo focus restoration and the visit-information order, and verified that count text is absent from the page carousel but present in the opened viewer, with no credit/source lines in either view. The screenshot and browser log were retained as local review evidence; no production data was changed.
