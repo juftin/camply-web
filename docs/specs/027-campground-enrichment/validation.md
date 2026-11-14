@@ -54,3 +54,22 @@ The macOS visual job reported 76 unchanged views and 12 differences: precisely t
 ## Convergence result
 
 **Converged for implemented feature scope:** the source, API, UI, persistence, and regression coverage satisfy the recorded behavior. Local tests and static checks pass, and live PostgreSQL verification passed in PR CI. Reviewed macOS visual baselines are updated; their independent CI confirmation follows the baseline-fix commit. The reviewer-owned UX checklist remains available for user review.
+
+## Carousel and layout amendment (2026-11-14)
+
+The requested UI amendment uses `embla-carousel-react` 8.6.0, the engine behind [shadcn/ui Carousel](https://ui.shadcn.com/docs/components/carousel), with existing shadcn buttons. Arrows overlay the left/right image edges in both the carousel and dialog; the carousel counter overlays the top-right corner. Captions and attribution remain below the image. Both destination pages place “Know before you go” after the overview/map, preserving the overview without a snapshot. No API, provider, database, or caching behavior changed.
+
+| Check                                                 | Result                                                                                                                                                                         |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Test-first regressions                                | New carousel/title tests and both page-order tests failed against the original implementation before the changes                                                               |
+| `task frontend:test`                                  | 39 files, 372 tests passed; covers navigation/wrapping, selected-photo focus, single/failed/all-failed images, source validation, destination reset, and overview preservation |
+| `task frontend:check` / `task frontend:lint`          | Passed                                                                                                                                                                         |
+| `task frontend:build:static`                          | Production app and bundled documentation built successfully                                                                                                                    |
+| `task docs:check`                                     | Documentation build and all three documentation checks passed                                                                                                                  |
+| `task frontend:snapshot:check -- --filter=enrichment` | All 10 affected views match updated local baselines                                                                                                                            |
+
+Browser scenarios exercise the real Embla engine: overlaid-control geometry and one accessible slide, explicit navigation, desktop mouse dragging, mobile Chromium touch input, no accidental dialog after dragging, and keyboard/focus behavior in the full-screen viewer. Unit tests isolate Embla because jsdom does not supply browser layout. The swipe fixture moves beyond the half-slide snap boundary to avoid an ambiguous endpoint. Enriched captures paint the below-fold map before capture; a repeated check confirmed stable images.
+
+Inspected all 10 updated views across campground/area pages, desktop/mobile, light/dark, and two photo dialogs. Only those 10 baselines changed. These amendment captures were produced on Linux; independent macOS CI confirmation remains a PR release check, as described in the visual environment notes above. The amended UI requirements and T027–T029 are complete, with the reviewer-owned UX checklist still available for user review.
+
+Before opening the PR, `task fix`, `task lint`, `task check`, and the full `task test` passed: 17 release checks, 1,428 backend tests (23 environment-dependent skips), 81 packaging tests, 372 frontend tests, 10 Pages tests, and the Pages static/proxy HTTP checks. Pre-commit hooks passed for all changed files. The full macOS visual suite remains a CI check; only the ten affected views were rerun locally.

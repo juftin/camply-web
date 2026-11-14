@@ -46,6 +46,12 @@
 - [x] T025 Run `/speckit-converge` against all implemented requirements and tasks, append/fix any gaps, and repeat until Converged for feature scope; record environment-dependent release checks separately in `validation.md`.
 - [x] T026 Inspect macOS CI failures, verify source artifact identity, and replace only the 12 affected Linux-generated baselines with reviewed macOS captures; retain existing visual comparison thresholds and unrelated baselines.
 
+## Carousel and layout amendment (2026-11-14)
+
+- [x] T027 Replace the thumbnail grid with an Embla single-photo carousel and overlaid controls, preserving full-screen viewing, attribution, failure handling, and destination resets; verify buttons, keyboard wrap, horizontal swipe/drag, reduced motion, and one-photo behavior.
+- [x] T028 Place “Know before you go” after the overview/map on both destination pages; preserve the overview without enrichment and verify section order.
+- [x] T029 Run frontend quality/tests and inspect affected desktop/mobile light/dark captures; update visual baselines, validation evidence, and the global checklist.
+
 ## Dependencies and independent checks
 
 T020 precedes all code. T021 must fail before T022; T022 precedes T023. After that contract, Recreation.gov, the frontend, and the other provider adapters can run independently in their separate files. T007 precedes T009; T010 depends on T022, and UI integration depends on T010's agreed contract. Each provider's synthetic HTTP tests precede its adapter. Final checks and convergence follow all release implementation tasks. Reviewer-owned `checklists/ux.md` stays unchecked for user review; the user has already instructed this complete process to proceed through implementation.

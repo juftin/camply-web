@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import useEmblaCarousel from "embla-carousel-react";
+import { ChevronLeft, ChevronRight, Expand } from "lucide-react";
 import type { DestinationDetails as DetailsSnapshot } from "@/lib/structs";
 import { sanitizeAndRenderHTML } from "@/lib/utils";
 import { CollapsibleDescription } from "@/components/CollapsibleDescription";
@@ -16,6 +17,7 @@ import {
 interface DestinationDetailsProps {
   name: string;
   details?: DetailsSnapshot | null;
+  children?: ReactNode;
 }
 
 function safeUrl(value?: string | null): string | null {
@@ -48,37 +50,75 @@ function safeNarrative(value: string): string {
   return template.innerHTML;
 }
 
-export function DestinationDetails({ name, details }: DestinationDetailsProps) {
-  if (!details) return null;
+export function DestinationDetails({
+  name,
+  details,
+  children,
+}: DestinationDetailsProps) {
+  if (!details) return <>{children}</>;
   return (
     <DestinationContent
       key={`${name}/${details.source_url}/${details.fetched_at}`}
       name={name}
       details={details}
-    />
+    >
+      {children}
+    </DestinationContent>
   );
 }
 
 function DestinationContent({
   name,
   details,
+  children,
 }: {
   name: string;
   details: DetailsSnapshot;
+  children?: ReactNode;
 }) {
   const [failedPhotos, setFailedPhotos] = useState<string[]>([]);
   const [activeUrl, setActiveUrl] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [carouselRef, carouselApi] = useEmblaCarousel({
+    loop: true,
+    breakpoints: { "(prefers-reduced-motion: reduce)": { duration: 0 } },
+  });
   const trigger = useRef<HTMLButtonElement | null>(null);
   const gallery = useRef<HTMLDivElement | null>(null);
   const provenance = useRef<HTMLParagraphElement | null>(null);
-  const photos = (details.photos || []).filter(
-    (photo) => safeUrl(photo.url) && !failedPhotos.includes(photo.url),
+  const photos = useMemo(
+    () =>
+      (details.photos || []).filter(
+        (photo) => safeUrl(photo.url) && !failedPhotos.includes(photo.url),
+      ),
+    [details.photos, failedPhotos],
   );
+  useEffect(() => {
+    if (!carouselApi) return;
+    const selectPhoto = () => {
+      setActiveUrl(photos[carouselApi.selectedScrollSnap()]?.url || null);
+    };
+    carouselApi.on("select", selectPhoto).on("reInit", selectPhoto);
+    return () => {
+      carouselApi.off("select", selectPhoto).off("reInit", selectPhoto);
+    };
+  }, [carouselApi, photos]);
   const activeIndex = Math.max(
     0,
     photos.findIndex((photo) => photo.url === activeUrl),
   );
   const activePhoto = photos[activeIndex];
+  useEffect(() => {
+    if (
+      !dialogOpen &&
+      gallery.current?.contains(document.activeElement) &&
+      document.activeElement?.closest('[aria-hidden="true"]')
+    ) {
+      gallery.current
+        .querySelector<HTMLButtonElement>('button[tabindex="0"]')
+        ?.focus({ preventScroll: true });
+    }
+  }, [activeIndex, dialogOpen]);
   const sourceUrl = safeUrl(details.source_url);
   const date = new Date(details.fetched_at);
   const updated = Number.isNaN(date.getTime())
@@ -110,6 +150,7 @@ function DestinationContent({
   function changePhoto(direction: number) {
     const next = (activeIndex + direction + photos.length) % photos.length;
     setActiveUrl(photos[next].url);
+    carouselApi?.scrollTo(next);
   }
 
   function failPhoto(url: string) {
@@ -125,50 +166,98 @@ function DestinationContent({
   return (
     <>
       {photos.length > 0 && (
-        <Card ref={gallery} tabIndex={-1} className="min-w-0">
+        <Card
+          ref={gallery}
+          tabIndex={-1}
+          className="min-w-0"
+          role="region"
+          aria-roledescription="carousel"
+          aria-label={`${name} photos`}
+          onKeyDown={(event) => {
+            if (
+              photos.length > 1 &&
+              (event.key === "ArrowLeft" || event.key === "ArrowRight")
+            ) {
+              event.preventDefault();
+              changePhoto(event.key === "ArrowLeft" ? -1 : 1);
+            }
+          }}
+        >
           <CardHeader>
             <CardTitle>Photos</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div
-              className={
-                photos.length === 1
-                  ? "max-w-xl"
-                  : "grid grid-cols-2 gap-3 sm:grid-cols-4"
-              }
-            >
-              {photos.map((photo, index) => (
-                <button
-                  key={photo.url}
-                  type="button"
-                  className="block aspect-[4/3] w-full overflow-hidden rounded-md bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  aria-label={`View ${name} photo ${index + 1}`}
-                  onClick={(event) => {
-                    trigger.current = event.currentTarget;
-                    setActiveUrl(photo.url);
-                  }}
-                >
-                  <img
-                    src={photo.url}
-                    alt={photo.caption || `${name} photo ${index + 1}`}
-                    width={photo.width || undefined}
-                    height={photo.height || undefined}
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                    className="h-full w-full object-cover"
-                    onError={() => failPhoto(photo.url)}
+          <CardContent className="space-y-4">
+            <figure className="space-y-3">
+              <div className="relative">
+                <div ref={carouselRef} className="overflow-hidden rounded-md">
+                  <div className="flex touch-pan-y">
+                    {photos.map((photo, index) => (
+                      <div
+                        key={photo.url}
+                        className="min-w-0 flex-[0_0_100%]"
+                        role="group"
+                        aria-roledescription="slide"
+                        aria-label={`Photo ${index + 1} of ${photos.length}`}
+                        aria-hidden={index !== activeIndex}
+                      >
+                        <button
+                          type="button"
+                          tabIndex={index === activeIndex ? 0 : -1}
+                          className="relative block aspect-video w-full bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                          aria-label={`View ${name} photo ${index + 1}`}
+                          title="View full screen"
+                          onClick={(event) => {
+                            trigger.current = event.currentTarget;
+                            setActiveUrl(photo.url);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <img
+                            src={photo.url}
+                            alt={photo.caption || `${name} photo ${index + 1}`}
+                            width={photo.width || undefined}
+                            height={photo.height || undefined}
+                            loading="lazy"
+                            draggable={false}
+                            referrerPolicy="no-referrer"
+                            className="h-full w-full object-cover"
+                            onError={() => failPhoto(photo.url)}
+                          />
+                          <span
+                            aria-hidden="true"
+                            className="absolute bottom-3 right-3 rounded-md bg-black/60 p-2 text-white"
+                          >
+                            <Expand className="h-4 w-4" />
+                          </span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {photos.length > 1 && (
+                  <PhotoNavigation
+                    onPrevious={() => changePhoto(-1)}
+                    onNext={() => changePhoto(1)}
                   />
-                </button>
-              ))}
-            </div>
+                )}
+                <p
+                  className="pointer-events-none absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs text-white"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  Photo {activeIndex + 1} of {photos.length}
+                </p>
+              </div>
+              <PhotoCaption photo={activePhoto} />
+            </figure>
           </CardContent>
         </Card>
       )}
 
       <Dialog
-        open={Boolean(activeUrl && activePhoto)}
+        open={Boolean(dialogOpen && activePhoto)}
         onOpenChange={(open) => {
-          if (!open) setActiveUrl(null);
+          setDialogOpen(open);
         }}
       >
         {activePhoto && (
@@ -176,9 +265,15 @@ function DestinationContent({
             className="max-h-[95dvh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto"
             onCloseAutoFocus={(event) => {
               event.preventDefault();
-              if (trigger.current?.isConnected) trigger.current.focus();
+              if (
+                trigger.current?.isConnected &&
+                !trigger.current.closest('[aria-hidden="true"]')
+              )
+                trigger.current.focus();
               else if (gallery.current)
-                gallery.current.querySelector("button")?.focus();
+                gallery.current
+                  .querySelector<HTMLButtonElement>('button[tabindex="0"]')
+                  ?.focus();
               else provenance.current?.focus();
             }}
             onKeyDown={(event) => {
@@ -195,62 +290,37 @@ function DestinationContent({
               </DialogDescription>
             </DialogHeader>
             <figure className="space-y-3">
-              <img
-                src={activePhoto.url}
-                alt={activePhoto.caption || `${name} photo ${activeIndex + 1}`}
-                width={activePhoto.width || undefined}
-                height={activePhoto.height || undefined}
-                referrerPolicy="no-referrer"
-                className="max-h-[60dvh] w-full object-contain"
-                onError={() => failPhoto(activePhoto.url)}
-              />
-              <figcaption className="space-y-1 text-sm">
-                {activePhoto.caption && <p>{activePhoto.caption}</p>}
-                {activePhoto.credit && (
-                  <p className="text-muted-foreground">
-                    Credit: {activePhoto.credit}
-                  </p>
+              <div className="relative">
+                <img
+                  src={activePhoto.url}
+                  alt={
+                    activePhoto.caption || `${name} photo ${activeIndex + 1}`
+                  }
+                  width={activePhoto.width || undefined}
+                  height={activePhoto.height || undefined}
+                  referrerPolicy="no-referrer"
+                  className="max-h-[60dvh] w-full object-contain"
+                  onError={() => failPhoto(activePhoto.url)}
+                />
+                {photos.length > 1 && (
+                  <PhotoNavigation
+                    onPrevious={() => changePhoto(-1)}
+                    onNext={() => changePhoto(1)}
+                  />
                 )}
-                {safeUrl(activePhoto.source_url) && (
-                  <a
-                    href={safeUrl(activePhoto.source_url)!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary underline"
-                  >
-                    Photo source
-                  </a>
-                )}
-              </figcaption>
-            </figure>
-            {photos.length > 1 && (
-              <div className="flex justify-between gap-3">
-                <Button
-                  variant="outline"
-                  aria-label="Previous photo"
-                  onClick={() => changePhoto(-1)}
-                >
-                  <ChevronLeft className="mr-1 h-4 w-4" />
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  aria-label="Next photo"
-                  onClick={() => changePhoto(1)}
-                >
-                  Next
-                  <ChevronRight className="ml-1 h-4 w-4" />
-                </Button>
               </div>
-            )}
+              <PhotoCaption photo={activePhoto} />
+            </figure>
           </DialogContent>
         )}
       </Dialog>
 
+      {children}
+
       {hasPractical ? (
         <Card className="min-w-0">
           <CardHeader>
-            <CardTitle>Practical information</CardTitle>
+            <CardTitle>Know before you go</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {narratives.map(([title, value]) => (
@@ -332,5 +402,63 @@ function DestinationContent({
         </p>
       )}
     </>
+  );
+}
+
+function PhotoNavigation({
+  onPrevious,
+  onNext,
+}: {
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="icon"
+        className="absolute left-3 top-1/2 h-11 w-11 -translate-y-1/2 rounded-full border-white/20 bg-black/60 text-white hover:bg-black/80 hover:text-white"
+        aria-label="Previous photo"
+        onClick={onPrevious}
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        className="absolute right-3 top-1/2 h-11 w-11 -translate-y-1/2 rounded-full border-white/20 bg-black/60 text-white hover:bg-black/80 hover:text-white"
+        aria-label="Next photo"
+        onClick={onNext}
+      >
+        <ChevronRight className="h-5 w-5" />
+      </Button>
+    </>
+  );
+}
+
+function PhotoCaption({
+  photo,
+}: {
+  photo: NonNullable<DetailsSnapshot["photos"]>[number];
+}) {
+  const sourceUrl = safeUrl(photo.source_url);
+  if (!photo.caption && !photo.credit && !sourceUrl) return null;
+  return (
+    <figcaption className="space-y-1 text-sm">
+      {photo.caption && <p>{photo.caption}</p>}
+      {photo.credit && (
+        <p className="text-muted-foreground">Credit: {photo.credit}</p>
+      )}
+      {sourceUrl && (
+        <a
+          href={sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline"
+        >
+          Photo source
+        </a>
+      )}
+    </figcaption>
   );
 }

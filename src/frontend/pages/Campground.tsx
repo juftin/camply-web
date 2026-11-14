@@ -185,81 +185,82 @@ export function Campground() {
             key={`${providerId}/${campgroundId}`}
             name={toTitleCase(campground.name)}
             details={campground.details}
-          />
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MapPin className="h-5 w-5" />
-                <span>Campground</span>
-              </CardTitle>
-              <CardDescription>
-                <CollapsibleDescription
-                  description={
-                    campground.details?.description || campground.description
-                  }
-                  fallback="Information About This Campground"
-                />
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[campground.state, campground.country].filter(Boolean).length >
-                  0 && (
-                  <div>
-                    <span className="font-medium text-sm">Location:</span>
-                    <p className="text-muted-foreground">
-                      {[campground.state, campground.country]
-                        .filter(Boolean)
-                        .map((item) => item!.toUpperCase())
-                        .join(", ")}
-                    </p>
-                  </div>
-                )}
-                <div>
-                  <span className="font-medium text-sm">Status:</span>
-                  <div className="flex items-center space-x-2 mt-1">
-                    {campground.enabled && (
-                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                        Active
-                      </span>
-                    )}
-                    {campground.reservable && (
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
-                        Reservable
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {validCoordinates(
-                  campground.latitude,
-                  campground.longitude,
-                ) && (
-                  <MapComponent
-                    primaryType="campground"
-                    latitude={campground.latitude!}
-                    longitude={campground.longitude!}
-                    label={toTitleCase(campground.name)}
-                    additionalLocations={
-                      otherCampgrounds
-                        ?.filter(
-                          (c) =>
-                            c.id !== campgroundId &&
-                            validCoordinates(c.latitude, c.longitude),
-                        )
-                        .map((c) => ({
-                          id: `${c.provider_id}/campground/${c.id}`,
-                          lat: c.latitude!,
-                          lng: c.longitude!,
-                          label: toTitleCase(c.name),
-                          type: "campground" as const,
-                        })) || []
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <MapPin className="h-5 w-5" />
+                  <span>Campground</span>
+                </CardTitle>
+                <CardDescription>
+                  <CollapsibleDescription
+                    description={
+                      campground.details?.description || campground.description
                     }
-                    className="h-96 rounded-lg overflow-hidden border"
+                    fallback="Information About This Campground"
                   />
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[campground.state, campground.country].filter(Boolean)
+                    .length > 0 && (
+                    <div>
+                      <span className="font-medium text-sm">Location:</span>
+                      <p className="text-muted-foreground">
+                        {[campground.state, campground.country]
+                          .filter(Boolean)
+                          .map((item) => item!.toUpperCase())
+                          .join(", ")}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <span className="font-medium text-sm">Status:</span>
+                    <div className="flex items-center space-x-2 mt-1">
+                      {campground.enabled && (
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                          Active
+                        </span>
+                      )}
+                      {campground.reservable && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                          Reservable
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {validCoordinates(
+                    campground.latitude,
+                    campground.longitude,
+                  ) && (
+                    <MapComponent
+                      primaryType="campground"
+                      latitude={campground.latitude!}
+                      longitude={campground.longitude!}
+                      label={toTitleCase(campground.name)}
+                      additionalLocations={
+                        otherCampgrounds
+                          ?.filter(
+                            (c) =>
+                              c.id !== campgroundId &&
+                              validCoordinates(c.latitude, c.longitude),
+                          )
+                          .map((c) => ({
+                            id: `${c.provider_id}/campground/${c.id}`,
+                            lat: c.latitude!,
+                            lng: c.longitude!,
+                            label: toTitleCase(c.name),
+                            type: "campground" as const,
+                          })) || []
+                      }
+                      className="h-96 rounded-lg overflow-hidden border"
+                    />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </DestinationDetails>
 
           {/* Other Campgrounds Section */}
           {recreationArea &&

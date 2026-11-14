@@ -5,6 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 import * as api from "@/lib/api";
 import { RecreationArea } from "./RecreationArea";
 import { destinationDetails } from "@/test/destination-details";
+
+// Layout and dragging are exercised with the real Embla engine in browser snapshots.
+vi.mock("embla-carousel-react", () => ({
+  default: () => [() => {}, undefined],
+}));
 vi.mock("@/lib/api", () => ({
   getCampground: vi.fn(),
   getProvider: vi.fn(),
@@ -83,6 +88,19 @@ describe("RecreationArea location coordinates", () => {
     ).toBeVisible();
     expect(screen.getByText("Synthetic zero")).toBeVisible();
     expect(screen.getByText("Follow the signed road.")).toBeVisible();
+    const map = screen.getByTestId("map");
+    const information = screen.getByRole("heading", {
+      name: "Know before you go",
+    });
+    expect(
+      map.compareDocumentPosition(information) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole("heading", { name: "Photos" })
+        .compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("renders zero primary and related coordinates", async () => {

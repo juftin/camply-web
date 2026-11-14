@@ -133,64 +133,66 @@ export function RecreationArea() {
             key={`${providerId}/${recreationAreaId}`}
             name={toTitleCase(recreationArea.name)}
             details={recreationArea.details}
-          />
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MapPin className="h-5 w-5" />
-                <span>Recreation Area</span>
-              </CardTitle>
-              <CardDescription>
-                <CollapsibleDescription
-                  description={
-                    recreationArea.details?.description ||
-                    recreationArea.description
-                  }
-                  fallback="Information About This Recreation Area"
-                />
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[recreationArea.state, recreationArea.country].filter(Boolean)
-                  .length > 0 && (
-                  <div>
-                    <span className="font-medium text-sm">Location:</span>
-                    <p className="text-muted-foreground">
-                      {[recreationArea.state, recreationArea.country]
-                        .filter(Boolean)
-                        .map((item) => item!.toUpperCase())
-                        .join(", ")}
-                    </p>
-                  </div>
-                )}
-                {validCoordinates(
-                  recreationArea.latitude,
-                  recreationArea.longitude,
-                ) && (
-                  <MapComponent
-                    latitude={recreationArea.latitude!}
-                    longitude={recreationArea.longitude!}
-                    label={toTitleCase(recreationArea.name)}
-                    additionalLocations={
-                      campgrounds
-                        ?.filter((c) =>
-                          validCoordinates(c.latitude, c.longitude),
-                        )
-                        .map((c) => ({
-                          id: `${c.provider_id}/campground/${c.id}`,
-                          lat: c.latitude!,
-                          lng: c.longitude!,
-                          label: toTitleCase(c.name),
-                          type: "campground" as const,
-                        })) || []
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <MapPin className="h-5 w-5" />
+                  <span>Recreation Area</span>
+                </CardTitle>
+                <CardDescription>
+                  <CollapsibleDescription
+                    description={
+                      recreationArea.details?.description ||
+                      recreationArea.description
                     }
-                    className="h-96 rounded-lg overflow-hidden border"
+                    fallback="Information About This Recreation Area"
                   />
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[recreationArea.state, recreationArea.country].filter(
+                    Boolean,
+                  ).length > 0 && (
+                    <div>
+                      <span className="font-medium text-sm">Location:</span>
+                      <p className="text-muted-foreground">
+                        {[recreationArea.state, recreationArea.country]
+                          .filter(Boolean)
+                          .map((item) => item!.toUpperCase())
+                          .join(", ")}
+                      </p>
+                    </div>
+                  )}
+                  {validCoordinates(
+                    recreationArea.latitude,
+                    recreationArea.longitude,
+                  ) && (
+                    <MapComponent
+                      latitude={recreationArea.latitude!}
+                      longitude={recreationArea.longitude!}
+                      label={toTitleCase(recreationArea.name)}
+                      additionalLocations={
+                        campgrounds
+                          ?.filter((c) =>
+                            validCoordinates(c.latitude, c.longitude),
+                          )
+                          .map((c) => ({
+                            id: `${c.provider_id}/campground/${c.id}`,
+                            lat: c.latitude!,
+                            lng: c.longitude!,
+                            label: toTitleCase(c.name),
+                            type: "campground" as const,
+                          })) || []
+                      }
+                      className="h-96 rounded-lg overflow-hidden border"
+                    />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </DestinationDetails>
 
           <Card>
             <CardHeader>

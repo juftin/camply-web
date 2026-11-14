@@ -14,6 +14,8 @@ The user authorized the complete planning and implementation workflow. No additi
 - A failed per-entity refresh keeps its previous successful snapshot. A verified missing image (404/410) is absence; authentication, transport, malformed payloads, and server errors are failures. Source fields that are unsupported do not erase supported data.
 - An internal attempt timestamp provides an atomic one-hour claim cooldown, so failures yield to remaining destinations and concurrent refreshes do not duplicate work. The successful refresh timestamp is unchanged by failures. Missing/reclassified Recreation.gov destinations retain their last successful snapshot.
 - Remote photos remain on verified upstream hosts; retain supplied credits and source links. No mirroring or automated license claims are introduced.
+- The user requested a single-photo carousel in place of the photo grid, and requested that practical details move below the map with a better title. Use “Know before you go” and the amended [UI/UX plan](ui-ux.md); preserve the existing overview when enrichment or coordinates are absent.
+- The user rejected navigation below the photo and asked about established carousel components. Use Embla's React adapter with overlaid left/right controls, swipe/drag navigation, and a counter on the image; retain the existing full-screen dialog with matching overlay controls.
 
 ## User scenarios and acceptance criteria
 
