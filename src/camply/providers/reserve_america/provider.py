@@ -246,6 +246,12 @@ class ReserveAmericaProvider(BaseProvider):
         """Refresh the public catalog independently of scan selections."""
         await self.populate_database()
 
+    async def enrich_metadata(self) -> None:
+        """Refresh original-photo galleries and practical facility information."""
+        from camply.providers.reserve_america.enrichment import enrich_metadata
+
+        await enrich_metadata(self)
+
     async def populate_database(self) -> None:
         """Fetch the complete catalog first, then refresh metadata/search atomically."""
         facilities: dict[str, Facility] = {}

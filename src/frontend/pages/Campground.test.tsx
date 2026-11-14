@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import * as api from "@/lib/api";
 import { Campground } from "./Campground";
+import { destinationDetails } from "@/test/destination-details";
 vi.mock("@/lib/api", () => ({
   getCampground: vi.fn(),
   getProvider: vi.fn(),
@@ -61,6 +62,62 @@ function open() {
   );
 }
 describe("Campground location coordinates", () => {
+  it("shows its own enrichment without borrowing recreation-area photos", async () => {
+    vi.mocked(api.getProvider).mockResolvedValue({
+      id: 2,
+      name: "Fixture",
+      description: null,
+      url: "",
+      enabled: true,
+    });
+    vi.mocked(api.getCampground).mockResolvedValue({
+      ...campground,
+      details: destinationDetails({
+        description: "A richer campground description.",
+      }),
+    });
+    vi.mocked(api.getRecreationArea).mockResolvedValue({
+      ...area,
+      details: destinationDetails({
+        photos: [
+          {
+            url: "https://images.example.test/parent.jpg",
+            caption: "Parent-only photo",
+            is_primary: true,
+          },
+        ],
+      }),
+    });
+    vi.mocked(api.getCampgrounds).mockResolvedValue([]);
+    open();
+    expect(
+      await screen.findByRole("button", {
+        name: "View Synthetic zero photo 1",
+      }),
+    ).toBeVisible();
+    expect(screen.getByText("A richer campground description.")).toBeVisible();
+    expect(screen.queryByAltText("Parent-only photo")).toBeNull();
+  });
+
+  it("keeps an unenriched campground free of its parent's gallery", async () => {
+    vi.mocked(api.getProvider).mockResolvedValue({
+      id: 2,
+      name: "Fixture",
+      description: null,
+      url: "",
+      enabled: true,
+    });
+    vi.mocked(api.getCampground).mockResolvedValue(campground);
+    vi.mocked(api.getRecreationArea).mockResolvedValue({
+      ...area,
+      details: destinationDetails(),
+    });
+    vi.mocked(api.getCampgrounds).mockResolvedValue([]);
+    open();
+    await screen.findByRole("heading", { name: "Synthetic zero" });
+    expect(screen.queryByRole("heading", { name: "Photos" })).toBeNull();
+  });
+
   it("renders zero primary and related coordinates", async () => {
     vi.mocked(api.getProvider).mockResolvedValue({
       id: 2,

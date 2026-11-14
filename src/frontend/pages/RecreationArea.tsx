@@ -18,6 +18,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { validCoordinates } from "@/lib/maps";
 import { MapComponent } from "@/components/MapComponent";
 import { CollapsibleDescription } from "@/components/CollapsibleDescription";
+import { DestinationDetails } from "@/components/DestinationDetails";
 import { getRecreationArea, getProvider, getCampgrounds } from "@/lib/api";
 import { toTitleCase } from "@/lib/utils";
 
@@ -128,6 +129,11 @@ export function RecreationArea() {
         </div>
 
         <div className="grid gap-6">
+          <DestinationDetails
+            key={`${providerId}/${recreationAreaId}`}
+            name={toTitleCase(recreationArea.name)}
+            details={recreationArea.details}
+          />
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -136,7 +142,10 @@ export function RecreationArea() {
               </CardTitle>
               <CardDescription>
                 <CollapsibleDescription
-                  description={recreationArea.description}
+                  description={
+                    recreationArea.details?.description ||
+                    recreationArea.description
+                  }
                   fallback="Information About This Recreation Area"
                 />
               </CardDescription>

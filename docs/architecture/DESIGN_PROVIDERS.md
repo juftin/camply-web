@@ -9,6 +9,14 @@ distribution. They may use `camply.db` persistence, but must not import server
 or worker application bootstrap. Providers and SQLite are base dependencies;
 HTTP serving, Celery/Redis, PostgreSQL, and Sentry remain optional extras.
 
+## Cached destination enrichment
+
+After catalog ingestion, CLI metadata and shared standalone/distributed worker entry points call the optional `BaseProvider.enrich_metadata()` extension. Recreation.gov streams destination media, links, activities, and practical text from its existing cached RIDB export; UseDirect uses verified public asset paths and park-information endpoints; ReserveAmerica uses its anonymous facility-detail API and original-photo list. Other providers retain the no-op extension.
+
+Validated `DestinationDetails` snapshots are stored as nullable JSON on existing destination records. Refreshes process at most 100 stale destinations per provider invocation; successful content stays fresh for seven days. An internal atomic attempt timestamp provides a one-hour retry cooldown and backlog continuation without changing successful freshness. Failed/incomplete source responses preserve previous content. Ordinary catalog merges preserve fields they do not update.
+
+Only single-destination API responses include enrichment. Page reads and availability scans never fetch it upstream; parent-area and campground media stay distinct. See the [feature plan](../specs/027-campground-enrichment/plan.md) for source scope and failure semantics.
+
 ## 🎯 Architecture Goals
 
 1. **Standardization**: All providers must return a unified `CampsiteDTO` to the worker.

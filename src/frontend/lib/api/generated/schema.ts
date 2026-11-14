@@ -1498,6 +1498,43 @@ export interface components {
             readonly url: string;
         };
         /**
+         * CampgroundDetail
+         * @description Single-destination response including optional cached enrichment.
+         */
+        CampgroundDetail: {
+            /** Id */
+            id: string;
+            /** Provider Id */
+            provider_id: number;
+            /** Recreation Area Id */
+            recreation_area_id: string | null;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string | null;
+            /** Country */
+            country: string | null;
+            /** State */
+            state: string | null;
+            /** Longitude */
+            longitude: number | null;
+            /** Latitude */
+            latitude: number | null;
+            /**
+             * Reservable
+             * @default true
+             */
+            reservable: boolean;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            details?: components["schemas"]["DestinationDetails"] | null;
+            /** Url */
+            readonly url: string;
+        };
+        /**
          * ChangePasswordRequest
          * @description Payload for changing the authenticated user's password.
          */
@@ -1506,6 +1543,84 @@ export interface components {
             current_password: string;
             /** New Password */
             new_password: string;
+        };
+        /**
+         * DestinationDetails
+         * @description A complete cached destination snapshot with successful-refresh provenance.
+         */
+        DestinationDetails: {
+            /** Source Url */
+            source_url: string;
+            /**
+             * Fetched At
+             * Format: date-time
+             */
+            fetched_at: string;
+            /** Description */
+            description?: string | null;
+            /** Directions */
+            directions?: string | null;
+            /** Accessibility */
+            accessibility?: string | null;
+            /** Fee Information */
+            fee_information?: string | null;
+            /** Stay Limit */
+            stay_limit?: string | null;
+            /** Photos */
+            photos?: components["schemas"]["DestinationPhoto"][];
+            /** Activities */
+            activities?: string[];
+            /** Amenities */
+            amenities?: string[];
+            /** Links */
+            links?: components["schemas"]["DestinationLink"][];
+            /** Hours */
+            hours?: components["schemas"]["DestinationFact"][];
+            /** Vehicle Limits */
+            vehicle_limits?: components["schemas"]["DestinationFact"][];
+        };
+        /**
+         * DestinationFact
+         * @description A source-labeled fact retaining its original units and meaning.
+         */
+        DestinationFact: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+        };
+        /**
+         * DestinationLink
+         * @description A labeled public information or map link.
+         */
+        DestinationLink: {
+            /** Label */
+            label: string;
+            /** Url */
+            url: string;
+        };
+        /**
+         * DestinationPhoto
+         * @description One image belonging to the destination containing its snapshot.
+         */
+        DestinationPhoto: {
+            /** Url */
+            url: string;
+            /** Caption */
+            caption?: string | null;
+            /** Credit */
+            credit?: string | null;
+            /** Width */
+            width?: number | null;
+            /** Height */
+            height?: number | null;
+            /**
+             * Is Primary
+             * @default false
+             */
+            is_primary: boolean;
+            /** Source Url */
+            source_url?: string | null;
         };
         /**
          * GeographicBounds
@@ -1687,6 +1802,7 @@ export interface components {
              * @default true
              */
             enabled: boolean;
+            details?: components["schemas"]["DestinationDetails"] | null;
             /** Url */
             readonly url: string;
         };
@@ -2618,7 +2734,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Campground"];
+                    "application/json": components["schemas"]["CampgroundDetail"];
                 };
             };
             /** @description Validation Error */

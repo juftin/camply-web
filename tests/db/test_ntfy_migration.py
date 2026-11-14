@@ -29,7 +29,7 @@ def test_upgrade_from_either_notification_or_provider_head(
     with sqlite3.connect(database.HOST) as connection:
         assert connection.execute(
             "SELECT version_num FROM alembic_version"
-        ).fetchall() == [("f024d1e2f3a4",)]
+        ).fetchall() == [("d027a1b2c3d4",)]
         assert connection.execute(
             "SELECT email, pushover_token, ntfy_topic FROM users"
         ).fetchone() == (

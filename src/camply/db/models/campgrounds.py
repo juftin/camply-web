@@ -4,9 +4,10 @@ Campground
 
 import datetime
 from functools import partial
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from sqlalchemy import (
+    JSON,
     ForeignKey,
     ForeignKeyConstraint,
     Integer,
@@ -39,6 +40,14 @@ class Campground(Base):
     recreation_area_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     name: Mapped[str] = mapped_column(String(255), index=True)
     description: Mapped[str | None] = mapped_column(String(32768))
+    details: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON(none_as_null=True), nullable=True
+    )
+    """Last successful provider enrichment; independent of ordinary catalog merges."""
+    details_attempted_at: Mapped[datetime.datetime | None] = mapped_column(
+        nullable=True
+    )
+    """Last refresh attempt, allowing failed batches to yield to remaining records."""
     city: Mapped[str | None] = mapped_column(String(50))
     country: Mapped[str | None] = mapped_column(String(50))
     state: Mapped[str | None] = mapped_column(String(50))

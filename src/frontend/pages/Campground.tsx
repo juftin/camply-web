@@ -21,6 +21,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { validCoordinates } from "@/lib/maps";
 import { MapComponent } from "@/components/MapComponent";
 import { CollapsibleDescription } from "@/components/CollapsibleDescription";
+import { DestinationDetails } from "@/components/DestinationDetails";
 import { ScanForm } from "@/components/ScanForm";
 import {
   getCampground,
@@ -117,7 +118,7 @@ export function Campground() {
 
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
             <div className="flex items-center space-x-3">
               <Tent className="h-8 w-8 text-primary shrink-0" />
               <div>
@@ -180,6 +181,11 @@ export function Campground() {
         </div>
 
         <div className="grid gap-6">
+          <DestinationDetails
+            key={`${providerId}/${campgroundId}`}
+            name={toTitleCase(campground.name)}
+            details={campground.details}
+          />
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -188,7 +194,9 @@ export function Campground() {
               </CardTitle>
               <CardDescription>
                 <CollapsibleDescription
-                  description={campground.description}
+                  description={
+                    campground.details?.description || campground.description
+                  }
                   fallback="Information About This Campground"
                 />
               </CardDescription>

@@ -12,6 +12,7 @@ from camply.db.models import Campground as CampgroundDB
 from camply.db.models import RecreationArea as RecreationAreaDB
 from camply.providers import PROVIDERS
 from camply.providers.base import BaseProvider
+from camply.providers.details import DestinationDetails
 from camply.server.dependencies import SessionDep
 from camply.server.models.campgrounds import Campground
 
@@ -33,6 +34,7 @@ class RecreationArea(BaseModel):
     latitude: float | None
     reservable: bool = True
     enabled: bool = True
+    details: DestinationDetails | None = None
 
     @cached_property
     def provider(self) -> type[BaseProvider]:
@@ -67,6 +69,9 @@ async def recreation_area(
         provider_id=fetched.provider_id,
         name=fetched.name,
         description=fetched.description,
+        details=DestinationDetails.model_validate(fetched.details)
+        if fetched.details is not None
+        else None,
         country=fetched.country,
         state=fetched.state,
         longitude=fetched.longitude,

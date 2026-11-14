@@ -17,7 +17,7 @@ repos:
       - id: check-docstring-first
         # This token-based hook mistakes valid module attribute docstrings for
         # duplicate module docstrings. Syntax checks still cover these modules.
-        exclude: ^(src/hatchling/plugin|src/camply/(__about__|db/(models/search|search_maps|search_bounds|migrations/env)|server/(routers/search|services/operations))|tests/packaging/conftest)\.py$
+        exclude: ^(src/hatchling/plugin|src/camply/(__about__|db/(models/search|search_maps|search_bounds|migrations/env)|providers/(details|enrichment)|server/(routers/search|services/operations))|tests/(packaging/conftest|server/routers/test_destination_details))\.py$
       - id: check-merge-conflict
       - id: mixed-line-ending
 

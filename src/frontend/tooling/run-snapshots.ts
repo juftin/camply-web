@@ -16,6 +16,7 @@ import { spawn, execSync, type ChildProcess } from "child_process";
 import { chromium, type Browser, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
 import { setupAdminSnapshotMocks } from "./admin-snapshot-mocks";
+import { destinationDetails } from "../test/destination-details";
 import {
   navigateToSnapshot,
   waitForSnapshotAssets,
@@ -64,6 +65,7 @@ interface Scenario {
   partialOperations?: boolean;
   missingMeasurements?: boolean;
   manyCampsites?: boolean;
+  enrichment?: boolean;
   action?: (page: Page) => Promise<void>;
 }
 
@@ -699,6 +701,79 @@ for (const [name, width] of [
     }
   }
 }
+
+for (const [name, width] of [
+  ["desktop", 1440],
+  ["mobile", 375],
+] as const) {
+  for (const theme of ["light", "dark"] as const) {
+    for (const [surface, route] of [
+      ["campground", "/campground/1/232447"],
+      ["area", "/rec-area/1/2991"],
+    ] as const) {
+      SCENARIOS.push({
+        name: `enrichment-${surface}-${name}-${theme}`,
+        route,
+        viewport: { width, height: 1000 },
+        theme,
+        enrichment: true,
+        description: `${surface} photos, attribution, and practical information at ${width}px in ${theme} theme`,
+        action: async (page) => {
+          await page
+            .getByRole("heading", { name: "Practical information" })
+            .waitFor();
+          if (
+            await page.evaluate(
+              () => document.documentElement.scrollWidth > innerWidth,
+            )
+          ) {
+            const overflow = await page.evaluate(() =>
+              Array.from(document.querySelectorAll("body *"))
+                .filter(
+                  (element) =>
+                    element.getBoundingClientRect().right > innerWidth + 1,
+                )
+                .slice(0, 5)
+                .map((element) => `${element.tagName}.${element.className}`),
+            );
+            throw new Error(
+              `Destination enrichment overflows the viewport: ${overflow.join(", ")}`,
+            );
+          }
+        },
+      });
+    }
+  }
+}
+for (const [name, width, theme] of [
+  ["desktop", 1440, "light"],
+  ["mobile", 375, "dark"],
+] as const) {
+  SCENARIOS.push({
+    name: `enrichment-dialog-${name}-${theme}`,
+    route: "/campground/1/232447",
+    viewport: { width, height: 1000 },
+    theme,
+    enrichment: true,
+    description: `Destination photo dialog with caption and credit at ${width}px in ${theme} theme`,
+    action: async (page) => {
+      const trigger = page.getByRole("button", {
+        name: "View Upper Pines Campground photo 1",
+      });
+      await trigger.click();
+      await page.getByRole("dialog").waitFor();
+      await page.keyboard.press("ArrowLeft");
+      await page.getByText("Photo 2 of 2", { exact: true }).waitFor();
+      await page.keyboard.press("Escape");
+      await page.getByRole("dialog").waitFor({ state: "hidden" });
+      await page.waitForFunction(
+        (label) => document.activeElement?.getAttribute("aria-label") === label,
+        "View Upper Pines Campground photo 1",
+      );
+      await trigger.click();
+    },
+  });
+}
 for (const [name, width, theme] of [
   ["desktop-light", 1440, "light"],
   ["mobile-dark", 375, "dark"],
@@ -1078,6 +1153,19 @@ async function ensureServerRunning(): Promise<ChildProcess | null> {
  */
 async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
   await setupAdminSnapshotMocks(page, scenario);
+  if (scenario.enrichment) {
+    const image = new PNG({ width: 640, height: 480 });
+    for (let index = 0; index < image.data.length; index += 4) {
+      const y = Math.floor(index / 4 / 640);
+      image.data[index] = y < 250 ? 170 : 45;
+      image.data[index + 1] = y < 250 ? 205 : 95;
+      image.data[index + 2] = y < 250 ? 220 : 70;
+      image.data[index + 3] = 255;
+    }
+    await page.route("https://images.example.test/**", (route) =>
+      route.fulfill({ contentType: "image/png", body: PNG.sync.write(image) }),
+    );
+  }
   const invitationRequired = scenario.name.startsWith("early-access-");
   const signedOut = scenario.route === "/auth";
   await page.route("**/api/auth-config", (route) => {
@@ -1325,7 +1413,10 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
   await page.route("**/api/campground/1/232447", (route) =>
     route.fulfill({
       contentType: "application/json",
-      body: JSON.stringify(MOCK_CAMPGROUNDS[0]),
+      body: JSON.stringify({
+        ...MOCK_CAMPGROUNDS[0],
+        ...(scenario.enrichment ? { details: destinationDetails() } : {}),
+      }),
     }),
   );
   await page.route("**/api/rec-area/1/2991", (route) =>
@@ -1343,6 +1434,7 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
         reservable: true,
         enabled: true,
         url: "https://example.test",
+        ...(scenario.enrichment ? { details: destinationDetails() } : {}),
       }),
     }),
   );

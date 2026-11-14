@@ -747,6 +747,10 @@ class BaseProvider(ABC):
         tables with the latest info from the provider.
         """
 
+    async def enrich_metadata(self) -> None:
+        """Optionally refresh cached destination details after catalog ingestion."""
+        return None
+
     @property
     def headers(self) -> dict[str, str]:
         """

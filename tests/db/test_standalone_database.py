@@ -14,7 +14,7 @@ from sqlalchemy.exc import OperationalError
 
 from camply.db.config import DatabaseConfig
 from camply.db.migration import upgrade_database
-from camply.db.models import Campground, ScanResult, UniqueTarget, User, UserScan
+from camply.db.models import ScanResult, UniqueTarget, User, UserScan
 
 
 @pytest.mark.asyncio
@@ -101,10 +101,10 @@ def test_previous_pr_database_preserves_pending_delivery(tmp_path: Path) -> None
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         assert connection.execute(
             "SELECT version_num FROM alembic_version"
-        ).fetchall() == [("f024d1e2f3a4",)]
+        ).fetchall() == [("d027a1b2c3d4",)]
 
 
-def test_populated_upgrade_and_online_backup(tmp_path: Path) -> None:  # noqa: PLR0915
+def test_populated_upgrade_and_online_backup(tmp_path: Path) -> None:
     """Preserve linked UUID/JSON/date state across an upgrade and online backup."""
     database = DatabaseConfig(HOST=str(tmp_path / "state.db"))
     upgrade_database(database, revision="09367969f1a4")
@@ -114,14 +114,13 @@ def test_populated_upgrade_and_online_backup(tmp_path: Path) -> None:  # noqa: P
         database.open()
         try:
             async with database.get_session() as session:
-                session.add(
-                    Campground(id="synthetic", provider_id=1, name="Synthetic park")
+                await session.execute(
+                    text(
+                        "INSERT INTO campgrounds (id, provider_id, name, reservable, enabled) VALUES ('synthetic', 1, 'Synthetic park', 1, 1)"
+                    )
                 )
-                await session.flush()
                 user = User(email="synthetic@example.test")
                 # Insert only historical columns; the current ORM includes newer settings.
-                from sqlalchemy import text
-
                 user.id = uuid.uuid4()
                 await session.execute(
                     text(

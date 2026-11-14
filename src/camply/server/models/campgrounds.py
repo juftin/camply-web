@@ -4,6 +4,7 @@ from pydantic import BaseModel, computed_field
 
 from camply.providers import PROVIDERS
 from camply.providers.base import BaseProvider
+from camply.providers.details import DestinationDetails
 
 
 class Campground(BaseModel):
@@ -35,3 +36,9 @@ class Campground(BaseModel):
         return self.provider.get_campground_url(
             campground_id=self.id, rec_area_id=self.recreation_area_id
         )
+
+
+class CampgroundDetail(Campground):
+    """Single-destination response including optional cached enrichment."""
+
+    details: DestinationDetails | None = None

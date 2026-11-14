@@ -31,6 +31,19 @@ An installed `camply-web[server]` package starts the complete standalone applica
 
 Standalone uses one process on one host, with persisted scans and pending alerts. Historical monitoring charts require the distributed deployment. `task standalone:run` uses `build/frontend` as its default development UI; an explicit `CAMPLY_FRONTEND_DIR` selects another absolute asset directory.
 
+## Destination photos and practical details
+
+Provider catalog syncs also refresh cached photos and practical information for Recreation.gov, the ten supported UseDirect park systems, and ReserveAmerica. Both **Sync Providers** and scheduled ingestion use this workflow. To refresh a provider from the CLI after upgrading the schema:
+
+```bash
+camply db migrate
+camply db metadata --provider-id 1
+```
+
+Use `--provider-id all` to refresh all registered provider catalogs. Each invocation enriches at most 100 stale destinations per provider, so repeated invocations continue the backlog. Successful details remain fresh for seven days; unsuccessful attempts retain prior content and have a one-hour retry cooldown. Catalog updates can succeed even when optional enrichment is unavailable.
+
+Photos stay on upstream hosts, and coverage varies by destination. Detail pages display available captions/credits, source links, and the last successful update. Missing or broken images do not block descriptions, maps, booking links, or monitoring. Page reads and availability scans never perform enrichment requests. GoingToCamp media, official-site scraping, and dated UseDirect narrative harvesting remain outside this release.
+
 ## Build and install the complete application
 
 Checkout builds require Python 3.14, uv, Node 24, and the pnpm version pinned in `package.json`. Python package consumers are supported on Python >=3.11.
