@@ -18,7 +18,10 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/SearchBar";
-import { validCoordinates } from "@/lib/maps";
+import {
+  hasMappableCoordinates,
+  withRecreationAreaCoordinates,
+} from "@/lib/maps";
 import { MapComponent } from "@/components/MapComponent";
 import { CollapsibleDescription } from "@/components/CollapsibleDescription";
 import { DestinationDetails } from "@/components/DestinationDetails";
@@ -105,6 +108,8 @@ export function Campground() {
       </div>
     );
   }
+
+  const mapLocation = withRecreationAreaCoordinates(campground, recreationArea);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -230,21 +235,21 @@ export function Campground() {
                       )}
                     </div>
                   </div>
-                  {validCoordinates(
-                    campground.latitude,
-                    campground.longitude,
-                  ) && (
+                  {hasMappableCoordinates(mapLocation) && (
                     <MapComponent
                       primaryType="campground"
-                      latitude={campground.latitude!}
-                      longitude={campground.longitude!}
+                      latitude={mapLocation.latitude!}
+                      longitude={mapLocation.longitude!}
                       label={toTitleCase(campground.name)}
                       additionalLocations={
                         otherCampgrounds
-                          ?.filter(
+                          ?.map((c) =>
+                            withRecreationAreaCoordinates(c, recreationArea),
+                          )
+                          .filter(
                             (c) =>
                               c.id !== campgroundId &&
-                              validCoordinates(c.latitude, c.longitude),
+                              hasMappableCoordinates(c),
                           )
                           .map((c) => ({
                             id: `${c.provider_id}/campground/${c.id}`,

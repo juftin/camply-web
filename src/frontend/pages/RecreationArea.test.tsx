@@ -26,10 +26,13 @@ vi.mock("@/components/MapComponent", () => ({
   }: {
     latitude: number;
     longitude: number;
-    additionalLocations: unknown[];
+    additionalLocations: { lat: number; lng: number }[];
   }) => (
     <div data-testid="map">
       {latitude}/{longitude}/{additionalLocations.length}
+      <span data-testid="related-coordinates">
+        {additionalLocations.map((p) => `${p.lat}/${p.lng}`).join(",")}
+      </span>
     </div>
   ),
 }));
@@ -41,8 +44,8 @@ const campground = {
   description: null,
   state: null,
   country: null,
-  latitude: 0,
-  longitude: 0,
+  latitude: 37,
+  longitude: -119,
   enabled: true,
   reservable: true,
   url: "",
@@ -103,41 +106,61 @@ describe("RecreationArea location coordinates", () => {
     ).toBeTruthy();
   });
 
-  it("renders zero primary and related coordinates", async () => {
-    vi.mocked(api.getProvider).mockResolvedValue({
-      id: 2,
-      name: "Fixture",
-      description: null,
-      url: "",
-      enabled: true,
-    });
-    vi.mocked(api.getCampground).mockResolvedValue(campground);
-    vi.mocked(api.getRecreationArea).mockResolvedValue(area);
-    vi.mocked(api.getCampgrounds).mockResolvedValue([
-      { ...campground, id: "related" },
-    ]);
-    open();
-    expect(await screen.findByTestId("map")).toHaveTextContent("0/0/1");
-  });
-  it("keeps detail content when primary coordinates are missing", async () => {
-    vi.mocked(api.getProvider).mockResolvedValue({
-      id: 2,
-      name: "Fixture",
-      description: null,
-      url: "",
-      enabled: true,
-    });
-    vi.mocked(api.getCampground).mockResolvedValue({
-      ...campground,
-      latitude: null,
-    });
-    vi.mocked(api.getRecreationArea).mockResolvedValue({
-      ...area,
-      latitude: null,
-    });
-    vi.mocked(api.getCampgrounds).mockResolvedValue([]);
-    open();
-    await screen.findByRole("heading", { name: "Synthetic area" });
-    expect(screen.queryByTestId("map")).not.toBeInTheDocument();
-  });
+  it.each([
+    { latitude: 0, longitude: 10 },
+    { latitude: 10, longitude: 0 },
+  ])(
+    "renders valid coordinates $latitude/$longitude and gives missing campground locations the area coordinates",
+    async (coordinates) => {
+      vi.mocked(api.getProvider).mockResolvedValue({
+        id: 2,
+        name: "Fixture",
+        description: null,
+        url: "",
+        enabled: true,
+      });
+      vi.mocked(api.getCampground).mockResolvedValue(campground);
+      vi.mocked(api.getRecreationArea).mockResolvedValue({
+        ...area,
+        ...coordinates,
+      });
+      vi.mocked(api.getCampgrounds).mockResolvedValue([
+        { ...campground, id: "placeholder", latitude: 0, longitude: 0 },
+        { ...campground, id: "equator", latitude: 0, longitude: 10 },
+        { ...campground, id: "meridian", latitude: 10, longitude: 0 },
+        { ...campground, id: "missing", latitude: null },
+      ]);
+      open();
+      expect(await screen.findByTestId("map")).toHaveTextContent(
+        `${coordinates.latitude}/${coordinates.longitude}/4`,
+      );
+      expect(screen.getByTestId("related-coordinates")).toHaveTextContent(
+        `${coordinates.latitude}/${coordinates.longitude},0/10,10/0,${coordinates.latitude}/${coordinates.longitude}`,
+      );
+    },
+  );
+  it.each([
+    { latitude: 0, longitude: 0 },
+    { latitude: null, longitude: -119 },
+  ])(
+    "keeps detail content without a map for primary coordinates $latitude/$longitude",
+    async (coordinates) => {
+      vi.mocked(api.getProvider).mockResolvedValue({
+        id: 2,
+        name: "Fixture",
+        description: null,
+        url: "",
+        enabled: true,
+      });
+      vi.mocked(api.getCampground).mockResolvedValue(campground);
+      vi.mocked(api.getRecreationArea).mockResolvedValue({
+        ...area,
+        ...coordinates,
+      });
+      vi.mocked(api.getCampgrounds).mockResolvedValue([]);
+      open();
+      await screen.findByRole("heading", { name: "Synthetic area" });
+      expect(screen.queryByTestId("map")).not.toBeInTheDocument();
+    },
+  );
 });
