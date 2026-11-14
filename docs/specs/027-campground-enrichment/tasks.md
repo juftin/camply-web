@@ -1,6 +1,6 @@
 # Enrichment delivery backlog
 
-**Status**: Implementation and local verification complete 2026-11-14. See [validation](validation.md) for exact results and outstanding macOS/live-PostgreSQL release checks. `[P]` marks independently executable work.
+**Status**: Implementation and local verification complete 2026-11-14. PR CI passed all nonvisual checks, including live PostgreSQL migrations; reviewed macOS baseline corrections await an independent CI rerun. See [validation](validation.md) for evidence. `[P]` marks independently executable work.
 
 ## Completed research
 
@@ -44,6 +44,7 @@
 
 - [x] T012 Run project quality/docs/test/migration/visual gates, record actual outcomes and limitations, and update `docs/CHECKLIST.md` plus current architecture/operations guides.
 - [x] T025 Run `/speckit-converge` against all implemented requirements and tasks, append/fix any gaps, and repeat until Converged for feature scope; record environment-dependent release checks separately in `validation.md`.
+- [x] T026 Inspect macOS CI failures, verify source artifact identity, and replace only the 12 affected Linux-generated baselines with reviewed macOS captures; retain existing visual comparison thresholds and unrelated baselines.
 
 ## Dependencies and independent checks
 

@@ -41,10 +41,16 @@ Convergence inspection confirmed retention for failed, incomplete, missing, or r
 
 CI runs the visual suite on `macos-latest`; this workspace is Linux. An isolated checkout of the unchanged base revision reproduced the same admin-page mismatch (1.92%). Its current PNG is byte-identical to this branch's PNG, SHA-256 `27f68aaebefe61882a689faadf5e202fc8499fab65f5fac74076ead12a036218`. The broad suite's mismatch must therefore not be reported as a fully passing visual gate or resolved by replacing unrelated baselines.
 
-Only the ten new enriched baselines and the two mobile campground baselines affected by the accessibility/layout change were added/updated. They are locally verified captures. Their macOS CI verification and any necessary platform-matched regeneration remain release checks. No branch was published or CI run started as part of this local implementation.
+Only the ten new enriched baselines and the two mobile campground baselines affected by the accessibility/layout change were added/updated. Initial captures came from Linux; the PR follow-up below records their replacement with reviewed macOS captures.
 
-The Docker daemon is unavailable and no local PostgreSQL server is installed. Live PostgreSQL migration verification remains a CI/operator check; no production database was touched. Provider availability and source-photo usage are not universal guarantees.
+The local Docker daemon is unavailable and no local PostgreSQL server is installed. PostgreSQL verification subsequently ran in PR CI as recorded below; no production database was touched. Provider availability and source-photo usage are not universal guarantees.
+
+## PR CI follow-up
+
+[PR #329](https://github.com/juftin/camply-web/pull/329), initial [CI run 43558073061](https://github.com/juftin/camply-web/actions/runs/43558073061), verified commit `a019076463942d44414a2fd2030a23a0d5672c7e`. All 25 nonvisual checks passed, including Python 3.11–3.14, Docker build, browser/live smoke checks, packaging, and deployment checks. The PostgreSQL search smoke fixture exercised upgrade to the new head, downgrade, and re-upgrade on an isolated PostgreSQL 17 container.
+
+The macOS visual job reported 76 unchanged views and 12 differences: precisely the ten enrichment views and the two affected mobile campground views. Inspection of all 12 current captures and representative highlighted diffs confirmed platform font/emoji rendering and resulting text wrapping differences, with readable content, accessible gallery controls, and intact mobile layouts. The reviewed captures from [artifact 14099780376](https://github.com/juftin/camply-web/actions/runs/43558073061/artifacts/14099780376) replace those 12 baselines. Every prior artifact baseline was verified byte-for-byte against the committed version before replacement. No unrelated baseline or comparison threshold changed. A fresh PR CI run must confirm the updated baselines.
 
 ## Convergence result
 
-**Converged for implemented feature scope:** the source, API, UI, persistence, and regression coverage satisfy the recorded behavior. Local tests and static checks pass. macOS visual-baseline verification and live PostgreSQL verification remain explicitly outstanding environment-dependent release checks.
+**Converged for implemented feature scope:** the source, API, UI, persistence, and regression coverage satisfy the recorded behavior. Local tests and static checks pass, and live PostgreSQL verification passed in PR CI. Reviewed macOS visual baselines are updated; their independent CI confirmation follows the baseline-fix commit. The reviewer-owned UX checklist remains available for user review.
