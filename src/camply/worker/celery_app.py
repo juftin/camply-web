@@ -53,6 +53,7 @@ def create_celery_app() -> Celery:
     # Beat schedule:
     # - schedule_checks every 5 minutes (configurable via CAMPLY_HEARTBEAT_INTERVAL)
     # - sync_all_providers daily at midnight UTC
+    # - enrich_all_providers each heartbeat to resume the persisted details backlog
     app.conf.beat_schedule = {
         "schedule-availability-checks": {
             "task": "camply.search.schedule_checks",
@@ -61,6 +62,10 @@ def create_celery_app() -> Celery:
         "sync-provider-catalogs-daily": {
             "task": "camply.catalog.sync_all_providers",
             "schedule": crontab(minute=0, hour=0),
+        },
+        "enrich-provider-details": {
+            "task": "camply.catalog.enrich_all_providers",
+            "schedule": worker_config.heartbeat_interval,
         },
     }
 

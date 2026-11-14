@@ -146,6 +146,8 @@ def _verify_current_features(
     """Exercise current maps, saved site details, and summary links on installed SQLite."""
     import json
 
+    destination = client.get("/api/campground/1/synthetic-cg").json()
+    assert destination["details"]["directions"] == "Synthetic source directions"
     summary = client.get("/api/search/map/summary").json()
     assert summary["total"] == 1 and summary["mappable_total"] == 1
     mapped = client.get(

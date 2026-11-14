@@ -58,3 +58,55 @@ async def test_ingestion_uses_metadata_and_closes_clients(failure: bool) -> None
     provider.populate_database.assert_awaited_once()
     provider.find_availabilities.assert_not_called()
     provider.async_client.aclose.assert_awaited_once()
+
+
+def test_enrichment_discovery_fans_out_without_importing_catalogs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Heartbeat discovery resumes existing details independently of catalog imports."""
+    send = MagicMock()
+    monkeypatch.setattr(ingestion.celery_app, "send_task", send)
+    result = ingestion.enrich_all_provider_details.run()
+    assert result["providers_fanned_out"] == len(PROVIDERS)
+    assert send.call_args_list == [
+        call(
+            name="camply.catalog.enrich_provider_details",
+            kwargs={"provider_id": provider_id},
+        )
+        for provider_id in PROVIDERS
+    ]
+
+
+@pytest.mark.parametrize(
+    ("status", "has_more", "continues"),
+    [("success", True, True), ("success", False, False), ("error", True, False)],
+)
+def test_enrichment_continues_only_successful_pending_batches(
+    monkeypatch: pytest.MonkeyPatch, status: str, has_more: bool, continues: bool
+) -> None:
+    """A completed batch yields the queue then reaches records beyond its first 100."""
+    outcome = {"status": status, "has_more": has_more}
+    refresh = AsyncMock(return_value=outcome)
+    send = MagicMock()
+    monkeypatch.setattr(ingestion, "_enrich_provider_details_async", refresh)
+    monkeypatch.setattr(ingestion.celery_app, "send_task", send)
+    assert ingestion.enrich_provider_details.run(1) == outcome
+    refresh.assert_awaited_once_with(1, PROVIDERS[1])
+    if continues:
+        send.assert_called_once_with(
+            name="camply.catalog.enrich_provider_details",
+            kwargs={"provider_id": 1},
+            countdown=1,
+        )
+    else:
+        send.assert_not_called()
+
+
+def test_unknown_enrichment_provider_is_not_requeued(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Removed provider IDs cannot cause continuation storms after an upgrade."""
+    send = MagicMock()
+    monkeypatch.setattr(ingestion.celery_app, "send_task", send)
+    assert ingestion.enrich_provider_details.run(999)["status"] == "error"
+    send.assert_not_called()

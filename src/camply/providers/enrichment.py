@@ -154,13 +154,15 @@ async def refresh_destinations(
             )
 
 
-async def enrich_provider(provider: "BaseProvider") -> None:
-    """Run a provider extension without downgrading a successful catalog import."""
+async def enrich_provider(provider: "BaseProvider") -> bool:
+    """Report optional enrichment success while isolating catalog import failures."""
     try:
         await provider.enrich_metadata()
+        return True
     except Exception as exc:
         logger.warning(
             "Provider enrichment failed; catalog retained",
             provider_type=type(provider).__name__,
             error_type=type(exc).__name__,
         )
+        return False

@@ -15,6 +15,8 @@ After catalog ingestion, CLI metadata and shared standalone/distributed worker e
 
 Validated `DestinationDetails` snapshots are stored as nullable JSON on existing destination records. Refreshes process at most 100 stale destinations per provider invocation; successful content stays fresh for seven days. An internal atomic attempt timestamp provides a one-hour retry cooldown and backlog continuation without changing successful freshness. Failed/incomplete source responses preserve previous content. Ordinary catalog merges preserve fields they do not update.
 
+Both runtimes also discover enrichment independently each heartbeat and continue successful bounded batches without another catalog import. The shared `worker.engine.catalog.enrich_provider_details` skips unsupported/fresh providers before creating clients. Celery continuations yield the queue, and standalone enrichment has its own supervised consumer; failures stop immediate continuation and recover through periodic discovery. See the [rollout fix](../specs/028-enrichment-rollout/plan.md).
+
 Only single-destination API responses include enrichment. Page reads and availability scans never fetch it upstream; parent-area and campground media stay distinct. See the [feature plan](../specs/027-campground-enrichment/plan.md) for source scope and failure semantics.
 
 ## 🎯 Architecture Goals

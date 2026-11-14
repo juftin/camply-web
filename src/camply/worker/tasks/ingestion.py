@@ -8,6 +8,8 @@ from offline downloads (RIDB zip, recreation areas, facilities).
   beat, fanning out one task per registered provider. Startup ingestion is
   not currently wired to a worker signal.
 - ``populate_provider_database`` is the per-provider worker with retries.
+- Independent detail discovery runs every heartbeat and continues successful
+  bounded batches without importing catalogs again.
 """
 
 import asyncio
@@ -17,10 +19,49 @@ import structlog
 from camply.providers import PROVIDERS
 from camply.worker.celery_app import celery_app
 from camply.worker.engine.catalog import (
+    enrich_provider_details as _enrich_provider_details_async,
+)
+from camply.worker.engine.catalog import (
     populate_provider as _populate_provider_async,
 )
 
 logger = structlog.getLogger(__name__)
+
+
+@celery_app.task(name="camply.catalog.enrich_all_providers", ignore_result=True)
+def enrich_all_provider_details() -> dict:
+    """Resume due detail batches independently of daily full catalog imports."""
+    for provider_id in PROVIDERS:
+        celery_app.send_task(
+            name="camply.catalog.enrich_provider_details",
+            kwargs={"provider_id": provider_id},
+        )
+    return {
+        "status": "ok",
+        "provider_name": "All Providers",
+        "search_name": "Discover Destination Enrichment",
+        "providers_fanned_out": len(PROVIDERS),
+    }
+
+
+@celery_app.task(name="camply.catalog.enrich_provider_details", ignore_result=True)
+def enrich_provider_details(provider_id: int) -> dict:
+    """Yield between bounded batches and stop immediate continuations on failure."""
+    provider_cls = PROVIDERS.get(provider_id)
+    if provider_cls is None:
+        return {
+            "status": "error",
+            "provider_id": provider_id,
+            "reason": "unknown_provider",
+        }
+    result = asyncio.run(_enrich_provider_details_async(provider_id, provider_cls))
+    if result["status"] == "success" and result["has_more"]:
+        celery_app.send_task(
+            name="camply.catalog.enrich_provider_details",
+            kwargs={"provider_id": provider_id},
+            countdown=1,
+        )
+    return result
 
 
 @celery_app.task(

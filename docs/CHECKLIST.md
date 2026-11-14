@@ -17,6 +17,8 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ## Destination enrichment research (027)
 
+- [x] Fix enrichment rollout beyond the initial 100 destinations with independent periodic discovery and bounded continuations in both runtimes; add backlog, recovery, and client-lifecycle regressions. See the [rollout plan](specs/028-enrichment-rollout/plan.md).
+
 - [x] Audit retained metadata and verify upstream enrichment sources; document Recreation.gov export/media and California park-information evidence, access limitations, and a [phased implementation proposal](specs/027-campground-enrichment/plan.md).
 - [x] Expand the [provider research matrix](specs/027-campground-enrichment/provider-matrix.md) across all ten UseDirect deployments, verified ReserveAmerica galleries/details, and Washington's official operator-site gallery; identify placeholder URLs, missing assets, photo scope, and remaining native GoingToCamp access limits.
 - [x] Implement cached destination photos and practical details for Recreation.gov, all ten UseDirect deployments, and ReserveAmerica; add portable JSON persistence/migration, bounded seven-day refreshes with failure retention and retry continuation, detail-only API responses, accessible galleries, provenance, synthetic regressions, and enriched visual baselines. See the [feature plan](specs/027-campground-enrichment/plan.md).

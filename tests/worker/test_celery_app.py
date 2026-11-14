@@ -90,3 +90,11 @@ class TestCeleryTaskRegistration:
             beat_schedule["sync-provider-catalogs-daily"]["task"]
             == "camply.catalog.sync_all_providers"
         )
+
+    def test_enrichment_is_scheduled_independently_of_daily_catalogs(self) -> None:
+        """Existing unfilled snapshots resume after deployment on every heartbeat."""
+        schedule = celery_app.conf.beat_schedule["enrich-provider-details"]
+        assert schedule["task"] == "camply.catalog.enrich_all_providers"
+        assert schedule["schedule"] == worker_config.heartbeat_interval
+        assert "camply.catalog.enrich_all_providers" in celery_app.tasks
+        assert "camply.catalog.enrich_provider_details" in celery_app.tasks

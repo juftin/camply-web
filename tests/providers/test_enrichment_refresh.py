@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import pytest_asyncio
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from camply.db.models import Base, Campground, Provider, RecreationArea
@@ -207,6 +208,94 @@ async def test_attempt_is_claimed_only_once(
     assert await mark_attempt(1, destination)
     assert not await mark_attempt(1, destination)
     assert not await stale_destinations(1)
+
+
+@pytest.mark.asyncio
+async def test_background_batches_drain_more_than_one_hundred_destinations(
+    cache_database: async_sessionmaker[AsyncSession],
+) -> None:
+    """A scheduled continuation reaches late IDs without repeating catalog imports."""
+    from camply.worker.engine.catalog import enrich_provider_details
+
+    async with cache_database.begin() as session:
+        session.add_all(
+            Campground(id=f"synthetic-{index:03}", provider_id=1, name="Synthetic")
+            for index in range(205)
+        )
+    attempted: list[str] = []
+
+    async def fetch(destination: Destination) -> DestinationDetails:
+        """Return source-backed synthetic details for each selected destination."""
+        attempted.append(destination.id)
+        return DestinationDetails.model_validate(_snapshot(destination.id, days_old=0))
+
+    async def enrich() -> None:
+        """Run the real bounded provider refresh against the isolated cache."""
+        await refresh_destinations(1, fetch)
+
+    provider = SimpleNamespace(
+        populate_database=AsyncMock(),
+        enrich_metadata=enrich,
+        async_client=SimpleNamespace(aclose=AsyncMock()),
+    )
+    factory = MagicMock(return_value=provider)
+    factory.__name__ = "SyntheticProvider"
+    outcomes = [await enrich_provider_details(1, factory) for _ in range(3)]
+    assert [outcome["has_more"] for outcome in outcomes] == [True, True, False]
+    assert len(attempted) == len(set(attempted)) == 205
+    assert attempted[-1] == "synthetic-204"
+    async with cache_database() as session:
+        count = await session.scalar(
+            select(func.count())
+            .select_from(Campground)
+            .where(Campground.details.is_not(None))
+        )
+        assert count == 205
+        last = await session.get(Campground, ("synthetic-204", 1))
+        assert last is not None and last.details is not None
+        assert len(last.details["photos"]) == 1
+    provider.populate_database.assert_not_called()
+    assert provider.async_client.aclose.await_count == 3
+    assert not await stale_destinations(1)
+    assert (await enrich_provider_details(1, factory))["status"] == "skipped"
+    assert factory.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_background_enrichment_skips_unsupported_without_database_work(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unsupported adapters never claim records or launch useless continuations."""
+    from camply.providers.going_to_camp.variations import WashingtonStateParksProvider
+    from camply.worker.engine import catalog
+
+    due = AsyncMock()
+    monkeypatch.setattr(catalog, "stale_destinations", due)
+    result = await catalog.enrich_provider_details(12, WashingtonStateParksProvider)
+    assert result["status"] == "skipped"
+    assert result["has_more"] is False
+    due.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_background_enrichment_reports_failure_and_closes_client(
+    cache_database: async_sessionmaker[AsyncSession],
+) -> None:
+    """Whole-batch failures remain observable and cannot spin immediate retries."""
+    from camply.worker.engine.catalog import enrich_provider_details
+
+    async with cache_database.begin() as session:
+        session.add(Campground(id="failed", provider_id=1, name="Synthetic"))
+    provider = SimpleNamespace(
+        enrich_metadata=AsyncMock(side_effect=ValueError("Synthetic source failure")),
+        async_client=SimpleNamespace(aclose=AsyncMock()),
+    )
+    factory = MagicMock(return_value=provider)
+    factory.__name__ = "SyntheticProvider"
+    result = await enrich_provider_details(1, factory)
+    assert result["status"] == "error"
+    assert result["has_more"] is False
+    provider.async_client.aclose.assert_awaited_once()
 
 
 @pytest.mark.asyncio

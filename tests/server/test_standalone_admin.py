@@ -39,6 +39,11 @@ def test_local_overview_and_disabled_trends(
                 patch(
                     "camply.worker.runtime.populate_provider", new_callable=AsyncMock
                 ),
+                patch(
+                    "camply.worker.runtime.enrich_provider_details",
+                    new_callable=AsyncMock,
+                    return_value={"status": "skipped", "has_more": False},
+                ),
             ):
                 await runner.start()
                 async with database.get_session() as session:
