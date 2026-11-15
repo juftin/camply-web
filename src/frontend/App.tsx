@@ -257,7 +257,9 @@ function App() {
           ).href,
           audience: config.auth0_audience!,
         }}
-        cacheLocation="localstorage"
+        cacheLocation="memory"
+        useRefreshTokens={true}
+        useRefreshTokensFallback={true}
         onRedirectCallback={(appState) => {
           const destination = authReturnTo(appState?.returnTo ?? null);
           window.history.replaceState(

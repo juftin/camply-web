@@ -21,6 +21,7 @@ vi.mock("recharts", async (importOriginal) => {
 
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({
+    isReady: true,
     user: { id: "admin-1", email: "admin@example.test", is_admin: true },
     authMode: "session",
   }),

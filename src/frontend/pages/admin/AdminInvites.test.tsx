@@ -14,6 +14,14 @@ vi.mock("@/lib/api", async (original) => ({
   updateAdminAccessRequest: vi.fn(),
 }));
 
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    isReady: true,
+    user: { id: "admin-1", email: "admin@example.test", is_admin: true },
+    authMode: "session",
+  }),
+}));
+
 const pendingRequest: AdminAccessRequestItem = {
   id: "req-1",
   email: "pending@example.test",
@@ -60,7 +68,7 @@ describe("AdminInvites", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
+      defaultOptions: { queries: { retry: false, retryDelay: 0 } },
     });
     vi.mocked(api.listAdminAccessRequests).mockResolvedValue({
       access_requests: [pendingRequest, approvedRequest, rejectedRequest],
@@ -209,7 +217,7 @@ describe("AdminInvites", () => {
   });
 
   it("shows load errors with retry and supports pagination", async () => {
-    vi.mocked(api.listAdminAccessRequests).mockRejectedValueOnce(
+    vi.mocked(api.listAdminAccessRequests).mockRejectedValue(
       new Error("Server error"),
     );
 

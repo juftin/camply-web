@@ -17,12 +17,20 @@ interface AdminRouteProps {
 }
 
 export function AdminRoute({ children }: AdminRouteProps) {
-  const { user, isLoading, isReady } = useAuth();
+  const { user, isLoading, isReady, error } = useAuth();
 
   if (isLoading || !isReady) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error && !user) {
+    return (
+      <div role="alert" className="p-8 text-center">
+        {error}
       </div>
     );
   }

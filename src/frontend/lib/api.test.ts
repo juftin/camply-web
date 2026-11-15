@@ -6,29 +6,36 @@ const mockGet = vi.fn();
 const mockLocationGet = vi.hoisted(() => vi.fn());
 const mockPost = vi.fn();
 const mockPatch = vi.fn();
+const mockRequest = vi.fn();
 const mockUseFn = vi.fn();
-const mockAxiosInstance = {
+const mockResponseUseFn = vi.fn();
+const mockAxiosInstance = Object.assign(mockRequest, {
   get: mockGet,
   post: mockPost,
   patch: mockPatch,
+  request: mockRequest,
   interceptors: {
     request: { use: mockUseFn },
-    response: { use: vi.fn() },
+    response: { use: mockResponseUseFn },
   },
   defaults: {
     baseURL: "/api",
     timeout: 10000,
     headers: { "Content-Type": "application/json" },
   },
-} as unknown as AxiosInstance;
+}) as unknown as AxiosInstance;
 
-vi.mock("axios", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("axios")>()),
-  default: {
-    create: vi.fn(() => mockAxiosInstance),
-    get: mockLocationGet,
-  },
-}));
+vi.mock("axios", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("axios")>();
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      create: vi.fn(() => mockAxiosInstance),
+      get: mockLocationGet,
+    },
+  };
+});
 
 describe("API Client", () => {
   it("uses an isolated bounded IP request and returns only valid coordinates", async () => {
@@ -288,5 +295,274 @@ it("calls admin access request endpoints with typed params and payload", async (
   await api.updateAdminAccessRequest("req-1", { status: "approved" });
   expect(mockPatch).toHaveBeenLastCalledWith("/admin/access-requests/req-1", {
     status: "approved",
+  });
+});
+
+describe("Token acquisition classification and bounded 401 renewal", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function makeAxiosHttpError(
+    status: number,
+    method = "GET",
+    data: Record<string, unknown> = {},
+    retried?: boolean,
+  ): AxiosError {
+    const config = {
+      url: "/me",
+      method,
+      headers: {},
+      ...(retried ? { _retried: true } : {}),
+    } as never;
+    return new AxiosError(
+      `HTTP ${status}`,
+      "ERR_BAD_REQUEST",
+      config,
+      undefined,
+      {
+        status,
+        data,
+        statusText: `Status ${status}`,
+        headers: {},
+        config,
+      },
+    );
+  }
+
+  it("classifies expired, outage, and auth_failure token acquisition errors", async () => {
+    vi.resetModules();
+    const api = await import("@/lib/api");
+
+    for (const code of [
+      "login_required",
+      "consent_required",
+      "interaction_required",
+      "missing_refresh_token",
+      "invalid_grant",
+    ]) {
+      const classified = api.classifyTokenAcquisitionError({ error: code });
+      expect(classified).toBeInstanceOf(api.TokenAcquisitionError);
+      expect(classified.kind).toBe("expired");
+      expect(classified.code).toBe(code);
+    }
+
+    for (const err of [
+      new TypeError("Failed to fetch"),
+      new Error("NetworkError when attempting to fetch resource."),
+      Object.assign(new Error("Request timeout"), { name: "TimeoutError" }),
+      { status: 503, message: "IdP 503" },
+    ]) {
+      const classified = api.classifyTokenAcquisitionError(err);
+      expect(classified.kind).toBe("outage");
+    }
+
+    const denied = api.classifyTokenAcquisitionError({
+      error: "access_denied",
+      error_description: "User denied access",
+    });
+    expect(denied.kind).toBe("auth_failure");
+    expect(denied.message).toBe("User denied access");
+
+    const invalidScope = api.classifyTokenAcquisitionError({
+      error: "invalid_scope",
+    });
+    expect(invalidScope.kind).toBe("auth_failure");
+  });
+
+  it("propagates classified token errors from request interceptor instead of dropping auth", async () => {
+    vi.resetModules();
+    const api = await import("@/lib/api");
+    const onSessionExpired = vi.fn();
+    const onOutage = vi.fn();
+    const onAuthFailure = vi.fn();
+
+    const provider = vi
+      .fn()
+      .mockRejectedValueOnce({ error: "login_required" })
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockRejectedValueOnce({ error: "access_denied" });
+    api.setAccessTokenProvider(provider, {
+      onSessionExpired,
+      onOutage,
+      onAuthFailure,
+    });
+
+    const requestInterceptor = mockUseFn.mock.calls.at(-1)?.[0];
+
+    await expect(requestInterceptor({ headers: {} })).rejects.toMatchObject({
+      name: "TokenAcquisitionError",
+      kind: "expired",
+    });
+    expect(onSessionExpired).toHaveBeenCalledTimes(1);
+
+    await expect(requestInterceptor({ headers: {} })).rejects.toMatchObject({
+      name: "TokenAcquisitionError",
+      kind: "outage",
+    });
+    expect(onOutage).toHaveBeenCalledTimes(1);
+
+    await expect(requestInterceptor({ headers: {} })).rejects.toMatchObject({
+      name: "TokenAcquisitionError",
+      kind: "auth_failure",
+    });
+    expect(onAuthFailure).toHaveBeenCalledTimes(1);
+  });
+
+  it("renews a token once with cacheMode=off for safe idempotent 401s and deduplicates concurrent refreshes", async () => {
+    vi.resetModules();
+    const api = await import("@/lib/api");
+    const onSessionExpired = vi.fn();
+    const provider = vi.fn().mockResolvedValue("refreshed-access-token");
+
+    api.setApiAuthMode("auth0");
+    api.setAccessTokenProvider(provider, { onSessionExpired });
+    mockRequest.mockResolvedValue({ data: { ok: true } });
+
+    const responseErrorHandler = mockResponseUseFn.mock.calls.at(-1)?.[1];
+    const [res1, res2] = await Promise.all([
+      responseErrorHandler(makeAxiosHttpError(401, "GET")),
+      responseErrorHandler(makeAxiosHttpError(401, "HEAD")),
+    ]);
+
+    expect(res1).toEqual({ data: { ok: true } });
+    expect(res2).toEqual({ data: { ok: true } });
+    expect(provider).toHaveBeenCalledTimes(1);
+    expect(provider).toHaveBeenCalledWith({ cacheMode: "off" });
+    expect(mockRequest).toHaveBeenCalledTimes(2);
+    expect(onSessionExpired).not.toHaveBeenCalled();
+  });
+
+  it("does not loop if the retried safe request still returns 401", async () => {
+    vi.resetModules();
+    const api = await import("@/lib/api");
+    const onSessionExpired = vi.fn();
+    const provider = vi.fn();
+
+    api.setApiAuthMode("auth0");
+    api.setAccessTokenProvider(provider, { onSessionExpired });
+
+    const responseErrorHandler = mockResponseUseFn.mock.calls.at(-1)?.[1];
+    await expect(
+      responseErrorHandler(makeAxiosHttpError(401, "GET", {}, true)),
+    ).rejects.toBeInstanceOf(AxiosError);
+
+    expect(provider).not.toHaveBeenCalled();
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(onSessionExpired).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["POST", "PUT", "PATCH", "DELETE"])(
+    "never replays unsafe %s mutations on 401",
+    async (method) => {
+      vi.resetModules();
+      const api = await import("@/lib/api");
+      const onSessionExpired = vi.fn();
+      const provider = vi.fn().mockResolvedValue("should-not-be-requested");
+
+      api.setApiAuthMode("auth0");
+      api.setAccessTokenProvider(provider, { onSessionExpired });
+
+      const responseErrorHandler = mockResponseUseFn.mock.calls.at(-1)?.[1];
+      await expect(
+        responseErrorHandler(makeAxiosHttpError(401, method)),
+      ).rejects.toBeInstanceOf(AxiosError);
+
+      expect(provider).not.toHaveBeenCalled();
+      expect(mockRequest).not.toHaveBeenCalled();
+      expect(onSessionExpired).toHaveBeenCalledTimes(1);
+      expect(onSessionExpired.mock.calls[0][0].kind).toBe("expired");
+    },
+  );
+
+  it("routes 401 renewal failures by classification without calling onSessionExpired on outages", async () => {
+    vi.resetModules();
+    const api = await import("@/lib/api");
+    const onSessionExpired = vi.fn();
+    const onOutage = vi.fn();
+    const provider = vi
+      .fn()
+      .mockRejectedValueOnce({ error: "missing_refresh_token" })
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+    api.setApiAuthMode("auth0");
+    api.setAccessTokenProvider(provider, { onSessionExpired, onOutage });
+
+    const responseErrorHandler = mockResponseUseFn.mock.calls.at(-1)?.[1];
+
+    await expect(
+      responseErrorHandler(makeAxiosHttpError(401, "GET")),
+    ).rejects.toMatchObject({ kind: "expired" });
+    expect(onSessionExpired).toHaveBeenCalledTimes(1);
+    expect(onOutage).not.toHaveBeenCalled();
+
+    await expect(
+      responseErrorHandler(makeAxiosHttpError(401, "OPTIONS")),
+    ).rejects.toMatchObject({ kind: "outage" });
+    expect(onOutage).toHaveBeenCalledTimes(1);
+    expect(onSessionExpired).toHaveBeenCalledTimes(1);
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it("does not trigger Auth0 renewal in session mode or for 403/409/503 responses", async () => {
+    vi.resetModules();
+    const api = await import("@/lib/api");
+    const onSessionExpired = vi.fn();
+    const provider = vi.fn();
+
+    api.setApiAuthMode("session");
+    api.setAccessTokenProvider(provider, { onSessionExpired });
+    const responseErrorHandler = mockResponseUseFn.mock.calls.at(-1)?.[1];
+
+    await expect(
+      responseErrorHandler(makeAxiosHttpError(401, "GET")),
+    ).rejects.toBeInstanceOf(AxiosError);
+
+    api.setApiAuthMode("auth0");
+    for (const status of [403, 409, 503]) {
+      await expect(
+        responseErrorHandler(makeAxiosHttpError(status, "GET")),
+      ).rejects.toBeInstanceOf(AxiosError);
+    }
+
+    expect(provider).not.toHaveBeenCalled();
+    expect(onSessionExpired).not.toHaveBeenCalled();
+  });
+
+  it("formats 403, 409, 503, and TokenAcquisitionError messages clearly", async () => {
+    vi.resetModules();
+    const api = await import("@/lib/api");
+
+    expect(
+      api.getApiErrorMessage(
+        makeAxiosHttpError(403, "GET", {
+          detail: {
+            code: "ERR_VERIFIED_EMAIL_REQUIRED",
+            message: "Verified email address is required.",
+          },
+        }),
+      ),
+    ).toBe("Verified email address is required.");
+
+    expect(
+      api.getApiErrorMessage(
+        makeAxiosHttpError(409, "GET", {
+          detail: {
+            code: "ERR_EMAIL_CONFLICT",
+            message: "This email is already linked to another login.",
+          },
+        }),
+      ),
+    ).toBe("This email is already linked to another login.");
+
+    expect(api.getApiErrorMessage(makeAxiosHttpError(503, "GET", {}))).toMatch(
+      /temporarily unavailable/i,
+    );
+
+    expect(
+      api.getApiErrorMessage(
+        new api.TokenAcquisitionError("outage", "IdP down"),
+      ),
+    ).toBe("IdP down");
   });
 });

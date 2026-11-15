@@ -26,6 +26,8 @@ import { useScans, useScanDetail } from "@/hooks/useScans";
 const auth0 = vi.hoisted(() => ({
   isAuthenticated: false,
   isLoading: false,
+  user: undefined as { sub?: string } | undefined,
+  error: undefined as Error | undefined,
   getAccessTokenSilently: vi.fn().mockResolvedValue("token"),
   loginWithRedirect: vi.fn(),
   logout: vi.fn(),
@@ -36,19 +38,22 @@ vi.mock("@auth0/auth0-react", () => ({
   useAuth0: () => auth0,
 }));
 
-vi.mock("@/lib/api", () => ({
-  fetchAuthConfig: vi.fn(),
-  getMe: vi.fn(),
-  updateMe: vi.fn(),
-  sendTestNotification: vi.fn(),
-  loginSession: vi.fn(),
-  logoutSession: vi.fn(),
-  listScans: vi.fn(),
-  getScan: vi.fn(),
-  submitAccessRequest: vi.fn(),
-  setAccessTokenProvider: vi.fn(),
-  getApiErrorMessage: vi.fn().mockReturnValue("Authentication failed"),
-}));
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api")>();
+  return {
+    ...actual,
+    fetchAuthConfig: vi.fn(),
+    getMe: vi.fn(),
+    updateMe: vi.fn(),
+    sendTestNotification: vi.fn(),
+    loginSession: vi.fn(),
+    logoutSession: vi.fn(),
+    listScans: vi.fn(),
+    getScan: vi.fn(),
+    submitAccessRequest: vi.fn(),
+    setAccessTokenProvider: vi.fn(),
+  };
+});
 
 // Keep authentication and scan queries real while mocking network requests.
 vi.mock("@/pages/Dashboard", () => ({
@@ -120,7 +125,13 @@ function renderApp(config: AuthConfig = localConfig, path = "/") {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
+  sessionStorage.clear();
   auth0.isAuthenticated = false;
+  auth0.isLoading = false;
+  auth0.user = undefined;
+  auth0.error = undefined;
+  auth0.getAccessTokenSilently.mockResolvedValue("token");
   vi.mocked(getMe).mockRejectedValue(
     new AxiosError("Not signed in", "401", undefined, undefined, {
       status: 401,
@@ -314,12 +325,34 @@ describe("Application authentication", () => {
     const calls = vi.mocked(Auth0Provider).mock.calls;
     const props = calls[calls.length - 1][0];
     expect(props).toMatchObject({
+      cacheLocation: "memory",
+      useRefreshTokens: true,
+      useRefreshTokensFallback: true,
       authorizationParams: {
         audience: auth0Config.auth0_audience,
         redirect_uri: new URL(import.meta.env.BASE_URL, window.location.origin)
           .href,
       },
     });
+    expect(localStorage.length).toBe(0);
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  it("surfaces Auth0 SDK errors cleanly without redirecting in a loop", async () => {
+    auth0.error = Object.assign(new Error("Missing refresh token"), {
+      error: "missing_refresh_token",
+    });
+    renderApp(auth0Config, "/dashboard");
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(
+      /session has expired\. please sign in again/i,
+    );
+    expect(window.location.pathname).toBe(appPath("/dashboard"));
+    expect(screen.getByRole("link", { name: "Sign In" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("/auth?returnTo="),
+    );
+    expect(auth0.loginWithRedirect).not.toHaveBeenCalled();
   });
 
   it("auto-login redirects away from signup and hides login controls", async () => {

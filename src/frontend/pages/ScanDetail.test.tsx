@@ -7,7 +7,24 @@ import { getCampground, getScan } from "@/lib/api";
 import type { Campground, ScanDetailResponse } from "@/lib/structs";
 import { ScanDetail } from "./ScanDetail";
 
-vi.mock("@/lib/api", () => ({ getScan: vi.fn(), getCampground: vi.fn() }));
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    isReady: true,
+    user: {
+      id: "user-1",
+      email: "camper@example.test",
+      is_invited: true,
+      is_admin: false,
+      scanning_enabled: true,
+      pushover_token: null,
+    },
+  }),
+}));
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
+  getScan: vi.fn(),
+  getCampground: vi.fn(),
+}));
 vi.mock("@/components/ScanForm", () => ({ ScanForm: () => null }));
 
 const scan: ScanDetailResponse = {

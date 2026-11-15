@@ -134,16 +134,16 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ### 2.4 Token Expiry & Session Recovery
 
-- [ ] T2.4.1 Surface token acquisition failures and distinguish expired sessions, authentication failures, and temporary identity-provider outages.
-- [ ] T2.4.2 Define bounded renewal/retry behavior for expired tokens and require sign-in when renewal is unavailable; prevent redirect/retry loops and automatic replay of unsafe mutations.
-- [ ] T2.4.3 Test Auth0 expiry during an active session, renewal success/failure, revoked sessions, and account switching; verify protected queries wait for authentication and user caches clear on logout.
+- [x] T2.4.1 Surface token acquisition failures and distinguish expired sessions, authentication failures, and temporary identity-provider outages.
+- [x] T2.4.2 Define bounded renewal/retry behavior for expired tokens and require sign-in when renewal is unavailable; prevent redirect/retry loops and automatic replay of unsafe mutations.
+- [x] T2.4.3 Test Auth0 expiry during an active session, renewal success/failure, revoked sessions, and account switching; verify protected queries wait for authentication and user caches clear on logout.
 
 ### 2.5 Token Storage
 
 - [x] T2.5.0 Use HTTP-only signed cookies for in-app password sessions; test expiry, tampering, CSRF, cookie flags, and invalidation after credential changes.
-- [ ] T2.5.1 Review Auth0 browser token storage and choose between SDK memory storage and server-managed sessions; document refresh persistence and browser compatibility tradeoffs.
-- [ ] T2.5.2 Implement the chosen storage strategy, including token lifetime/renewal settings and, if cookies are used, secure cookie attributes and CSRF protection.
-- [ ] T2.5.3 Test page reloads, multiple tabs, logout, and session expiry; verify credentials/tokens do not appear in application logs or unintended persistent storage.
+- [x] T2.5.1 Review Auth0 browser token storage and choose between SDK memory storage and server-managed sessions; document refresh persistence and browser compatibility tradeoffs.
+- [x] T2.5.2 Implement the chosen storage strategy, including token lifetime/renewal settings and, if cookies are used, secure cookie attributes and CSRF protection.
+- [x] T2.5.3 Test page reloads, multiple tabs, logout, and session expiry; verify credentials/tokens do not appear in application logs or unintended persistent storage.
 
 - [ ] T2.5.4 Add individual server-side revocation for password sessions; current signed cookies remain valid until expiry or credential/secret rotation.
 
