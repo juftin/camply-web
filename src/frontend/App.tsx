@@ -25,10 +25,12 @@ import { Campground } from "@/pages/Campground";
 import { RecreationArea } from "@/pages/RecreationArea";
 import { ScanDetail } from "@/pages/ScanDetail";
 import { DevPreview } from "@/pages/DevPreview";
+import { InviteOnly } from "@/pages/InviteOnly";
 import { AdminRoute } from "@/components/AdminRoute";
 import { AdminOverview } from "@/pages/admin/AdminOverview";
 import { AdminUsers } from "@/pages/admin/AdminUsers";
 import { AdminUserDetail } from "@/pages/admin/AdminUserDetail";
+import { AdminInvites } from "@/pages/admin/AdminInvites";
 import { AdminScans } from "@/pages/admin/AdminScans";
 import { AdminScanDetail } from "@/pages/admin/AdminScanDetail";
 import { AdminTargetDetail } from "@/pages/admin/AdminTargetDetail";
@@ -113,6 +115,7 @@ function AppRoutes() {
                   element={<RecreationArea />}
                 />
                 <Route path="/dev/preview" element={<DevPreview />} />
+                <Route path="/invite-only" element={<InviteOnly />} />
 
                 {/* Admin routes */}
                 <Route
@@ -136,6 +139,14 @@ function AppRoutes() {
                   element={
                     <AdminRoute>
                       <AdminUserDetail />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/invitations"
+                  element={
+                    <AdminRoute>
+                      <AdminInvites />
                     </AdminRoute>
                   }
                 />

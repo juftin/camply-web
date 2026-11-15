@@ -5,6 +5,8 @@ import {
   getAdminUser,
   createAdminUser,
   updateAdminUser,
+  listAdminAccessRequests,
+  updateAdminAccessRequest,
   listAdminScans,
   getAdminScan,
   updateAdminScan,
@@ -22,6 +24,8 @@ import type {
   AdminUserListResponse,
   AdminUserDetailResponse,
   AdminUserUpdateRequest,
+  AdminAccessRequestListResponse,
+  AdminAccessRequestUpdateRequest,
   AdminScanListResponse,
   AdminScanDetailResponse,
   AdminScanUpdateRequest,
@@ -85,12 +89,45 @@ export function useUpdateAdminUser() {
     }) => updateAdminUser(userId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "access-requests"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "targets"] });
       queryClient.invalidateQueries({ queryKey: ["me"] });
       queryClient.invalidateQueries({ queryKey: ["scans"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "scans"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
+    },
+  });
+}
+
+export function useAdminAccessRequests(params?: {
+  status?: "pending" | "approved" | "rejected";
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return useQuery<AdminAccessRequestListResponse>({
+    queryKey: ["admin", "access-requests", params],
+    queryFn: () => listAdminAccessRequests(params),
+  });
+}
+
+export function useUpdateAdminAccessRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      requestId,
+      payload,
+    }: {
+      requestId: string;
+      payload: AdminAccessRequestUpdateRequest;
+    }) => updateAdminAccessRequest(requestId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "access-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "audit"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
     },
   });
 }

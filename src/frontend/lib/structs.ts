@@ -92,6 +92,10 @@ export interface CampgroundDetail extends Campground {
 
 // ---- Auth / Profile ----
 
+export type InvitationStatus = NonNullable<
+  components["schemas"]["MeResponse"]["invitation_status"]
+>;
+
 export interface MeResponse {
   id: string;
   email: string;
@@ -106,6 +110,7 @@ export interface MeResponse {
   ntfy_default_subscription_url?: string | null;
   ntfy_access_token?: string | null;
   must_change_password?: boolean;
+  invitation_status?: InvitationStatus | null;
 }
 
 export type ChangePasswordRequest =
@@ -193,6 +198,12 @@ export type AdminUserCreateRequest =
   components["schemas"]["AdminUserCreateRequest"];
 export type AdminUserUpdateRequest =
   components["schemas"]["AdminUserUpdateRequest"];
+export type AdminAccessRequestItem =
+  components["schemas"]["AdminAccessRequestItem"];
+export type AdminAccessRequestListResponse =
+  components["schemas"]["AdminAccessRequestListResponse"];
+export type AdminAccessRequestUpdateRequest =
+  components["schemas"]["AdminAccessRequestUpdateRequest"];
 export type AdminScanItem = components["schemas"]["AdminScanItem"];
 export type AdminScanListResponse =
   components["schemas"]["AdminScanListResponse"];

@@ -1,10 +1,23 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Radio, Activity, History } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Mail,
+  Radio,
+  Activity,
+  History,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { label: "Overview", path: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Users", path: "/admin/users", icon: Users, exact: false },
+  {
+    label: "Invitations",
+    path: "/admin/invitations",
+    icon: Mail,
+    exact: false,
+  },
   { label: "Scans", path: "/admin/scans", icon: Radio, exact: false },
   {
     label: "Operations",

@@ -19,6 +19,9 @@ import type {
   AdminUserListResponse,
   AdminUserDetailResponse,
   AdminUserUpdateRequest,
+  AdminAccessRequestItem,
+  AdminAccessRequestListResponse,
+  AdminAccessRequestUpdateRequest,
   ChangePasswordRequest,
   AdminScanListResponse,
   AdminScanDetailResponse,
@@ -387,12 +390,37 @@ export async function getAdminOverview(): Promise<AdminOverviewResponse> {
 export async function listAdminUsers(params?: {
   search?: string;
   scanning_enabled?: boolean;
+  is_invited?: boolean;
   limit?: number;
   offset?: number;
 }): Promise<AdminUserListResponse> {
   const response = await api.get<AdminUserListResponse>("/admin/users", {
     params,
   });
+  return response.data;
+}
+
+export async function listAdminAccessRequests(params?: {
+  status?: "pending" | "approved" | "rejected";
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<AdminAccessRequestListResponse> {
+  const response = await api.get<AdminAccessRequestListResponse>(
+    "/admin/access-requests",
+    { params },
+  );
+  return response.data;
+}
+
+export async function updateAdminAccessRequest(
+  requestId: string,
+  payload: AdminAccessRequestUpdateRequest,
+): Promise<AdminAccessRequestItem> {
+  const response = await api.patch<AdminAccessRequestItem>(
+    `/admin/access-requests/${requestId}`,
+    payload,
+  );
   return response.data;
 }
 

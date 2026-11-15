@@ -5,10 +5,12 @@ import { AxiosError, type AxiosInstance } from "axios";
 const mockGet = vi.fn();
 const mockLocationGet = vi.hoisted(() => vi.fn());
 const mockPost = vi.fn();
+const mockPatch = vi.fn();
 const mockUseFn = vi.fn();
 const mockAxiosInstance = {
   get: mockGet,
   post: mockPost,
+  patch: mockPatch,
   interceptors: {
     request: { use: mockUseFn },
     response: { use: vi.fn() },
@@ -265,5 +267,26 @@ it("forwards cancellation signals and filters to search transport", async () => 
   expect(mockGet).toHaveBeenLastCalledWith("/search", {
     params: { query: "Pines", limit: 20 },
     signal,
+  });
+});
+
+it("calls admin access request endpoints with typed params and payload", async () => {
+  mockGet.mockResolvedValue({ data: { access_requests: [], total: 0 } });
+  mockPatch.mockResolvedValue({ data: { id: "req-1", status: "approved" } });
+  const api = await import("@/lib/api");
+
+  await api.listAdminAccessRequests({
+    status: "pending",
+    search: "camper",
+    limit: 25,
+    offset: 0,
+  });
+  expect(mockGet).toHaveBeenLastCalledWith("/admin/access-requests", {
+    params: { status: "pending", search: "camper", limit: 25, offset: 0 },
+  });
+
+  await api.updateAdminAccessRequest("req-1", { status: "approved" });
+  expect(mockPatch).toHaveBeenLastCalledWith("/admin/access-requests/req-1", {
+    status: "approved",
   });
 });

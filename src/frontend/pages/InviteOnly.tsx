@@ -1,5 +1,13 @@
 import { useState, type FormEvent } from "react";
-import { Mail, CheckCircle, ArrowLeft, Loader2 } from "lucide-react";
+import {
+  Mail,
+  CheckCircle,
+  Clock,
+  XCircle,
+  ArrowLeft,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 import { CamplyLogo } from "@/components/CamplyLogo";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,10 +21,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
-import { submitAccessRequest } from "@/lib/api";
+import { getApiErrorMessage, submitAccessRequest } from "@/lib/api";
 
 export function InviteOnly() {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const [email, setEmail] = useState(
     user?.email.includes("@") ? user.email : "",
   );
@@ -24,7 +32,16 @@ export function InviteOnly() {
   const [name, setName] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isApproved = Boolean(
+    user && (user.is_invited || user.invitation_status === "approved"),
+  );
+  const isPending =
+    !isApproved && (user?.invitation_status === "pending" || submitted);
+  const isRejected =
+    !isApproved && !isPending && user?.invitation_status === "rejected";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -36,15 +53,65 @@ export function InviteOnly() {
         name: name.trim() || null,
       });
       setSubmitted(true);
+      if (user) {
+        await refresh();
+      }
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to submit. Please try again.",
-      );
+      setError(getApiErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setError(null);
+    setRefreshing(true);
+    try {
+      await refresh();
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const renderHeaderIcon = () => {
+    if (isApproved) {
+      return (
+        <CheckCircle className="h-12 w-12 text-emerald-600 dark:text-emerald-400" />
+      );
+    }
+    if (isPending) {
+      return <Clock className="h-12 w-12 text-amber-500" />;
+    }
+    if (isRejected) {
+      return <XCircle className="h-12 w-12 text-destructive" />;
+    }
+    return <Mail className="h-12 w-12 text-primary" />;
+  };
+
+  const renderTitle = () => {
+    if (isApproved) return "Invitation Approved";
+    if (isPending) return "Pending Review";
+    if (isRejected) return "Request Declined";
+    return "Invitation Required";
+  };
+
+  const renderDescription = () => {
+    if (isApproved) {
+      return user?.is_invited
+        ? "Your invitation is active. Continue to your dashboard to manage campsite scans."
+        : "Your invitation request has been approved. Refresh your status if dashboard access does not open right away.";
+    }
+    if (isPending) {
+      return submitted
+        ? `Thanks, ${name.trim() || email}! Your invitation request has been received.`
+        : "Your invitation request has been received and is awaiting review.";
+    }
+    if (isRejected) {
+      return "Your invitation request was declined by an administrator.";
+    }
+    return "This camply instance is invite-only. Request an invitation to start monitoring campsites.";
   };
 
   return (
@@ -58,28 +125,88 @@ export function InviteOnly() {
 
         <Card className="text-left">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-2">
-              {submitted ? (
-                <CheckCircle className="h-12 w-12 text-green-500" />
-              ) : (
-                <Mail className="h-12 w-12 text-primary" />
-              )}
-            </div>
-            <CardTitle className="text-xl">
-              {submitted ? "You're on the List!" : "Invitation Required"}
-            </CardTitle>
+            <div className="mx-auto mb-2">{renderHeaderIcon()}</div>
+            <CardTitle className="text-xl">{renderTitle()}</CardTitle>
             <CardDescription className="text-sm mt-2">
-              {submitted
-                ? `Thanks, ${name || email}! Your invitation request has been received.`
-                : "This camply instance is invite-only. Request an invitation to start monitoring campsites."}
+              {renderDescription()}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {submitted ? (
-              <div className="rounded-md bg-green-50 dark:bg-green-950 p-4 border border-green-200 dark:border-green-800">
-                <p className="text-sm text-green-800 dark:text-green-200">
-                  Your request is pending. Check back for access.
-                </p>
+            {isApproved ? (
+              <div className="space-y-3">
+                <div className="rounded-md bg-emerald-50 dark:bg-emerald-950/50 p-4 border border-emerald-200 dark:border-emerald-800">
+                  <p className="text-sm text-emerald-800 dark:text-emerald-200">
+                    You have access to campsite monitoring on this instance.
+                  </p>
+                </div>
+                <Button className="w-full" asChild>
+                  <Link to="/dashboard">Continue to Dashboard</Link>
+                </Button>
+                {!user?.is_invited && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={refreshing}
+                    onClick={handleRefresh}
+                  >
+                    {refreshing ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Refresh Status
+                  </Button>
+                )}
+              </div>
+            ) : isPending ? (
+              <div className="space-y-3">
+                <div className="rounded-md bg-amber-50 dark:bg-amber-950/40 p-4 border border-amber-200 dark:border-amber-800">
+                  <p className="text-sm text-amber-900 dark:text-amber-200">
+                    An administrator reviews requests manually in the app —
+                    email notifications are not sent. Check back here and
+                    refresh your status to see when your access is approved.
+                  </p>
+                </div>
+                {user && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={refreshing}
+                    onClick={handleRefresh}
+                  >
+                    {refreshing ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Refresh Status
+                  </Button>
+                )}
+              </div>
+            ) : isRejected ? (
+              <div className="space-y-3">
+                <div className="rounded-md bg-destructive/10 p-4 border border-destructive/30">
+                  <p className="text-sm text-destructive">
+                    Your request was not approved. If an administrator later
+                    approves your access, refresh your status below.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={refreshing}
+                  onClick={handleRefresh}
+                >
+                  {refreshing ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Refresh Status
+                </Button>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-3">
@@ -103,7 +230,6 @@ export function InviteOnly() {
                     onChange={(e) => setName(e.target.value)}
                   />
                 </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
                 <Button type="submit" className="w-full" disabled={submitting}>
                   {submitting ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -111,6 +237,12 @@ export function InviteOnly() {
                   Request Access
                 </Button>
               </form>
+            )}
+
+            {error && (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
             )}
 
             <p className="text-xs text-muted-foreground text-center">

@@ -64,8 +64,19 @@ it("describes audit changes as scanning access and scan settings rather than raw
         new_value: false,
         created_at: "2026-10-09T00:00:00Z",
       },
+      {
+        id: "audit-3",
+        actor_id: "admin-1",
+        actor_email: "admin@example.test",
+        action: "user.is_invited",
+        subject_type: "user",
+        subject_id: "user-1",
+        prev_value: false,
+        new_value: true,
+        created_at: "2026-10-09T00:00:00Z",
+      },
     ],
-    total: 2,
+    total: 3,
   });
   render(
     <QueryClientProvider client={queryClient}>
@@ -80,6 +91,9 @@ it("describes audit changes as scanning access and scan settings rather than raw
   expect(screen.getByText("Scan setting")).toBeInTheDocument();
   expect(screen.getByText("Paused")).toBeInTheDocument();
   expect(screen.getByText("Not recorded")).toBeInTheDocument();
+  expect(screen.getByText("Invitation access")).toBeInTheDocument();
+  expect(screen.getByText("Invited")).toBeInTheDocument();
+  expect(screen.getByText("Not invited")).toBeInTheDocument();
   expect(screen.queryByText("false")).not.toBeInTheDocument();
 });
 
