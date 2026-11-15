@@ -95,14 +95,14 @@ function setup(path = "/admin/users") {
           <AuthProvider>
             <AdminUsers />
             <ProfileProbe />
+            <Routes>
+              <Route
+                path="/admin/targets/:targetId"
+                element={<AdminTargetDetail />}
+              />
+            </Routes>
           </AuthProvider>
         </AuthConfigContext.Provider>
-        <Routes>
-          <Route
-            path="/admin/targets/:targetId"
-            element={<AdminTargetDetail />}
-          />
-        </Routes>
         <LocationProbe />
       </MemoryRouter>
     </QueryClientProvider>,

@@ -17,6 +17,7 @@ from camply.db.models.base import Base
 if TYPE_CHECKING:
     from camply.db.models.admin_audit import AdminAuditEvent
     from camply.db.models.user_scans import UserScan
+    from camply.db.models.user_session import UserSession
 
 
 def default_ntfy_topic(context: DefaultExecutionContext) -> str:
@@ -92,4 +93,9 @@ class User(Base):
     audit_events: Mapped[list["AdminAuditEvent"]] = relationship(
         back_populates="actor",
         foreign_keys="AdminAuditEvent.actor_id",
+    )
+    sessions: Mapped[list["UserSession"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )

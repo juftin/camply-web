@@ -476,6 +476,14 @@ export function AdminUsers() {
                               Password change required
                             </Badge>
                           )}
+                          {!u.is_invited && (
+                            <Badge
+                              variant="outline"
+                              className="text-muted-foreground text-[10px] py-0 px-1.5"
+                            >
+                              Not invited
+                            </Badge>
+                          )}
                         </div>
                       </td>
                       <td className="py-3 px-4">

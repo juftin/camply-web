@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminUserDetail } from "./AdminUserDetail";
 import { AuthConfigContext, AuthProvider } from "@/hooks/useAuth";
@@ -270,5 +271,75 @@ describe("AdminUserDetail Permissions", () => {
     expect(
       screen.getByRole("heading", { name: "Reset Password" }),
     ).toBeInTheDocument();
+  });
+
+  it("toggles user invitation status and shows feedback", async () => {
+    vi.mocked(api.updateAdminUser).mockResolvedValue({
+      ...otherUser,
+      is_invited: false,
+    });
+
+    const user = setup();
+    const invitedSwitch = await screen.findByRole("switch", {
+      name: `Invitation access for ${otherUser.email}`,
+    });
+    expect(invitedSwitch).toBeChecked();
+
+    await user.click(invitedSwitch);
+
+    await waitFor(() => {
+      expect(api.updateAdminUser).toHaveBeenCalledWith(otherUser.id, {
+        is_invited: false,
+      });
+    });
+    expect(
+      await screen.findByText(`Invitation revoked for ${otherUser.email}.`),
+    ).toBeInTheDocument();
+  });
+
+  it("disables invitation revocation for the acting administrator", async () => {
+    vi.mocked(api.getAdminUser).mockResolvedValue({
+      ...otherUser,
+      id: loggedInAdmin.id,
+      email: loggedInAdmin.email,
+      is_admin: true,
+      is_invited: true,
+    });
+
+    setup(loggedInAdmin.id);
+
+    const invitedSwitch = await screen.findByRole("switch", {
+      name: `Invitation access for ${loggedInAdmin.email}`,
+    });
+    expect(invitedSwitch).toBeChecked();
+    expect(invitedSwitch).toBeDisabled();
+    expect(
+      screen.getByText("You cannot revoke your own invitation"),
+    ).toBeInTheDocument();
+  });
+
+  it("surfaces 400 errors when revoking invitation fails (e.g. bootstrap admin)", async () => {
+    vi.mocked(api.updateAdminUser).mockRejectedValue(
+      new AxiosError("Bad Request", "ERR_BAD_REQUEST", undefined, undefined, {
+        status: 400,
+        data: {
+          detail:
+            "You cannot revoke the invitation of your own or the bootstrap administrator account.",
+        },
+        statusText: "Bad Request",
+        headers: {},
+        config: {} as never,
+      }),
+    );
+
+    const user = setup();
+    const invitedSwitch = await screen.findByRole("switch", {
+      name: `Invitation access for ${otherUser.email}`,
+    });
+    await user.click(invitedSwitch);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "You cannot revoke the invitation of your own or the bootstrap administrator account.",
+    );
   });
 });

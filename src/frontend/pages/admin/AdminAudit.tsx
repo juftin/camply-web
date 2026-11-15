@@ -11,6 +11,9 @@ const ACTION_LABELS: Record<string, string> = {
   "user.scanning_enabled": "Scanning access",
   "scan.is_active": "Scan setting",
   "user.is_admin": "Administrator access",
+  "user.is_invited": "Invitation access",
+  "access_request.approve": "Invitation request",
+  "access_request.reject": "Invitation request",
 };
 
 function changeLabel(
@@ -22,6 +25,9 @@ function changeLabel(
     return value ? "Enabled" : "Suspended";
   if (action === "scan.is_active") return value ? "Active" : "Paused";
   if (action === "user.is_admin") return value ? "Admin" : "User";
+  if (action === "user.is_invited") return value ? "Invited" : "Not invited";
+  if (action === "access_request.approve" || action === "access_request.reject")
+    return value ? "Approved" : "Not approved";
   return String(value);
 }
 
@@ -108,11 +114,21 @@ export function AdminAudit() {
                     </td>
                     <td className="py-3 px-4">
                       <span className="font-medium capitalize">
-                        {e.subject_type}:{" "}
+                        {e.subject_type === "access_request"
+                          ? "Access request"
+                          : e.subject_type}
+                        :{" "}
                       </span>
                       {e.subject_type === "user" ? (
                         <Link
                           to={`/admin/users/${e.subject_id}`}
+                          className="font-mono text-xs text-primary hover:underline"
+                        >
+                          {e.subject_id.slice(0, 8)}...
+                        </Link>
+                      ) : e.subject_type === "access_request" ? (
+                        <Link
+                          to="/admin/invitations"
                           className="font-mono text-xs text-primary hover:underline"
                         >
                           {e.subject_id.slice(0, 8)}...

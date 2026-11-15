@@ -117,6 +117,37 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin opera
       <a
         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
         data-discover="true"
+        href="/admin/invitations"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-mail h-4 w-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"
+          />
+          <rect
+            height="16"
+            rx="2"
+            width="20"
+            x="2"
+            y="4"
+          />
+        </svg>
+        Invitations
+      </a>
+      <a
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        data-discover="true"
         href="/admin/scans"
       >
         <svg
@@ -302,6 +333,37 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin overv
           />
         </svg>
         Users
+      </a>
+      <a
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        data-discover="true"
+        href="/admin/invitations"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-mail h-4 w-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"
+          />
+          <rect
+            height="16"
+            rx="2"
+            width="20"
+            x="2"
+            y="4"
+          />
+        </svg>
+        Invitations
       </a>
       <a
         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"

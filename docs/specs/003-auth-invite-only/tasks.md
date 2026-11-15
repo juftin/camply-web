@@ -9,4 +9,7 @@
 - [x] Auth0 audience and configuration validation.
 - [x] Mode-aware signup, protected routes, and invitation UI.
 - [x] Regression tests and documentation.
-- [ ] TODO: approval/revocation workflow, identity linking, and invitation notifications.
+- [x] Backend `access_requests` review migration, admin approval/revocation API (`GET/PATCH /api/admin/access-requests`), and audited user `is_invited` toggle with self/bootstrap-admin guards.
+- [x] Safe invitation matching on verified Auth0 sign-in/email change, `invitation_status` on `/api/me`, and best-effort admin ntfy/Pushover alerts on new access requests.
+- [x] Admin review UI (`/admin/invitations` and user `is_invited` toggle) and `/invite-only` requester outcome UI.
+- [x] Individual server-side password session revocation (`UserSession` persistence, `GET/DELETE /api/me/sessions`, and profile Active Sessions UI); explicit password+Auth0 account linking remains deferred/out of scope.

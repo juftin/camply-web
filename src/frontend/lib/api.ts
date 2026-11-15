@@ -1,4 +1,4 @@
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { validCoordinates, type GeoBounds } from "./maps";
 import type {
   SearchResult,
@@ -9,6 +9,7 @@ import type {
   MeResponse,
   MeUpdateRequest,
   NotificationTestResponse,
+  UserSessionListResponse,
   ScanCreateRequest,
   ScanListResponse,
   ScanDetailResponse,
@@ -19,6 +20,9 @@ import type {
   AdminUserListResponse,
   AdminUserDetailResponse,
   AdminUserUpdateRequest,
+  AdminAccessRequestItem,
+  AdminAccessRequestListResponse,
+  AdminAccessRequestUpdateRequest,
   ChangePasswordRequest,
   AdminScanListResponse,
   AdminScanDetailResponse,
@@ -55,35 +59,358 @@ const api = axios.create({
 });
 
 // ---------------------------------------------------------------------------
-// Bearer token interceptor for application sign-in
+// Token acquisition classification & bearer/renewal interceptors
 // ---------------------------------------------------------------------------
 
-let _getAccessToken: (() => Promise<string | null>) | null = null;
+export type TokenAcquisitionErrorKind = "expired" | "outage" | "auth_failure";
 
-export function setAccessTokenProvider(fn: () => Promise<string | null>): void {
+export class TokenAcquisitionError extends Error {
+  readonly kind: TokenAcquisitionErrorKind;
+  readonly code?: string;
+
+  constructor(kind: TokenAcquisitionErrorKind, message: string, code?: string) {
+    super(message);
+    this.name = "TokenAcquisitionError";
+    this.kind = kind;
+    this.code = code;
+  }
+}
+
+const EXPIRED_TOKEN_ERROR_CODES = new Set([
+  "login_required",
+  "consent_required",
+  "interaction_required",
+  "missing_refresh_token",
+  "invalid_grant",
+]);
+
+const OUTAGE_TOKEN_ERROR_CODES = new Set([
+  "timeout",
+  "server_error",
+  "temporarily_unavailable",
+  "err_network",
+  "econnaborted",
+  "etimedout",
+  "econnrefused",
+]);
+
+const SAFE_IDEMPOTENT_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+function readErrorField(error: unknown, key: string): unknown {
+  if (typeof error === "object" && error !== null && key in error) {
+    return (error as Record<string, unknown>)[key];
+  }
+  return undefined;
+}
+
+/** Classify token acquisition failures into expired session, IdP outage, or auth failure. */
+export function classifyTokenAcquisitionError(
+  error: unknown,
+): TokenAcquisitionError {
+  if (error instanceof TokenAcquisitionError) {
+    return error;
+  }
+
+  const rawCode =
+    readErrorField(error, "error") ?? readErrorField(error, "code");
+  const code =
+    typeof rawCode === "string" && rawCode.trim() ? rawCode.trim() : undefined;
+  const normalizedCode = code?.toLowerCase();
+
+  const rawDescription = readErrorField(error, "error_description");
+  const description =
+    typeof rawDescription === "string" && rawDescription.trim()
+      ? rawDescription.trim()
+      : undefined;
+
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : "";
+  const normalizedMessage = message.toLowerCase();
+  const normalizedName = error instanceof Error ? error.name.toLowerCase() : "";
+
+  const rawStatus =
+    readErrorField(error, "status") ??
+    readErrorField(error, "statusCode") ??
+    readErrorField(readErrorField(error, "response"), "status");
+  const status = typeof rawStatus === "number" ? rawStatus : undefined;
+
+  if (
+    (normalizedCode && EXPIRED_TOKEN_ERROR_CODES.has(normalizedCode)) ||
+    normalizedName === "missingrefreshtokenerror" ||
+    /login_required|consent_required|interaction_required|missing_refresh_token|invalid_grant/.test(
+      normalizedMessage,
+    )
+  ) {
+    return new TokenAcquisitionError(
+      "expired",
+      "Your session has expired. Please sign in again.",
+      code,
+    );
+  }
+
+  if (
+    (normalizedCode && OUTAGE_TOKEN_ERROR_CODES.has(normalizedCode)) ||
+    (status !== undefined && status >= 500 && status < 600) ||
+    normalizedName === "timeouterror" ||
+    /failed to fetch|networkerror|network error|network request failed|load failed|timed out|timeout|econnrefused|enotfound|err_network|temporarily unavailable|service unavailable|\b50[0234]\b/.test(
+      normalizedMessage,
+    ) ||
+    (description !== undefined &&
+      /temporarily unavailable|timeout|service unavailable/.test(
+        description.toLowerCase(),
+      ))
+  ) {
+    return new TokenAcquisitionError(
+      "outage",
+      "The authentication service is temporarily unavailable. Please try again shortly.",
+      code,
+    );
+  }
+
+  let authFailureMessage = "Authentication failed. Please sign in again.";
+  if (normalizedCode === "access_denied") {
+    authFailureMessage =
+      description ?? "Access was denied by the authentication provider.";
+  } else if (normalizedCode === "invalid_scope") {
+    authFailureMessage =
+      description ?? "Authentication permissions could not be verified.";
+  } else if (description) {
+    authFailureMessage = description;
+  } else if (message && message !== "Error") {
+    authFailureMessage = message;
+  }
+
+  return new TokenAcquisitionError("auth_failure", authFailureMessage, code);
+}
+
+/** Guard protected queries against retrying terminal auth, access, or conflict errors. */
+export function shouldRetryProtectedQuery(
+  failureCount: number,
+  error: unknown,
+): boolean {
+  if (failureCount >= 1) {
+    return false;
+  }
+  if (error instanceof TokenAcquisitionError) {
+    return error.kind === "outage";
+  }
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    if (status === 401 || status === 403 || status === 409) {
+      return false;
+    }
+    return status === undefined || status >= 500;
+  }
+  return true;
+}
+
+export interface AccessTokenRequestOptions {
+  cacheMode?: "on" | "off" | "cache-only";
+}
+
+export type AccessTokenProvider = (
+  options?: AccessTokenRequestOptions,
+) => Promise<string | null>;
+
+export interface AuthFailureCallbacks {
+  onSessionExpired?: (error: TokenAcquisitionError) => void;
+  onAuthFailure?: (error: TokenAcquisitionError) => void;
+  onOutage?: (error: TokenAcquisitionError) => void;
+}
+
+interface RetryableRequestConfig extends InternalAxiosRequestConfig {
+  _retried?: boolean;
+}
+
+let _authMode: AuthConfig["auth_mode"] = "none";
+let _getAccessToken: AccessTokenProvider | null = null;
+let _authCallbacks: AuthFailureCallbacks = {};
+let _inflightRefresh: Promise<string | null> | null = null;
+
+export function setApiAuthMode(mode: AuthConfig["auth_mode"]): void {
+  _authMode = mode;
+}
+
+export function setAccessTokenProvider(
+  fn: AccessTokenProvider | null,
+  callbacks?: AuthFailureCallbacks,
+): void {
   _getAccessToken = fn;
+  _authCallbacks = callbacks ?? {};
+  _inflightRefresh = null;
+}
+
+function isSafeIdempotentMethod(method?: string): boolean {
+  return SAFE_IDEMPOTENT_METHODS.has((method ?? "GET").toUpperCase());
+}
+
+function hasAuthorizationHeader(
+  headers:
+    | InternalAxiosRequestConfig["headers"]
+    | Record<string, string>
+    | undefined,
+): boolean {
+  if (!headers) return false;
+  if (typeof (headers as { get?: unknown }).get === "function") {
+    return Boolean(
+      (headers as { get: (name: string) => unknown }).get("Authorization"),
+    );
+  }
+  const record = headers as Record<string, unknown>;
+  return Boolean(record.Authorization ?? record.authorization);
+}
+
+function setBearerHeader(
+  headers:
+    | InternalAxiosRequestConfig["headers"]
+    | Record<string, string>
+    | undefined,
+  token: string,
+): Record<string, string> {
+  const value = `Bearer ${token}`;
+  if (headers && typeof (headers as { set?: unknown }).set === "function") {
+    (headers as { set: (name: string, val: string) => void }).set(
+      "Authorization",
+      value,
+    );
+    return headers as unknown as Record<string, string>;
+  }
+  const target = (headers ?? {}) as Record<string, string>;
+  target.Authorization = value;
+  return target;
+}
+
+function notifyClassifiedError(error: TokenAcquisitionError): void {
+  if (error.kind === "expired") {
+    _authCallbacks.onSessionExpired?.(error);
+  } else if (error.kind === "auth_failure") {
+    _authCallbacks.onAuthFailure?.(error);
+  } else {
+    _authCallbacks.onOutage?.(error);
+  }
+}
+
+async function acquireAccessToken(
+  options?: AccessTokenRequestOptions,
+): Promise<string | null> {
+  if (!_getAccessToken) return null;
+
+  if (options?.cacheMode === "off") {
+    if (!_inflightRefresh) {
+      _inflightRefresh = _getAccessToken({ cacheMode: "off" }).finally(() => {
+        _inflightRefresh = null;
+      });
+    }
+    return _inflightRefresh;
+  }
+
+  return _getAccessToken(options);
 }
 
 api.interceptors.request.use(async (config) => {
-  if (_getAccessToken) {
+  const retryConfig = config as RetryableRequestConfig;
+  if (
+    _getAccessToken &&
+    !(retryConfig._retried && hasAuthorizationHeader(config.headers))
+  ) {
     try {
-      const token = await _getAccessToken();
+      const token = await acquireAccessToken();
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        config.headers = setBearerHeader(
+          config.headers,
+          token,
+        ) as InternalAxiosRequestConfig["headers"];
       }
-    } catch {
-      // Silently skip — token retrieval may fail if not authenticated
+    } catch (error) {
+      const classified = classifyTokenAcquisitionError(error);
+      notifyClassifiedError(classified);
+      return Promise.reject(classified);
     }
   }
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  async (error: unknown) => {
+    if (!axios.isAxiosError(error) || !error.config) {
+      return Promise.reject(error);
+    }
+
+    const originalRequest = error.config as RetryableRequestConfig;
+    const status = error.response?.status;
+
+    if (status === 401 && _authMode === "auth0" && _getAccessToken !== null) {
+      if (
+        !isSafeIdempotentMethod(originalRequest.method) ||
+        originalRequest._retried
+      ) {
+        _authCallbacks.onSessionExpired?.(
+          new TokenAcquisitionError(
+            "expired",
+            isSafeIdempotentMethod(originalRequest.method)
+              ? "Your session has expired. Please sign in again."
+              : "Your session expired. Please sign in again before retrying this action.",
+          ),
+        );
+        return Promise.reject(error);
+      }
+
+      originalRequest._retried = true;
+      try {
+        const refreshedToken = await acquireAccessToken({ cacheMode: "off" });
+        if (!refreshedToken) {
+          const expiredError = new TokenAcquisitionError(
+            "expired",
+            "Your session has expired. Please sign in again.",
+          );
+          _authCallbacks.onSessionExpired?.(expiredError);
+          return Promise.reject(expiredError);
+        }
+        originalRequest.headers = setBearerHeader(
+          originalRequest.headers,
+          refreshedToken,
+        ) as InternalAxiosRequestConfig["headers"];
+        return await api.request(originalRequest);
+      } catch (refreshError) {
+        const classified = classifyTokenAcquisitionError(refreshError);
+        notifyClassifiedError(classified);
+        return Promise.reject(classified);
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);
+
 // Simple error helper
 export function getApiErrorMessage(error: unknown): string {
-  if (error instanceof AxiosError && error.response?.data) {
-    const detail = error.response.data.detail;
+  if (error instanceof TokenAcquisitionError) {
+    return error.message;
+  }
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
     if (typeof detail === "string") return detail;
-    if (detail?.message) return detail.message;
+    if (
+      detail &&
+      typeof detail === "object" &&
+      typeof detail.message === "string"
+    ) {
+      return detail.message;
+    }
+    if (error.response?.status === 503) {
+      return "Verification service is temporarily unavailable. Please try again shortly.";
+    }
+    if (error.response?.status === 401) {
+      return "Your session has expired. Please sign in again.";
+    }
+    if (!error.response && error.message) {
+      return error.message;
+    }
   }
   if (error instanceof Error) return error.message;
   return "An unexpected error occurred";
@@ -338,6 +665,15 @@ export async function sendTestNotification(
   }
 }
 
+export async function listMySessions(): Promise<UserSessionListResponse> {
+  const response = await api.get<UserSessionListResponse>("/me/sessions");
+  return response.data;
+}
+
+export async function revokeMySession(sessionId: string): Promise<void> {
+  await api.delete(`/me/sessions/${sessionId}`);
+}
+
 // ---------------------------------------------------------------------------
 // Scans
 // ---------------------------------------------------------------------------
@@ -387,12 +723,37 @@ export async function getAdminOverview(): Promise<AdminOverviewResponse> {
 export async function listAdminUsers(params?: {
   search?: string;
   scanning_enabled?: boolean;
+  is_invited?: boolean;
   limit?: number;
   offset?: number;
 }): Promise<AdminUserListResponse> {
   const response = await api.get<AdminUserListResponse>("/admin/users", {
     params,
   });
+  return response.data;
+}
+
+export async function listAdminAccessRequests(params?: {
+  status?: "pending" | "approved" | "rejected";
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<AdminAccessRequestListResponse> {
+  const response = await api.get<AdminAccessRequestListResponse>(
+    "/admin/access-requests",
+    { params },
+  );
+  return response.data;
+}
+
+export async function updateAdminAccessRequest(
+  requestId: string,
+  payload: AdminAccessRequestUpdateRequest,
+): Promise<AdminAccessRequestItem> {
+  const response = await api.patch<AdminAccessRequestItem>(
+    `/admin/access-requests/${requestId}`,
+    payload,
+  );
   return response.data;
 }
 

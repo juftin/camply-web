@@ -23,6 +23,7 @@ from sqlalchemy import (
     func,
     or_,
     select,
+    update,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -36,6 +37,7 @@ from camply.db.coverage import (
 )
 from camply.db.eligibility import eligible_scan_condition, is_scan_eligible
 from camply.db.models import (
+    AccessRequest,
     AdminAuditEvent,
     Campground,
     Provider,
@@ -44,13 +46,18 @@ from camply.db.models import (
     UniqueTarget,
     User,
     UserScan,
+    UserSession,
 )
+from camply.db.models.access_request import AccessRequestStatus
 from camply.server.auth import AdminUserDep, CurrentUser, hash_password
 from camply.server.config import AuthMode, backend_config
 from camply.server.dependencies import SessionDep
 from camply.server.metrics import USERS_CREATED_TOTAL
 from camply.server.routers.scans import _scan_to_response, get_scan
 from camply.server.schemas import (
+    AdminAccessRequestItem,
+    AdminAccessRequestListResponse,
+    AdminAccessRequestUpdateRequest,
     AdminAuditEventItem,
     AdminAuditListResponse,
     AdminOperationsResponse,
@@ -496,32 +503,27 @@ async def get_user_detail(
 # ===========================================================================
 
 
-@admin_router.patch("/users/{user_id}")
-async def update_user(
-    user_id: uuid.UUID,
+async def _apply_user_access_updates(
+    session: AsyncSession,
+    *,
+    admin: CurrentUser,
+    user: User,
     body: AdminUserUpdateRequest,
-    admin: AdminUserDep,
-    session: SessionDep,
-) -> AdminUserDetailResponse:
+) -> None:
     """
-    Update a user's scanning access or credentials and record audit events.
+    Apply role, invitation, and scanning-status updates with audit events.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        Database session tracking pending mutations.
+    admin : CurrentUser
+        Acting administrator performing the update.
+    user : User
+        Target user record being modified.
+    body : AdminUserUpdateRequest
+        Requested updates.
     """
-    if (
-        body.password is not None or body.must_change_password is not None
-    ) and backend_config.auth_mode != AuthMode.SESSION:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password management is only supported in session auth mode.",
-        )
-
-    user_stmt = select(User).where(User.id == user_id).with_for_update()
-    user = (await session.execute(user_stmt)).scalar_one_or_none()
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
     if body.is_admin is not None and body.is_admin != user.is_admin:
         if user.id == admin.id and not body.is_admin:
             raise HTTPException(
@@ -541,6 +543,13 @@ async def update_user(
             )
         )
 
+    if body.is_invited is not None:
+        if not body.is_invited:
+            _ensure_invitation_revocable(admin, user)
+        await _set_user_invited(
+            session, admin=admin, user=user, is_invited=body.is_invited
+        )
+
     if body.scanning_enabled is not None:
         prev_val = user.scanning_enabled
         user.scanning_enabled = body.scanning_enabled
@@ -555,6 +564,28 @@ async def update_user(
             )
         )
 
+
+async def _apply_user_credential_updates(
+    session: AsyncSession,
+    *,
+    admin: CurrentUser,
+    user: User,
+    body: AdminUserUpdateRequest,
+) -> None:
+    """
+    Apply session-mode password and rotation updates with audit events.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        Database session tracking pending mutations.
+    admin : CurrentUser
+        Acting administrator performing the update.
+    user : User
+        Target user record being modified.
+    body : AdminUserUpdateRequest
+        Requested updates.
+    """
     if body.must_change_password is not None:
         prev_mcp = user.must_change_password
         user.must_change_password = body.must_change_password
@@ -571,10 +602,17 @@ async def update_user(
 
     if body.password is not None:
         user.password_hash = hash_password(body.password)
-        if body.must_change_password is not None:
-            user.must_change_password = body.must_change_password
-        else:
-            user.must_change_password = True
+        user.must_change_password = (
+            body.must_change_password if body.must_change_password is not None else True
+        )
+        await session.execute(
+            update(UserSession)
+            .where(
+                UserSession.user_id == user.id,
+                UserSession.revoked_at.is_(None),
+            )
+            .values(revoked_at=datetime.datetime.now(tz=datetime.timezone.utc))
+        )
         session.add(
             AdminAuditEvent(
                 actor_id=admin.id,
@@ -585,6 +623,36 @@ async def update_user(
                 new_value=None,
             )
         )
+
+
+@admin_router.patch("/users/{user_id}")
+async def update_user(
+    user_id: uuid.UUID,
+    body: AdminUserUpdateRequest,
+    admin: AdminUserDep,
+    session: SessionDep,
+) -> AdminUserDetailResponse:
+    """
+    Update a user's scanning access, invitation, role, or credentials and audit changes.
+    """
+    if (
+        body.password is not None or body.must_change_password is not None
+    ) and backend_config.auth_mode != AuthMode.SESSION:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password management is only supported in session auth mode.",
+        )
+
+    user_stmt = select(User).where(User.id == user_id).with_for_update()
+    user = (await session.execute(user_stmt)).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    await _apply_user_access_updates(session, admin=admin, user=user, body=body)
+    await _apply_user_credential_updates(session, admin=admin, user=user, body=body)
 
     await session.commit()
     await session.refresh(user)
@@ -609,6 +677,311 @@ async def update_user(
         created_at=user.created_at,
         updated_at=user.updated_at,
     )
+
+
+def _ensure_invitation_revocable(admin: CurrentUser, user: User) -> None:
+    """
+    Refuse to revoke the invitation of the acting or bootstrap administrator.
+
+    Parameters
+    ----------
+    admin : CurrentUser
+        The administrator performing the change.
+    user : User
+        The account whose ``is_invited`` flag would be cleared.
+
+    Raises
+    ------
+    HTTPException
+        400 when ``user`` is the acting administrator or the configured
+        bootstrap administrator, so an administrator cannot lock themselves
+        or the deployment owner out.
+    """
+    if user.id == admin.id or user.email.lower() == backend_config.admin_email.lower():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot revoke the invitation of your own or the bootstrap administrator account.",
+        )
+
+
+async def _sync_user_access_requests(
+    session: AsyncSession,
+    *,
+    admin: CurrentUser,
+    user: User,
+    is_invited: bool,
+    exclude_request_id: uuid.UUID | None = None,
+) -> None:
+    """
+    Synchronize matching access requests when a user's invitation state changes.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        Database session tracking pending mutations.
+    admin : CurrentUser
+        The administrator making the change.
+    user : User
+        The account whose invitation status changed.
+    is_invited : bool
+        The newly applied invitation state.
+    exclude_request_id : uuid.UUID or None
+        Optional access request already updated and audited by the caller.
+    """
+    target_statuses = (
+        (AccessRequestStatus.PENDING.value, AccessRequestStatus.REJECTED.value)
+        if is_invited
+        else (AccessRequestStatus.APPROVED.value,)
+    )
+    conditions = [
+        or_(
+            AccessRequest.user_id == user.id,
+            func.lower(AccessRequest.email) == user.email.strip().lower(),
+        ),
+        AccessRequest.status.in_(target_statuses),
+    ]
+    if exclude_request_id is not None:
+        conditions.append(AccessRequest.id != exclude_request_id)
+
+    matching_requests = (
+        (
+            await session.execute(
+                select(AccessRequest).where(*conditions).with_for_update()
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not matching_requests:
+        return
+
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
+    new_status = (
+        AccessRequestStatus.APPROVED.value
+        if is_invited
+        else AccessRequestStatus.REJECTED.value
+    )
+    action = "access_request.approve" if is_invited else "access_request.reject"
+    for req in matching_requests:
+        prev_status = req.status
+        req.status = new_status
+        req.reviewed_at = now
+        req.reviewed_by_id = admin.id
+        req.user_id = user.id
+        session.add(
+            AdminAuditEvent(
+                actor_id=admin.id,
+                action=action,
+                subject_type="access_request",
+                subject_id=req.id,
+                prev_value=prev_status == AccessRequestStatus.APPROVED.value,
+                new_value=is_invited,
+            )
+        )
+
+
+async def _set_user_invited(
+    session: AsyncSession,
+    *,
+    admin: CurrentUser,
+    user: User,
+    is_invited: bool,
+    exclude_request_id: uuid.UUID | None = None,
+) -> None:
+    """
+    Set ``User.is_invited``, sync matching access requests, and emit audit events.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        Session that will persist the change; the caller commits.
+    admin : CurrentUser
+        The administrator making the change.
+    user : User
+        The account to update; unchanged values record no audit event.
+    is_invited : bool
+        The desired invitation state.
+    exclude_request_id : uuid.UUID or None
+        Optional access request already updated and audited by the caller.
+    """
+    if user.is_invited == is_invited:
+        return
+    prev_value = user.is_invited
+    user.is_invited = is_invited
+    session.add(
+        AdminAuditEvent(
+            actor_id=admin.id,
+            action="user.is_invited",
+            subject_type="user",
+            subject_id=user.id,
+            prev_value=prev_value,
+            new_value=is_invited,
+        )
+    )
+    await _sync_user_access_requests(
+        session,
+        admin=admin,
+        user=user,
+        is_invited=is_invited,
+        exclude_request_id=exclude_request_id,
+    )
+
+
+def _access_request_item(access_request: AccessRequest) -> AdminAccessRequestItem:
+    """Build the admin response row for an access request."""
+    return AdminAccessRequestItem.model_validate(access_request, from_attributes=True)
+
+
+# ===========================================================================
+# 5a. GET /api/admin/access-requests
+# ===========================================================================
+
+
+@admin_router.get("/access-requests")
+async def list_access_requests(
+    admin: AdminUserDep,
+    session: SessionDep,
+    request_status: Optional[Literal["pending", "approved", "rejected"]] = Query(
+        default=None, alias="status"
+    ),
+    search: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+) -> AdminAccessRequestListResponse:
+    """
+    List invitation requests, newest first, filtered by status or email/name search.
+    """
+    conditions = []
+    if request_status is not None:
+        conditions.append(AccessRequest.status == request_status)
+    if search and search.strip():
+        search_term = f"%{search.strip()}%"
+        conditions.append(
+            or_(
+                AccessRequest.email.ilike(search_term),
+                AccessRequest.name.ilike(search_term),
+            )
+        )
+
+    stmt = select(AccessRequest)
+    count_stmt = select(func.count(AccessRequest.id))
+    if conditions:
+        stmt = stmt.where(and_(*conditions))
+        count_stmt = count_stmt.where(and_(*conditions))
+
+    total = (await session.execute(count_stmt)).scalar() or 0
+    rows = (
+        (
+            await session.execute(
+                stmt.order_by(AccessRequest.created_at.desc(), AccessRequest.id.desc())
+                .offset(offset)
+                .limit(limit)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return AdminAccessRequestListResponse(
+        access_requests=[_access_request_item(row) for row in rows], total=total
+    )
+
+
+# ===========================================================================
+# 5b. PATCH /api/admin/access-requests/{id}
+# ===========================================================================
+
+
+@admin_router.patch("/access-requests/{request_id}")
+async def update_access_request(
+    request_id: uuid.UUID,
+    body: AdminAccessRequestUpdateRequest,
+    admin: AdminUserDep,
+    session: SessionDep,
+) -> AdminAccessRequestItem:
+    """
+    Approve or reject an invitation request, revoking access when it was approved.
+
+    Approving links the request to the existing user with the same email (if
+    any) and sets ``is_invited``. Rejecting a previously approved request
+    clears ``is_invited`` for that user, except for the acting and bootstrap
+    administrators. Status changes and ``is_invited`` changes are audited;
+    repeating the current status records no new review.
+    """
+    access_request = (
+        await session.execute(
+            select(AccessRequest)
+            .where(AccessRequest.id == request_id)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if access_request is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Access request not found",
+        )
+
+    user: User | None = None
+    if access_request.user_id is not None:
+        user = (
+            await session.execute(
+                select(User).where(User.id == access_request.user_id).with_for_update()
+            )
+        ).scalar_one_or_none()
+    if user is None:
+        normalized_email = access_request.email.strip().lower()
+        user = (
+            await session.execute(
+                select(User)
+                .where(func.lower(User.email) == normalized_email)
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+
+    prev_status = access_request.status
+    approving = body.status == AccessRequestStatus.APPROVED.value
+    revoking = not approving and prev_status == AccessRequestStatus.APPROVED.value
+    if revoking and user is not None:
+        _ensure_invitation_revocable(admin, user)
+
+    if body.status != prev_status:
+        access_request.status = body.status
+        access_request.reviewed_at = datetime.datetime.now(tz=datetime.timezone.utc)
+        access_request.reviewed_by_id = admin.id
+        session.add(
+            AdminAuditEvent(
+                actor_id=admin.id,
+                action="access_request.approve"
+                if approving
+                else "access_request.reject",
+                subject_type="access_request",
+                subject_id=access_request.id,
+                prev_value=prev_status == AccessRequestStatus.APPROVED.value,
+                new_value=approving,
+            )
+        )
+
+    if user is not None and approving:
+        access_request.user_id = user.id
+        await _set_user_invited(
+            session,
+            admin=admin,
+            user=user,
+            is_invited=True,
+            exclude_request_id=access_request.id,
+        )
+    elif user is not None and revoking:
+        access_request.user_id = user.id
+        await _set_user_invited(
+            session,
+            admin=admin,
+            user=user,
+            is_invited=False,
+            exclude_request_id=access_request.id,
+        )
+
+    await session.commit()
+    await session.refresh(access_request)
+    return _access_request_item(access_request)
 
 
 # ===========================================================================

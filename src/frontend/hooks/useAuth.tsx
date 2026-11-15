@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +16,9 @@ import {
   updateMe,
   getApiErrorMessage,
   setAccessTokenProvider,
+  setApiAuthMode,
+  classifyTokenAcquisitionError,
+  shouldRetryProtectedQuery,
   type AuthConfig,
 } from "@/lib/api";
 import type { MeResponse } from "@/lib/structs";
@@ -94,6 +98,10 @@ function CookieAuthProvider({ children }: { children: ReactNode }) {
     error.response?.status === 401;
 
   useEffect(() => {
+    setApiAuthMode(config.auth_mode);
+  }, [config.auth_mode]);
+
+  useEffect(() => {
     if (!isLoading) setInitialLoading(false);
   }, [isLoading]);
 
@@ -151,7 +159,8 @@ function CookieAuthProvider({ children }: { children: ReactNode }) {
     }
     await queryClient.cancelQueries();
     queryClient.removeQueries({
-      predicate: (query) => query.queryKey[0] !== "me",
+      predicate: (query) =>
+        !(query.queryKey.length === 1 && query.queryKey[0] === "me"),
     });
     queryClient.setQueryData(["me"], null);
     setHasError(null);
@@ -195,6 +204,8 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
   const {
     isAuthenticated,
     isLoading: auth0Loading,
+    user: auth0User,
+    error: auth0Error,
     getAccessTokenSilently,
     loginWithRedirect,
     logout,
@@ -202,43 +213,132 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
 
   const queryClient = useQueryClient();
   const [initialLoading, setInitialLoading] = useState(true);
-  const [hasError, setHasError] = useState<string | null>(null);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [signedOut, setSignedOut] = useState(false);
+  const lastSubRef = useRef<string | undefined>(auth0User?.sub);
+  const wasAuthenticatedRef = useRef<boolean>(isAuthenticated);
 
-  // Register the token provider so axios can attach Bearer tokens.
-  useEffect(() => {
-    setAccessTokenProvider(async () => {
-      if (!isAuthenticated) return null;
-      try {
-        return (await getAccessTokenSilently()) ?? null;
-      } catch {
-        return null;
+  const clearProtectedCaches = useCallback(
+    (clearMe: "null" | "remove" = "null", removeImmediately = false) => {
+      void queryClient.cancelQueries();
+      if (clearMe === "remove") {
+        queryClient.removeQueries({ queryKey: ["me"] });
+      } else {
+        queryClient.setQueryData(["me"], null);
       }
-    });
-  }, [isAuthenticated, getAccessTokenSilently]);
+      if (removeImmediately) {
+        queryClient.removeQueries({ queryKey: ["scans"] });
+        queryClient.removeQueries({ queryKey: ["admin"] });
+      }
+    },
+    [queryClient],
+  );
+
+  // Register the token provider and auth error handlers so axios can attach and renew Bearer tokens.
+  useEffect(() => {
+    setApiAuthMode("auth0");
+    setAccessTokenProvider(
+      async (options) => {
+        if (!isAuthenticated) return null;
+        try {
+          return (await getAccessTokenSilently(options)) ?? null;
+        } catch (err) {
+          throw classifyTokenAcquisitionError(err);
+        }
+      },
+      {
+        onSessionExpired: (expiredError) => {
+          clearProtectedCaches("null");
+          setSessionError(expiredError.message);
+        },
+        onAuthFailure: (authFailure) => {
+          clearProtectedCaches("null");
+          setSessionError(authFailure.message);
+        },
+      },
+    );
+    return () => {
+      setAccessTokenProvider(null);
+      setApiAuthMode("none");
+    };
+  }, [isAuthenticated, getAccessTokenSilently, clearProtectedCaches]);
+
+  // Clear cached user and protected data on account switch or session termination.
+  useEffect(() => {
+    const currentSub = auth0User?.sub;
+    const prevSub = lastSubRef.current;
+
+    if (prevSub && currentSub && prevSub !== currentSub) {
+      clearProtectedCaches("remove", true);
+      setSessionError(null);
+      setSignedOut(false);
+      lastSubRef.current = currentSub;
+      wasAuthenticatedRef.current = isAuthenticated;
+      return;
+    }
+
+    if (wasAuthenticatedRef.current && !isAuthenticated && !auth0Loading) {
+      clearProtectedCaches("null");
+      lastSubRef.current = undefined;
+    } else if (!wasAuthenticatedRef.current && isAuthenticated) {
+      setSessionError(null);
+      setSignedOut(false);
+      if (queryClient.getQueryData(["me"]) === null) {
+        queryClient.removeQueries({ queryKey: ["me"] });
+      }
+    }
+
+    if (currentSub) {
+      lastSubRef.current = currentSub;
+    }
+    wasAuthenticatedRef.current = isAuthenticated;
+  }, [
+    auth0User?.sub,
+    isAuthenticated,
+    auth0Loading,
+    clearProtectedCaches,
+    queryClient,
+  ]);
 
   const {
     data: user,
     error,
     isLoading: meLoading,
     refetch,
-  } = useQuery<MeResponse>({
+  } = useQuery<MeResponse | null>({
     queryKey: ["me"],
     queryFn: getMe,
-    retry: 1,
+    retry: shouldRetryProtectedQuery,
     staleTime: 5 * 60 * 1000,
-    enabled: isAuthenticated && !auth0Loading,
+    enabled: isAuthenticated && !auth0Loading && !sessionError && !signedOut,
   });
 
+  // Remove protected caches after React commits user=null so disabled observers do not re-fetch.
   useEffect(() => {
-    if (!auth0Loading && (!isAuthenticated || !meLoading)) {
-      setInitialLoading(false);
+    if (
+      !user &&
+      (sessionError || signedOut || (!isAuthenticated && !auth0Loading))
+    ) {
+      queryClient.removeQueries({ queryKey: ["scans"] });
+      queryClient.removeQueries({ queryKey: ["admin"] });
     }
-  }, [auth0Loading, isAuthenticated, meLoading]);
+  }, [
+    user,
+    sessionError,
+    signedOut,
+    isAuthenticated,
+    auth0Loading,
+    queryClient,
+  ]);
 
   useEffect(() => {
-    if (error) setHasError(getApiErrorMessage(error));
-    else setHasError(null);
-  }, [error]);
+    if (
+      !auth0Loading &&
+      (!isAuthenticated || !meLoading || Boolean(sessionError))
+    ) {
+      setInitialLoading(false);
+    }
+  }, [auth0Loading, isAuthenticated, meLoading, sessionError]);
 
   const pushoverMutation = useMutation({
     mutationFn: (token: string | null) => updateMe({ pushover_token: token }),
@@ -256,32 +356,48 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const refresh = useCallback(async () => {
-    setHasError(null);
+    setSessionError(null);
+    setSignedOut(false);
     await refetch();
   }, [refetch]);
 
   const signOut = useCallback(async () => {
+    lastSubRef.current = undefined;
+    setSessionError(null);
+    setSignedOut(true);
     await queryClient.cancelQueries();
-    queryClient.removeQueries({
-      predicate: (query) => query.queryKey[0] !== "me",
-    });
     queryClient.setQueryData(["me"], null);
-    setHasError(null);
+    queryClient.removeQueries({ queryKey: ["scans"] });
+    queryClient.removeQueries({ queryKey: ["admin"] });
     logout({ logoutParams: { returnTo: window.location.origin } });
   }, [queryClient, logout]);
 
   const login = useCallback(() => {
+    setSessionError(null);
+    setSignedOut(false);
     loginWithRedirect();
   }, [loginWithRedirect]);
 
+  const effectiveLoading =
+    initialLoading ||
+    auth0Loading ||
+    (isAuthenticated && !sessionError && !signedOut && meLoading);
+  const auth0ClassifiedError = auth0Error
+    ? classifyTokenAcquisitionError(auth0Error).message
+    : null;
+  const resolvedError =
+    sessionError ??
+    auth0ClassifiedError ??
+    (error ? getApiErrorMessage(error) : null);
+
   const value: AuthState = {
     user: user ?? null,
-    isLoading: initialLoading,
-    error: hasError,
+    isLoading: effectiveLoading,
+    error: resolvedError,
     isInvited: user?.is_invited ?? false,
     isAdmin: user?.is_admin ?? false,
     isScanningEnabled: user?.scanning_enabled ?? true,
-    isReady: !initialLoading,
+    isReady: !effectiveLoading,
     refresh,
     updatePushoverToken,
     signOut,
@@ -308,7 +424,7 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const config = useContext(AuthConfigContext);
 
-  if (config.auth_mode === "auth0") {
+  if (!config.auto_login && config.auth_mode === "auth0") {
     return <Auth0AuthProvider>{children}</Auth0AuthProvider>;
   }
   return <CookieAuthProvider>{children}</CookieAuthProvider>;

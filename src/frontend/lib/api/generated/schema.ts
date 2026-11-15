@@ -118,7 +118,7 @@ export interface paths {
         put?: never;
         /**
          * Change Password
-         * @description Change user password and clear must_change_password flag.
+         * @description Change user password, revoke prior sessions, and refresh this browser's session.
          */
         post: operations["change_password_api_change_password_post"];
         delete?: never;
@@ -138,10 +138,50 @@ export interface paths {
         put?: never;
         /**
          * Logout
-         * @description Clear the session and CSRF cookies after an authenticated logout.
+         * @description Revoke the current session and clear session and CSRF cookies.
          */
         post: operations["logout_api_logout_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List My Sessions
+         * @description List active password sessions belonging to the authenticated user.
+         */
+        get: operations["list_my_sessions_api_me_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke My Session
+         * @description Revoke a specific password session owned by the authenticated user.
+         */
+        delete: operations["revoke_my_session_api_me_sessions__session_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -548,9 +588,55 @@ export interface paths {
         head?: never;
         /**
          * Update User
-         * @description Update a user's scanning access or credentials and record audit events.
+         * @description Update a user's scanning access, invitation, role, or credentials and audit changes.
          */
         patch: operations["update_user_api_admin_users__user_id__patch"];
+        trace?: never;
+    };
+    "/api/admin/access-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Access Requests
+         * @description List invitation requests, newest first, filtered by status or email/name search.
+         */
+        get: operations["list_access_requests_api_admin_access_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/access-requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Access Request
+         * @description Approve or reject an invitation request, revoking access when it was approved.
+         *
+         *     Approving links the request to the existing user with the same email (if
+         *     any) and sets ``is_invited``. Rejecting a previously approved request
+         *     clears ``is_invited`` for that user, except for the acting and bootstrap
+         *     administrators. Status changes and ``is_invited`` changes are audited;
+         *     repeating the current status records no new review.
+         */
+        patch: operations["update_access_request_api_admin_access_requests__request_id__patch"];
         trace?: never;
     };
     "/api/admin/scans": {
@@ -774,6 +860,63 @@ export interface components {
         AccessRequestResponse: {
             /** Message */
             message: string;
+        };
+        /**
+         * AdminAccessRequestItem
+         * @description Invitation request row in the admin access request list.
+         */
+        AdminAccessRequestItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            /** Name */
+            name?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "approved" | "rejected";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Reviewed At */
+            reviewed_at?: string | null;
+            /** Reviewed By Id */
+            reviewed_by_id?: string | null;
+            /** User Id */
+            user_id?: string | null;
+        };
+        /**
+         * AdminAccessRequestListResponse
+         * @description Paginated admin invitation request list.
+         */
+        AdminAccessRequestListResponse: {
+            /** Access Requests */
+            access_requests: components["schemas"]["AdminAccessRequestItem"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * AdminAccessRequestUpdateRequest
+         * @description Payload to approve or reject (revoke) an invitation request.
+         */
+        AdminAccessRequestUpdateRequest: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "approved" | "rejected";
         };
         /**
          * AdminAuditEventItem
@@ -1560,6 +1703,8 @@ export interface components {
         AdminUserUpdateRequest: {
             /** Is Admin */
             is_admin?: boolean | null;
+            /** Is Invited */
+            is_invited?: boolean | null;
             /** Scanning Enabled */
             scanning_enabled?: boolean | null;
             /** Must Change Password */
@@ -1863,6 +2008,8 @@ export interface components {
              * @default false
              */
             must_change_password: boolean;
+            /** Invitation Status */
+            invitation_status?: ("pending" | "approved" | "rejected") | null;
         };
         /**
          * MeUpdateRequest
@@ -2703,6 +2850,41 @@ export interface components {
             /** Points */
             points?: components["schemas"]["TrendPoint"][];
         };
+        /**
+         * UserSessionItem
+         * @description Active server-side password session belonging to the current user.
+         */
+        UserSessionItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** User Agent */
+            user_agent?: string | null;
+            /** Ip Address */
+            ip_address?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Is Current */
+            is_current: boolean;
+        };
+        /**
+         * UserSessionListResponse
+         * @description List of active password sessions for the current user.
+         */
+        UserSessionListResponse: {
+            /** Items */
+            items: components["schemas"]["UserSessionItem"][];
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -2886,6 +3068,55 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_my_sessions_api_me_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSessionListResponse"];
+                };
+            };
+        };
+    };
+    revoke_my_session_api_me_sessions__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -3720,6 +3951,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminUserDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_access_requests_api_admin_access_requests_get: {
+        parameters: {
+            query?: {
+                status?: ("pending" | "approved" | "rejected") | null;
+                search?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccessRequestListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_access_request_api_admin_access_requests__request_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminAccessRequestUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccessRequestItem"];
                 };
             };
             /** @description Validation Error */

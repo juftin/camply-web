@@ -14,6 +14,7 @@ from .scan_targets import ScanTarget
 from .search import Search
 from .unique_targets import UniqueTarget
 from .user_scans import UserScan
+from .user_session import UserSession
 from .users import User
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "UniqueTarget",
     "User",
     "UserScan",
+    "UserSession",
 ]

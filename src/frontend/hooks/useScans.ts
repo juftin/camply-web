@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { AxiosError } from "axios";
 import {
   listScans,
   createScan,
@@ -7,7 +6,9 @@ import {
   updateScan,
   deleteScan,
   getApiErrorMessage,
+  shouldRetryProtectedQuery,
 } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import type {
   ScanCreateRequest,
   ScanUpdateRequest,
@@ -15,17 +16,6 @@ import type {
   ScanDetailResponse,
   ScanListResponse,
 } from "@/lib/structs";
-
-/** Retry transient failures once; authentication and access denial need user action. */
-function retryScanQuery(failureCount: number, error: Error): boolean {
-  if (
-    error instanceof AxiosError &&
-    (error.response?.status === 401 || error.response?.status === 403)
-  ) {
-    return false;
-  }
-  return failureCount < 1;
-}
 
 // ---------------------------------------------------------------------------
 // List scans
@@ -36,10 +26,12 @@ export function useScans(params?: {
   limit?: number;
   offset?: number;
 }) {
+  const { isReady, user } = useAuth();
   return useQuery<ScanListResponse>({
     queryKey: ["scans", "list", params],
     queryFn: () => listScans(params),
-    retry: retryScanQuery,
+    enabled: isReady && Boolean(user),
+    retry: shouldRetryProtectedQuery,
     staleTime: 30 * 1000, // 30 seconds – scans update frequently
     refetchInterval: 30 * 1000,
   });
@@ -50,11 +42,12 @@ export function useScans(params?: {
 // ---------------------------------------------------------------------------
 
 export function useScanDetail(scanId: string | null) {
+  const { isReady, user } = useAuth();
   return useQuery<ScanDetailResponse>({
     queryKey: ["scans", "detail", scanId],
     queryFn: () => getScan(scanId!),
-    retry: retryScanQuery,
-    enabled: scanId !== null,
+    retry: shouldRetryProtectedQuery,
+    enabled: scanId !== null && isReady && Boolean(user),
     staleTime: 15 * 1000,
     refetchInterval: 15 * 1000,
   });

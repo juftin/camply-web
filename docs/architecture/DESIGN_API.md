@@ -33,22 +33,34 @@ Administrator provider sync dispatches to the selected runtime. Repeated local s
 The owner selects `none`, `session`, or `auth0` with `CAMPLY_AUTH_MODE`, independently of the environment. HTTP Basic authentication is unsupported.
 
 - **Automatic login (`none`, default)**: every request uses the shared admin identity; no login/signup/logout UI.
-- **Password sessions (`session`)**: the app posts username/password JSON to `POST /api/login`. The response contains the profile and sets a signed HTTP-only session cookie plus a CSRF cookie. The frontend confirms the cookie with `GET /api/me` before opening the dashboard; rejected cookies keep the user on the login form with setup guidance. Scan queries do not automatically retry 401/403 responses. A scan query's 401 clears the cached profile and scans, cancels any profile refresh, and returns the user to sign-in. Mutations require `X-CSRF-Token` matching the signed session. `POST /api/logout` clears the cookies. The shared account has no signup. Cookies have an absolute lifetime, and credential/secret changes invalidate them.
-- **Auth0 (`auth0`)**: requests require an RS256 bearer token validated against issuer and API audience. Users are provisioned by subject on first access. The application starts sign-in on `/auth` and uses the Auth0 SDK.
+- **Password sessions (`session`)**: the app posts username/password JSON to `POST /api/login`. The response contains the profile and sets a signed HTTP-only session cookie plus a CSRF cookie. Each login persists a `user_sessions` record whose UUID is embedded in the signed JWT as `jti`. The frontend confirms the cookie with `GET /api/me` before opening the dashboard; rejected cookies keep the user on the login form with setup guidance. Scan queries do not automatically retry 401/403 responses. A scan query's 401 clears the cached profile and scans, cancels any profile refresh, and returns the user to sign-in. Mutations require `X-CSRF-Token` matching the signed session. `POST /api/logout` revokes the current `user_sessions` row and clears the cookies. The shared account has no signup. Cookies have an absolute lifetime, and individual revocation, logout, or credential/secret changes invalidate them immediately.
+- **Auth0 (`auth0`)**: requests require an RS256 bearer token validated against issuer and API audience, and must carry `exp` and a nonempty `sub`. Invalid or expired credentials return 401; an unreachable or unusable JWKS endpoint returns 503 so clients can retry. Key sets are cached without caching keys indefinitely, ensuring dropped keys stop verifying once cache refreshes, and JWKS retrieval runs off the asyncio loop. Users are provisioned by verified email and subject on first access. The application starts sign-in on `/auth` and uses the Auth0 SDK.
+- **Browser token storage & tradeoffs (`auth0`)**: `Auth0Provider` configures `cacheLocation="memory"`, `useRefreshTokens={true}`, and `useRefreshTokensFallback={true}` instead of `localStorage` or server-managed Auth0 BFF sessions. Keeping tokens strictly in memory prevents persistent token theft via XSS (`localStorage` / `sessionStorage`) and avoids adding stateful OAuth BFF token storage on the Python API. Tradeoff: in-memory tokens do not survive full page reloads or new tabs directly; silent session recovery across reloads relies on Auth0 Refresh Token Rotation (`useRefreshTokens`) backed by a silent Auth0 session iframe (`useRefreshTokensFallback`). When third-party cookies or storage partitioning (e.g., Safari ITP or strict browser privacy settings without an Auth0 Custom Domain) block the silent iframe, renewal returns `login_required` and prompts the user to sign in again rather than failing silently. Tokens and credentials are never persisted to `localStorage`/`sessionStorage` or logged to `console.*`.
+- **Token acquisition classification & bounded session recovery (`auth0`)**:
+  - Client-side `getAccessTokenSilently` errors are classified into `expired` (`login_required`, `consent_required`, `interaction_required`, `missing_refresh_token`, `invalid_grant`), `outage` (network errors, timeouts, IdP `5xx`), or `auth_failure` (`access_denied`, `invalid_scope`, and other OAuth errors).
+  - On backend `401` responses in `auth0` mode, the Axios response interceptor allows at most **one** deduplicated token renewal (`getAccessTokenSilently({ cacheMode: "off" })`) only for safe idempotent requests (`GET`, `HEAD`, `OPTIONS`) that have not already retried (`!_retried`). Unsafe mutations (`POST`, `PUT`, `PATCH`, `DELETE`) are **never** automatically replayed on `401`; they fail immediately with a session-expired prompt and clear auth state.
+  - When renewal fails with `expired`/`auth_failure` or a retried request still returns `401`, protected React Query caches (`["me"]`, `["scans"]`, `["admin"]`) are cleared and a clear sign-in error is surfaced without redirect or retry loops.
+  - `503` verification-service responses (JWKS or `/userinfo` outages) and `outage` token errors keep the current user session intact and surface a temporary outage error (allowing at most one query retry). `403` (`ERR_VERIFIED_EMAIL_REQUIRED`, `ERR_INVITE_REQUIRED`, `ERR_PASSWORD_CHANGE_REQUIRED`) and `409` (`ERR_EMAIL_CONFLICT`) surface clear messages without query retries.
+  - Protected queries (`useScans`, `useAdmin*`) wait until `isReady && Boolean(user)`, and switching Auth0 subjects (`auth0User.sub`) or signing out clears user/scan/admin caches so prior-account data cannot leak across sessions.
+- **Trusted email provisioning & userinfo fallback**: Auth0 identity subjects (`sub`) are kept strictly separate from email addresses; `sub` is never used as an email placeholder. The backend only trusts verified emails. Email verification status is resolved by inspecting token claims (`email` and `email_verified`, including namespaced `https://camply/email` and `https://camply/email_verified`). When absent or unverified in claims, the backend falls back to `GET https://{auth0_domain}/userinfo` using the bearer token. Userinfo profiles are cached in memory (bounded to 1,000 entries, 10-minute TTL, keyed by the SHA-256 digest of the token; raw tokens are never logged). Upstream userinfo network or service failures return 503 so clients can retry. New users without a verified email receive `403 Forbidden` (`ERR_VERIFIED_EMAIL_REQUIRED`).
+- **Duplicate emails & account-linking rules**: camply never automatically merges or links user identities solely because their email addresses match. Explicit proof-of-ownership account linking is out of scope. If an incoming identity presents a verified email already belonging to another account (such as an in-app password session user or a different Auth0 subject), the backend rejects the request with `409 Conflict` (`ERR_EMAIL_CONFLICT`) without modifying either user. Concurrent first-login races on the same `auth0_id` safely resolve to the winning record without 500 errors.
+- **Email change synchronization**: For existing users matched by `auth0_id`, presenting a verified token with a new email address updates `User.email` (case-normalized) if unclaimed by another account. If the new email is already claimed, the request returns 409 `ERR_EMAIL_CONFLICT` without modifying the user. Unverified email changes are ignored and do not sync. Because subscriptions and preferences key on `User.id`, scans, notification settings, and invitation eligibility (`is_invited`) are fully preserved across email changes.
 - **`GET /api/auth-config`**: public configuration returns `auth_mode`, `auth0_domain`, `auth0_client_id`, `auth0_audience`, `auto_login`, `signup_enabled`, and `invite_only`. The React SDK requests the returned audience. Auth0 mode must supply domain, audience, and client ID.
-- **`GET /api/me`**: the profile exposes `is_invited`, `is_admin`, and `scanning_enabled`. The existing database column remains `is_early_access_user` for compatibility with stored data.
+- **`GET /api/me`**: the profile exposes `is_invited`, `invitation_status` (`pending`, `approved`, `rejected`, or `null`), `is_admin`, and `scanning_enabled`. The existing database column remains `is_early_access_user` for compatibility with stored data.
 
-Session cookies include a credential version derived by HMAC from the current salted password hash. Every authenticated session request checks this version against the database, so a password reset or change invalidates earlier cookies without adding a database column or exposing the hash. `POST /api/change-password` refreshes the current browser's cookies and preserves its CSRF token. Legacy cookies without a credential version require sign-in again. Stored bootstrap passwords replace the configured password for authentication; the configured username remains an alias. Session mode honors the stored administrator role, including bootstrap account demotions. Automatic login restores administrator access and ignores password-change flags; Auth0 also ignores these session-only flags.
+Session cookies include both a `jti` referencing an active `user_sessions` row and a credential version derived by HMAC from the current salted password hash. Every authenticated session request verifies both the credential version and that the `user_sessions` row exists, belongs to the user, has `revoked_at IS NULL`, and has not passed `expires_at`. `POST /api/change-password` and admin password resets revoke all active `user_sessions` rows for the user; `POST /api/change-password` creates a fresh session for the current browser and rotates its CSRF token. Users can list and individually revoke active password sessions via `GET /api/me/sessions` and `DELETE /api/me/sessions/{session_id}` (returning `404` outside `session` mode or for sessions not owned by the caller). Legacy cookies without a `jti` or credential version require sign-in again. Stored bootstrap passwords replace the configured password for authentication; the configured username remains an alias. Session mode honors the stored administrator role, including bootstrap account demotions. Automatic login restores administrator access and ignores password-change flags; Auth0 also ignores these session-only flags.
 
 ### 2. Optional invite-only guard
 
 `CAMPLY_INVITE_ONLY` defaults to `false`. When enabled, every `/api/scans` operation requires the user's `is_invited` flag. Uninvited authenticated callers receive `403` with `ERR_INVITE_REQUIRED`. The frontend gates dashboard and scan detail routes with the invitation request screen. Profiles and public metadata remain accessible. Existing scan ownership checks apply in both configurations.
 
-### 3. Invitation requests (collection only)
+### 3. Invitation requests and admin review
 
-`POST /api/request-access` stores a pending email request and accepts duplicates idempotently. It does not grant access or deliver notifications.
+`POST /api/request-access` stores a pending request with a normalized lowercase email and optional `name`, accepting duplicate emails idempotently. When a new request is persisted (not on duplicate submissions), best-effort background notifications are sent via `ntfy` or `Pushover` to configured administrators (`is_admin=True`, `scanning_enabled=True`, and valid channel credentials). It does not grant access or send email.
 
-**TODO:** Provide an approval/revocation workflow, verified identity matching, and invitation notification delivery.
+On first-time Auth0 provisioning with a verified email, matching `AccessRequest` rows are linked via `user_id`; an `approved` request grants `is_invited=True`, while `pending` or `rejected` requests link `user_id` with `is_invited=False`. Existing uninvited Auth0 users who change to an unclaimed `approved` verified email also receive `is_invited=True`, unless they already have a `rejected` request. Unverified emails are rejected (`403 ERR_VERIFIED_EMAIL_REQUIRED`) and never claim approved requests. `GET /api/me` and `PATCH /api/me` expose `invitation_status` (`pending`, `approved`, `rejected`, or `null`) from the most recently updated matching request.
+
+Administrators review requests via `GET /api/admin/access-requests` (paginated, filterable by `status` and email/name `search`) and `PATCH /api/admin/access-requests/{id}` (`approved` or `rejected`), or toggle `is_invited` directly via `PATCH /api/admin/users/{id}`. Approving a request links any existing user with that lowercased email and sets `is_invited=True`; rejecting a previously approved request revokes `is_invited` for the linked/matching user while blocking self-revocation and bootstrap-admin revocation. Toggling `is_invited` via `PATCH /api/admin/users/{id}` symmetrically updates matching `AccessRequest` rows (`pending`/`rejected` -> `approved` when invited, `approved` -> `rejected` when revoked) with reviewer metadata and `user_id` linkage. All status and invitation changes emit `AdminAuditEvent` records.
 
 ---
 
@@ -67,9 +79,11 @@ Session cookies include a credential version derived by HMAC from the current sa
 
 ### 2. User & Profile (Auth-Required)
 
-- **`GET /api/me`**: Get current user profile, invitation status, administrator role, scanning eligibility, and password change status.
-- **`PATCH /api/me`**: Update user-specific settings (e.g., `pushover_token`). Requires password update first if `must_change_password` is set.
-- **`POST /api/change-password`**: Update user password and clear `must_change_password` (session mode).
+- **`GET /api/me`**: Get current user profile, invitation eligibility and `invitation_status`, administrator role, scanning eligibility, and password change status.
+- **`PATCH /api/me`**: Update user-specific settings (e.g., `pushover_token`) and return the updated profile including `invitation_status`. Requires password update first if `must_change_password` is set.
+- **`POST /api/change-password`**: Update user password, revoke prior sessions, issue a fresh session, and clear `must_change_password` (session mode).
+- **`GET /api/me/sessions`**: List active password sessions (`id`, `user_agent`, `ip_address`, `created_at`, `expires_at`, `is_current`) for the authenticated user (session mode; requires `must_change_password=false`).
+- **`DELETE /api/me/sessions/{session_id}`**: Revoke a specific password session owned by the authenticated user, clearing cookies if revoking the current session (session mode; requires `must_change_password=false`).
 
 ### 3. Scan Management (Auth-Required + Optional Invitation)
 
@@ -88,7 +102,9 @@ Session cookies include a credential version derived by HMAC from the current sa
 - **`GET /api/admin/users`**: List users with scanning status, scan counts, pagination, and search.
 - **`POST /api/admin/users`**: Create a new database user with password, scanning status, admin status, and optional forced password change (session mode only).
 - **`GET /api/admin/users/{id}`**: User detail with scans and audit history.
-- **`PATCH /api/admin/users/{id}`**: Update scanning access or administrator role, rejecting self-demotion. Password resets and `must_change_password` updates require session mode; requests containing either field outside session mode return `400` before applying changes. Password resets revoke existing sessions and default to requiring password rotation.
+- **`PATCH /api/admin/users/{id}`**: Update scanning access, invitation eligibility (`is_invited`), or administrator role, rejecting self-demotion and revocation of the acting or bootstrap administrator's invitation. Password resets and `must_change_password` updates require session mode; requests containing either field outside session mode return `400` before applying changes. Password resets revoke existing sessions and default to requiring password rotation.
+- **`GET /api/admin/access-requests`**: List invitation requests with pagination, `status` filter (`pending`, `approved`, `rejected`), and email/name `search`.
+- **`PATCH /api/admin/access-requests/{id}`**: Approve or reject (revoke) an invitation request, recording reviewer metadata, updating linked/matching user `is_invited`, guarding against acting/bootstrap-admin revocation, and recording audit events.
 - **`GET /api/admin/scans`**: List all system scans with filters and pagination.
 - **`GET /api/admin/scans/{id}`**: Scan detail including target and subscriber info.
 - **`PATCH /api/admin/scans/{id}`**: Update scan status (e.g., toggle `is_active`).
@@ -208,39 +224,43 @@ Creation and edits to dates, nights or minimum stay validate that the merged cri
 
 ## 🗺️ Endpoint Summary
 
-| Method | Path                                                   | Auth      | Invitation (when enabled) | Purpose                             |
-| ------ | ------------------------------------------------------ | --------- | ------------------------- | ----------------------------------- |
-| GET    | `/api/search?query=`                                   | —         | —                         | Search campgrounds/rec areas        |
-| GET    | `/api/providers`                                       | —         | —                         | List providers                      |
-| GET    | `/api/provider/{id}`                                   | —         | —                         | Single provider                     |
-| GET    | `/api/campground/{provider}/{id}`                      | —         | —                         | Single campground                   |
-| GET    | `/api/rec-area/{provider}/{id}`                        | —         | —                         | Single rec area                     |
-| GET    | `/api/rec-area/{provider}/{id}/campgrounds`            | —         | —                         | Campgrounds in rec area             |
-| GET    | `/api/rec-area/{provider}/{id}/monitoring-campgrounds` | —         | —                         | Paginated eligible area campgrounds |
-| GET    | `/api/me`                                              | ✓         | —                         | Current user profile                |
-| PATCH  | `/api/me`                                              | ✓         | —                         | Update profile                      |
-| POST   | `/api/change-password`                                 | ✓         | —                         | Change password (session)           |
-| GET    | `/api/scans`                                           | ✓         | ✓                         | List user scans                     |
-| POST   | `/api/scans`                                           | ✓         | ✓                         | Create scan                         |
-| GET    | `/api/scans/{id}`                                      | ✓         | ✓                         | Scan detail                         |
-| PATCH  | `/api/scans/{id}`                                      | ✓         | ✓                         | Update scan                         |
-| DELETE | `/api/scans/{id}`                                      | ✓         | ✓                         | Delete scan                         |
-| GET    | `/api/health`                                          | —         | —                         | Health check                        |
-| GET    | `/api/admin/overview`                                  | ✓ (Admin) | —                         | Admin KPI overview                  |
-| GET    | `/api/admin/users`                                     | ✓ (Admin) | —                         | List users with status              |
-| POST   | `/api/admin/users`                                     | ✓ (Admin) | —                         | Create user with credentials        |
-| GET    | `/api/admin/users/{id}`                                | ✓ (Admin) | —                         | User details and audit              |
-| PATCH  | `/api/admin/users/{id}`                                | ✓ (Admin) | —                         | Update user (toggle scanning)       |
-| GET    | `/api/admin/scans`                                     | ✓ (Admin) | —                         | List all system scans               |
-| GET    | `/api/admin/scans/{id}`                                | ✓ (Admin) | —                         | Scan detail and target info         |
-| PATCH  | `/api/admin/scans/{id}`                                | ✓ (Admin) | —                         | Update scan (toggle active)         |
-| GET    | `/api/admin/targets/{id}`                              | ✓ (Admin) | —                         | Shared target detail                |
-| GET    | `/api/admin/audit`                                     | ✓ (Admin) | —                         | Immutable audit event log           |
-| GET    | `/api/admin/operations`                                | ✓ (Admin) | —                         | Celery worker states & queue        |
-| GET    | `/api/admin/operations/tasks`                          | ✓ (Admin) | —                         | Valkey telemetry stream             |
-| GET    | `/api/admin/operations/tasks/{id}`                     | ✓ (Admin) | —                         | Task execution telemetry            |
-| POST   | `/api/admin/operations/sync-providers`                 | ✓ (Admin) | —                         | Dispatch provider catalog sync      |
-| GET    | `/api/admin/trends`                                    | ✓ (Admin) | —                         | Prometheus metrics proxy            |
+| Method | Path                                                   | Auth      | Invitation (when enabled) | Purpose                              |
+| ------ | ------------------------------------------------------ | --------- | ------------------------- | ------------------------------------ |
+| GET    | `/api/search?query=`                                   | —         | —                         | Search campgrounds/rec areas         |
+| GET    | `/api/providers`                                       | —         | —                         | List providers                       |
+| GET    | `/api/provider/{id}`                                   | —         | —                         | Single provider                      |
+| GET    | `/api/campground/{provider}/{id}`                      | —         | —                         | Single campground                    |
+| GET    | `/api/rec-area/{provider}/{id}`                        | —         | —                         | Single rec area                      |
+| GET    | `/api/rec-area/{provider}/{id}/campgrounds`            | —         | —                         | Campgrounds in rec area              |
+| GET    | `/api/rec-area/{provider}/{id}/monitoring-campgrounds` | —         | —                         | Paginated eligible area campgrounds  |
+| GET    | `/api/me`                                              | ✓         | —                         | Current user profile                 |
+| PATCH  | `/api/me`                                              | ✓         | —                         | Update profile                       |
+| POST   | `/api/change-password`                                 | ✓         | —                         | Change password (session)            |
+| GET    | `/api/me/sessions`                                     | ✓         | —                         | List active password sessions        |
+| DELETE | `/api/me/sessions/{session_id}`                        | ✓         | —                         | Revoke a password session            |
+| GET    | `/api/scans`                                           | ✓         | ✓                         | List user scans                      |
+| POST   | `/api/scans`                                           | ✓         | ✓                         | Create scan                          |
+| GET    | `/api/scans/{id}`                                      | ✓         | ✓                         | Scan detail                          |
+| PATCH  | `/api/scans/{id}`                                      | ✓         | ✓                         | Update scan                          |
+| DELETE | `/api/scans/{id}`                                      | ✓         | ✓                         | Delete scan                          |
+| GET    | `/api/health`                                          | —         | —                         | Health check                         |
+| GET    | `/api/admin/overview`                                  | ✓ (Admin) | —                         | Admin KPI overview                   |
+| GET    | `/api/admin/users`                                     | ✓ (Admin) | —                         | List users with status               |
+| POST   | `/api/admin/users`                                     | ✓ (Admin) | —                         | Create user with credentials         |
+| GET    | `/api/admin/users/{id}`                                | ✓ (Admin) | —                         | User details and audit               |
+| PATCH  | `/api/admin/users/{id}`                                | ✓ (Admin) | —                         | Update user (scanning, invite, role) |
+| GET    | `/api/admin/access-requests`                           | ✓ (Admin) | —                         | List invitation requests             |
+| PATCH  | `/api/admin/access-requests/{id}`                      | ✓ (Admin) | —                         | Approve or reject access request     |
+| GET    | `/api/admin/scans`                                     | ✓ (Admin) | —                         | List all system scans                |
+| GET    | `/api/admin/scans/{id}`                                | ✓ (Admin) | —                         | Scan detail and target info          |
+| PATCH  | `/api/admin/scans/{id}`                                | ✓ (Admin) | —                         | Update scan (toggle active)          |
+| GET    | `/api/admin/targets/{id}`                              | ✓ (Admin) | —                         | Shared target detail                 |
+| GET    | `/api/admin/audit`                                     | ✓ (Admin) | —                         | Immutable audit event log            |
+| GET    | `/api/admin/operations`                                | ✓ (Admin) | —                         | Celery worker states & queue         |
+| GET    | `/api/admin/operations/tasks`                          | ✓ (Admin) | —                         | Valkey telemetry stream              |
+| GET    | `/api/admin/operations/tasks/{id}`                     | ✓ (Admin) | —                         | Task execution telemetry             |
+| POST   | `/api/admin/operations/sync-providers`                 | ✓ (Admin) | —                         | Dispatch provider catalog sync       |
+| GET    | `/api/admin/trends`                                    | ✓ (Admin) | —                         | Prometheus metrics proxy             |
 
 ### Admin contract and monitoring availability
 

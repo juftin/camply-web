@@ -161,6 +161,29 @@ export function AdminUserDetail() {
     }
   };
 
+  const handleToggleInvited = async () => {
+    setMessage(null);
+    setActionError(false);
+    try {
+      setUpdatingUser(true);
+      await updateUserMutation.mutateAsync({
+        userId: user.id,
+        payload: { is_invited: !user.is_invited },
+      });
+      await refetchUser();
+      setMessage(
+        user.is_invited
+          ? `Invitation revoked for ${user.email}.`
+          : `Invitation granted to ${user.email}.`,
+      );
+    } catch (error) {
+      setActionError(true);
+      setMessage(getApiErrorMessage(error));
+    } finally {
+      setUpdatingUser(false);
+    }
+  };
+
   const handleToggleScanning = async () => {
     setMessage(null);
     setActionError(false);
@@ -480,6 +503,47 @@ export function AdminUserDetail() {
                   checked={user.scanning_enabled}
                   disabled={updatingUser}
                   onCheckedChange={handleToggleScanning}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Invitation Access Card */}
+          <Card
+            className={`border-2 ${user.is_invited ? "border-emerald-500/20" : "border-border"}`}
+          >
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center justify-between">
+                <span>Invitation access</span>
+                <Badge variant={user.is_invited ? "success" : "secondary"}>
+                  {user.is_invited ? "Invited" : "Not invited"}
+                </Badge>
+              </CardTitle>
+              <CardDescription>
+                Controls whether this user can manage scans when invite-only
+                access is enabled.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-lg border bg-background">
+                <div>
+                  <p className="font-medium text-sm">Invited</p>
+                  <p className="text-xs text-muted-foreground">
+                    {currentUser?.id === user.id && user.is_invited
+                      ? "You cannot revoke your own invitation"
+                      : user.is_invited
+                        ? "User is invited to use scans"
+                        : "User requires an invitation in invite-only mode"}
+                  </p>
+                </div>
+                <Switch
+                  aria-label={`Invitation access for ${user.email}`}
+                  checked={user.is_invited}
+                  disabled={
+                    updatingUser ||
+                    (currentUser?.id === user.id && user.is_invited)
+                  }
+                  onCheckedChange={handleToggleInvited}
                 />
               </div>
             </CardContent>

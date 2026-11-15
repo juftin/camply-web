@@ -73,6 +73,7 @@ class MeResponse(BaseModel):
     )
     ntfy_access_token: str | None = Field(default=None, repr=False)
     must_change_password: bool = False
+    invitation_status: Optional[Literal["pending", "approved", "rejected"]] = None
 
 
 class MeUpdateRequest(BaseModel):
@@ -136,16 +137,80 @@ class SessionLoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=1024, repr=False)
 
 
+class UserSessionItem(BaseModel):
+    """Active server-side password session belonging to the current user."""
+
+    id: uuid.UUID
+    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None
+    created_at: UtcDateTime
+    expires_at: UtcDateTime
+    is_current: bool
+
+
+class UserSessionListResponse(BaseModel):
+    """List of active password sessions for the current user."""
+
+    items: list[UserSessionItem]
+
+
 # ===========================================================================
 # Access Requests
 # ===========================================================================
+
+_MIN_EMAIL_LENGTH = 3
+"""Minimum length for a valid ``local@domain`` email address."""
+_MAX_EMAIL_LENGTH = 255
+"""Maximum length for a stored email address."""
 
 
 class AccessRequestCreate(BaseModel):
     """Payload for ``POST /request-access``."""
 
-    email: str = Field(..., description="Email address requesting an invitation")
-    name: Optional[str] = Field(default=None, description="Optional name")
+    email: str = Field(
+        ...,
+        min_length=_MIN_EMAIL_LENGTH,
+        max_length=_MAX_EMAIL_LENGTH,
+        description="Email address requesting an invitation",
+    )
+    name: Optional[str] = Field(
+        default=None, max_length=255, description="Optional name"
+    )
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        """
+        Strip outer whitespace and validate basic ``local@domain`` structure.
+
+        Parameters
+        ----------
+        value : str
+            Raw submitted email address.
+
+        Returns
+        -------
+        str
+            Stripped email address.
+
+        Raises
+        ------
+        ValueError
+            When the trimmed email length, whitespace, or ``local@domain`` format is invalid.
+        """
+        cleaned = value.strip()
+        if not (_MIN_EMAIL_LENGTH <= len(cleaned) <= _MAX_EMAIL_LENGTH):
+            raise ValueError(
+                f"Email address must be between {_MIN_EMAIL_LENGTH} and {_MAX_EMAIL_LENGTH} characters"
+            )
+        if any(char.isspace() for char in cleaned):
+            raise ValueError("Email address must not contain whitespace")
+        if cleaned.count("@") != 1:
+            raise ValueError("Email address must contain a single '@' separator")
+        local, domain = cleaned.split("@", 1)
+        if not local or not domain or "." not in domain or not all(domain.split(".")):
+            raise ValueError("Email address must be a valid email address")
+        return cleaned
 
 
 class AccessRequestResponse(BaseModel):
@@ -468,11 +533,39 @@ class AdminUserUpdateRequest(BaseModel):
     """Payload to update an existing user."""
 
     is_admin: Optional[bool] = None
+    is_invited: Optional[bool] = None
     scanning_enabled: Optional[bool] = None
     must_change_password: Optional[bool] = None
     password: Optional[str] = Field(
         default=None, min_length=1, max_length=1024, repr=False
     )
+
+
+class AdminAccessRequestItem(BaseModel):
+    """Invitation request row in the admin access request list."""
+
+    id: uuid.UUID
+    email: str
+    name: Optional[str] = None
+    status: Literal["pending", "approved", "rejected"]
+    created_at: UtcDateTime
+    updated_at: UtcDateTime
+    reviewed_at: Optional[UtcDateTime] = None
+    reviewed_by_id: Optional[uuid.UUID] = None
+    user_id: Optional[uuid.UUID] = None
+
+
+class AdminAccessRequestListResponse(BaseModel):
+    """Paginated admin invitation request list."""
+
+    access_requests: list[AdminAccessRequestItem]
+    total: int
+
+
+class AdminAccessRequestUpdateRequest(BaseModel):
+    """Payload to approve or reject (revoke) an invitation request."""
+
+    status: Literal["approved", "rejected"]
 
 
 class AdminScanItem(ScanResponse):

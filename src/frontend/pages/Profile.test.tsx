@@ -1,18 +1,30 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { ReactNode } from "react";
 import type { AuthState } from "@/hooks/useAuth";
 import { Profile } from "./Profile";
-import { updateMe } from "@/lib/api";
+import { listMySessions, revokeMySession, updateMe } from "@/lib/api";
 
-vi.mock("@/lib/api", () => ({
-  updateMe: vi.fn().mockResolvedValue({}),
-  sendTestNotification: vi
-    .fn()
-    .mockResolvedValue({ status: "sent", provider: "ntfy" }),
-}));
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api")>();
+  return {
+    ...actual,
+    updateMe: vi.fn().mockResolvedValue({}),
+    sendTestNotification: vi
+      .fn()
+      .mockResolvedValue({ status: "sent", provider: "ntfy" }),
+    listMySessions: vi.fn().mockResolvedValue({ items: [] }),
+    revokeMySession: vi.fn().mockResolvedValue(undefined),
+  };
+});
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
@@ -58,8 +70,11 @@ function renderProfile(overrides: Partial<AuthState> = {}) {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <Profile />
+      <MemoryRouter initialEntries={["/profile"]}>
+        <Routes>
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/auth" element={<div>Sign In Page</div>} />
+        </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -68,6 +83,8 @@ function renderProfile(overrides: Partial<AuthState> = {}) {
 beforeEach(() => {
   queryClient.clear();
   vi.clearAllMocks();
+  vi.mocked(listMySessions).mockResolvedValue({ items: [] });
+  vi.mocked(revokeMySession).mockResolvedValue(undefined);
 });
 
 describe("Profile", () => {
@@ -131,6 +148,66 @@ describe("Profile", () => {
   it("shows not signed in message when user is null", () => {
     renderProfile({ user: null, isLoading: false });
     expect(screen.getByText("Not signed in")).toBeInTheDocument();
+  });
+
+  it("hides active sessions in auth0 and autoLogin modes", () => {
+    renderProfile({ authMode: "auth0" });
+    expect(screen.queryByText("Active Sessions")).not.toBeInTheDocument();
+
+    renderProfile({ authMode: "session", autoLogin: true });
+    expect(screen.queryByText("Active Sessions")).not.toBeInTheDocument();
+    expect(listMySessions).not.toHaveBeenCalled();
+  });
+
+  it("renders active sessions and revokes non-current and current sessions", async () => {
+    const current = {
+      id: "sess-current",
+      user_agent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/130.0.0.0 Safari/537.36",
+      ip_address: "198.51.100.1",
+      created_at: "2026-11-15T10:00:00Z",
+      expires_at: "2026-11-22T10:00:00Z",
+      is_current: true,
+    };
+    const other = {
+      id: "sess-other",
+      user_agent:
+        "Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0",
+      ip_address: "203.0.113.5",
+      created_at: "2026-11-14T09:00:00Z",
+      expires_at: "2026-11-21T09:00:00Z",
+      is_current: false,
+    };
+    vi.mocked(listMySessions)
+      .mockResolvedValueOnce({ items: [current, other] })
+      .mockResolvedValueOnce({ items: [current] });
+
+    renderProfile();
+
+    expect(await screen.findByText("Active Sessions")).toBeInTheDocument();
+    expect(await screen.findByText("Chrome on macOS")).toBeInTheDocument();
+    expect(screen.getByText("Firefox on Linux")).toBeInTheDocument();
+    expect(screen.getByText("Current")).toBeInTheDocument();
+    expect(screen.getByText("IP 198.51.100.1")).toBeInTheDocument();
+
+    const otherItem = screen.getByText("Firefox on Linux").closest("li")!;
+    fireEvent.click(within(otherItem).getByRole("button", { name: "Revoke" }));
+
+    await waitFor(() => {
+      expect(revokeMySession).toHaveBeenCalledWith("sess-other");
+      expect(screen.queryByText("Firefox on Linux")).not.toBeInTheDocument();
+    });
+
+    const currentItem = screen.getByText("Chrome on macOS").closest("li")!;
+    fireEvent.click(
+      within(currentItem).getByRole("button", { name: "Revoke" }),
+    );
+
+    await waitFor(() => {
+      expect(revokeMySession).toHaveBeenCalledWith("sess-current");
+      expect(screen.getByText("Sign In Page")).toBeInTheDocument();
+    });
+    expect(queryClient.getQueryData(["me"])).toBeNull();
   });
 });
 

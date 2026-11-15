@@ -1505,8 +1505,44 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
         ...MOCK_USER,
         is_invited: !invitationRequired,
         is_admin: scenario.route.startsWith("/admin"),
+        invitation_status: null,
       }),
     });
+  });
+
+  await page.route("**/api/me/sessions", (route) => {
+    route.fulfill({
+      status: signedOut ? 401 : 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: signedOut
+          ? []
+          : [
+              {
+                id: "session-snap-1",
+                user_agent:
+                  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36",
+                ip_address: "198.51.100.42",
+                created_at: "2026-10-10T11:30:00Z",
+                expires_at: "2026-10-10T23:30:00Z",
+                is_current: true,
+              },
+              {
+                id: "session-snap-2",
+                user_agent:
+                  "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
+                ip_address: "203.0.113.19",
+                created_at: "2026-10-10T09:15:00Z",
+                expires_at: "2026-10-10T21:15:00Z",
+                is_current: false,
+              },
+            ],
+      }),
+    });
+  });
+
+  await page.route("**/api/me/sessions/*", (route) => {
+    route.fulfill({ status: 204 });
   });
 
   await page.route("**/api/scans", (route) => {

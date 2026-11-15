@@ -279,6 +279,9 @@ export function Dashboard() {
       ) : scansError ? (
         <div className="rounded-md bg-destructive/10 p-6 text-center">
           <p className="text-destructive font-medium">Failed to load scans</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {getApiErrorMessage(scansError)}
+          </p>
           <Button
             variant="outline"
             size="sm"
