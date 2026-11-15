@@ -171,6 +171,8 @@ def test_expired_scan_management_and_legacy_defaults(
             assert target is not None
             target.start_date = datetime.date(2000, 1, 1)
             target.end_date = datetime.date(2000, 1, 3)
+            scan.start_date = datetime.date(2000, 1, 1)
+            scan.end_date = datetime.date(2000, 1, 3)
             await session.commit()
 
     asyncio.run(expire_target())

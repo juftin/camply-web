@@ -10,10 +10,11 @@ from urllib.parse import urljoin
 import platformdirs
 import rich.progress
 import structlog
+from sqlalchemy import select, update
 
 from camply.db.config import db
 from camply.db.data.providers import RecreationDotGov
-from camply.db.models import Provider
+from camply.db.models import Campground, Provider, RecreationArea
 from camply.providers.base import BaseProvider
 from camply.providers.dto import (
     CampgroundSearchResult,
@@ -695,12 +696,38 @@ class RecreationGovProvider(BaseProvider):
                     f"Provider {self.provider.name} (ID {self.provider.id}) not found in database. "
                     "Run database migrations before syncing provider metadata."
                 )
+        data_file = await self.download_offline_data()
+        datasets = [
+            await asyncio.to_thread(_read_catalog, data_file, data)
+            for data in self.data_files
+        ]
+        if len(datasets) != len(self.data_files) or any(
+            not getattr(dataset, "RECDATA", None) for dataset in datasets
+        ):
+            raise ValueError(
+                "Incomplete Recreation.gov catalog; retaining previous publication"
+            )
         async with db.get_session() as session:
-            data_file = await self.download_offline_data()
-            for data in self.data_files:
-                parsed = await asyncio.to_thread(_read_catalog, data_file, data)
-                await parsed.to_database(session)
-            await self.populate_search_table(session)
+            async with session.begin():
+                await session.scalar(
+                    select(Provider)
+                    .where(Provider.id == self.provider.id)
+                    .with_for_update()
+                )
+                for model in (Campground, RecreationArea):
+                    await session.execute(
+                        update(model)
+                        .where(model.provider_id == self.provider.id)
+                        .values(enabled=False, reservable=False)
+                    )
+                for parsed in datasets:
+                    await parsed.to_database(session)
+                await self.populate_search_table(session, commit=False)
+                await session.execute(
+                    update(Provider)
+                    .where(Provider.id == self.provider.id)
+                    .values(catalog_revision=Provider.catalog_revision + 1)
+                )
 
     @classmethod
     def get_rec_area_url(cls, rec_area_id: str) -> str:

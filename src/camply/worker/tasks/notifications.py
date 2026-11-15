@@ -9,6 +9,7 @@ import structlog
 
 from camply.db.config import db
 from camply.worker.celery_app import celery_app
+from camply.worker.config import worker_config
 from camply.worker.engine.notifications import send_notification
 from camply.worker.metrics import NOTIFICATIONS_SENT_TOTAL
 from camply.worker.notifications.pushover import PushoverProvider
@@ -93,3 +94,26 @@ def send_ntfy_notification(
         return result
     except Exception:
         raise self.retry(exc=RuntimeError("ntfy delivery failed")) from None
+
+
+@celery_app.task(name="camply.notifications.deliver_area_outbox", ignore_result=True)
+def deliver_area_outbox() -> dict:
+    """Consume bounded area work independently of availability discovery cadence."""
+    from camply.worker.outbox import deliver_next, recover_deliveries
+
+    async def consume() -> dict:
+        """Recover only expired claims and process a bounded page of due intents."""
+        await recover_deliveries(db)
+        count = 0
+        for _ in range(100):
+            result = await deliver_next(
+                db, invite_only=worker_config.invite_only, area_only=True
+            )
+            if result is None:
+                break
+            if result["outcome"] == "success":
+                NOTIFICATIONS_SENT_TOTAL.inc()
+            count += 1
+        return {"delivered": count}
+
+    return asyncio.run(consume())

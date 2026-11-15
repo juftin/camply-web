@@ -103,4 +103,47 @@ describe("Dashboard campground groups", () => {
       ),
     );
   });
+
+  it("groups recreation area scans separately from campgrounds and across providers", () => {
+    vi.mocked(useScans).mockReturnValue({
+      data: {
+        scans: [
+          {
+            ...baseScan,
+            id: "area-1",
+            destination_type: "recreation_area",
+            destination_name: "Yosemite Area",
+            campground_id: null,
+            campground_name: null,
+            recreation_area_id: "1001",
+            recreation_area_name: "Yosemite Area",
+            coverage_mode: "all",
+            eligible_campground_count: 8,
+          },
+          {
+            ...baseScan,
+            id: "area-2",
+            provider_id: 2,
+            destination_type: "recreation_area",
+            destination_name: "Yosemite Area",
+            campground_id: null,
+            campground_name: null,
+            recreation_area_id: "1001",
+            recreation_area_name: "Yosemite Area",
+            coverage_mode: "selected",
+            campground_ids: ["cg-2"],
+          },
+        ],
+        total: 2,
+      },
+    } as ReturnType<typeof useScans>);
+    const { container } = render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>,
+    );
+    const groups = container.querySelectorAll("details");
+    expect(groups).toHaveLength(2);
+    expect(screen.getAllByText("Yosemite Area")).toHaveLength(2);
+  });
 });

@@ -369,6 +369,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rec-area/{provider}/{id}/monitoring-campgrounds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Monitoring Campgrounds
+         * @description Discover complete eligible choices without changing the metadata endpoint.
+         */
+        get: operations["monitoring_campgrounds_api_rec_area__provider___id__monitoring_campgrounds_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/provider/{id}": {
         parameters: {
             query?: never;
@@ -418,16 +438,13 @@ export interface paths {
         };
         /**
          * List Scans
-         * @description List all scans belonging to the authenticated user.
+         * @description List saved subscriptions once, independent of resolved member count.
          */
         get: operations["list_scans_api_scans_get"];
         put?: never;
         /**
          * Create Scan
-         * @description Create a new scan for the authenticated user.
-         *
-         *     If a ``UniqueTarget`` with the same hash already exists it is re-used
-         *     (de-duplication).  Otherwise a new target is created.
+         * @description Save one validated destination and its shared member links in one transaction.
          */
         post: operations["create_scan_api_scans_post"];
         delete?: never;
@@ -445,21 +462,21 @@ export interface paths {
         };
         /**
          * Get Scan
-         * @description Return detailed information for a single scan, including recent results.
+         * @description Return qualified matches and per-member freshness without provider requests.
          */
         get: operations["get_scan_api_scans__scan_id__get"];
         put?: never;
         post?: never;
         /**
          * Delete Scan
-         * @description Delete (unsubscribe from) a scan.
+         * @description Remove only the subscription and its links, preserving shared observations.
          */
         delete: operations["delete_scan_api_scans__scan_id__delete"];
         options?: never;
         head?: never;
         /**
          * Update Scan
-         * @description Edit a subscription's target and filters or toggle ``is_active``.
+         * @description Merge edits while retaining unavailable selections and isolating other users.
          */
         patch: operations["update_scan_api_scans__scan_id__patch"];
         trace?: never;
@@ -1110,28 +1127,82 @@ export interface components {
          */
         AdminScanDetailResponse: {
             /**
+             * Destination Type
+             * @default campground
+             * @enum {string}
+             */
+            destination_type: "campground" | "recreation_area";
+            /**
+             * Destination Name
+             * @default
+             */
+            destination_name: string;
+            /** Recreation Area Id */
+            recreation_area_id?: string | null;
+            /** Coverage Mode */
+            coverage_mode?: ("all" | "selected") | null;
+            /** Campground Ids */
+            campground_ids?: string[];
+            /** Selected Campgrounds */
+            selected_campgrounds?: components["schemas"]["ScanChoiceItem"][];
+            /**
+             * Eligible Campground Count
+             * @default 1
+             */
+            eligible_campground_count: number;
+            /**
+             * Unavailable Selection Count
+             * @default 0
+             */
+            unavailable_selection_count: number;
+            /**
+             * Matching Campground Count
+             * @default 0
+             */
+            matching_campground_count: number;
+            /**
+             * Destination Available
+             * @default true
+             */
+            destination_available: boolean;
+            /**
+             * Coverage Status
+             * @default waiting
+             */
+            coverage_status: string;
+            /**
+             * Checked Campground Count
+             * @default 0
+             */
+            checked_campground_count: number;
+            /**
+             * Failed Campground Count
+             * @default 0
+             */
+            failed_campground_count: number;
+            /**
+             * Pending Campground Count
+             * @default 0
+             */
+            pending_campground_count: number;
+            /** Last Full Checked At */
+            last_full_checked_at?: string | null;
+            /**
+             * Row Version
+             * @default 1
+             */
+            row_version: number;
+            /**
              * Id
              * Format: uuid
              */
             id: string;
-            /**
-             * User Id
-             * Format: uuid
-             */
-            user_id: string;
-            /** User Email */
-            user_email: string;
-            /**
-             * Target Id
-             * Format: uuid
-             */
-            target_id: string;
             /** Provider Id */
             provider_id: number;
             /** Campground Id */
-            campground_id: string;
+            campground_id: string | null;
             /** Campground Name */
-            campground_name: string;
+            campground_name: string | null;
             /** Recreation Area Name */
             recreation_area_name: string;
             /**
@@ -1146,36 +1217,30 @@ export interface components {
             end_date: string;
             /** Is Active */
             is_active: boolean;
-            /** Is Eligible */
-            is_eligible: boolean;
-            /** User Scanning Enabled */
-            user_scanning_enabled: boolean;
             /** Min Stay Length */
             min_stay_length: number;
             /** Preferred Types */
             preferred_types?: string[];
             /** Require Electric */
             require_electric: boolean;
+            /** Allowed Weekdays */
+            allowed_weekdays?: number[];
             /** Last Checked At */
             last_checked_at?: string | null;
+            /**
+             * Found Count
+             * @default 0
+             */
+            found_count: number;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
+            /** Campgrounds */
+            campgrounds?: components["schemas"]["ScanCampgroundItem"][];
             /** Results */
             results?: components["schemas"]["ScanResultItem"][];
-        };
-        /**
-         * AdminScanItem
-         * @description Scan summary item in admin scan list.
-         */
-        AdminScanItem: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
             /**
              * User Id
              * Format: uuid
@@ -1183,17 +1248,100 @@ export interface components {
             user_id: string;
             /** User Email */
             user_email: string;
+            /** Target Id */
+            target_id: string | null;
+            /** Is Eligible */
+            is_eligible: boolean;
+            /** User Scanning Enabled */
+            user_scanning_enabled: boolean;
+        };
+        /**
+         * AdminScanItem
+         * @description Scan summary item in admin scan list.
+         */
+        AdminScanItem: {
             /**
-             * Target Id
+             * Destination Type
+             * @default campground
+             * @enum {string}
+             */
+            destination_type: "campground" | "recreation_area";
+            /**
+             * Destination Name
+             * @default
+             */
+            destination_name: string;
+            /** Recreation Area Id */
+            recreation_area_id?: string | null;
+            /** Coverage Mode */
+            coverage_mode?: ("all" | "selected") | null;
+            /** Campground Ids */
+            campground_ids?: string[];
+            /** Selected Campgrounds */
+            selected_campgrounds?: components["schemas"]["ScanChoiceItem"][];
+            /**
+             * Eligible Campground Count
+             * @default 1
+             */
+            eligible_campground_count: number;
+            /**
+             * Unavailable Selection Count
+             * @default 0
+             */
+            unavailable_selection_count: number;
+            /**
+             * Matching Campground Count
+             * @default 0
+             */
+            matching_campground_count: number;
+            /**
+             * Destination Available
+             * @default true
+             */
+            destination_available: boolean;
+            /**
+             * Coverage Status
+             * @default waiting
+             */
+            coverage_status: string;
+            /**
+             * Checked Campground Count
+             * @default 0
+             */
+            checked_campground_count: number;
+            /**
+             * Failed Campground Count
+             * @default 0
+             */
+            failed_campground_count: number;
+            /**
+             * Pending Campground Count
+             * @default 0
+             */
+            pending_campground_count: number;
+            /** Last Full Checked At */
+            last_full_checked_at?: string | null;
+            /**
+             * Row Version
+             * @default 1
+             */
+            row_version: number;
+            /**
+             * Id
              * Format: uuid
              */
-            target_id: string;
+            id: string;
             /** Provider Id */
             provider_id: number;
             /** Campground Id */
-            campground_id: string;
+            campground_id: string | null;
             /** Campground Name */
-            campground_name: string;
+            campground_name: string | null;
+            /**
+             * Recreation Area Name
+             * @default
+             */
+            recreation_area_name: string;
             /**
              * Start Date
              * Format: date
@@ -1206,10 +1354,14 @@ export interface components {
             end_date: string;
             /** Is Active */
             is_active: boolean;
-            /** Is Eligible */
-            is_eligible: boolean;
-            /** User Scanning Enabled */
-            user_scanning_enabled: boolean;
+            /** Min Stay Length */
+            min_stay_length: number;
+            /** Preferred Types */
+            preferred_types?: string[];
+            /** Require Electric */
+            require_electric: boolean;
+            /** Allowed Weekdays */
+            allowed_weekdays?: number[];
             /** Last Checked At */
             last_checked_at?: string | null;
             /** Found Count */
@@ -1219,6 +1371,19 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** User Email */
+            user_email: string;
+            /** Target Id */
+            target_id: string | null;
+            /** Is Eligible */
+            is_eligible: boolean;
+            /** User Scanning Enabled */
+            user_scanning_enabled: boolean;
         };
         /**
          * AdminScanListResponse
@@ -1870,6 +2035,44 @@ export interface components {
             ntfy_access_token?: string | null;
         };
         /**
+         * MonitoringCampground
+         * @description Eligible provider-qualified choice for an area monitoring draft.
+         */
+        MonitoringCampground: {
+            /** Id */
+            id: string;
+            /** Provider Id */
+            provider_id: number;
+            /** Recreation Area Id */
+            recreation_area_id: string;
+            /** Name */
+            name: string;
+            /** State */
+            state?: string | null;
+            /** City */
+            city?: string | null;
+        };
+        /**
+         * MonitoringCampgroundsResponse
+         * @description Paged choices with independent full-area and filtered counts.
+         */
+        MonitoringCampgroundsResponse: {
+            /** Items */
+            items: components["schemas"]["MonitoringCampground"][];
+            /** Total */
+            total: number;
+            /** Eligible Total */
+            eligible_total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Has More */
+            has_more: boolean;
+            /** Catalog Revision */
+            catalog_revision: number;
+        };
+        /**
          * NotificationTestResponse
          * @description Explicit upstream acceptance of a test message, without saving preferences.
          */
@@ -1975,6 +2178,45 @@ export interface components {
             persistent_job_history: boolean;
         };
         /**
+         * ScanCampgroundItem
+         * @description One saved or resolved member, including retained unavailable selections.
+         */
+        ScanCampgroundItem: {
+            /** Provider Id */
+            provider_id: number;
+            /** Campground Id */
+            campground_id: string;
+            /** Campground Name */
+            campground_name: string;
+            /** Eligible */
+            eligible: boolean;
+            /** Unavailable Reason */
+            unavailable_reason?: string | null;
+            /** Target Id */
+            target_id?: string | null;
+            /**
+             * Outcome
+             * @default pending
+             */
+            outcome: string;
+            /** Last Checked At */
+            last_checked_at?: string | null;
+            /** Attempt Started At */
+            attempt_started_at?: string | null;
+            /** Error Category */
+            error_category?: string | null;
+        };
+        /**
+         * ScanChoiceItem
+         * @description Saved campground identifier and fallback label for area selections.
+         */
+        ScanChoiceItem: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
          * ScanCreateRequest
          * @description Payload for creating a new user scan.
          */
@@ -1985,10 +2227,19 @@ export interface components {
              */
             provider_id: number;
             /**
-             * Campground Id
-             * @description Provider-internal campground ID
+             * Destination Type
+             * @default campground
+             * @enum {string}
              */
-            campground_id: string;
+            destination_type: "campground" | "recreation_area";
+            /** Campground Id */
+            campground_id?: string | null;
+            /** Recreation Area Id */
+            recreation_area_id?: string | null;
+            /** Coverage Mode */
+            coverage_mode?: ("all" | "selected") | null;
+            /** Campground Ids */
+            campground_ids?: string[] | null;
             /**
              * Start Date
              * Format: date
@@ -2030,6 +2281,72 @@ export interface components {
          */
         ScanDetailResponse: {
             /**
+             * Destination Type
+             * @default campground
+             * @enum {string}
+             */
+            destination_type: "campground" | "recreation_area";
+            /**
+             * Destination Name
+             * @default
+             */
+            destination_name: string;
+            /** Recreation Area Id */
+            recreation_area_id?: string | null;
+            /** Coverage Mode */
+            coverage_mode?: ("all" | "selected") | null;
+            /** Campground Ids */
+            campground_ids?: string[];
+            /** Selected Campgrounds */
+            selected_campgrounds?: components["schemas"]["ScanChoiceItem"][];
+            /**
+             * Eligible Campground Count
+             * @default 1
+             */
+            eligible_campground_count: number;
+            /**
+             * Unavailable Selection Count
+             * @default 0
+             */
+            unavailable_selection_count: number;
+            /**
+             * Matching Campground Count
+             * @default 0
+             */
+            matching_campground_count: number;
+            /**
+             * Destination Available
+             * @default true
+             */
+            destination_available: boolean;
+            /**
+             * Coverage Status
+             * @default waiting
+             */
+            coverage_status: string;
+            /**
+             * Checked Campground Count
+             * @default 0
+             */
+            checked_campground_count: number;
+            /**
+             * Failed Campground Count
+             * @default 0
+             */
+            failed_campground_count: number;
+            /**
+             * Pending Campground Count
+             * @default 0
+             */
+            pending_campground_count: number;
+            /** Last Full Checked At */
+            last_full_checked_at?: string | null;
+            /**
+             * Row Version
+             * @default 1
+             */
+            row_version: number;
+            /**
              * Id
              * Format: uuid
              */
@@ -2037,12 +2354,12 @@ export interface components {
             /** Provider Id */
             provider_id: number;
             /** Campground Id */
-            campground_id: string;
+            campground_id: string | null;
             /**
              * Campground Name
              * @default
              */
-            campground_name: string;
+            campground_name: string | null;
             /**
              * Recreation Area Name
              * @default
@@ -2080,6 +2397,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Campgrounds */
+            campgrounds?: components["schemas"]["ScanCampgroundItem"][];
             /** Results */
             results?: components["schemas"]["ScanResultItem"][];
         };
@@ -2099,6 +2418,72 @@ export interface components {
          */
         ScanResponse: {
             /**
+             * Destination Type
+             * @default campground
+             * @enum {string}
+             */
+            destination_type: "campground" | "recreation_area";
+            /**
+             * Destination Name
+             * @default
+             */
+            destination_name: string;
+            /** Recreation Area Id */
+            recreation_area_id?: string | null;
+            /** Coverage Mode */
+            coverage_mode?: ("all" | "selected") | null;
+            /** Campground Ids */
+            campground_ids?: string[];
+            /** Selected Campgrounds */
+            selected_campgrounds?: components["schemas"]["ScanChoiceItem"][];
+            /**
+             * Eligible Campground Count
+             * @default 1
+             */
+            eligible_campground_count: number;
+            /**
+             * Unavailable Selection Count
+             * @default 0
+             */
+            unavailable_selection_count: number;
+            /**
+             * Matching Campground Count
+             * @default 0
+             */
+            matching_campground_count: number;
+            /**
+             * Destination Available
+             * @default true
+             */
+            destination_available: boolean;
+            /**
+             * Coverage Status
+             * @default waiting
+             */
+            coverage_status: string;
+            /**
+             * Checked Campground Count
+             * @default 0
+             */
+            checked_campground_count: number;
+            /**
+             * Failed Campground Count
+             * @default 0
+             */
+            failed_campground_count: number;
+            /**
+             * Pending Campground Count
+             * @default 0
+             */
+            pending_campground_count: number;
+            /** Last Full Checked At */
+            last_full_checked_at?: string | null;
+            /**
+             * Row Version
+             * @default 1
+             */
+            row_version: number;
+            /**
              * Id
              * Format: uuid
              */
@@ -2106,12 +2491,12 @@ export interface components {
             /** Provider Id */
             provider_id: number;
             /** Campground Id */
-            campground_id: string;
+            campground_id: string | null;
             /**
              * Campground Name
              * @default
              */
-            campground_name: string;
+            campground_name: string | null;
             /**
              * Recreation Area Name
              * @default
@@ -2155,6 +2540,28 @@ export interface components {
          * @description A single campsite availability entry returned as part of scan detail.
          */
         ScanResultItem: {
+            /**
+             * Provider Id
+             * @default 0
+             */
+            provider_id: number;
+            /**
+             * Campground Id
+             * @default
+             */
+            campground_id: string;
+            /**
+             * Campground Name
+             * @default
+             */
+            campground_name: string;
+            /** Last Checked At */
+            last_checked_at?: string | null;
+            /**
+             * Is Stale
+             * @default false
+             */
+            is_stale: boolean;
             /** Campsite Id */
             campsite_id: string;
             /**
@@ -2181,6 +2588,16 @@ export interface components {
          * @description Payload for ``PATCH /scans/{id}`` — all fields optional.
          */
         ScanUpdateRequest: {
+            /** Destination Type */
+            destination_type?: ("campground" | "recreation_area") | null;
+            /** Recreation Area Id */
+            recreation_area_id?: string | null;
+            /** Coverage Mode */
+            coverage_mode?: ("all" | "selected") | null;
+            /** Campground Ids */
+            campground_ids?: string[] | null;
+            /** Row Version */
+            row_version?: number | null;
             /** Is Active */
             is_active?: boolean | null;
             /** Provider Id */
@@ -3044,6 +3461,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Campground"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    monitoring_campgrounds_api_rec_area__provider___id__monitoring_campgrounds_get: {
+        parameters: {
+            query?: {
+                query?: string;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                provider: number;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringCampgroundsResponse"];
                 };
             };
             /** @description Validation Error */

@@ -602,17 +602,29 @@ export function AdminUserDetail() {
                 <tbody className="divide-y">
                   {scans.map((s) => {
                     const isUpdating = updatingScanId === s.id;
+                    const destination =
+                      s.destination_name ||
+                      s.campground_name ||
+                      "Unknown Destination";
                     return (
                       <tr
                         key={s.id}
                         className="hover:bg-muted/30 transition-colors"
                       >
                         <td className="py-3 px-4">
-                          <div className="font-medium">{s.campground_name}</div>
+                          <div className="font-medium">{destination}</div>
                           <div className="text-xs text-muted-foreground font-mono">
                             {s.provider_id === 1
                               ? "Recreation.gov"
                               : `Provider ${s.provider_id}`}
+                            {s.destination_type === "recreation_area" && (
+                              <>
+                                {" · "}
+                                {s.coverage_mode === "all"
+                                  ? "All campgrounds"
+                                  : "Selected campgrounds"}
+                              </>
+                            )}
                           </div>
                         </td>
                         <td className="py-3 px-4 text-xs">
@@ -621,7 +633,7 @@ export function AdminUserDetail() {
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             <Switch
-                              aria-label={`Saved active scan at ${s.campground_name}`}
+                              aria-label={`Saved active scan at ${destination}`}
                               checked={s.is_active}
                               disabled={
                                 isUpdating ||

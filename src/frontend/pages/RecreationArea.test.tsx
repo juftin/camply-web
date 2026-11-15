@@ -17,7 +17,22 @@ vi.mock("@/lib/api", () => ({
   getCampgrounds: vi.fn(),
 }));
 vi.mock("@/components/SearchBar", () => ({ SearchBar: () => null }));
-vi.mock("@/components/ScanForm", () => ({ ScanForm: () => null }));
+vi.mock("@/components/ScanForm", () => ({
+  ScanForm: ({
+    trigger,
+    preselectedArea,
+  }: {
+    trigger?: React.ReactNode;
+    preselectedArea?: { id: string; name: string; provider_id: number };
+  }) => (
+    <div
+      data-testid="area-monitor-form"
+      data-area-id={preselectedArea?.id ?? ""}
+    >
+      {trigger ?? null}
+    </div>
+  ),
+}));
 vi.mock("@/components/MapComponent", () => ({
   MapComponent: ({
     latitude,
@@ -161,6 +176,13 @@ describe("RecreationArea location coordinates", () => {
       open();
       await screen.findByRole("heading", { name: "Synthetic area" });
       expect(screen.queryByTestId("map")).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Monitor recreation area" }),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("area-monitor-form")).toHaveAttribute(
+        "data-area-id",
+        "area",
+      );
     },
   );
 });

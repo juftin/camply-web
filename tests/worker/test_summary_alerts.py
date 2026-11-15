@@ -99,7 +99,7 @@ async def scanner_setup(
 
 @pytest.mark.anyio
 @pytest.mark.parametrize("mode", ["summary", "direct"])
-async def test_grouped_openings_and_reappearance(
+async def test_grouped_openings_and_reappearance(  # noqa: PLR0915
     monkeypatch: pytest.MonkeyPatch,
     mode: Literal["summary", "direct"],
     scanner_setup: tuple[
@@ -160,8 +160,12 @@ async def test_grouped_openings_and_reappearance(
     async with maker() as session:
         checked_at = (await session.scalars(select(UniqueTarget))).one().last_checked_at
     provider_mock.find_availabilities.side_effect = RuntimeError("Provider unavailable")
-    failed = await scanner._check_target_availability_async(MagicMock(), target_id)
-    assert failed is not None and failed["status"] == "error"
+    task = MagicMock()
+    task.request.retries = 0
+    task.retry.side_effect = RuntimeError("retry requested")
+    with pytest.raises(RuntimeError, match="retry requested"):
+        await scanner._check_target_availability_async(task, target_id)
+    task.retry.assert_called_once()
     dispatch.assert_not_called()
     async with maker() as session:
         assert len((await session.scalars(select(ScanResult))).all()) == 3

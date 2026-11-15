@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScanForm } from "@/components/ScanForm";
 import { FoundCampsites } from "@/components/FoundCampsites";
 import { useScanDetail } from "@/hooks/useScans";
-import { getCampground } from "@/lib/api";
+import { getCampground, getRecreationArea } from "@/lib/api";
 import { formatAllowedWeekdays } from "@/lib/weekdays";
 import {
   toTitleCase,
@@ -38,11 +38,14 @@ export function ScanDetail() {
   } = useScanDetail(scanId ?? null);
   const { data: campground } = useQuery({
     queryKey: [
-      "campground",
+      scan?.destination_type ?? "campground",
       scan ? String(scan.provider_id) : null,
-      scan?.campground_id,
+      scan?.recreation_area_id ?? scan?.campground_id,
     ],
-    queryFn: () => getCampground(scan!.provider_id, scan!.campground_id),
+    queryFn: () =>
+      scan!.destination_type === "recreation_area"
+        ? getRecreationArea(scan!.provider_id, scan!.recreation_area_id!)
+        : getCampground(scan!.provider_id, scan!.campground_id!),
     enabled: !!scan,
     retry: false,
   });
@@ -102,7 +105,8 @@ export function ScanDetail() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold">
           {toTitleCase(
-            scan.campground_name ||
+            scan.destination_name ||
+              scan.campground_name ||
               scan.recreation_area_name ||
               "Unknown Campground",
           )}
@@ -119,7 +123,9 @@ export function ScanDetail() {
             rel="noopener noreferrer"
             className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm text-primary hover:underline"
           >
-            View campground on provider
+            {scan.destination_type === "recreation_area"
+              ? "View recreation area on provider"
+              : "View campground on provider"}
             <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
           </a>
         )}
@@ -142,6 +148,36 @@ export function ScanDetail() {
 
       <div className="mb-6">
         <ScanForm scan={scan} />
+        {scan.destination_type === "recreation_area" && (
+          <section aria-label="Campground coverage" className="space-y-2">
+            <p>
+              {scan.coverage_mode === "all"
+                ? "All campgrounds"
+                : "Selected campgrounds"}
+              : {scan.eligible_campground_count} eligible,{" "}
+              {scan.unavailable_selection_count} unavailable.
+            </p>
+            <p>
+              {scan.checked_campground_count} checked,{" "}
+              {scan.pending_campground_count} pending,{" "}
+              {scan.failed_campground_count} failed.{" "}
+              {scan.coverage_status !== "complete" &&
+                "Results may be incomplete; some campgrounds are unchecked or failed."}
+            </p>
+            {scan.campgrounds?.map((member) => (
+              <p
+                key={`${member.provider_id}:${member.campground_id}`}
+                className="text-sm text-muted-foreground"
+              >
+                {member.campground_name}:{" "}
+                {member.eligible ? member.outcome : "Unavailable"}
+                {member.last_checked_at
+                  ? ` · Last successful check ${member.last_checked_at}`
+                  : ""}
+              </p>
+            ))}
+          </section>
+        )}
       </div>
 
       <div className="grid gap-6">

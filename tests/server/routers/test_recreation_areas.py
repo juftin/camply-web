@@ -51,3 +51,123 @@ class TestListRecreationAreaCampgrounds:
         data = response.json()
         assert isinstance(data, list)
         assert len(data) == 0
+
+
+class TestMonitoringCampgrounds:
+    """Tests for GET /api/rec-area/{provider}/{id}/monitoring-campgrounds."""
+
+    def test_monitoring_campgrounds_search_pagination_and_exclusions(
+        self, test_client: TestClient
+    ) -> None:
+        """Excludes unbookable members, filters by query, and pages beyond 100 items."""
+        import uuid
+
+        from camply.db.models import Campground, RecreationArea
+        from tests.server.conftest import seed_data
+
+        uid = uuid.uuid4().hex[:8]
+        area = RecreationArea(id=f"area-mon-{uid}", provider_id=1, name="Paged Area")
+        members = [
+            Campground(
+                id=f"mon-{uid}-{index:03}",
+                provider_id=1,
+                recreation_area_id=area.id,
+                name=f"Paged Campground {index:03}",
+                enabled=True,
+                reservable=True,
+            )
+            for index in range(125)
+        ]
+        disabled = Campground(
+            id=f"{area.id}-disabled",
+            provider_id=1,
+            recreation_area_id=area.id,
+            name="Disabled Pines",
+            enabled=False,
+            reservable=True,
+        )
+        non_reservable = Campground(
+            id=f"{area.id}-nonres",
+            provider_id=1,
+            recreation_area_id=area.id,
+            name="NonReservable Pines",
+            enabled=True,
+            reservable=False,
+        )
+        searchable = Campground(
+            id=f"{area.id}-pine",
+            provider_id=1,
+            recreation_area_id=area.id,
+            name="Whispering Pines",
+            enabled=True,
+            reservable=True,
+        )
+        seed_data([area, *members, disabled, non_reservable, searchable])
+
+        first_page = test_client.get(
+            f"/api/rec-area/1/{area.id}/monitoring-campgrounds?limit=100&offset=0"
+        )
+        assert first_page.status_code == 200
+        payload = first_page.json()
+        assert payload["eligible_total"] == 126
+        assert payload["total"] == 126
+        assert payload["has_more"] is True
+        assert len(payload["items"]) == 100
+        assert isinstance(payload["catalog_revision"], int)
+
+        second_page = test_client.get(
+            f"/api/rec-area/1/{area.id}/monitoring-campgrounds?limit=100&offset=100"
+        )
+        assert second_page.status_code == 200
+        second = second_page.json()
+        assert second["has_more"] is False
+        assert len(second["items"]) == 26
+        returned_ids = {item["id"] for item in payload["items"] + second["items"]}
+        assert disabled.id not in returned_ids
+        assert non_reservable.id not in returned_ids
+
+        filtered = test_client.get(
+            f"/api/rec-area/1/{area.id}/monitoring-campgrounds?query=%20whispering%20"
+        )
+        assert filtered.status_code == 200
+        f_data = filtered.json()
+        assert f_data["eligible_total"] == 126
+        assert f_data["total"] == 1
+        assert [item["id"] for item in f_data["items"]] == [searchable.id]
+
+    def test_monitoring_campgrounds_errors_and_invalid_bounds(
+        self, test_client: TestClient
+    ) -> None:
+        """Missing areas, disabled areas, and invalid paging bounds are rejected."""
+        from camply.db.models import RecreationArea
+        from tests.server.conftest import seed_data
+
+        seed_data(
+            [
+                RecreationArea(
+                    id="disabled_area",
+                    provider_id=1,
+                    name="Closed Area",
+                    enabled=False,
+                )
+            ]
+        )
+        assert (
+            test_client.get(
+                "/api/rec-area/1/missing/monitoring-campgrounds"
+            ).status_code
+            == 404
+        )
+        assert (
+            test_client.get(
+                "/api/rec-area/1/disabled_area/monitoring-campgrounds"
+            ).status_code
+            == 422
+        )
+        for qs in ("limit=0", "limit=101", "offset=-1"):
+            assert (
+                test_client.get(
+                    f"/api/rec-area/1/rec_area_1/monitoring-campgrounds?{qs}"
+                ).status_code
+                == 422
+            )

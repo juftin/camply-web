@@ -309,6 +309,9 @@ class TestScannerTaskAsync:
             )
 
             mock_session = MagicMock()
+            mock_session.scalars = AsyncMock(
+                return_value=MagicMock(all=MagicMock(return_value=[]))
+            )
             mock_session.execute = AsyncMock()
             mock_session.execute.side_effect = [
                 MagicMock(scalar_one_or_none=MagicMock(return_value=mock_target)),

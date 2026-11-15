@@ -19,8 +19,11 @@ from camply.db.models import (
     AdminAuditEvent,
     Base,
     Campground,
+    NotificationOutbox,
     Provider,
+    RecreationArea,
     ScanResult,
+    ScanTarget,
     UniqueTarget,
     User,
     UserScan,
@@ -335,3 +338,73 @@ def test_ntfy_default_topic_uses_user_id_for_bulk_insert(session: Session) -> No
     session.commit()
     user = session.scalar(select(User).where(User.id == user_id))
     assert user is not None and user.ntfy_topic == "camply-1234567"
+
+
+def test_area_scan_outbox_and_attempt_constraints(
+    session: Session, provider: Provider, user: User, target: UniqueTarget
+) -> None:
+    """Enforce destination scope invariants, attempt columns, and outbox defaults."""
+    import uuid
+
+    assert provider.catalog_revision == 0
+    assert target.attempt_id is None
+
+    area = RecreationArea(id="rec-1", provider_id=provider.id, name="Test Area")
+    session.add(area)
+    session.flush()
+
+    bad_area_scan = UserScan(
+        user_id=user.id,
+        provider_id=provider.id,
+        destination_type="recreation_area",
+        recreation_area_id=area.id,
+        campground_id="123",
+        coverage_mode="all",
+        start_date=datetime.date(2026, 8, 1),
+        end_date=datetime.date(2026, 8, 5),
+    )
+    session.add(bad_area_scan)
+    with pytest.raises(IntegrityError):
+        session.commit()
+    session.rollback()
+
+    area_scan = UserScan(
+        user_id=user.id,
+        provider_id=provider.id,
+        destination_type="recreation_area",
+        recreation_area_id=area.id,
+        destination_name="Test Area",
+        coverage_mode="selected",
+        selected_campgrounds=[{"id": "123", "name": "Test Campground"}],
+        start_date=datetime.date(2026, 8, 1),
+        end_date=datetime.date(2026, 8, 5),
+    )
+    session.add(area_scan)
+    session.flush()
+
+    link = ScanTarget(
+        scan_id=area_scan.id,
+        target_id=target.id,
+        coverage_revision=area_scan.coverage_revision,
+        outcome="pending",
+    )
+    outbox = NotificationOutbox(
+        detection_id=uuid.uuid4(),
+        delivery_key="area:1",
+        channel="pushover",
+        scan_id=area_scan.id,
+        user_id=user.id,
+        target_id=None,
+        payload_kind="area",
+        scan_revision=area_scan.definition_revision,
+        payload_version=1,
+        payload={"candidates": []},
+        next_attempt_at=datetime.datetime.now(tz=datetime.timezone.utc),
+        created_at=datetime.datetime.now(tz=datetime.timezone.utc),
+    )
+    session.add_all([link, outbox])
+    session.commit()
+    assert outbox.payload_kind == "area"
+    assert outbox.scan_revision == area_scan.definition_revision
+    assert outbox.payload_version == 1
+    assert link.outcome == "pending"

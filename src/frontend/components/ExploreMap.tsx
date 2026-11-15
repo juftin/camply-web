@@ -177,6 +177,16 @@ export const ExploreMap = ({
         <Button size="sm" variant="outline" asChild>
           <Link to={detailUrl(item)}>Details</Link>
         </Button>
+        {item.entity_type !== "Campground" && item.recreation_area_id && (
+          <ScanForm
+            preselectedArea={{
+              id: item.recreation_area_id,
+              name: item.recreation_area_name ?? "Recreation area",
+              provider_id: item.provider_id,
+            }}
+            trigger={<Button size="sm">Monitor recreation area</Button>}
+          />
+        )}
         {item.entity_type === "Campground" && item.campground_id && (
           <ScanForm
             preselectedCampground={toCampground(item)}

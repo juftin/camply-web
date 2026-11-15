@@ -17,18 +17,26 @@ import uuid
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.exc import StaleDataError
 
 from camply.db.availability import matching_scan_results, validate_scan_dates
+from camply.db.coverage import (
+    definition_hash,
+    eligible_members,
+    get_or_create_target,
+    live_targets,
+    normalized_choices,
+    reconcile_coverage,
+    scan_load_options,
+)
 from camply.db.models import (
     Campground as CampgroundDB,
 )
-from camply.db.models import (
-    UniqueTarget as UniqueTargetDB,
-)
+from camply.db.models import NotificationOutbox, Provider, RecreationArea
 from camply.db.models import (
     User as UserDB,
 )
@@ -44,6 +52,8 @@ from camply.server.auth import (
 from camply.server.dependencies import SessionDep
 from camply.server.metrics import SCANS_CREATED_TOTAL
 from camply.server.schemas import (
+    ScanCampgroundItem,
+    ScanChoiceItem,
     ScanCreateRequest,
     ScanDetailResponse,
     ScanListResponse,
@@ -80,109 +90,237 @@ async def _lookup_campground(
     return result.unique().scalar_one_or_none()
 
 
-async def _scan_to_response(
-    scan: UserScanDB,
-    *,
-    campground_name: str = "",
-    rec_area_name: str = "",
-    found_count: int = 0,
-) -> ScanResponse:
-    """Convert a ``UserScan`` ORM row to a ``ScanResponse``."""
+def _members(scan: UserScanDB) -> list[ScanCampgroundItem]:
+    """Describe live coverage and retain unavailable fixed selections."""
+    targets = live_targets(scan)
+    links = {link.target_id: link for link in scan.coverage}
+    rows = []
+    for target in targets:
+        cg = target.campground
+        link = links.get(target.id)
+        rows.append(
+            ScanCampgroundItem(
+                provider_id=target.provider_id,
+                campground_id=target.campground_id,
+                campground_name=cg.name if cg else scan.destination_name,
+                eligible=True,
+                target_id=target.id,
+                outcome=link.outcome if link else "pending",
+                last_checked_at=target.last_checked_at,
+                attempt_started_at=target.attempt_started_at,
+                error_category=target.attempt_error_category,
+            )
+        )
+    eligible_ids = {target.campground_id for target in targets}
+    for item in scan.selected_campgrounds or []:
+        if item["id"] not in eligible_ids:
+            rows.append(
+                ScanCampgroundItem(
+                    provider_id=scan.provider_id,
+                    campground_id=item["id"],
+                    campground_name=item["name"],
+                    eligible=False,
+                    unavailable_reason="Campground is no longer eligible in this recreation area",
+                )
+            )
+    return rows
+
+
+async def _scan_to_response(scan: UserScanDB, **unused: object) -> ScanResponse:
+    """Represent one saved definition with qualified, truthful coverage counts."""
+    targets = live_targets(scan)
+    matches = matching_scan_results(scan)
+    rows = _members(scan)
+    area = scan.destination_type == "recreation_area"
+    cg = scan.target.campground if scan.target else None
+    success = sum(row.eligible and row.outcome == "success" for row in rows)
+    failed = sum(row.eligible and row.outcome == "failed" for row in rows)
+    pending = len(targets) - success - failed
+    coverage_status = (
+        "no_eligible_campgrounds"
+        if not targets
+        else "partial"
+        if failed or (success and pending)
+        else "complete"
+        if not pending
+        else "checking"
+        if scan.current_round_id
+        else "waiting"
+    )
+    last = (
+        scan.last_full_checked_at
+        if area
+        else scan.target.last_checked_at
+        if scan.target
+        else None
+    )
     return ScanResponse(
         id=scan.id,
-        provider_id=scan.target.provider_id,
-        campground_id=scan.target.campground_id,
-        campground_name=campground_name,
-        recreation_area_name=rec_area_name,
-        start_date=scan.target.start_date,
-        end_date=scan.target.end_date,
+        provider_id=scan.provider_id,
+        destination_type=scan.destination_type,
+        destination_name=scan.destination_name,
+        campground_id=scan.campground_id,
+        campground_name=None if area else cg.name if cg else scan.destination_name,
+        recreation_area_id=scan.recreation_area_id
+        if area
+        else cg.recreation_area_id
+        if cg
+        else None,
+        recreation_area_name=scan.destination_name
+        if area
+        else cg.recreation_area.name
+        if cg and cg.recreation_area
+        else "",
+        coverage_mode=scan.coverage_mode,
+        campground_ids=[item["id"] for item in scan.selected_campgrounds or []],
+        selected_campgrounds=[
+            ScanChoiceItem(id=item["id"], name=item["name"])
+            for item in scan.selected_campgrounds or []
+        ],
+        eligible_campground_count=len(targets),
+        unavailable_selection_count=sum(not row.eligible for row in rows),
+        matching_campground_count=len({result.target_id for result, _ in matches}),
+        destination_available=bool(targets),
+        coverage_status=coverage_status,
+        checked_campground_count=success,
+        failed_campground_count=failed,
+        pending_campground_count=pending,
+        last_full_checked_at=scan.last_full_checked_at,
+        row_version=scan.row_version,
+        start_date=scan.start_date,
+        end_date=scan.end_date,
         is_active=scan.is_active,
         min_stay_length=scan.min_stay_length,
         preferred_types=scan.preferred_types or [],
         require_electric=scan.require_electric,
         allowed_weekdays=scan.allowed_weekdays or list(range(7)),
-        last_checked_at=scan.target.last_checked_at,
-        found_count=found_count,
+        last_checked_at=last,
+        found_count=len(matches),
         created_at=scan.created_at,
     )
 
 
-async def _get_or_create_target(
+async def _load(
+    session: AsyncSession, scan_id: uuid.UUID, user_id: uuid.UUID
+) -> UserScanDB:
+    """Load owned snapshots and catalog context without implicit async I/O."""
+    scan = await session.scalar(
+        select(UserScanDB)
+        .options(*scan_load_options())
+        .where(UserScanDB.id == scan_id, UserScanDB.user_id == user_id)
+        .execution_options(populate_existing=True)
+    )
+    if scan is None:
+        raise HTTPException(status_code=404, detail="Scan not found")
+    return scan
+
+
+async def _assign_definition(  # noqa: C901
     session: AsyncSession,
+    scan: UserScanDB,
+    body: ScanCreateRequest,
     *,
-    provider_id: int,
-    campground_id: str,
-    start_date: datetime.date,
-    end_date: datetime.date,
-) -> UniqueTargetDB:
-    """Reuse a shared target, including when another user creates it concurrently."""
-    target_hash = UniqueTargetDB.calculate_hash(
-        provider_id, campground_id, start_date, end_date
+    retain_unavailable: bool = False,
+) -> None:
+    """Validate a complete definition atomically against confirmed catalog membership."""
+    provider = await session.scalar(
+        select(Provider).where(Provider.id == body.provider_id).with_for_update()
     )
-    query = select(UniqueTargetDB).where(UniqueTargetDB.hash == target_hash)
-    target = await session.scalar(query)
-    if target is not None:
-        return target
-
-    try:
-        async with session.begin_nested():
-            target = UniqueTargetDB(
-                provider_id=provider_id,
-                campground_id=campground_id,
-                start_date=start_date,
-                end_date=end_date,
+    if provider is None or not provider.enabled:
+        raise HTTPException(status_code=422, detail="Provider unavailable")
+    choices: list[dict[str, str]] = []
+    target = None
+    if body.destination_type == "campground":
+        cg = await _lookup_campground(
+            session, body.provider_id, body.campground_id or ""
+        )
+        if cg is None or not cg.enabled:
+            raise HTTPException(
+                status_code=404, detail="Campground not found for provider"
             )
-            session.add(target)
-            await session.flush()
-    except IntegrityError:
-        existing = await session.scalar(query)
-        if existing is None:
-            raise
-        return existing
-    return target
-
-
-async def _edited_target(
-    session: AsyncSession, scan: UserScanDB, body: ScanUpdateRequest
-) -> UniqueTargetDB:
-    """Validate merged target fields and relink without modifying other subscribers."""
-    provider_id = (
-        body.provider_id if body.provider_id is not None else scan.target.provider_id
+        name = cg.name
+        target = await get_or_create_target(
+            session,
+            provider_id=body.provider_id,
+            campground_id=cg.id,
+            start_date=body.start_date,
+            end_date=body.end_date,
+        )
+    else:
+        area = await session.get(
+            RecreationArea, (body.recreation_area_id, body.provider_id)
+        )
+        if area is None:
+            raise HTTPException(
+                status_code=404, detail="Recreation area not found for provider"
+            )
+        if not area.enabled and not retain_unavailable:
+            raise HTTPException(status_code=422, detail="Recreation area unavailable")
+        name = area.name
+        members = await eligible_members(
+            session, provider_id=body.provider_id, area_id=body.recreation_area_id or ""
+        )
+        by_id = {member.id: member.name for member in members}
+        if body.coverage_mode == "selected":
+            try:
+                ids = normalized_choices(body.campground_ids or [])
+            except ValueError as error:
+                raise HTTPException(status_code=422, detail=str(error)) from error
+            previous = (
+                {item["id"]: item["name"] for item in scan.selected_campgrounds or []}
+                if retain_unavailable
+                else {}
+            )
+            if any(value not in by_id and value not in previous for value in ids):
+                raise HTTPException(
+                    status_code=422,
+                    detail="Selected campground is not eligible in this recreation area",
+                )
+            choices = [
+                {"id": value, "name": by_id.get(value, previous.get(value, value))}
+                for value in ids
+            ]
+        if not members and not retain_unavailable:
+            raise HTTPException(
+                status_code=422,
+                detail="No eligible campgrounds in this recreation area",
+            )
+    scan.provider_id = body.provider_id
+    scan.destination_type = body.destination_type
+    scan.campground_id = body.campground_id
+    scan.recreation_area_id = body.recreation_area_id
+    scan.destination_name = name
+    scan.coverage_mode = body.coverage_mode
+    scan.selected_campgrounds = choices
+    scan.start_date, scan.end_date = body.start_date, body.end_date
+    scan.target_id = target.id if target else None
+    scan.min_stay_length = body.min_stay_length
+    scan.preferred_types = body.preferred_types
+    scan.require_electric = body.require_electric
+    scan.allowed_weekdays = (
+        body.allowed_weekdays if body.allowed_weekdays != list(range(7)) else None
     )
-    campground_id = (
-        body.campground_id
-        if body.campground_id is not None
-        else scan.target.campground_id
+    scan.definition_hash = definition_hash(
+        provider_id=scan.provider_id,
+        destination_type=scan.destination_type,
+        destination_id=scan.recreation_area_id or scan.campground_id or "",
+        start_date=scan.start_date,
+        end_date=scan.end_date,
+        coverage_mode=scan.coverage_mode,
+        selected_ids=[item["id"] for item in choices],
     )
-    start_date = (
-        body.start_date if body.start_date is not None else scan.target.start_date
-    )
-    end_date = body.end_date if body.end_date is not None else scan.target.end_date
-    if end_date <= start_date:
-        raise HTTPException(status_code=422, detail="Check-out must be after check-in")
-    if await _lookup_campground(session, provider_id, campground_id) is None:
-        raise HTTPException(status_code=404, detail="Campground not found for provider")
-
-    target = await _get_or_create_target(
-        session,
-        provider_id=provider_id,
-        campground_id=campground_id,
-        start_date=start_date,
-        end_date=end_date,
-    )
-    existing = await session.scalar(
+    duplicate = await session.scalar(
         select(UserScanDB.id).where(
             UserScanDB.user_id == scan.user_id,
-            UserScanDB.target_id == target.id,
+            UserScanDB.definition_hash == scan.definition_hash,
             UserScanDB.id != scan.id,
         )
     )
-    if existing is not None:
+    if duplicate:
         raise HTTPException(
             status_code=409,
-            detail="A scan for this campground and date range already exists",
+            detail="duplicate_scan: A scan for this destination and date range already exists",
         )
-    return target
 
 
 def _validate_scan_criteria(
@@ -204,11 +342,6 @@ def _validate_scan_criteria(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-# ---------------------------------------------------------------------------
-# GET  /scans
-# ---------------------------------------------------------------------------
-
-
 @scan_router.get("")
 async def list_scans(
     current_user: CurrentUserDep,
@@ -217,286 +350,149 @@ async def list_scans(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ) -> ScanListResponse:
-    """List all scans belonging to the authenticated user."""
-
-    query = (
-        select(UserScanDB)
-        .options(
-            joinedload(UserScanDB.target).joinedload(UniqueTargetDB.scan_results),
-        )
-        .where(UserScanDB.user_id == current_user.id)
-        .order_by(UserScanDB.created_at.desc())
-        .offset(offset)
-        .limit(limit)
-    )
-
+    """List saved subscriptions once, independent of resolved member count."""
+    predicate = [UserScanDB.user_id == current_user.id]
     if is_active is not None:
-        query = query.where(UserScanDB.is_active == is_active)
-
-    result = await session.execute(query)
-    scans = result.unique().scalars().all()
-
-    # Batch-load all referenced campgrounds to avoid N+1 queries.
-    cg_ids = {scan.target.campground_id for scan in scans}
-    campground_map: dict[tuple[int, str], CampgroundDB] = {}
-    if cg_ids:
-        cg_result = await session.execute(
-            select(CampgroundDB)
-            .options(joinedload(CampgroundDB.recreation_area))
-            .where(CampgroundDB.id.in_(cg_ids))
-        )
-        for cg_row in cg_result.unique().scalars().all():
-            campground_map[(cg_row.provider_id, cg_row.id)] = cg_row
-
-    # Gather names and result counts
-    response_items: list[ScanResponse] = []
-    for scan in scans:
-        cg_record = campground_map.get(
-            (scan.target.provider_id, scan.target.campground_id)
-        )
-        cg_name = cg_record.name if cg_record else ""
-        ra_name = (
-            cg_record.recreation_area.name
-            if cg_record and cg_record.recreation_area
-            else ""
-        )
-
-        # Count unique campsite IDs found in the latest scan_results
-        found = len(matching_scan_results(scan))
-
-        response_items.append(
-            await _scan_to_response(
-                scan,
-                campground_name=cg_name,
-                rec_area_name=ra_name,
-                found_count=found,
+        predicate.append(UserScanDB.is_active == is_active)
+    scans = (
+        (
+            await session.scalars(
+                select(UserScanDB)
+                .options(*scan_load_options())
+                .where(*predicate)
+                .order_by(UserScanDB.created_at.desc())
+                .limit(limit)
+                .offset(offset)
             )
         )
-
-    # Total count for pagination
-    count_result = await session.execute(
-        select(func.count(UserScanDB.id)).where(UserScanDB.user_id == current_user.id)
+        .unique()
+        .all()
     )
-    total = count_result.scalar_one()
-
-    return ScanListResponse(scans=response_items, total=total)
-
-
-# ---------------------------------------------------------------------------
-# POST  /scans
-# ---------------------------------------------------------------------------
+    total = (
+        await session.scalar(select(func.count(UserScanDB.id)).where(*predicate)) or 0
+    )
+    return ScanListResponse(
+        scans=[await _scan_to_response(scan) for scan in scans], total=total
+    )
 
 
 @scan_router.post("", status_code=status.HTTP_201_CREATED)
 async def create_scan(
-    body: ScanCreateRequest,
-    current_user: CurrentUserDep,
-    session: SessionDep,
+    body: ScanCreateRequest, current_user: CurrentUserDep, session: SessionDep
 ) -> ScanResponse:
-    """Create a new scan for the authenticated user.
-
-    If a ``UniqueTarget`` with the same hash already exists it is re-used
-    (de-duplication).  Otherwise a new target is created.
-    """
-
-    # Check scanning eligibility serialized against suspension
-    user_stmt = select(UserDB).where(UserDB.id == current_user.id).with_for_update()
-    user_res = await session.execute(user_stmt)
-    user_row = user_res.scalar_one_or_none()
-    if user_row is None or not user_row.scanning_enabled:
+    """Save one validated destination and its shared member links in one transaction."""
+    user = await session.scalar(
+        select(UserDB).where(UserDB.id == current_user.id).with_for_update()
+    )
+    if user is None or not user.scanning_enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail={
                 "error": "ERR_SCANNING_DISABLED",
                 "message": "Scanning is currently disabled for this account.",
             },
         )
-
-    # Validate that the campground exists
-    campground_db = await _lookup_campground(
-        session, body.provider_id, body.campground_id
+    scan = UserScanDB(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        coverage=[],
+        definition_revision=1,
+        coverage_revision=1,
+        row_version=1,
     )
-    if campground_db is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Campground {body.campground_id!r} not found for provider {body.provider_id}",
-        )
-
     _validate_scan_criteria(
         start_date=body.start_date,
         end_date=body.end_date,
         min_stay_length=body.min_stay_length,
         allowed_weekdays=body.allowed_weekdays,
     )
-
-    # Check / create unique target (de-duplication)
-    target = await _get_or_create_target(
-        session,
-        provider_id=body.provider_id,
-        campground_id=body.campground_id,
-        start_date=body.start_date,
-        end_date=body.end_date,
-    )
-
-    # Check for duplicate scan (same user + same target)
-    existing = await session.execute(
-        select(UserScanDB).where(
-            UserScanDB.user_id == current_user.id,
-            UserScanDB.target_id == target.id,
-        )
-    )
-    if existing.scalar_one_or_none() is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A scan for this campground and date range already exists",
-        )
-
-    user_scan = UserScanDB(
-        user_id=current_user.id,
-        target_id=target.id,
-        min_stay_length=body.min_stay_length,
-        preferred_types=body.preferred_types,
-        require_electric=body.require_electric,
-        allowed_weekdays=body.allowed_weekdays
-        if body.allowed_weekdays != list(range(7))
-        else None,
-    )
-    session.add(user_scan)
-    await session.commit()
-    await session.refresh(user_scan)
+    await _assign_definition(session, scan, body)
+    session.add(scan)
     try:
-        SCANS_CREATED_TOTAL.inc()
-    except Exception:
-        pass
-
-    return await _scan_to_response(
-        user_scan,
-        campground_name=campground_db.name,
-        rec_area_name=campground_db.recreation_area.name
-        if campground_db.recreation_area
-        else "",
-    )
-
-
-# ---------------------------------------------------------------------------
-# GET  /scans/{id}
-# ---------------------------------------------------------------------------
+        await session.flush()
+        # The compatibility insert hook already persisted campground links.
+        await session.refresh(scan, ["coverage"])
+        await reconcile_coverage(session, scan, bump_row_version=False)
+        await session.commit()
+    except IntegrityError as error:
+        await session.rollback()
+        raise HTTPException(
+            status_code=409, detail="duplicate_scan: Scan definition already exists"
+        ) from error
+    SCANS_CREATED_TOTAL.inc()
+    return await _scan_to_response(await _load(session, scan.id, user.id))
 
 
 @scan_router.get("/{scan_id}")
 async def get_scan(
-    scan_id: uuid.UUID,
-    current_user: CurrentUserDep,
-    session: SessionDep,
+    scan_id: uuid.UUID, current_user: CurrentUserDep, session: SessionDep
 ) -> ScanDetailResponse:
-    """Return detailed information for a single scan, including recent results."""
-
-    result = await session.execute(
-        select(UserScanDB)
-        .options(
-            joinedload(UserScanDB.target).joinedload(UniqueTargetDB.scan_results),
+    """Return qualified matches and per-member freshness without provider requests."""
+    scan = await _load(session, scan_id, current_user.id)
+    targets = {target.id: target for target in live_targets(scan)}
+    items = []
+    for result, dates in matching_scan_results(scan):
+        target = targets[result.target_id]
+        cg = target.campground
+        provider = PROVIDERS.get(target.provider_id)
+        items.append(
+            ScanResultItem(
+                provider_id=target.provider_id,
+                campground_id=target.campground_id,
+                campground_name=cg.name if cg else "",
+                campsite_id=result.campsite_id,
+                campsite_name=result.campsite_name,
+                campsite_type=result.campsite_type,
+                is_electric=result.is_electric,
+                is_accessible=result.is_accessible,
+                available_dates=dates,
+                booking_url=provider.get_campground_url(
+                    campground_id=target.campground_id,
+                    rec_area_id=cg.recreation_area_id if cg else None,
+                )
+                if provider
+                else "",
+                last_checked_at=target.last_checked_at,
+                is_stale=target.attempt_error_category is not None,
+            )
         )
-        .where(UserScanDB.id == scan_id, UserScanDB.user_id == current_user.id)
-    )
-    scan = result.unique().scalar_one_or_none()
-    if scan is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Scan not found",
+    items.sort(
+        key=lambda item: (
+            item.campground_name.casefold(),
+            item.campsite_name.casefold(),
+            item.campsite_id,
         )
-
-    cg = await _lookup_campground(
-        session, scan.target.provider_id, scan.target.campground_id
     )
-
-    # Build result items
-    provider_cls = PROVIDERS.get(scan.target.provider_id)
-    booking_url = (
-        provider_cls.get_campground_url(
-            campground_id=scan.target.campground_id,
-            rec_area_id=cg.recreation_area_id if cg else None,
-        )
-        if provider_cls
-        else ""
-    )
-    result_items = [
-        ScanResultItem(
-            campsite_id=result.campsite_id,
-            campsite_name=result.campsite_name,
-            campsite_type=result.campsite_type,
-            is_electric=result.is_electric,
-            is_accessible=result.is_accessible,
-            booking_url=booking_url,
-            available_dates=dates,
-        )
-        for result, dates in matching_scan_results(scan)
-    ]
-    result_items.sort(
-        key=lambda result: (result.campsite_name.casefold(), result.campsite_id)
-    )
-
+    response = await _scan_to_response(scan)
     return ScanDetailResponse(
-        id=scan.id,
-        provider_id=scan.target.provider_id,
-        campground_id=scan.target.campground_id,
-        campground_name=cg.name if cg else "",
-        recreation_area_name=cg.recreation_area.name
-        if cg and cg.recreation_area
-        else "",
-        start_date=scan.target.start_date,
-        end_date=scan.target.end_date,
-        is_active=scan.is_active,
-        min_stay_length=scan.min_stay_length,
-        preferred_types=scan.preferred_types or [],
-        require_electric=scan.require_electric,
-        allowed_weekdays=scan.allowed_weekdays or list(range(7)),
-        last_checked_at=scan.target.last_checked_at,
-        found_count=len(result_items),
-        created_at=scan.created_at,
-        results=result_items,
+        **response.model_dump(), results=items, campgrounds=_members(scan)
     )
-
-
-# ---------------------------------------------------------------------------
-# PATCH  /scans/{id}
-# ---------------------------------------------------------------------------
 
 
 @scan_router.patch("/{scan_id}")
-async def update_scan(
+async def update_scan(  # noqa: C901
     scan_id: uuid.UUID,
     body: ScanUpdateRequest,
     current_user: CurrentUserDep,
     session: SessionDep,
 ) -> ScanResponse:
-    """Edit a subscription's target and filters or toggle ``is_active``."""
-
-    # Serialize edits against creation and suspension for this owner.
-    user_row = await session.scalar(
+    """Merge edits while retaining unavailable selections and isolating other users."""
+    user = await session.scalar(
         select(UserDB).where(UserDB.id == current_user.id).with_for_update()
     )
-
-    result = await session.execute(
-        select(UserScanDB)
-        .options(joinedload(UserScanDB.target).joinedload(UniqueTargetDB.scan_results))
-        .where(UserScanDB.id == scan_id, UserScanDB.user_id == current_user.id)
-    )
-    scan = result.unique().scalar_one_or_none()
-    if scan is None:
+    scan = await _load(session, scan_id, current_user.id)
+    if body.row_version is not None and body.row_version != scan.row_version:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Scan not found",
+            status_code=409, detail="scan_changed: Reload and review the saved scan"
         )
-
-    if body.is_active is True and (user_row is None or not user_row.scanning_enabled):
+    if body.is_active is True and (user is None or not user.scanning_enabled):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail={
                 "error": "ERR_SCANNING_DISABLED",
                 "message": "Scanning is currently disabled for this account.",
             },
         )
-
     if body.model_fields_set & {
         "start_date",
         "end_date",
@@ -504,80 +500,150 @@ async def update_scan(
         "allowed_weekdays",
     }:
         _validate_scan_criteria(
-            start_date=body.start_date or scan.target.start_date,
-            end_date=body.end_date or scan.target.end_date,
+            start_date=body.start_date or scan.start_date,
+            end_date=body.end_date or scan.end_date,
             min_stay_length=body.min_stay_length or scan.min_stay_length,
             allowed_weekdays=body.allowed_weekdays
             if "allowed_weekdays" in body.model_fields_set
             else scan.allowed_weekdays,
         )
-
-    if body.model_fields_set & {
+    definition_fields = {
         "provider_id",
+        "destination_type",
         "campground_id",
+        "recreation_area_id",
+        "coverage_mode",
+        "campground_ids",
         "start_date",
         "end_date",
-    }:
-        scan.target = await _edited_target(session, scan, body)
-
-    if body.is_active is not None:
-        scan.is_active = body.is_active
-    if body.min_stay_length is not None:
-        scan.min_stay_length = body.min_stay_length
-    if body.preferred_types is not None:
-        scan.preferred_types = body.preferred_types
-    if body.require_electric is not None:
-        scan.require_electric = body.require_electric
+    }
+    if body.model_fields_set & definition_fields:
+        kind = body.destination_type or scan.destination_type
+        replacement = (
+            (body.provider_id is not None and body.provider_id != scan.provider_id)
+            or kind != scan.destination_type
+            or (
+                body.recreation_area_id is not None
+                and body.recreation_area_id != scan.recreation_area_id
+            )
+        )
+        if (
+            replacement
+            and (
+                kind == "recreation_area" or scan.destination_type == "recreation_area"
+            )
+            and not {"destination_type", "provider_id"}.issubset(body.model_fields_set)
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail="Destination replacement requires its complete destination variant",
+            )
+        mode = body.coverage_mode or (None if replacement else scan.coverage_mode)
+        selected = (
+            body.campground_ids
+            if body.campground_ids is not None
+            else [item["id"] for item in scan.selected_campgrounds or []]
+            if not replacement and mode == "selected"
+            else None
+        )
+        if (
+            body.coverage_mode == "selected"
+            and scan.coverage_mode != "selected"
+            and body.campground_ids is None
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail="Choose campgrounds explicitly for selected coverage",
+            )
+        values = {
+            "provider_id": body.provider_id or scan.provider_id,
+            "destination_type": kind,
+            "campground_id": body.campground_id
+            if body.campground_id is not None
+            else scan.campground_id
+            if not replacement
+            else None,
+            "recreation_area_id": body.recreation_area_id
+            if body.recreation_area_id is not None
+            else scan.recreation_area_id
+            if not replacement
+            else None,
+            "coverage_mode": mode,
+            "campground_ids": selected,
+            "start_date": body.start_date or scan.start_date,
+            "end_date": body.end_date or scan.end_date,
+            "min_stay_length": body.min_stay_length or scan.min_stay_length,
+            "preferred_types": body.preferred_types
+            if body.preferred_types is not None
+            else scan.preferred_types or [],
+            "require_electric": body.require_electric
+            if body.require_electric is not None
+            else scan.require_electric,
+            "allowed_weekdays": body.allowed_weekdays
+            if "allowed_weekdays" in body.model_fields_set
+            else (scan.allowed_weekdays or list(range(7))),
+        }
+        try:
+            definition = ScanCreateRequest.model_validate(values)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        with session.no_autoflush:
+            await _assign_definition(
+                session,
+                scan,
+                definition,
+                retain_unavailable=not replacement
+                and body.coverage_mode is None
+                and body.campground_ids is None,
+            )
+    for field in (
+        "is_active",
+        "min_stay_length",
+        "preferred_types",
+        "require_electric",
+    ):
+        value = getattr(body, field)
+        if value is not None:
+            setattr(scan, field, value)
     if "allowed_weekdays" in body.model_fields_set:
         scan.allowed_weekdays = (
             body.allowed_weekdays if body.allowed_weekdays != list(range(7)) else None
         )
-
-    await session.commit()
-    await session.refresh(scan)
-
-    cg = await _lookup_campground(
-        session, scan.target.provider_id, scan.target.campground_id
-    )
-
-    return await _scan_to_response(
-        scan,
-        campground_name=cg.name if cg else "",
-        rec_area_name=cg.recreation_area.name if cg and cg.recreation_area else "",
-        found_count=len(matching_scan_results(scan)),
-    )
-
-
-# ---------------------------------------------------------------------------
-# DELETE  /scans/{id}
-# ---------------------------------------------------------------------------
+    if scan.min_stay_length > (scan.end_date - scan.start_date).days:
+        raise HTTPException(status_code=422, detail="Minimum stay exceeds date window")
+    scan.definition_revision += 1
+    scan.row_version += 1
+    scan.current_round_id = None
+    scan.round_completed_at = None
+    try:
+        await reconcile_coverage(session, scan, bump_row_version=False)
+        await session.execute(
+            update(NotificationOutbox)
+            .where(
+                NotificationOutbox.scan_id == scan.id,
+                NotificationOutbox.status.in_(["pending", "retry"]),
+            )
+            .values(
+                status="skipped",
+                finished_at=datetime.datetime.now(datetime.timezone.utc),
+                error_category="scan_edited",
+            )
+        )
+        await session.commit()
+    except (IntegrityError, StaleDataError) as error:
+        await session.rollback()
+        raise HTTPException(
+            status_code=409, detail="scan_changed: Definition changed or already exists"
+        ) from error
+    return await _scan_to_response(await _load(session, scan_id, current_user.id))
 
 
 @scan_router.delete("/{scan_id}")
 async def delete_scan(
-    scan_id: uuid.UUID,
-    current_user: CurrentUserDep,
-    session: SessionDep,
+    scan_id: uuid.UUID, current_user: CurrentUserDep, session: SessionDep
 ) -> Response:
-    """Delete (unsubscribe from) a scan."""
-
-    result = await session.execute(
-        select(UserScanDB).where(
-            UserScanDB.id == scan_id, UserScanDB.user_id == current_user.id
-        )
-    )
-    scan = result.scalar_one_or_none()
-    if scan is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Scan not found",
-        )
-
+    """Remove only the subscription and its links, preserving shared observations."""
+    scan = await _load(session, scan_id, current_user.id)
     await session.delete(scan)
     await session.commit()
-    logger.info(
-        "Scan deleted",
-        scan_id=str(scan_id),
-        user_id=str(current_user.id),
-    )
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return Response(status_code=204)

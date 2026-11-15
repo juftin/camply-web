@@ -122,6 +122,8 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
             notification_mode=worker_config.notification_mode,
             app_url=str(worker_config.app_url),
             on_provider_result=_record_provider_result,
+            terminal_attempt=isinstance(self.request.retries, int)
+            and self.request.retries >= self.max_retries,
         )
         if result["status"] == "success":
             SCAN_RESULTS_STORED_TOTAL.inc(result["availabilities_found"])
@@ -133,11 +135,7 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
             target_id=target_id,
             error=str(exc),
         )
-        try:
-            raise self.retry(exc=exc)
-        except Exception:
-            # If retry fails (e.g. task is not registered), just log and return error
-            return {"status": "error", "reason": str(exc)}
+        raise self.retry(exc=exc) from exc
 
     finally:
         try:

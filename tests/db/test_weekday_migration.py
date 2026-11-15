@@ -90,12 +90,18 @@ def test_weekday_preferences_survive_reopening_storage(tmp_path: Path) -> None:
             start_date=datetime.date(2099, 7, 1),
             end_date=datetime.date(2099, 9, 1),
         )
+        second_target = UniqueTarget(
+            provider_id=987,
+            campground_id="synthetic-unrestricted",
+            start_date=datetime.date(2099, 7, 1),
+            end_date=datetime.date(2099, 9, 1),
+        )
         session.add_all(
             [
                 UserScan(
                     id=restricted_id, user=user, target=target, allowed_weekdays=[4, 5]
                 ),
-                UserScan(id=unrestricted_id, user=user, target=target),
+                UserScan(id=unrestricted_id, user=user, target=second_target),
             ]
         )
         session.commit()

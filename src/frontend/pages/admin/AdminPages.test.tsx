@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { AdminOverview } from "./AdminOverview";
 import { AdminUsers } from "./AdminUsers";
 import { AdminScans } from "./AdminScans";
+import { AdminScanDetail } from "./AdminScanDetail";
 import { AdminAudit } from "./AdminAudit";
 import * as api from "@/lib/api";
 
@@ -35,6 +36,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
     getAdminOperations: vi.fn(),
     listAdminUsers: vi.fn(),
     listAdminScans: vi.fn(),
+    getAdminScan: vi.fn(),
     listAdminAudit: vi.fn(),
     getAdminTrends: vi.fn(),
   };
@@ -260,6 +262,97 @@ describe("AdminScans", () => {
       expect(screen.getByText("Yosemite Pines")).toBeInTheDocument();
       expect(screen.getByText("alice@example.com")).toBeInTheDocument();
       expect(screen.getAllByText("Eligible").length).toBeGreaterThan(0);
+    });
+  });
+
+  it("renders area scan detail with campground member outcomes and attributed results", async () => {
+    vi.mocked(api.getAdminScan).mockResolvedValue({
+      id: "area-scan-1",
+      user_id: "u-1",
+      user_email: "alice@example.com",
+      target_id: null,
+      provider_id: 1,
+      destination_type: "recreation_area",
+      destination_name: "Yosemite Area",
+      campground_id: null,
+      campground_name: null,
+      recreation_area_id: "1001",
+      recreation_area_name: "Yosemite Area",
+      coverage_mode: "selected",
+      campground_ids: ["cg-1", "cg-2"],
+      destination_available: true,
+      eligible_campground_count: 1,
+      unavailable_selection_count: 1,
+      matching_campground_count: 1,
+      checked_campground_count: 1,
+      pending_campground_count: 0,
+      failed_campground_count: 1,
+      coverage_status: "partial",
+      row_version: 1,
+      start_date: "2027-07-10",
+      end_date: "2027-07-12",
+      is_active: true,
+      is_eligible: true,
+      user_scanning_enabled: true,
+      min_stay_length: 1,
+      preferred_types: [],
+      require_electric: false,
+      last_checked_at: null,
+      found_count: 1,
+      created_at: new Date().toISOString(),
+      campgrounds: [
+        {
+          provider_id: 1,
+          campground_id: "cg-1",
+          campground_name: "Upper Pines",
+          eligible: true,
+          outcome: "success",
+          target_id: "target-1",
+        },
+        {
+          provider_id: 1,
+          campground_id: "cg-2",
+          campground_name: "Closed Pines",
+          eligible: false,
+          outcome: "failed",
+          unavailable_reason: "Campground unavailable",
+        },
+      ],
+      results: [
+        {
+          provider_id: 1,
+          campground_id: "cg-1",
+          campground_name: "Upper Pines",
+          is_stale: false,
+          campsite_id: "001",
+          campsite_name: "Site 001",
+          campsite_type: "TENT",
+          is_electric: false,
+          is_accessible: false,
+          available_dates: ["2027-07-10", "2027-07-11"],
+          booking_url: "https://recreation.gov/cg-1",
+        },
+      ],
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={["/admin/scans/area-scan-1"]}>
+          <Routes>
+            <Route path="/admin/scans/:scanId" element={<AdminScanDetail />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Yosemite Area").length).toBeGreaterThan(0);
+      expect(screen.getByText("Upper Pines (success)")).toBeInTheDocument();
+      expect(screen.getByText("Upper Pines")).toBeInTheDocument();
+      expect(
+        screen.getByText("Closed Pines (unavailable)"),
+      ).toBeInTheDocument();
+      expect(screen.getByText("001")).toBeInTheDocument();
     });
   });
 });

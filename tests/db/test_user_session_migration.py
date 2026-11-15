@@ -84,7 +84,7 @@ def test_user_session_migration_round_trips(tmp_path: Path) -> None:
     with sqlite3.connect(database_file) as connection:
         assert connection.execute(
             "SELECT version_num FROM alembic_version"
-        ).fetchall() == [("5a4d254fafa9",)]
+        ).fetchall() == [("d834b6f82260",)]
 
 
 def test_user_session_migration_cascades_on_user_delete(tmp_path: Path) -> None:

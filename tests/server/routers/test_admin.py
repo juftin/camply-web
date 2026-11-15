@@ -408,3 +408,169 @@ async def test_target_status_filter_and_subscriber_pagination(
     assert target["status"] == "active"
     assert target["subscribers_total"] == 1
     assert target["subscribers"] == []
+
+
+async def _seed_admin_area_fixture() -> tuple[str, str, str, str]:
+    """Seed a synthetic area scan with overdue and checked targets plus one result."""
+    from camply.db.coverage import definition_hash, reconcile_coverage
+    from camply.db.models import Campground, RecreationArea, ScanResult
+
+    now = dt.datetime.now(tz=dt.timezone.utc)
+    area_id = f"admin-area-{uuid.uuid4().hex[:8]}"
+    cg1_id = f"admin-cg1-{uuid.uuid4().hex[:8]}"
+    cg2_id = f"admin-cg2-{uuid.uuid4().hex[:8]}"
+    async with maker() as session:
+        user = User(
+            email=f"area-admin-{uuid.uuid4()}@example.test",
+            scanning_enabled=True,
+        )
+        area = RecreationArea(
+            id=area_id, provider_id=1, name="Admin Park", enabled=True
+        )
+        cg1 = Campground(
+            id=cg1_id,
+            provider_id=1,
+            recreation_area_id=area_id,
+            name="Admin Camp 1",
+            enabled=True,
+            reservable=True,
+        )
+        cg2 = Campground(
+            id=cg2_id,
+            provider_id=1,
+            recreation_area_id=area_id,
+            name="Admin Camp 2",
+            enabled=True,
+            reservable=True,
+        )
+        session.add_all([user, area, cg1, cg2])
+        await session.flush()
+        area_scan = UserScan(
+            user_id=user.id,
+            provider_id=1,
+            destination_type="recreation_area",
+            recreation_area_id=area_id,
+            destination_name="Admin Park",
+            coverage_mode="selected",
+            selected_campgrounds=[
+                {"id": cg1_id, "name": "Admin Camp 1"},
+                {"id": cg2_id, "name": "Admin Camp 2"},
+            ],
+            start_date=dt.date(2027, 7, 1),
+            end_date=dt.date(2027, 7, 4),
+            min_stay_length=1,
+            is_active=True,
+            coverage=[],
+            definition_hash=definition_hash(
+                provider_id=1,
+                destination_type="recreation_area",
+                destination_id=area_id,
+                start_date=dt.date(2027, 7, 1),
+                end_date=dt.date(2027, 7, 4),
+                coverage_mode="selected",
+                selected_ids=[cg1_id, cg2_id],
+            ),
+        )
+        session.add(area_scan)
+        await session.flush()
+        await session.refresh(area_scan, ["coverage"])
+        await reconcile_coverage(session, area_scan)
+        await session.flush()
+        target_by_cg = {
+            link.target.campground_id: link.target for link in area_scan.coverage
+        }
+        target_by_cg[cg1_id].created_at = now - dt.timedelta(seconds=1000)
+        target_by_cg[cg1_id].last_checked_at = None
+        target_by_cg[cg2_id].last_checked_at = now
+        session.add(
+            ScanResult(
+                target_id=target_by_cg[cg1_id].id,
+                campsite_id="site-a",
+                campsite_name="Site A",
+                available_dates=["2027-07-01"],
+            )
+        )
+        await session.commit()
+        return str(user.id), str(area_scan.id), cg2_id, str(target_by_cg[cg2_id].id)
+
+
+@pytest.mark.asyncio
+async def test_admin_area_scans_disabled_subscribers_and_prometheus_gauge(
+    test_client: TestClient,
+    override_admin: CurrentUser,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Admin endpoints & Prometheus gauges accurately reflect area scans and disabled members."""
+    from types import SimpleNamespace
+
+    from camply.db.models import Campground
+    from camply.server._prometheus import ELIGIBLE_TARGETS, refresh_db_gauges
+
+    monkeypatch.setattr("camply.db.config.db", SimpleNamespace(get_session=maker))
+    user_id, scan_id, cg2_id, cg2_target_id = await _seed_admin_area_fixture()
+
+    listed = test_client.get(
+        f"/api/admin/scans?owner_id={user_id}&target_status=overdue"
+    ).json()
+    assert len(listed["scans"]) == 1
+    row = listed["scans"][0]
+    assert row["id"] == scan_id
+    assert row["destination_type"] == "recreation_area"
+    assert row["destination_name"] == "Admin Park"
+    assert row["coverage_mode"] == "selected"
+    assert row["eligible_campground_count"] == 2
+    assert row["found_count"] == 1
+
+    detail = test_client.get(f"/api/admin/scans/{scan_id}").json()
+    assert len(detail["campgrounds"]) == 2
+    assert len(detail["results"]) == 1
+    assert detail["results"][0]["campground_name"] == "Admin Camp 1"
+
+    await refresh_db_gauges()
+    before_gauge = ELIGIBLE_TARGETS._value.get()
+
+    # Disable cg2 in catalog: target detail retains total subscriber link while eligible=0
+    # and Prometheus gauge excludes the disabled member target.
+    async with maker() as session:
+        cg2_row = await session.get(Campground, (cg2_id, 1))
+        assert cg2_row is not None
+        cg2_row.enabled = False
+        await session.commit()
+
+    target_detail = test_client.get(f"/api/admin/targets/{cg2_target_id}").json()
+    assert target_detail["subscribers_total"] == 1
+    assert len(target_detail["subscribers"]) == 1
+
+    await refresh_db_gauges()
+    after_gauge = ELIGIBLE_TARGETS._value.get()
+    assert after_gauge == before_gauge - 1
+
+
+@pytest.mark.asyncio
+async def test_admin_scans_expose_criteria_and_filter_results_by_weekdays(
+    test_client: TestClient,
+    override_admin: CurrentUser,
+) -> None:
+    """Admin scan list & detail serialize allowed_weekdays/preferred_types/row_version and filter results."""
+    user_id, scan_id, _, _ = await _seed_admin_area_fixture()
+    async with maker() as session:
+        scan = await session.get(UserScan, uuid.UUID(scan_id))
+        assert scan is not None
+        # 2027-07-01 is a Thursday (weekday=3); restrict to Friday (weekday=4) to filter out Site A.
+        scan.allowed_weekdays = [4]
+        scan.preferred_types = ["Standard Electric"]
+        await session.commit()
+
+    listed = test_client.get(f"/api/admin/scans?owner_id={user_id}").json()
+    assert len(listed["scans"]) == 1
+    row = listed["scans"][0]
+    assert row["allowed_weekdays"] == [4]
+    assert row["preferred_types"] == ["Standard Electric"]
+    assert row["row_version"] == scan.row_version
+    assert row["found_count"] == 0
+
+    detail = test_client.get(f"/api/admin/scans/{scan_id}").json()
+    assert detail["allowed_weekdays"] == [4]
+    assert detail["preferred_types"] == ["Standard Electric"]
+    assert detail["found_count"] == 0
+    assert detail["results"] == []

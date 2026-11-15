@@ -623,6 +623,23 @@ export function SearchPage() {
 
                             {/* Action Buttons */}
                             <div className="flex sm:flex-col justify-end sm:justify-center gap-2 shrink-0">
+                              {item.entity_type !== "Campground" &&
+                                item.recreation_area_id && (
+                                  <ScanForm
+                                    preselectedArea={{
+                                      id: item.recreation_area_id,
+                                      name:
+                                        item.recreation_area_name ??
+                                        "Recreation area",
+                                      provider_id: item.provider_id,
+                                    }}
+                                    trigger={
+                                      <Button size="sm">
+                                        Monitor recreation area
+                                      </Button>
+                                    }
+                                  />
+                                )}
                               {isCampground && (
                                 <ScanForm
                                   preselectedCampground={toCampground(item)}

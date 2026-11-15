@@ -4,7 +4,7 @@ Recreation Areas
 
 from functools import cached_property
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, computed_field
 from sqlalchemy import select
 
@@ -110,3 +110,73 @@ async def list_campgrounds(
         )
         for c in campgrounds
     ]
+
+
+class MonitoringCampground(BaseModel):
+    """Eligible provider-qualified choice for an area monitoring draft."""
+
+    id: str
+    provider_id: int
+    recreation_area_id: str
+    name: str
+    state: str | None = None
+    city: str | None = None
+
+
+class MonitoringCampgroundsResponse(BaseModel):
+    """Paged choices with independent full-area and filtered counts."""
+
+    items: list[MonitoringCampground]
+    total: int
+    eligible_total: int
+    limit: int
+    offset: int
+    has_more: bool
+    catalog_revision: int
+
+
+@recreation_area_router.get("/{provider}/{id}/monitoring-campgrounds")
+async def monitoring_campgrounds(
+    provider: int,
+    id: str,
+    session: SessionDep,
+    query: str = Query(default=""),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> MonitoringCampgroundsResponse:
+    """Discover complete eligible choices without changing the metadata endpoint."""
+    from camply.db.coverage import eligible_members
+    from camply.db.models import Provider
+
+    area = await session.get(RecreationAreaDB, (id, provider))
+    if area is None:
+        raise HTTPException(status_code=404, detail="Recreation area not found")
+    if not area.enabled:
+        raise HTTPException(status_code=422, detail="Recreation area unavailable")
+    members = await eligible_members(session, provider_id=provider, area_id=id)
+    members.sort(key=lambda member: (member.name.casefold(), member.id))
+    matches = [
+        member
+        for member in members
+        if query.strip().casefold() in member.name.casefold()
+    ]
+    provider_row = await session.get(Provider, provider)
+    return MonitoringCampgroundsResponse(
+        items=[
+            MonitoringCampground(
+                id=cg.id,
+                provider_id=cg.provider_id,
+                recreation_area_id=id,
+                name=cg.name,
+                state=cg.state,
+                city=cg.city,
+            )
+            for cg in matches[offset : offset + limit]
+        ],
+        total=len(matches),
+        eligible_total=len(members),
+        limit=limit,
+        offset=offset,
+        has_more=offset + limit < len(matches),
+        catalog_revision=provider_row.catalog_revision if provider_row else 0,
+    )

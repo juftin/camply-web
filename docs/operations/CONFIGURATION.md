@@ -68,6 +68,8 @@ For local deployments that prefer the previous individual alerts with booking-pr
 
 The campsite-details migration is required before starting the updated API/worker: run `task backend:migration-upgrade`. Existing snapshot attributes remain unknown until the next successful check; unknown types/electric hookups do not satisfy restrictive filters. Fresh snapshots replace them automatically. The results list, dashboard counts and alerts use the same saved filters and minimum consecutive stay.
 
+For recreation-area and selected-campground scans, worker round deadlines scale with `CAMPLY_HEARTBEAT_INTERVAL` (`2 * CAMPLY_HEARTBEAT_INTERVAL + 780` seconds) so unresponsive campgrounds cannot stall healthy results or round completion, while `area-outbox` (Celery Beat in distributed mode, the delivery loop in standalone mode) flushes coalesced area summaries across a `5`-second batching window without exceeding normal cooldown intervals (`CAMPLY_TARGET_COOLDOWN`).
+
 ---
 
 ## Runtime selection

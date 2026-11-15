@@ -236,6 +236,10 @@ export function AdminScans() {
               <tbody className="divide-y">
                 {data.scans.map((s) => {
                   const isUpdating = updatingScanId === s.id;
+                  const destination =
+                    s.destination_name ||
+                    s.campground_name ||
+                    "Unknown Destination";
                   return (
                     <tr
                       key={s.id}
@@ -258,11 +262,19 @@ export function AdminScans() {
                         )}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-medium">{s.campground_name}</div>
+                        <div className="font-medium">{destination}</div>
                         <div className="text-xs text-muted-foreground">
                           {s.provider_id === 1
                             ? "Recreation.gov"
                             : `Provider ${s.provider_id}`}
+                          {s.destination_type === "recreation_area" && (
+                            <>
+                              {" · "}
+                              {s.coverage_mode === "all"
+                                ? "All campgrounds"
+                                : "Selected campgrounds"}
+                            </>
+                          )}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-xs whitespace-nowrap">
@@ -271,7 +283,7 @@ export function AdminScans() {
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Switch
-                            aria-label={`Saved active scan for ${s.user_email} at ${s.campground_name}`}
+                            aria-label={`Saved active scan for ${s.user_email} at ${destination}`}
                             checked={s.is_active}
                             disabled={
                               isUpdating || updateScanMutation.isPending
@@ -336,7 +348,11 @@ export function AdminScans() {
                           className="h-7 text-xs"
                         >
                           <Link
-                            to={`/admin/targets/${s.target_id}`}
+                            to={
+                              s.target_id
+                                ? `/admin/targets/${s.target_id}`
+                                : `/admin/scans/${s.id}`
+                            }
                             className="gap-1"
                           >
                             <Target className="h-3 w-3 text-primary" /> Target

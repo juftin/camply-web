@@ -138,6 +138,85 @@ def _exercise_scans(
     assert client.get("/metrics").status_code == 404
     assert client.get("/api/missing").status_code == 404
     _verify_current_features(client, origin, deliveries)
+    _verify_area_monitoring_smoke(client, origin, checks, deliveries)
+
+
+def _verify_area_monitoring_smoke(
+    client: httpx2.Client,
+    origin: str,
+    checks: list[str],
+    deliveries: list[bytes],
+) -> None:
+    """Verify area scan creation, shared checks, area outbox summary delivery, and attribution."""
+    import json
+
+    members_response = client.get(
+        "/api/rec-area/1/synthetic-area/monitoring-campgrounds"
+    )
+    assert members_response.is_success, members_response.text
+    members = members_response.json()["items"]
+    assert {item["id"] for item in members} == {
+        "synthetic-cg-1",
+        "synthetic-cg-2",
+    }
+
+    start = dt.datetime.now(dt.timezone.utc).date() + dt.timedelta(days=10)
+    end = start + dt.timedelta(days=2)
+    area_res = client.post(
+        "/api/scans",
+        json={
+            "provider_id": 1,
+            "destination_type": "recreation_area",
+            "recreation_area_id": "synthetic-area",
+            "coverage_mode": "all",
+            "start_date": start.isoformat(),
+            "end_date": end.isoformat(),
+            "min_stay_length": 2,
+        },
+    )
+    assert area_res.is_success, area_res.text
+    area_scan = area_res.json()
+    assert area_scan["coverage_mode"] == "all"
+    assert area_scan["eligible_campground_count"] == 2
+    area_scan_id = area_scan["id"]
+
+    prior_deliveries = len(deliveries)
+    _wait(
+        lambda: (
+            len(deliveries) > prior_deliveries
+            and client.get(f"/api/scans/{area_scan_id}").json()["coverage_status"]
+            == "complete"
+        ),
+        timeout=30,
+    )
+    area_detail = client.get(f"/api/scans/{area_scan_id}").json()
+    assert area_detail["coverage_status"] == "complete"
+    assert area_detail["checked_campground_count"] == 2
+    assert {r["campground_name"] for r in area_detail["results"]} == {
+        "Synthetic Ridge",
+        "Synthetic Cove",
+    }
+    sent_payload = json.loads(deliveries[-1])
+    assert sent_payload["url"] == f"{origin}/dashboard/scans/{area_scan_id}#results"
+
+    selected_start = start + dt.timedelta(days=10)
+    selected_res = client.post(
+        "/api/scans",
+        json={
+            "provider_id": 1,
+            "destination_type": "recreation_area",
+            "recreation_area_id": "synthetic-area",
+            "coverage_mode": "selected",
+            "campground_ids": ["synthetic-cg-1"],
+            "start_date": selected_start.isoformat(),
+            "end_date": (selected_start + dt.timedelta(days=2)).isoformat(),
+            "min_stay_length": 2,
+        },
+    )
+    assert selected_res.is_success, selected_res.text
+    selected_scan = selected_res.json()
+    assert selected_scan["coverage_mode"] == "selected"
+    assert selected_scan["eligible_campground_count"] == 1
 
 
 def _verify_current_features(
@@ -149,13 +228,13 @@ def _verify_current_features(
     destination = client.get("/api/campground/1/synthetic-cg").json()
     assert destination["details"]["directions"] == "Synthetic source directions"
     summary = client.get("/api/search/map/summary").json()
-    assert summary["total"] == 1 and summary["mappable_total"] == 1
+    assert summary["total"] == 4 and summary["mappable_total"] == 4
     mapped = client.get(
         "/api/search/map",
         params={"west": -120, "south": 37, "east": -119, "north": 38, "zoom": 10},
     )
     assert mapped.is_success, mapped.text
-    assert mapped.json()["represented_total"] == 1
+    assert mapped.json()["represented_total"] == 4
     scans = client.get("/api/scans").json()["scans"]
     detail = client.get(f"/api/scans/{scans[0]['id']}").json()
     assert detail["found_count"] == 1

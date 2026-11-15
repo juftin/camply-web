@@ -93,3 +93,29 @@ async def test_discovery_and_alerts_use_celery(
         stored_target = await session.get(UniqueTarget, target.id)
         assert stored_target is not None and stored_target.last_checked_at is not None
         assert (await session.scalars(select(NotificationOutbox))).all() == []
+
+
+def test_area_outbox_celery_beat_and_task_execution() -> None:
+    """Celery beat schedules 1s area outbox draining and calls bounded delivery."""
+    from unittest.mock import AsyncMock, patch
+
+    from camply.worker.celery_app import celery_app
+    from camply.worker.tasks.notifications import deliver_area_outbox
+
+    entry = celery_app.conf.beat_schedule["area-outbox"]
+    assert entry["task"] == "camply.notifications.deliver_area_outbox"
+    assert entry["schedule"] == 1.0
+
+    with (
+        patch("camply.worker.outbox.recover_deliveries", new_callable=AsyncMock) as rec,
+        patch(
+            "camply.worker.outbox.deliver_next",
+            new_callable=AsyncMock,
+            side_effect=[{"outcome": "success"}, None],
+        ) as nxt,
+    ):
+        result = deliver_area_outbox()
+    assert result == {"delivered": 1}
+    rec.assert_awaited_once()
+    assert nxt.await_count == 2
+    assert all(call.kwargs.get("area_only") is True for call in nxt.await_args_list)

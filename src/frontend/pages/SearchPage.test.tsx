@@ -461,3 +461,44 @@ it("synchronizes the input with browser back and forward navigation", () => {
   fireEvent.click(screen.getByRole("button", { name: "Go forward" }));
   expect(input).toHaveValue("Pines");
 });
+
+it("offers Monitor recreation area action for recreation area explore results", () => {
+  vi.spyOn(searchHook, "useSearchExplore").mockReturnValue({
+    data: {
+      ...mockExploreData,
+      items: [
+        {
+          id: "Area/1/1001",
+          entity_type: "RecreationArea",
+          provider_id: 1,
+          provider_name: "recreation_dot_gov",
+          recreation_area_id: "1001",
+          recreation_area_name: "Yosemite National Park",
+          campground_id: null,
+          campground_name: null,
+          city: null,
+          state: "CA",
+          country: "USA",
+          latitude: 37.737,
+          longitude: -119.565,
+          reservable: true,
+          campsite_types: [],
+          has_electric: false,
+          has_water: false,
+          has_sewer: false,
+          pets_allowed: false,
+          ada_accessible: false,
+          max_rv_length: null,
+        },
+      ],
+    },
+    isLoading: false,
+    isFetching: false,
+    error: null,
+  } as unknown as ReturnType<typeof searchHook.useSearchExplore>);
+
+  renderSearchPage(["/search?q=Yosemite"]);
+  expect(
+    screen.getByRole("button", { name: "Monitor recreation area" }),
+  ).toBeInTheDocument();
+});

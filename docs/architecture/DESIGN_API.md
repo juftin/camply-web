@@ -75,6 +75,7 @@ Administrators review requests via `GET /api/admin/access-requests` (paginated, 
 - **`GET /api/campground/{provider}/{id}`**: Get a single campground.
 - **`GET /api/rec-area/{provider}/{id}`**: Get a recreation area.
 - **`GET /api/rec-area/{provider}/{id}/campgrounds`**: List campgrounds within a recreation area.
+- **`GET /api/rec-area/{provider}/{id}/monitoring-campgrounds`**: Paginated eligible campgrounds (`items`, `total`, `eligible_total`, `has_more`, `catalog_revision`) for selected-campground area scans, with search filtering.
 
 ### 2. User & Profile (Auth-Required)
 
@@ -88,11 +89,11 @@ Administrators review requests via `GET /api/admin/access-requests` (paginated, 
 
 - **`GET /api/scans`**: List all scans belonging to the current user (paginated).
 - **`POST /api/scans`**: Create a new scan.
-  - **Logic**: Backend calculates the target `hash`, creates/links the `UniqueTarget` (de-duplication), and creates the `UserScan`.
-  - Returns `201 Created` on success, `409 Conflict` if a duplicate scan exists.
-- **`GET /api/scans/{id}`**: Detailed view of a scan, including recent `scan_results`.
-- **Result expiration**: User-facing results and `found_count` omit nights before the current UTC date or outside the target interval, then apply the saved minimum stay. This also applies to paused scans. Successful provider checks replace availability, including clearing results for an empty response; failed checks preserve the latest successful snapshot and timestamp.
-- **`PATCH /api/scans/{id}`**: Edit the campground/provider, dates, filters (`min_stay_length`, `preferred_types`, `require_electric`), or toggle `is_active`. All fields are optional. Target changes validate the merged date range and campground, then relink only this subscription to a new or existing `UniqueTarget`; shared targets and other subscribers remain unchanged. Duplicate subscriptions return `409`, invalid date ranges return `422`, and unknown campgrounds return `404`. Editing preserves the scan ID, creation date, and active preference unless explicitly changed. Suspended users can edit saved scans, but cannot resume them.
+  - **Logic**: Supports both single `campground` scans and `recreation_area` scans (`coverage_mode`: `"all"` for all current and future eligible campgrounds, or `"selected"` for a fixed list of `campground_ids`). Backend computes a normalized `definition_hash`, links one shared `UniqueTarget` for campground scans or resolves member `ScanTarget` coverage rows for area scans, and rejects unbookable/empty destinations (`422`) or unknown destinations (`404`).
+  - Returns `201 Created` on success, `409 Conflict` if an identical `definition_hash` subscription exists for the user.
+- **`GET /api/scans/{id}`**: Detailed view of a scan, including member `campgrounds` coverage status and campground-attributed `scan_results` (`provider_id`, `campground_id`, `campground_name`, `is_stale`).
+- **Result expiration**: User-facing results and `found_count` omit nights before the current UTC date or outside the target interval, then apply the saved minimum stay. This also applies to paused scans. Successful provider checks replace availability, including clearing results for an empty response; failed checks preserve the latest successful snapshot and timestamp (surfaced with `is_stale: true` when the latest area round attempt failed).
+- **`PATCH /api/scans/{id}`**: Edit destination (`destination_type`, `provider_id`, `campground_id` or `recreation_area_id`, `coverage_mode`, `campground_ids`), dates, filters (`min_stay_length`, `preferred_types`, `require_electric`), or `is_active`, with optional `row_version` optimistic concurrency locking. Target/coverage changes recompute `definition_hash`, bump `definition_revision` / `coverage_revision` / `row_version`, and reconcile `ScanTarget` rows without mutating shared targets or other subscribers. Duplicate definitions or `row_version` mismatches return `409`, invalid shapes or date ranges return `422`, and unknown destinations return `404`. Editing preserves the scan ID, creation date, and active preference unless explicitly changed. Suspended users can edit saved scans, but cannot resume them.
 - **`DELETE /api/scans/{id}`**: Unsubscribe from a scan (returns `204 No Content`).
 
 ### 4. Administration & Operations (Admin-Only)
@@ -125,7 +126,11 @@ All schemas are defined in `src/camply/server/schemas.py`.
 ```python
 class ScanCreateRequest(BaseModel):
     provider_id: int = Field(..., description="Provider identifier")
-    campground_id: str = Field(..., description="Provider-internal campground ID")
+    destination_type: Literal["campground", "recreation_area"] = "campground"
+    campground_id: str | None = Field(default=None, min_length=1, max_length=128)
+    recreation_area_id: str | None = Field(default=None, min_length=1, max_length=128)
+    coverage_mode: Literal["all", "selected"] | None = None
+    campground_ids: list[str] | None = None
     start_date: date = Field(..., description="Check-in date")
     end_date: date = Field(..., description="Check-out date")
     min_stay_length: int = Field(default=1, ge=1)
@@ -133,15 +138,32 @@ class ScanCreateRequest(BaseModel):
     require_electric: bool = Field(default=False)
 ```
 
+`ScanUpdateRequest` accepts the same fields as optional plus `is_active: bool | None` and `row_version: int | None` for optimistic concurrency control.
+
 ### `ScanResponse`
 
 ```python
 class ScanResponse(BaseModel):
     id: UUID
+    destination_type: Literal["campground", "recreation_area"] = "campground"
+    destination_name: str = ""
     provider_id: int
-    campground_id: str
-    campground_name: str
-    recreation_area_name: str
+    campground_id: str | None
+    campground_name: str | None = ""
+    recreation_area_id: str | None = None
+    recreation_area_name: str = ""
+    coverage_mode: Literal["all", "selected"] | None = None
+    campground_ids: list[str] = Field(default_factory=list)
+    eligible_campground_count: int = 1
+    unavailable_selection_count: int = 0
+    matching_campground_count: int = 0
+    destination_available: bool = True
+    coverage_status: str = "waiting"
+    checked_campground_count: int = 0
+    failed_campground_count: int = 0
+    pending_campground_count: int = 0
+    last_full_checked_at: datetime | None = None
+    row_version: int = 1
     start_date: date
     end_date: date
     is_active: bool
@@ -158,6 +180,7 @@ class ScanResponse(BaseModel):
 Adds:
 
 ```python
+    campgrounds: list[ScanCampgroundItem]
     results: list[ScanResultItem]
 ```
 
@@ -165,6 +188,11 @@ Adds:
 
 ```python
 class ScanResultItem(BaseModel):
+    provider_id: int = 0
+    campground_id: str = ""
+    campground_name: str = ""
+    last_checked_at: datetime | None = None
+    is_stale: bool = False
     campsite_id: str
     campsite_name: str
     available_dates: list[str]
@@ -196,42 +224,43 @@ Creation and edits to dates, nights or minimum stay validate that the merged cri
 
 ## 🗺️ Endpoint Summary
 
-| Method | Path                                        | Auth      | Invitation (when enabled) | Purpose                              |
-| ------ | ------------------------------------------- | --------- | ------------------------- | ------------------------------------ |
-| GET    | `/api/search?query=`                        | —         | —                         | Search campgrounds/rec areas         |
-| GET    | `/api/providers`                            | —         | —                         | List providers                       |
-| GET    | `/api/provider/{id}`                        | —         | —                         | Single provider                      |
-| GET    | `/api/campground/{provider}/{id}`           | —         | —                         | Single campground                    |
-| GET    | `/api/rec-area/{provider}/{id}`             | —         | —                         | Single rec area                      |
-| GET    | `/api/rec-area/{provider}/{id}/campgrounds` | —         | —                         | Campgrounds in rec area              |
-| GET    | `/api/me`                                   | ✓         | —                         | Current user profile                 |
-| PATCH  | `/api/me`                                   | ✓         | —                         | Update profile                       |
-| POST   | `/api/change-password`                      | ✓         | —                         | Change password (session)            |
-| GET    | `/api/me/sessions`                          | ✓         | —                         | List active password sessions        |
-| DELETE | `/api/me/sessions/{session_id}`             | ✓         | —                         | Revoke a password session            |
-| GET    | `/api/scans`                                | ✓         | ✓                         | List user scans                      |
-| POST   | `/api/scans`                                | ✓         | ✓                         | Create scan                          |
-| GET    | `/api/scans/{id}`                           | ✓         | ✓                         | Scan detail                          |
-| PATCH  | `/api/scans/{id}`                           | ✓         | ✓                         | Update scan                          |
-| DELETE | `/api/scans/{id}`                           | ✓         | ✓                         | Delete scan                          |
-| GET    | `/api/health`                               | —         | —                         | Health check                         |
-| GET    | `/api/admin/overview`                       | ✓ (Admin) | —                         | Admin KPI overview                   |
-| GET    | `/api/admin/users`                          | ✓ (Admin) | —                         | List users with status               |
-| POST   | `/api/admin/users`                          | ✓ (Admin) | —                         | Create user with credentials         |
-| GET    | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | User details and audit               |
-| PATCH  | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | Update user (scanning, invite, role) |
-| GET    | `/api/admin/access-requests`                | ✓ (Admin) | —                         | List invitation requests             |
-| PATCH  | `/api/admin/access-requests/{id}`           | ✓ (Admin) | —                         | Approve or reject access request     |
-| GET    | `/api/admin/scans`                          | ✓ (Admin) | —                         | List all system scans                |
-| GET    | `/api/admin/scans/{id}`                     | ✓ (Admin) | —                         | Scan detail and target info          |
-| PATCH  | `/api/admin/scans/{id}`                     | ✓ (Admin) | —                         | Update scan (toggle active)          |
-| GET    | `/api/admin/targets/{id}`                   | ✓ (Admin) | —                         | Shared target detail                 |
-| GET    | `/api/admin/audit`                          | ✓ (Admin) | —                         | Immutable audit event log            |
-| GET    | `/api/admin/operations`                     | ✓ (Admin) | —                         | Celery worker states & queue         |
-| GET    | `/api/admin/operations/tasks`               | ✓ (Admin) | —                         | Valkey telemetry stream              |
-| GET    | `/api/admin/operations/tasks/{id}`          | ✓ (Admin) | —                         | Task execution telemetry             |
-| POST   | `/api/admin/operations/sync-providers`      | ✓ (Admin) | —                         | Dispatch provider catalog sync       |
-| GET    | `/api/admin/trends`                         | ✓ (Admin) | —                         | Prometheus metrics proxy             |
+| Method | Path                                                   | Auth      | Invitation (when enabled) | Purpose                              |
+| ------ | ------------------------------------------------------ | --------- | ------------------------- | ------------------------------------ |
+| GET    | `/api/search?query=`                                   | —         | —                         | Search campgrounds/rec areas         |
+| GET    | `/api/providers`                                       | —         | —                         | List providers                       |
+| GET    | `/api/provider/{id}`                                   | —         | —                         | Single provider                      |
+| GET    | `/api/campground/{provider}/{id}`                      | —         | —                         | Single campground                    |
+| GET    | `/api/rec-area/{provider}/{id}`                        | —         | —                         | Single rec area                      |
+| GET    | `/api/rec-area/{provider}/{id}/campgrounds`            | —         | —                         | Campgrounds in rec area              |
+| GET    | `/api/rec-area/{provider}/{id}/monitoring-campgrounds` | —         | —                         | Paginated eligible area campgrounds  |
+| GET    | `/api/me`                                              | ✓         | —                         | Current user profile                 |
+| PATCH  | `/api/me`                                              | ✓         | —                         | Update profile                       |
+| POST   | `/api/change-password`                                 | ✓         | —                         | Change password (session)            |
+| GET    | `/api/me/sessions`                                     | ✓         | —                         | List active password sessions        |
+| DELETE | `/api/me/sessions/{session_id}`                        | ✓         | —                         | Revoke a password session            |
+| GET    | `/api/scans`                                           | ✓         | ✓                         | List user scans                      |
+| POST   | `/api/scans`                                           | ✓         | ✓                         | Create scan                          |
+| GET    | `/api/scans/{id}`                                      | ✓         | ✓                         | Scan detail                          |
+| PATCH  | `/api/scans/{id}`                                      | ✓         | ✓                         | Update scan                          |
+| DELETE | `/api/scans/{id}`                                      | ✓         | ✓                         | Delete scan                          |
+| GET    | `/api/health`                                          | —         | —                         | Health check                         |
+| GET    | `/api/admin/overview`                                  | ✓ (Admin) | —                         | Admin KPI overview                   |
+| GET    | `/api/admin/users`                                     | ✓ (Admin) | —                         | List users with status               |
+| POST   | `/api/admin/users`                                     | ✓ (Admin) | —                         | Create user with credentials         |
+| GET    | `/api/admin/users/{id}`                                | ✓ (Admin) | —                         | User details and audit               |
+| PATCH  | `/api/admin/users/{id}`                                | ✓ (Admin) | —                         | Update user (scanning, invite, role) |
+| GET    | `/api/admin/access-requests`                           | ✓ (Admin) | —                         | List invitation requests             |
+| PATCH  | `/api/admin/access-requests/{id}`                      | ✓ (Admin) | —                         | Approve or reject access request     |
+| GET    | `/api/admin/scans`                                     | ✓ (Admin) | —                         | List all system scans                |
+| GET    | `/api/admin/scans/{id}`                                | ✓ (Admin) | —                         | Scan detail and target info          |
+| PATCH  | `/api/admin/scans/{id}`                                | ✓ (Admin) | —                         | Update scan (toggle active)          |
+| GET    | `/api/admin/targets/{id}`                              | ✓ (Admin) | —                         | Shared target detail                 |
+| GET    | `/api/admin/audit`                                     | ✓ (Admin) | —                         | Immutable audit event log            |
+| GET    | `/api/admin/operations`                                | ✓ (Admin) | —                         | Celery worker states & queue         |
+| GET    | `/api/admin/operations/tasks`                          | ✓ (Admin) | —                         | Valkey telemetry stream              |
+| GET    | `/api/admin/operations/tasks/{id}`                     | ✓ (Admin) | —                         | Task execution telemetry             |
+| POST   | `/api/admin/operations/sync-providers`                 | ✓ (Admin) | —                         | Dispatch provider catalog sync       |
+| GET    | `/api/admin/trends`                                    | ✓ (Admin) | —                         | Prometheus metrics proxy             |
 
 ### Admin contract and monitoring availability
 

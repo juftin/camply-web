@@ -113,7 +113,7 @@ To keep the system running smoothly, providers are responsible for more than jus
 
 1. **Metadata Refresh**:
    - _Frequency_: Weekly.
-   - _Task_: Download full campground lists (e.g., RIDB export for Recreation.gov) and update the `Search` table so users can find new parks in the UI.
+   - _Task_: Download full campground lists (e.g., RIDB export for Recreation.gov) and update the `Search` table so users can find new parks in the UI. Recreation.gov parses both recreation-area and facility datasets in full before committing `recreation_areas`, `campgrounds`, and `search` atomically while incrementing `providers.catalog_revision`, preventing half-updated area membership; secondary enrichment runs separately without reverting committed catalog updates.
 2. **Stale Result Cleanup**:
    - _Frequency_: Daily.
    - _Task_: Purge entries from `scan_results` that are in the past or no longer relevant.

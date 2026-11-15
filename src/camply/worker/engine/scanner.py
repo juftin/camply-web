@@ -1,5 +1,6 @@
 """Shared async scanner without task queues, distributed locks, or metric clients."""
 
+import asyncio
 import datetime
 import uuid as uuid_mod
 from collections.abc import Callable
@@ -10,6 +11,7 @@ from sqlalchemy import and_, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from camply.db.availability import matches_scan_filters
+from camply.db.coverage import subscriber_condition
 from camply.db.eligibility import eligible_scan_condition
 from camply.db.models import (
     Campground,
@@ -23,6 +25,8 @@ from camply.providers.base import BaseProvider
 from camply.providers.dto import CampsiteDTO
 from camply.providers.utils import normalize_name
 from camply.worker.engine.alerts import matching_opening, summarize_openings
+from camply.worker.engine.area_alerts import enqueue_area
+from camply.worker.engine.coverage import record_attempt, register_attempt
 from camply.worker.notifications.base import NotificationDTO
 
 logger = structlog.getLogger(__name__)
@@ -46,6 +50,7 @@ async def check_target(
     dispatch: Callable[[UserScan, NotificationDTO], None] | None = None,
     dispatch_ntfy: Callable[[UserScan, NotificationDTO], None] | None = None,
     persistent: bool = False,
+    terminal_attempt: bool = False,
     notification_mode: Literal["summary", "direct"] = "summary",
     app_url: str = "https://camply.rocks",
     invite_only: bool = False,
@@ -92,7 +97,8 @@ async def check_target(
             select(func.count(UserScan.id))
             .join(User, User.id == UserScan.user_id)
             .where(
-                UserScan.target_id == target_uuid,
+                subscriber_condition(),
+                UniqueTarget.id == target_uuid,
                 scan_condition,
             )
         )
@@ -124,17 +130,31 @@ async def check_target(
             return {"status": "error", "reason": "unknown_provider"}
 
         # Instantiate provider and call find_availabilities
+        attempt = await register_attempt(
+            session, target, now=datetime.datetime.now(datetime.timezone.utc)
+        )
         await session.commit()
         provider = provider_cls()
         try:
-            availabilities: list[CampsiteDTO] = await provider.find_availabilities(
-                park_id=target.campground_id,
-                start_date=target.start_date,
-                end_date=target.end_date,
+            availabilities: list[CampsiteDTO] = await asyncio.wait_for(
+                provider.find_availabilities(
+                    park_id=target.campground_id,
+                    start_date=target.start_date,
+                    end_date=target.end_date,
+                ),
+                timeout=90,
             )
             if on_provider_result is not None:
                 on_provider_result(target.provider_id, True)
         except Exception:
+            await record_attempt(
+                session,
+                target,
+                attempt,
+                error="provider_check_failed",
+                terminal=terminal_attempt,
+            )
+            await session.commit()
             if on_provider_result is not None:
                 on_provider_result(target.provider_id, False)
             raise
@@ -236,18 +256,21 @@ async def check_target(
         target.last_checked_at = datetime.datetime.now(tz=datetime.timezone.utc)
         session.add(target)
 
-        if not persistent:
-            await session.commit()
+        await record_attempt(session, target, attempt)
 
         detection_id = uuid_mod.uuid4()
         # Fan-out: find matching UserScans and enqueue notifications
         notifications_sent = 0
+        dispatches: list[
+            tuple[UserScan, NotificationDTO, Literal["pushover", "ntfy"]]
+        ] = []
         if new_openings:
             us_stmt = (
                 select(UserScan)
                 .join(User, User.id == UserScan.user_id)
                 .where(
-                    UserScan.target_id == target_uuid,
+                    subscriber_condition(),
+                    UniqueTarget.id == target_uuid,
                     scan_condition,
                 )
             )
@@ -270,13 +293,27 @@ async def check_target(
                         matching.append(current)
                 if not matching:
                     continue
+                recipient = await session.get(User, scan.user_id)
+                channel: Literal["pushover", "ntfy"] = (
+                    recipient.notification_provider if recipient else "pushover"
+                )
+                if scan.destination_type == "recreation_area":
+                    await enqueue_area(
+                        session,
+                        scan,
+                        target,
+                        matching,
+                        channel=channel,
+                        now=target.last_checked_at,
+                        direct=notification_mode == "direct",
+                    )
+                    notifications_sent += 1
+                    continue
                 notifications = (
                     [summarize_openings(matching, scan, target, app_url=app_url)]
                     if notification_mode == "summary"
                     else matching
                 )
-                recipient = await session.get(User, scan.user_id)
-                channel = recipient.notification_provider if recipient else "pushover"
                 for notification in notifications:
                     if persistent:
                         session.add(
@@ -294,10 +331,8 @@ async def check_target(
                                 next_attempt_at=target.last_checked_at,
                             )
                         )
-                    elif channel == "ntfy" and dispatch_ntfy is not None:
-                        dispatch_ntfy(scan, notification)
-                    elif channel == "pushover" and dispatch is not None:
-                        dispatch(scan, notification)
+                    else:
+                        dispatches.append((scan, notification, channel))
                     notifications_sent += 1
 
             logger.info(
@@ -307,8 +342,12 @@ async def check_target(
                 notifications_sent=notifications_sent,
             )
 
-        if persistent:
-            await session.commit()
+        await session.commit()
+        for scan, notification, channel in dispatches:
+            if channel == "ntfy" and dispatch_ntfy is not None:
+                dispatch_ntfy(scan, notification)
+            elif channel == "pushover" and dispatch is not None:
+                dispatch(scan, notification)
 
         return {
             "status": "success",

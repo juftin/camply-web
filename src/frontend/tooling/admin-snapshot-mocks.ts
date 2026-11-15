@@ -285,6 +285,77 @@ export async function setupAdminSnapshotMocks(
         ? SCANS.filter((scan) => scan.user_id === owner)
         : SCANS;
       body = { scans, total: scans.length };
+    } else if (endpoint === "scans/area-scan-mock-1") {
+      body = {
+        id: "area-scan-mock-1",
+        user_id: USERS[0].id,
+        user_email: USERS[0].email,
+        target_id: null,
+        provider_id: 1,
+        destination_type: "recreation_area",
+        destination_name: "Yosemite National Park",
+        campground_id: null,
+        campground_name: null,
+        recreation_area_id: "2991",
+        recreation_area_name: "Yosemite National Park",
+        coverage_mode: "selected",
+        campground_ids: ["232447", "232499"],
+        destination_available: true,
+        eligible_campground_count: 1,
+        unavailable_selection_count: 1,
+        matching_campground_count: 1,
+        checked_campground_count: 1,
+        pending_campground_count: 0,
+        failed_campground_count: 1,
+        coverage_status: "partial",
+        row_version: 2,
+        start_date: "2026-11-15",
+        end_date: "2026-11-19",
+        is_active: true,
+        is_eligible: true,
+        user_scanning_enabled: true,
+        min_stay_length: 2,
+        preferred_types: ["TENT ONLY"],
+        require_electric: false,
+        last_checked_at: NOW,
+        found_count: 1,
+        created_at: USERS[0].created_at,
+        campgrounds: [
+          {
+            provider_id: 1,
+            campground_id: "232447",
+            campground_name: "Upper Pines Campground",
+            eligible: true,
+            outcome: "success",
+            target_id: "target-mock-1",
+          },
+          {
+            provider_id: 1,
+            campground_id: "232499",
+            campground_name: "Closed Basin Campground",
+            eligible: false,
+            outcome: "failed",
+            unavailable_reason:
+              "Campground is no longer eligible in this recreation area",
+          },
+        ],
+        results: [
+          {
+            provider_id: 1,
+            campground_id: "232447",
+            campground_name: "Upper Pines Campground",
+            is_stale: true,
+            campsite_id: "site-042",
+            campsite_name: "Site 042",
+            available_dates: ["2026-11-15", "2026-11-16"],
+            campsite_type: "TENT ONLY",
+            is_electric: false,
+            is_accessible: true,
+            booking_url:
+              "https://www.recreation.gov/camping/campgrounds/232447",
+          },
+        ],
+      };
     } else if (endpoint.startsWith("scans/")) {
       body = {
         ...SCANS.find((scan) => endpoint.endsWith(scan.id)),

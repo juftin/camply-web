@@ -57,6 +57,12 @@ class NotificationOutbox(Base):
     )
     payload: Mapped[dict[str, Any]] = mapped_column(JSON)
     """Credential-free serialized NotificationDTO."""
+    payload_kind: Mapped[str] = mapped_column(
+        String(24), default="campground", server_default="campground"
+    )
+    """Area candidates or a legacy single-campground notification."""
+    scan_revision: Mapped[int | None] = mapped_column()
+    payload_version: Mapped[int] = mapped_column(default=1, server_default="1")
     status: Mapped[str] = mapped_column(String(16), default="pending")
     """Delivery lifecycle state."""
     attempt_count: Mapped[int] = mapped_column(default=0)

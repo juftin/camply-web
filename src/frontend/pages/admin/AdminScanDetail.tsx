@@ -92,8 +92,19 @@ export function AdminScanDetail() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
-              {scan.campground_name}
+              {scan.destination_name ||
+                scan.campground_name ||
+                scan.recreation_area_name}
             </h1>
+            {scan.destination_type === "recreation_area" && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {scan.coverage_mode === "all"
+                  ? "All campgrounds"
+                  : "Selected campgrounds"}{" "}
+                · {scan.eligible_campground_count ?? 0} eligible ·{" "}
+                {scan.unavailable_selection_count ?? 0} unavailable
+              </p>
+            )}
             <p className="text-xs font-mono text-muted-foreground mt-1">
               Scan UUID: {scan.id}
             </p>
@@ -146,12 +157,36 @@ export function AdminScanDetail() {
                 <span className="text-xs text-muted-foreground block">
                   Shared Target
                 </span>
-                <Link
-                  to={`/admin/targets/${scan.target_id}`}
-                  className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
-                >
-                  <Target className="h-3 w-3" /> {scan.target_id.slice(0, 8)}...
-                </Link>
+                {scan.target_id ? (
+                  <Link
+                    to={`/admin/targets/${scan.target_id}`}
+                    className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
+                  >
+                    <Target className="h-3 w-3" /> {scan.target_id.slice(0, 8)}
+                    ...
+                  </Link>
+                ) : (
+                  <div className="space-y-1">
+                    {(scan.campgrounds ?? []).map((member, index) =>
+                      member.target_id ? (
+                        <Link
+                          key={`${member.campground_id}-${index}`}
+                          to={`/admin/targets/${member.target_id}`}
+                          className="block text-xs text-primary hover:underline"
+                        >
+                          {member.campground_name} ({member.outcome})
+                        </Link>
+                      ) : (
+                        <span
+                          key={`${member.campground_id}-${index}`}
+                          className="block text-xs text-muted-foreground"
+                        >
+                          {member.campground_name} (unavailable)
+                        </span>
+                      ),
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 <span className="text-xs text-muted-foreground block">
@@ -292,6 +327,11 @@ export function AdminScanDetail() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 border-b">
                   <tr>
+                    {scan.destination_type === "recreation_area" && (
+                      <th className="py-3 px-4 text-left font-medium">
+                        Campground
+                      </th>
+                    )}
                     <th className="py-3 px-4 text-left font-medium">
                       Campsite ID
                     </th>
@@ -306,9 +346,14 @@ export function AdminScanDetail() {
                 <tbody className="divide-y">
                   {(scan.results ?? []).map((r, i) => (
                     <tr
-                      key={`${r.campsite_id}-${i}`}
+                      key={`${r.campground_id ?? ""}-${r.campsite_id}-${i}`}
                       className="hover:bg-muted/30"
                     >
+                      {scan.destination_type === "recreation_area" && (
+                        <td className="py-3 px-4 text-xs text-muted-foreground">
+                          {r.campground_name || r.campground_id || "Campground"}
+                        </td>
+                      )}
                       <td className="py-3 px-4 font-mono text-xs">
                         {r.campsite_id}
                       </td>

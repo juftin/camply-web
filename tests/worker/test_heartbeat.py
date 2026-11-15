@@ -192,6 +192,7 @@ class TestDiscoverTargetsAsync:
         ]
         mock_cursor.scalars.return_value = mock_scalar
         mock_session.execute.return_value = mock_cursor
+        mock_session.scalars.return_value = MagicMock(all=MagicMock(return_value=[]))
 
         # Mock db.get_session as async context manager
         mock_db = MagicMock()
@@ -222,6 +223,7 @@ class TestDiscoverTargetsAsync:
         mock_scalar.all.return_value = []
         mock_cursor.scalars.return_value = mock_scalar
         mock_session.execute.return_value = mock_cursor
+        mock_session.scalars.return_value = MagicMock(all=MagicMock(return_value=[]))
 
         mock_db = MagicMock()
         mock_db.get_session.return_value = AsyncMock(

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Mountain,
@@ -22,6 +23,7 @@ import {
 import { MapComponent } from "@/components/MapComponent";
 import { CollapsibleDescription } from "@/components/CollapsibleDescription";
 import { DestinationDetails } from "@/components/DestinationDetails";
+import { ScanForm } from "@/components/ScanForm";
 import { getRecreationArea, getProvider, getCampgrounds } from "@/lib/api";
 import { toTitleCase } from "@/lib/utils";
 
@@ -114,6 +116,12 @@ export function RecreationArea() {
               <h1 className="text-3xl font-bold">
                 {toTitleCase(recreationArea.name)}
               </h1>
+              {recreationArea.enabled && (
+                <ScanForm
+                  preselectedArea={recreationArea}
+                  trigger={<Button>Monitor recreation area</Button>}
+                />
+              )}
               <p className="text-muted-foreground flex items-center space-x-2">
                 <span>Provided by {toTitleCase(provider.name)}</span>
                 {provider.url && (

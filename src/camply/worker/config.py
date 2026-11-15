@@ -55,7 +55,7 @@ class WorkerConfig(BaseSettings):
     """Heartbeat interval in seconds for target discovery and availability searching."""
 
     # Lock timeout in seconds (prevents ghost locks)
-    lock_timeout: int = 120
+    lock_timeout: int = Field(default=120, ge=105)
 
     # How stale a target must be before re-checking (seconds)
     target_cooldown: int = Field(

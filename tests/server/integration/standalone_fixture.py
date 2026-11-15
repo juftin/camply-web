@@ -4,7 +4,7 @@ import datetime as dt
 import os
 
 from camply.db.config import db
-from camply.db.models import Campground, Search
+from camply.db.models import Campground, RecreationArea, Search
 from camply.providers import PROVIDERS
 from camply.providers.details import DestinationDetails
 from camply.providers.dto import CampsiteDTO, CampsiteType
@@ -21,19 +21,89 @@ class SyntheticProvider(RecreationGovProvider):
         async with db.get_session() as session:
             if await session.get(Campground, ("synthetic-cg", 1)) is None:
                 session.add(
-                    Campground(id="synthetic-cg", provider_id=1, name="Synthetic Pines")
-                )
-                session.add(
-                    Search(
-                        id="synthetic-search",
-                        entity_type="Campground",
+                    RecreationArea(
+                        id="synthetic-area",
                         provider_id=1,
-                        provider_name="Synthetic",
-                        campground_id="synthetic-cg",
-                        campground_name="Synthetic Pines",
-                        latitude=37.7,
-                        longitude=-119.6,
+                        name="Synthetic Basin",
+                        enabled=True,
+                        reservable=True,
                     )
+                )
+                await session.flush()
+                session.add_all(
+                    [
+                        Campground(
+                            id="synthetic-cg",
+                            provider_id=1,
+                            name="Synthetic Pines",
+                            enabled=True,
+                            reservable=True,
+                        ),
+                        Campground(
+                            id="synthetic-cg-1",
+                            provider_id=1,
+                            recreation_area_id="synthetic-area",
+                            name="Synthetic Ridge",
+                            enabled=True,
+                            reservable=True,
+                        ),
+                        Campground(
+                            id="synthetic-cg-2",
+                            provider_id=1,
+                            recreation_area_id="synthetic-area",
+                            name="Synthetic Cove",
+                            enabled=True,
+                            reservable=True,
+                        ),
+                    ]
+                )
+                session.add_all(
+                    [
+                        Search(
+                            id="synthetic-search",
+                            entity_type="Campground",
+                            provider_id=1,
+                            provider_name="Synthetic",
+                            campground_id="synthetic-cg",
+                            campground_name="Synthetic Pines",
+                            latitude=37.7,
+                            longitude=-119.6,
+                        ),
+                        Search(
+                            id="synthetic-area-search",
+                            entity_type="RecreationArea",
+                            provider_id=1,
+                            provider_name="Synthetic",
+                            recreation_area_id="synthetic-area",
+                            recreation_area_name="Synthetic Basin",
+                            latitude=37.7,
+                            longitude=-119.6,
+                        ),
+                        Search(
+                            id="synthetic-search-1",
+                            entity_type="Campground",
+                            provider_id=1,
+                            provider_name="Synthetic",
+                            recreation_area_id="synthetic-area",
+                            recreation_area_name="Synthetic Basin",
+                            campground_id="synthetic-cg-1",
+                            campground_name="Synthetic Ridge",
+                            latitude=37.7,
+                            longitude=-119.6,
+                        ),
+                        Search(
+                            id="synthetic-search-2",
+                            entity_type="Campground",
+                            provider_id=1,
+                            provider_name="Synthetic",
+                            recreation_area_id="synthetic-area",
+                            recreation_area_name="Synthetic Basin",
+                            campground_id="synthetic-cg-2",
+                            campground_name="Synthetic Cove",
+                            latitude=37.7,
+                            longitude=-119.6,
+                        ),
+                    ]
                 )
                 await session.commit()
 
@@ -55,17 +125,28 @@ class SyntheticProvider(RecreationGovProvider):
     ) -> list[CampsiteDTO]:
         """Call a test-owned HTTP provider so slow requests exercise real async I/O."""
         response = await self.async_client.get(
-            os.environ["CAMPLY_SYNTHETIC_ORIGIN"] + "/availability", timeout=30
+            f"{os.environ['CAMPLY_SYNTHETIC_ORIGIN']}/availability?park_id={park_id}",
+            timeout=30,
         )
         response.raise_for_status()
         nights = [
             start_date + dt.timedelta(days=offset)
             for offset in range((end_date - start_date).days)
         ]
+        site_id = (
+            "synthetic-site"
+            if park_id == "synthetic-cg"
+            else f"synthetic-site-{park_id}"
+        )
+        site_name = (
+            "Synthetic Site"
+            if park_id == "synthetic-cg"
+            else f"Synthetic Site {park_id}"
+        )
         return [
             CampsiteDTO(
-                campsite_id="synthetic-site",
-                campsite_name="Synthetic Site",
+                campsite_id=site_id,
+                campsite_name=site_name,
                 campsite_type=CampsiteType.TENT,
                 capacity=4,
                 available_dates=nights,

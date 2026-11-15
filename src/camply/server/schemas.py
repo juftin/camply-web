@@ -8,7 +8,7 @@ import datetime
 import uuid
 from typing import Annotated, Literal, Optional
 
-from pydantic import AfterValidator, BaseModel, Field, field_validator
+from pydantic import AfterValidator, BaseModel, Field, field_validator, model_validator
 
 from camply.db.notification_config import validate_ntfy_url
 
@@ -241,7 +241,11 @@ class ScanCreateRequest(BaseModel):
     """Payload for creating a new user scan."""
 
     provider_id: int = Field(..., description="Provider identifier")
-    campground_id: str = Field(..., description="Provider-internal campground ID")
+    destination_type: Literal["campground", "recreation_area"] = "campground"
+    campground_id: str | None = Field(default=None, min_length=1, max_length=128)
+    recreation_area_id: str | None = Field(default=None, min_length=1, max_length=128)
+    coverage_mode: Literal["all", "selected"] | None = None
+    campground_ids: list[str] | None = None
     start_date: datetime.date = Field(..., description="Check-in date")
     end_date: datetime.date = Field(..., description="Check-out date")
     min_stay_length: int = Field(
@@ -259,10 +263,42 @@ class ScanCreateRequest(BaseModel):
         description="Allowed occupied nights, Monday=0 through Sunday=6; all seven means any night",
     )
 
+    @model_validator(mode="after")
+    def validate_destination(self) -> ScanCreateRequest:
+        """Reject mixed shapes and impossible date/stay definitions before writes."""
+        if self.end_date <= self.start_date:
+            raise ValueError("Check-out must be after check-in")
+        if self.min_stay_length > (self.end_date - self.start_date).days:
+            raise ValueError("Minimum stay exceeds date window")
+        if self.destination_type == "campground":
+            if (
+                not self.campground_id
+                or self.recreation_area_id is not None
+                or self.coverage_mode is not None
+                or self.campground_ids is not None
+            ):
+                raise ValueError("Choose one campground destination")
+        elif (
+            not self.recreation_area_id
+            or self.campground_id is not None
+            or self.coverage_mode is None
+        ):
+            raise ValueError("Choose an area and all or selected coverage")
+        elif self.coverage_mode == "all" and self.campground_ids is not None:
+            raise ValueError("All coverage does not accept fixed selections")
+        elif self.coverage_mode == "selected" and not self.campground_ids:
+            raise ValueError("Select at least one campground")
+        return self
+
 
 class ScanUpdateRequest(BaseModel):
     """Payload for ``PATCH /scans/{id}`` — all fields optional."""
 
+    destination_type: Literal["campground", "recreation_area"] | None = None
+    recreation_area_id: str | None = Field(default=None, min_length=1, max_length=128)
+    coverage_mode: Literal["all", "selected"] | None = None
+    campground_ids: list[str] | None = None
+    row_version: int | None = Field(default=None, ge=1)
     is_active: Optional[bool] = None
     provider_id: int | None = Field(default=None, ge=1)
     campground_id: str | None = Field(default=None, min_length=1)
@@ -280,6 +316,11 @@ class ScanUpdateRequest(BaseModel):
 class ScanResultItem(BaseModel):
     """A single campsite availability entry returned as part of scan detail."""
 
+    provider_id: int = 0
+    campground_id: str = ""
+    campground_name: str = ""
+    last_checked_at: UtcDateTime | None = None
+    is_stale: bool = False
     campsite_id: str
     campsite_name: str = ""
     available_dates: list[str] = Field(default_factory=list)
@@ -289,13 +330,36 @@ class ScanResultItem(BaseModel):
     booking_url: str = ""
 
 
+class ScanChoiceItem(BaseModel):
+    """Saved campground identifier and fallback label for area selections."""
+
+    id: str
+    name: str
+
+
 class ScanResponse(BaseModel):
     """User scan representation returned by the API."""
 
+    destination_type: Literal["campground", "recreation_area"] = "campground"
+    destination_name: str = ""
+    recreation_area_id: str | None = None
+    coverage_mode: Literal["all", "selected"] | None = None
+    campground_ids: list[str] = Field(default_factory=list)
+    selected_campgrounds: list[ScanChoiceItem] = Field(default_factory=list)
+    eligible_campground_count: int = 1
+    unavailable_selection_count: int = 0
+    matching_campground_count: int = 0
+    destination_available: bool = True
+    coverage_status: str = "waiting"
+    checked_campground_count: int = 0
+    failed_campground_count: int = 0
+    pending_campground_count: int = 0
+    last_full_checked_at: UtcDateTime | None = None
+    row_version: int = 1
     id: uuid.UUID
     provider_id: int
-    campground_id: str
-    campground_name: str = ""
+    campground_id: str | None
+    campground_name: str | None = ""
     recreation_area_name: str = ""
     start_date: datetime.date
     end_date: datetime.date
@@ -316,9 +380,25 @@ class ScanListResponse(BaseModel):
     total: int
 
 
+class ScanCampgroundItem(BaseModel):
+    """One saved or resolved member, including retained unavailable selections."""
+
+    provider_id: int
+    campground_id: str
+    campground_name: str
+    eligible: bool
+    unavailable_reason: str | None = None
+    target_id: uuid.UUID | None = None
+    outcome: str = "pending"
+    last_checked_at: UtcDateTime | None = None
+    attempt_started_at: UtcDateTime | None = None
+    error_category: str | None = None
+
+
 class ScanDetailResponse(ScanResponse):
     """Detailed scan view that includes recent results."""
 
+    campgrounds: list[ScanCampgroundItem] = Field(default_factory=list)
     results: list[ScanResultItem] = Field(default_factory=list)
 
 
@@ -488,16 +568,16 @@ class AdminAccessRequestUpdateRequest(BaseModel):
     status: Literal["approved", "rejected"]
 
 
-class AdminScanItem(BaseModel):
+class AdminScanItem(ScanResponse):
     """Scan summary item in admin scan list."""
 
     id: uuid.UUID
     user_id: uuid.UUID
     user_email: str
-    target_id: uuid.UUID
+    target_id: uuid.UUID | None
     provider_id: int
-    campground_id: str
-    campground_name: str
+    campground_id: str | None
+    campground_name: str | None
     start_date: datetime.date
     end_date: datetime.date
     is_active: bool
@@ -515,16 +595,16 @@ class AdminScanListResponse(BaseModel):
     total: int
 
 
-class AdminScanDetailResponse(BaseModel):
+class AdminScanDetailResponse(ScanDetailResponse):
     """Admin detailed scan view."""
 
     id: uuid.UUID
     user_id: uuid.UUID
     user_email: str
-    target_id: uuid.UUID
+    target_id: uuid.UUID | None
     provider_id: int
-    campground_id: str
-    campground_name: str
+    campground_id: str | None
+    campground_name: str | None
     recreation_area_name: str
     start_date: datetime.date
     end_date: datetime.date

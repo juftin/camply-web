@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createScan,
+  getMonitoringCampgrounds,
   listScans,
   searchCampgrounds,
   updateScan,
@@ -23,6 +24,7 @@ vi.mock("@/hooks/useAuth", () => ({
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
   createScan: vi.fn(),
+  getMonitoringCampgrounds: vi.fn(),
   listScans: vi.fn(),
   updateScan: vi.fn(),
   searchCampgrounds: vi.fn(),
@@ -352,6 +354,114 @@ describe("ScanForm editing", () => {
     );
     expect(updateScan).not.toHaveBeenCalled();
   });
+
+  it("creates selected recreation area scan and supports editing coverage mode", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getMonitoringCampgrounds).mockResolvedValue({
+      items: [
+        {
+          id: "cg-10",
+          provider_id: 1,
+          recreation_area_id: "area-1",
+          name: "Pine Creek",
+        },
+      ],
+      total: 1,
+      eligible_total: 2,
+      limit: 50,
+      offset: 0,
+      has_more: false,
+      catalog_revision: 1,
+    });
+    vi.mocked(createScan).mockResolvedValue({
+      ...savedScan,
+      destination_type: "recreation_area",
+      recreation_area_id: "area-1",
+      campground_id: null,
+      coverage_mode: "selected",
+      campground_ids: ["cg-10"],
+    });
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const { rerender } = render(
+      <QueryClientProvider client={client}>
+        <ScanForm
+          preselectedArea={{
+            id: "area-1",
+            name: "Synthetic Area",
+            provider_id: 1,
+          }}
+          trigger={<button type="button">Monitor area</button>}
+        />
+      </QueryClientProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "Monitor area" }));
+    await user.click(screen.getByLabelText("Selected campgrounds"));
+    await user.click(
+      screen.getByRole("button", { name: "Select campgrounds…" }),
+    );
+    await user.click(
+      await screen.findByRole("checkbox", { name: "Pine Creek" }),
+    );
+    await user.keyboard("{Escape}");
+    await selectDate(user, "Check-in", "2027-07-01");
+    await selectDate(user, "Check-out", "2027-07-04");
+    await user.click(screen.getByRole("button", { name: "Create Scan" }));
+    await waitFor(() =>
+      expect(createScan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider_id: 1,
+          destination_type: "recreation_area",
+          recreation_area_id: "area-1",
+          coverage_mode: "selected",
+          campground_ids: ["cg-10"],
+        }),
+      ),
+    );
+
+    vi.mocked(updateScan).mockResolvedValue({
+      ...savedScan,
+      destination_type: "recreation_area",
+      recreation_area_id: "area-1",
+      campground_id: null,
+      coverage_mode: "all",
+    });
+    rerender(
+      <QueryClientProvider client={client}>
+        <ScanForm
+          scan={{
+            ...savedScan,
+            destination_type: "recreation_area",
+            recreation_area_id: "area-1",
+            destination_name: "Synthetic Area",
+            campground_id: null,
+            campground_name: null,
+            coverage_mode: "selected",
+            campground_ids: ["cg-10"],
+            row_version: 3,
+          }}
+        />
+      </QueryClientProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+    await user.click(screen.getByLabelText("All campgrounds"));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() =>
+      expect(updateScan).toHaveBeenCalledWith(
+        savedScan.id,
+        expect.objectContaining({
+          destination_type: "recreation_area",
+          recreation_area_id: "area-1",
+          coverage_mode: "all",
+          row_version: 3,
+        }),
+      ),
+    );
+  });
 });
 
 describe("ScanForm nights of the week", () => {
@@ -484,5 +594,72 @@ describe("ScanForm nights of the week", () => {
     );
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() => expect(updateScan).toHaveBeenCalledTimes(2));
+  });
+
+  it("preserves selected_campgrounds labels and switches area scans to campground", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getMonitoringCampgrounds).mockResolvedValue({
+      items: [
+        {
+          id: "cg-other",
+          provider_id: 1,
+          recreation_area_id: "area-1",
+          name: "Lower Pines",
+        },
+      ],
+      total: 1,
+      limit: 50,
+      offset: 0,
+      has_more: false,
+      catalog_revision: 1,
+      eligible_total: 2,
+    });
+    vi.mocked(searchCampgrounds).mockResolvedValue([
+      {
+        id: "new-cg",
+        entity_type: "Campground",
+        provider_id: 1,
+        provider_name: "Recreation.gov",
+        recreation_area_id: "area-1",
+        recreation_area_name: "Yosemite",
+        campground_id: "new-cg",
+        campground_name: "Camp 4",
+      },
+    ]);
+    const areaScan: ScanResponse = {
+      ...savedScan,
+      destination_type: "recreation_area",
+      destination_name: "Yosemite",
+      campground_id: null,
+      campground_name: null,
+      recreation_area_id: "area-1",
+      coverage_mode: "selected",
+      campground_ids: ["cg-1"],
+      selected_campgrounds: [{ id: "cg-1", name: "Upper Pines" }],
+      row_version: 2,
+    };
+    renderForm(areaScan);
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+    expect(
+      screen.getByRole("button", { name: "Remove Upper Pines" }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Change" }));
+    const searchInput = screen.getByPlaceholderText(
+      "Search for a campground...",
+    );
+    await user.type(searchInput, "Camp 4");
+    await user.click(await screen.findByRole("button", { name: /Camp 4/ }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() =>
+      expect(updateScan).toHaveBeenCalledWith(
+        areaScan.id,
+        expect.objectContaining({
+          destination_type: "campground",
+          campground_id: "new-cg",
+          provider_id: 1,
+          row_version: 2,
+        }),
+      ),
+    );
   });
 });

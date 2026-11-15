@@ -39,6 +39,7 @@ Defines the supported booking services.
 - `id`: `Integer` (Primary Key, Autoincrement)
 - `name`: `String` (Unique, e.g., "recreation_dot_gov")
 - `url`: `String`
+- `catalog_revision`: `Integer` (Monotonic counter incremented on complete catalog publication)
 
 ### 2. `recreation_areas` Table (Existing)
 
@@ -100,13 +101,44 @@ Stores individual site metadata. Populated during scans or full metadata syncs.
 
 - `id`: `UUID` (Primary Key)
 - `user_id`: `UUID` (Foreign Key -> `users.id`)
-- `target_id`: `UUID` (Foreign Key -> `unique_targets.id`)
+- `target_id`: `UUID | null` (Foreign Key -> `unique_targets.id`; required for `campground` scans, `null` for `recreation_area` scans)
+- `destination_type`: `String` (`"campground"` or `"recreation_area"`)
+- `provider_id`: `Integer` (Foreign Key -> `providers.id`)
+- `campground_id`: `String | null`
+- `recreation_area_id`: `String | null`
+- `destination_name`: `String`
+- `coverage_mode`: `String | null` (`"all"` or `"selected"` for `recreation_area`)
+- `selected_campgrounds`: `JSON` (`[{"id", "name"}]` retained for `selected` mode, including unavailable members)
+- `start_date`: `Date`, `end_date`: `Date`
+- `definition_hash`: `String` (Unique per `user_id` via `uq_user_scan_definition`)
+- `definition_revision`, `coverage_revision`, `row_version`: `Integer` (monotonic mutation/optimistic-locking versions)
+- `current_round_id`: `UUID | null`, `round_started_at`, `round_deadline_at`, `round_completed_at`, `last_full_checked_at`: `Timestamp | null`
 - `is_active`: `Boolean`
 - **Filters**:
   - `min_stay_length`: `Integer`
   - `preferred_types`: `Array[String]`
   - `require_electric`: `Boolean`
   - `allowed_weekdays`: Nullable `JSON` integer array, Monday=0 through Sunday=6. Null permits all nights; restricted values are sorted and unique. Existing rows remain unrestricted. This is a subscription preference and does not participate in shared target identity or alter cached provider observations.
+
+### 8a. `scan_targets` Table (Area Coverage & Round Outcomes)
+
+Links a `user_scans` subscription to shared `unique_targets` rows (many-to-one per member campground) without owning observations:
+
+- `scan_id`: `UUID` (Primary Key, Foreign Key -> `user_scans.id`)
+- `target_id`: `UUID` (Primary Key, Foreign Key -> `unique_targets.id`)
+- `coverage_revision`: `Integer`
+- `round_id`: `UUID | null`
+- `outcome`: `String` (`pending`, `retrying`, `success`, `failed`)
+- `attempt_id`: `UUID | null`
+- `successful_at`, `failed_at`: `Timestamp | null`
+- `error_category`: `String | null`
+
+### 8b. `notification_outbox` Additions (Area Summaries)
+
+- `payload_kind`: `String` (`"campground"` or `"area"`)
+- `scan_revision`: `Integer | null` (invalidated when scan definition/coverage mutates)
+- `payload_version`: `Integer`
+- `delivery_key`: `String` (summary marker or `area-<campsite/campground>` key; unique per `(detection_id, scan_id, delivery_key)`)
 
 ### 9. `scan_results` Table (The Cache - New)
 

@@ -101,60 +101,74 @@ def test_previous_pr_database_preserves_pending_delivery(tmp_path: Path) -> None
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         assert connection.execute(
             "SELECT version_num FROM alembic_version"
-        ).fetchall() == [("5a4d254fafa9",)]
+        ).fetchall() == [("d834b6f82260",)]
+
+
+async def _seed_historical_scan(database: DatabaseConfig) -> tuple[str, str]:
+    """Populate an old revision with historical schema columns."""
+    database.open()
+    try:
+        async with database.get_session() as session:
+            await session.execute(
+                text(
+                    "INSERT INTO campgrounds (id, provider_id, name, reservable, enabled) "
+                    "VALUES ('synthetic', 1, 'Synthetic park', 1, 1)"
+                )
+            )
+            user_id = uuid.uuid4()
+            await session.execute(
+                text(
+                    "INSERT INTO users (id, email, is_early_access_user, is_admin, scanning_enabled, must_change_password) "
+                    "VALUES (:id, 'synthetic@example.test', 0, 0, 1, 0)"
+                ),
+                {"id": user_id.hex},
+            )
+            target_id_uuid = uuid.uuid4()
+            target_hash = UniqueTarget.calculate_hash(
+                1, "synthetic", dt.date(2027, 1, 1), dt.date(2027, 1, 3)
+            )
+            await session.execute(
+                text(
+                    "INSERT INTO unique_targets (id, provider_id, campground_id, start_date, end_date, hash) "
+                    "VALUES (:id, 1, 'synthetic', '2027-01-01', '2027-01-03', :hash)"
+                ),
+                {"id": target_id_uuid.hex, "hash": target_hash},
+            )
+            scan_id_uuid = uuid.uuid4()
+            await session.execute(
+                text(
+                    "INSERT INTO user_scans (id, user_id, target_id, is_active, min_stay_length, preferred_types, require_electric) "
+                    "VALUES (:id, :user_id, :target_id, 1, 1, :preferred_types, 0)"
+                ),
+                {
+                    "id": scan_id_uuid.hex,
+                    "user_id": user_id.hex,
+                    "target_id": target_id_uuid.hex,
+                    "preferred_types": json.dumps(["TENT"]),
+                },
+            )
+            await session.execute(
+                text(
+                    "INSERT INTO scan_results (id, target_id, campsite_id, available_dates) "
+                    "VALUES (:id, :target_id, 'synthetic', :available_dates)"
+                ),
+                {
+                    "id": uuid.uuid4().hex,
+                    "target_id": target_id_uuid.hex,
+                    "available_dates": json.dumps(["2027-01-01"]),
+                },
+            )
+            await session.commit()
+            return str(user_id), str(target_id_uuid)
+    finally:
+        await database.close()
 
 
 def test_populated_upgrade_and_online_backup(tmp_path: Path) -> None:
     """Preserve linked UUID/JSON/date state across an upgrade and online backup."""
     database = DatabaseConfig(HOST=str(tmp_path / "state.db"))
     upgrade_database(database, revision="09367969f1a4")
-
-    async def seed() -> tuple[str, str]:
-        """Populate an old revision using the same ORM mappings as the app."""
-        database.open()
-        try:
-            async with database.get_session() as session:
-                await session.execute(
-                    text(
-                        "INSERT INTO campgrounds (id, provider_id, name, reservable, enabled) VALUES ('synthetic', 1, 'Synthetic park', 1, 1)"
-                    )
-                )
-                user = User(email="synthetic@example.test")
-                # Insert only historical columns; the current ORM includes newer settings.
-                user.id = uuid.uuid4()
-                await session.execute(
-                    text(
-                        "INSERT INTO users (id, email, is_early_access_user, is_admin, scanning_enabled, must_change_password) "
-                        "VALUES (:id, :email, 0, 0, 1, 0)"
-                    ),
-                    {"id": user.id.hex, "email": user.email},
-                )
-                target = UniqueTarget(
-                    provider_id=1,
-                    campground_id="synthetic",
-                    start_date=dt.date(2027, 1, 1),
-                    end_date=dt.date(2027, 1, 3),
-                )
-                session.add(target)
-                await session.flush()
-                session.add(
-                    UserScan(
-                        user_id=user.id, target_id=target.id, preferred_types=["TENT"]
-                    )
-                )
-                session.add(
-                    ScanResult(
-                        target_id=target.id,
-                        campsite_id="synthetic",
-                        available_dates=["2027-01-01"],
-                    )
-                )
-                await session.commit()
-                return str(user.id), str(target.id)
-        finally:
-            await database.close()
-
-    user_id, target_id = asyncio.run(seed())
+    user_id, target_id = asyncio.run(_seed_historical_scan(database))
     upgrade_database(database)
     backup_path = tmp_path / "backup.db"
     with (

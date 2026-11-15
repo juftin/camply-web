@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { AreaCoveragePicker } from "./AreaCoveragePicker";
 import { useCreateScan, useUpdateScan } from "@/hooks/useScans";
 import { useAuth } from "@/hooks/useAuth";
 import { getApiErrorMessage, searchCampgrounds } from "@/lib/api";
@@ -87,6 +88,7 @@ interface ScanFormProps {
   scan?: ScanResponse;
   /** If a ParkSearch result was selected, pre-fill campground details. */
   preselectedCampground?: Campground;
+  preselectedArea?: { id: string; name: string; provider_id: number };
   preselectedProviderId?: number;
   /** Otherwise, allow searching from within the dialog. */
   /** Called after successfully saving. */
@@ -113,28 +115,67 @@ const CAMPSITE_TYPES = [
 export function ScanForm({
   scan,
   preselectedCampground,
+  preselectedArea,
   preselectedProviderId,
   onSuccess,
   trigger,
 }: ScanFormProps) {
   const [open, setOpen] = useState(false);
   const initialCampground = scan
-    ? { id: scan.campground_id, name: scan.campground_name }
-    : (preselectedCampground ?? null);
+    ? {
+        id: scan.recreation_area_id ?? scan.campground_id ?? "",
+        name:
+          scan.destination_name ??
+          scan.campground_name ??
+          scan.recreation_area_name,
+      }
+    : (preselectedArea ?? preselectedCampground ?? null);
   const [campground, setCampground] = useState<Pick<
     Campground,
     "id" | "name"
   > | null>(initialCampground);
   const [providerId, setProviderId] = useState<number>(
-    scan?.provider_id ?? preselectedProviderId ?? 0,
+    scan?.provider_id ??
+      preselectedArea?.provider_id ??
+      preselectedProviderId ??
+      0,
   );
 
+  const initialKind =
+    scan?.destination_type ??
+    (preselectedArea ? "recreation_area" : "campground");
+  const [destinationType, setDestinationType] = useState<
+    "campground" | "recreation_area"
+  >(initialKind);
+  const [coverageMode, setCoverageMode] = useState<"all" | "selected">(
+    scan?.coverage_mode ?? "all",
+  );
+  const savedChoices = Object.fromEntries(
+    scan?.selected_campgrounds?.length
+      ? scan.selected_campgrounds.map((item) => [item.id, item.name])
+      : (scan?.campground_ids ?? []).map((id) => [
+          id,
+          (
+            scan as import("@/lib/structs").ScanDetailResponse
+          )?.campgrounds?.find((member) => member.campground_id === id)
+            ?.campground_name ?? id,
+        ]),
+  );
+  const [selectedChoices, setSelectedChoices] =
+    useState<Record<string, string>>(savedChoices);
   useEffect(() => {
+    if (preselectedArea) {
+      setDestinationType("recreation_area");
+      setCampground(preselectedArea);
+      setProviderId(preselectedArea.provider_id);
+      return;
+    }
     if (preselectedCampground) {
+      setDestinationType("campground");
       setCampground(preselectedCampground);
       setProviderId(preselectedProviderId ?? preselectedCampground.provider_id);
     }
-  }, [preselectedCampground, preselectedProviderId, open]);
+  }, [preselectedArea, preselectedCampground, preselectedProviderId, open]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -225,8 +266,13 @@ export function ScanForm({
   };
 
   const selectCampground = (result: SearchResult) => {
+    setDestinationType(
+      result.entity_type === "Campground" ? "campground" : "recreation_area",
+    );
+    setCoverageMode("all");
+    setSelectedChoices({});
     setCampground({
-      id: result.campground_id ?? "",
+      id: result.campground_id ?? result.recreation_area_id ?? "",
       name: result.campground_name ?? result.recreation_area_name ?? "",
     });
     setProviderId(result.provider_id);
@@ -270,11 +316,33 @@ export function ScanForm({
       setError("Please select a campground first");
       return;
     }
+    if (
+      destinationType === "recreation_area" &&
+      coverageMode === "selected" &&
+      !Object.keys(selectedChoices).length
+    ) {
+      setError("Select at least one campground");
+      return;
+    }
     setError(null);
     try {
       const payload = {
         provider_id: providerId,
-        campground_id: campground.id,
+        ...(destinationType === "recreation_area"
+          ? {
+              destination_type: "recreation_area" as const,
+              recreation_area_id: campground.id,
+              coverage_mode: coverageMode,
+              ...(coverageMode === "selected"
+                ? { campground_ids: Object.keys(selectedChoices) }
+                : {}),
+            }
+          : scan?.destination_type === "recreation_area"
+            ? {
+                destination_type: "campground" as const,
+                campground_id: campground.id,
+              }
+            : { campground_id: campground.id }),
         start_date: data.start_date,
         end_date: data.end_date,
         min_stay_length: Number(data.min_stay_length),
@@ -283,7 +351,13 @@ export function ScanForm({
         allowed_weekdays: data.allowed_weekdays,
       };
       if (scan) {
-        await updateScan.mutateAsync({ scanId: scan.id, payload });
+        await updateScan.mutateAsync({
+          scanId: scan.id,
+          payload: {
+            ...payload,
+            ...(scan.row_version ? { row_version: scan.row_version } : {}),
+          },
+        });
       } else {
         await createScan.mutateAsync(payload);
       }
@@ -302,7 +376,15 @@ export function ScanForm({
     if (newOpen) {
       reset(defaultValues);
       setCampground(initialCampground);
-      setProviderId(scan?.provider_id ?? preselectedProviderId ?? 0);
+      setDestinationType(initialKind);
+      setCoverageMode(scan?.coverage_mode ?? "all");
+      setSelectedChoices(savedChoices);
+      setProviderId(
+        scan?.provider_id ??
+          preselectedArea?.provider_id ??
+          preselectedProviderId ??
+          0,
+      );
       setSearchTerm("");
       setSearchResults([]);
     }
@@ -327,14 +409,14 @@ export function ScanForm({
           <DialogDescription>
             {scan
               ? "Update your campground, dates, and campsite preferences."
-              : "Monitor a campground for cancellations."}
+              : "Monitor a campground or recreation area for cancellations."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* ---- Campground selection ---- */}
           <div className="space-y-2">
-            <Label htmlFor="campground-search">Campground</Label>
+            <Label htmlFor="campground-search">Destination</Label>
             {hasCampground ? (
               <div className="flex items-center justify-between rounded-md border p-3">
                 <div>
@@ -377,7 +459,9 @@ export function ScanForm({
                     {searchResults
                       .filter(
                         (r) =>
-                          r.entity_type === "Campground" && r.campground_id,
+                          (r.entity_type === "Campground" && r.campground_id) ||
+                          (r.entity_type === "RecreationArea" &&
+                            r.recreation_area_id),
                       )
                       .slice(0, 10)
                       .map((r) => (
@@ -388,7 +472,7 @@ export function ScanForm({
                           onClick={() => selectCampground(r)}
                         >
                           <span className="font-medium">
-                            {r.campground_name}
+                            {r.campground_name ?? r.recreation_area_name}
                           </span>
                           {r.recreation_area_name && (
                             <span className="ml-1 text-muted-foreground">
@@ -403,6 +487,20 @@ export function ScanForm({
             )}
           </div>
 
+          {destinationType === "recreation_area" && campground && (
+            <AreaCoveragePicker
+              key={`${providerId}:${campground.id}`}
+              providerId={providerId}
+              areaId={campground.id}
+              mode={coverageMode}
+              onModeChange={(mode) => {
+                setCoverageMode(mode);
+                if (mode === "all") setSelectedChoices({});
+              }}
+              selected={selectedChoices}
+              onSelectedChange={setSelectedChoices}
+            />
+          )}
           {/* ---- Quick Presets ---- */}
           <div className="flex items-center gap-2 pt-1">
             <span className="text-xs text-muted-foreground font-medium">
