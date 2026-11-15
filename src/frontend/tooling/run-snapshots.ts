@@ -714,6 +714,7 @@ const SCENARIOS: Scenario[] = [
       const dialog = page.getByRole("dialog");
       await dialog.waitFor();
       await dialog.getByLabel("Selected campgrounds").click();
+      await dialog.getByRole("button", { name: "Select campgrounds…" }).click();
       await dialog.getByText("Upper Pines Campground").first().waitFor();
       await page.waitForTimeout(150);
     },

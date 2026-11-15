@@ -402,8 +402,12 @@ describe("ScanForm editing", () => {
     await user.click(screen.getByRole("button", { name: "Monitor area" }));
     await user.click(screen.getByLabelText("Selected campgrounds"));
     await user.click(
+      screen.getByRole("button", { name: "Select campgrounds…" }),
+    );
+    await user.click(
       await screen.findByRole("checkbox", { name: "Pine Creek" }),
     );
+    await user.keyboard("{Escape}");
     await selectDate(user, "Check-in", "2027-07-01");
     await selectDate(user, "Check-out", "2027-07-04");
     await user.click(screen.getByRole("button", { name: "Create Scan" }));

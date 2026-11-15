@@ -45,16 +45,36 @@ it("retains selected IDs across choice pages and queries", async () => {
     </QueryClientProvider>,
   );
   const user = userEvent.setup();
+  expect(
+    await screen.findByText("51 eligible campgrounds."),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/automatically includes future eligible campgrounds/i),
+  ).not.toBeInTheDocument();
+
+  const trigger = screen.getByRole("button", { name: "Select campgrounds…" });
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await user.click(trigger);
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+
   await user.click(await screen.findByRole("checkbox", { name: "First page" }));
   await user.click(screen.getByRole("button", { name: "Next campgrounds" }));
   await user.click(
     await screen.findByRole("checkbox", { name: "Second page" }),
   );
   expect(screen.getByRole("status")).toHaveTextContent("2 selected");
+  expect(
+    screen.getByRole("button", { name: "2 campgrounds selected" }),
+  ).toBeInTheDocument();
   await user.type(screen.getByRole("searchbox"), "other");
   await waitFor(() =>
     expect(
       screen.getByRole("button", { name: "Remove First page" }),
     ).toBeInTheDocument(),
   );
+  await user.keyboard("{Escape}");
+  expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: "Remove First page" }),
+  ).toBeInTheDocument();
 });
