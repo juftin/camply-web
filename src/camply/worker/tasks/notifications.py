@@ -106,13 +106,13 @@ def deliver_area_outbox() -> dict:
         await recover_deliveries(db)
         count = 0
         for _ in range(100):
-            if (
-                await deliver_next(
-                    db, invite_only=worker_config.invite_only, area_only=True
-                )
-                is None
-            ):
+            result = await deliver_next(
+                db, invite_only=worker_config.invite_only, area_only=True
+            )
+            if result is None:
                 break
+            if result["outcome"] == "success":
+                NOTIFICATIONS_SENT_TOTAL.inc()
             count += 1
         return {"delivered": count}
 

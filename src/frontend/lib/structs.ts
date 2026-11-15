@@ -162,6 +162,7 @@ export interface ScanResponse {
   recreation_area_id?: string | null;
   coverage_mode?: "all" | "selected" | null;
   campground_ids?: string[];
+  selected_campgrounds?: { id: string; name: string }[];
   eligible_campground_count?: number;
   unavailable_selection_count?: number;
   matching_campground_count?: number;

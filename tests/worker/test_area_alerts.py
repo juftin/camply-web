@@ -363,3 +363,99 @@ async def test_area_outbox_pre_send_revalidation_filters_and_skips(
     assert res is not None
     assert res["outcome"] == "skipped"
     send.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_deliver_next_retries_on_claim_contention(
+    local_data: tuple, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Optimistic claim contention retries instead of aborting delivery with None."""
+    from sqlalchemy import literal
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from camply.notifications.ntfy import NtfyProvider
+
+    database, _, _ = local_data
+    user, scan, targets = await _seed_area_scan(database)
+    past = dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=30)
+    row_id = uuid.uuid4()
+    o1 = _opening(
+        "Park", target_id=str(targets[0].id), campground_id=targets[0].campground_id
+    )
+
+    async with database.get_session() as session:
+        session.add(
+            NotificationOutbox(
+                id=row_id,
+                detection_id=uuid.uuid4(),
+                user_id=user.id,
+                scan_id=scan.id,
+                target_id=None,
+                delivery_key="area-summary",
+                channel="ntfy",
+                payload_kind="area",
+                scan_revision=scan.definition_revision,
+                payload_version=1,
+                payload={
+                    "candidates": [o1.model_dump(mode="json")],
+                    "direct": False,
+                },
+                status="pending",
+                attempt_count=0,
+                created_at=past,
+                next_attempt_at=past,
+            )
+        )
+        await session.commit()
+
+    claim_attempts = 0
+    orig_execute = AsyncSession.execute
+
+    async def miss_first_claim(self, statement, *args, **kwargs):  # type: ignore[no-untyped-def]
+        nonlocal claim_attempts
+        if "UPDATE notification_outbox" in str(statement) and "status" in str(
+            statement
+        ):
+            claim_attempts += 1
+            if claim_attempts == 1:
+                statement = statement.where(literal(False))
+        return await orig_execute(self, statement, *args, **kwargs)
+
+    monkeypatch.setattr(AsyncSession, "execute", miss_first_claim)
+    ok_send = AsyncMock(return_value=True)
+    monkeypatch.setattr(NtfyProvider, "send_accepted", ok_send)
+
+    result = await deliver_next(database, area_only=True)
+    assert result is not None
+    assert result["outcome"] == "success"
+    assert result["task_id"] == str(row_id)
+    assert claim_attempts == 2
+    ok_send.assert_awaited_once()
+
+
+def test_deliver_area_outbox_increments_metric(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Celery deliver_area_outbox increments NOTIFICATIONS_SENT_TOTAL for sent intents."""
+    from camply.worker.tasks.notifications import (
+        NOTIFICATIONS_SENT_TOTAL,
+        deliver_area_outbox,
+    )
+
+    before = NOTIFICATIONS_SENT_TOTAL._value.get()
+    calls = 0
+
+    async def fake_deliver_next(*_args, **_kwargs):  # type: ignore[no-untyped-def]
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return {"task_id": str(uuid.uuid4()), "outcome": "success"}
+        return None
+
+    monkeypatch.setattr("camply.worker.outbox.deliver_next", fake_deliver_next)
+    monkeypatch.setattr(
+        "camply.worker.outbox.recover_deliveries",
+        AsyncMock(return_value=0),
+    )
+    assert deliver_area_outbox() == {"delivered": 1}
+    assert NOTIFICATIONS_SENT_TOTAL._value.get() == before + 1

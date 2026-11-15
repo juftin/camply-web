@@ -6,9 +6,10 @@ from collections.abc import Callable
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import noload, selectinload
 
 from camply.db.coverage import reconcile_coverage, scan_load_options
-from camply.db.models import ScanTarget, UniqueTarget, UserScan
+from camply.db.models import Provider, ScanTarget, UniqueTarget, UserScan
 
 ATTEMPT_STALE_SECONDS = 105
 
@@ -102,6 +103,27 @@ async def prepare_rounds(
         await _mark_interrupted_attempts(
             session, now=now, older_than_seconds=ATTEMPT_STALE_SECONDS
         )
+        # Lock involved Providers in ascending ID order before UserScans to match write locks.
+        provider_ids = (
+            await session.scalars(
+                select(UserScan.provider_id)
+                .where(
+                    UserScan.destination_type == "recreation_area",
+                    UserScan.is_active.is_(True),
+                    UserScan.end_date > now.date(),
+                )
+                .distinct()
+            )
+        ).all()
+        if provider_ids:
+            (
+                await session.scalars(
+                    select(Provider.id)
+                    .where(Provider.id.in_(sorted(provider_ids)))
+                    .order_by(Provider.id)
+                    .with_for_update()
+                )
+            ).all()
         scans = (
             (
                 await session.scalars(
@@ -112,7 +134,7 @@ async def prepare_rounds(
                         UserScan.end_date > now.date(),
                     )
                     .options(*scan_load_options())
-                    .with_for_update()
+                    .with_for_update(of=UserScan)
                 )
             )
             .unique()
@@ -175,16 +197,28 @@ async def register_attempt(
             select(ScanTarget).where(ScanTarget.target_id == target.id)
         )
     ).all()
-    for link in links:
-        scan = await session.get(UserScan, link.scan_id)
-        if (
-            scan
-            and scan.current_round_id
-            and link.round_id == scan.current_round_id
-            and link.coverage_revision == scan.coverage_revision
-            and link.outcome in {"pending", "retrying"}
-        ):
-            link.attempt_id = attempt
+    if links:
+        scan_ids = {link.scan_id for link in links}
+        scan_rows = (
+            await session.execute(
+                select(
+                    UserScan.id,
+                    UserScan.current_round_id,
+                    UserScan.coverage_revision,
+                ).where(UserScan.id.in_(scan_ids))
+            )
+        ).all()
+        scans_by_id = {row.id: row for row in scan_rows}
+        for link in links:
+            scan = scans_by_id.get(link.scan_id)
+            if (
+                scan
+                and scan.current_round_id
+                and link.round_id == scan.current_round_id
+                and link.coverage_revision == scan.coverage_revision
+                and link.outcome in {"pending", "retrying"}
+            ):
+                link.attempt_id = attempt
     return attempt
 
 
@@ -208,8 +242,25 @@ async def record_attempt(
             )
         )
     ).all()
+    if not links:
+        return
+    scans_by_id = {
+        scan.id: scan
+        for scan in (
+            await session.scalars(
+                select(UserScan)
+                .options(
+                    noload(UserScan.target),
+                    selectinload(UserScan.coverage).noload(ScanTarget.target),
+                )
+                .where(UserScan.id.in_({link.scan_id for link in links}))
+            )
+        )
+        .unique()
+        .all()
+    }
     for link in links:
-        scan = await session.get(UserScan, link.scan_id)
+        scan = scans_by_id.get(link.scan_id)
         if (
             not scan
             or link.round_id != scan.current_round_id

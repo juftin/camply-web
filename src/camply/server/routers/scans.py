@@ -53,6 +53,7 @@ from camply.server.dependencies import SessionDep
 from camply.server.metrics import SCANS_CREATED_TOTAL
 from camply.server.schemas import (
     ScanCampgroundItem,
+    ScanChoiceItem,
     ScanCreateRequest,
     ScanDetailResponse,
     ScanListResponse,
@@ -172,6 +173,10 @@ async def _scan_to_response(scan: UserScanDB, **unused: object) -> ScanResponse:
         else "",
         coverage_mode=scan.coverage_mode,
         campground_ids=[item["id"] for item in scan.selected_campgrounds or []],
+        selected_campgrounds=[
+            ScanChoiceItem(id=item["id"], name=item["name"])
+            for item in scan.selected_campgrounds or []
+        ],
         eligible_campground_count=len(targets),
         unavailable_selection_count=sum(not row.eligible for row in rows),
         matching_campground_count=len({result.target_id for result, _ in matches}),
@@ -407,7 +412,7 @@ async def create_scan(
         await session.flush()
         # The compatibility insert hook already persisted campground links.
         await session.refresh(scan, ["coverage"])
-        await reconcile_coverage(session, scan)
+        await reconcile_coverage(session, scan, bump_row_version=False)
         await session.commit()
     except IntegrityError as error:
         await session.rollback()
@@ -611,7 +616,7 @@ async def update_scan(  # noqa: C901
     scan.current_round_id = None
     scan.round_completed_at = None
     try:
-        await reconcile_coverage(session, scan)
+        await reconcile_coverage(session, scan, bump_row_version=False)
         await session.execute(
             update(NotificationOutbox)
             .where(

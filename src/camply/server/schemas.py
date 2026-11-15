@@ -265,6 +265,13 @@ class ScanResultItem(BaseModel):
     booking_url: str = ""
 
 
+class ScanChoiceItem(BaseModel):
+    """Saved campground identifier and fallback label for area selections."""
+
+    id: str
+    name: str
+
+
 class ScanResponse(BaseModel):
     """User scan representation returned by the API."""
 
@@ -273,6 +280,7 @@ class ScanResponse(BaseModel):
     recreation_area_id: str | None = None
     coverage_mode: Literal["all", "selected"] | None = None
     campground_ids: list[str] = Field(default_factory=list)
+    selected_campgrounds: list[ScanChoiceItem] = Field(default_factory=list)
     eligible_campground_count: int = 1
     unavailable_selection_count: int = 0
     matching_campground_count: int = 0

@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.elements import ColumnElement
 
+from camply.db.availability import matching_scan_results
 from camply.db.coverage import (
     live_target_condition,
     scan_load_options,
@@ -39,7 +40,6 @@ from camply.db.models import (
     Campground,
     Provider,
     RecreationArea,
-    ScanResult,
     ScanTarget,
     UniqueTarget,
     User,
@@ -685,25 +685,6 @@ async def list_admin_scans(
     cg_keys = {(s.provider_id, s.campground_id) for s in scans if s.campground_id}
     cg_map = await _lookup_campgrounds_map(session, cg_keys)
 
-    target_ids = {s.target_id for s in scans if s.target_id is not None}
-    result_counts: dict[uuid.UUID, int] = (
-        {
-            row[0]: row[1]
-            for row in (
-                await session.execute(
-                    select(
-                        ScanResult.target_id,
-                        func.count(func.distinct(ScanResult.campsite_id)),
-                    )
-                    .where(ScanResult.target_id.in_(target_ids))
-                    .group_by(ScanResult.target_id)
-                )
-            ).all()
-        }
-        if target_ids
-        else {}
-    )
-
     items: list[AdminScanItem] = []
     for s in scans:
         if s.destination_type == "recreation_area":
@@ -746,14 +727,86 @@ async def list_admin_scans(
                 is_eligible=is_scan_eligible(s.user.scanning_enabled, s.is_active),
                 user_scanning_enabled=s.user.scanning_enabled,
                 last_checked_at=s.target.last_checked_at,
-                found_count=result_counts.get(s.target_id, 0) if s.target_id else 0,
+                found_count=len(matching_scan_results(s)),
                 min_stay_length=s.min_stay_length,
+                preferred_types=s.preferred_types or [],
                 require_electric=s.require_electric,
+                allowed_weekdays=s.allowed_weekdays or list(range(7)),
+                row_version=s.row_version,
                 created_at=s.created_at,
             )
         )
 
     return AdminScanListResponse(scans=items, total=total)
+
+
+def _filtered_campground_result_items(scan: UserScan) -> list[ScanResultItem]:
+    """Build criteria-filtered admin result items for a single-campground scan."""
+    return [
+        ScanResultItem(
+            campsite_id=sr.campsite_id,
+            campsite_name=sr.campsite_name,
+            campsite_type=sr.campsite_type,
+            is_electric=sr.is_electric,
+            is_accessible=sr.is_accessible,
+            available_dates=dates,
+        )
+        for sr, dates in matching_scan_results(scan)
+    ]
+
+
+async def _build_admin_scan_detail(
+    session: AsyncSession, scan: UserScan
+) -> AdminScanDetailResponse:
+    """Serialize one admin scan detail consistently after reads or updates."""
+    if scan.destination_type == "recreation_area":
+        owner = _current_user_from_row(scan.user)
+        owner_email = owner.email
+        owner_scanning_enabled = owner.scanning_enabled
+        detail = await get_scan(
+            scan_id=scan.id,
+            current_user=owner,
+            session=session,
+        )
+        return AdminScanDetailResponse(
+            **detail.model_dump(),
+            user_id=scan.user_id,
+            user_email=owner_email,
+            target_id=None,
+            is_eligible=is_scan_eligible(owner_scanning_enabled, detail.is_active),
+            user_scanning_enabled=owner_scanning_enabled,
+        )
+
+    cg_map = await _lookup_campgrounds_map(
+        session, {(scan.target.provider_id, scan.target.campground_id)}
+    )
+    cg = cg_map.get((scan.target.provider_id, scan.target.campground_id))
+
+    return AdminScanDetailResponse(
+        id=scan.id,
+        user_id=scan.user_id,
+        user_email=scan.user.email,
+        target_id=scan.target_id,
+        provider_id=scan.target.provider_id,
+        campground_id=scan.target.campground_id,
+        campground_name=cg.name if cg else "",
+        recreation_area_name=(
+            cg.recreation_area.name if cg and cg.recreation_area else ""
+        ),
+        start_date=scan.target.start_date,
+        end_date=scan.target.end_date,
+        is_active=scan.is_active,
+        is_eligible=is_scan_eligible(scan.user.scanning_enabled, scan.is_active),
+        user_scanning_enabled=scan.user.scanning_enabled,
+        min_stay_length=scan.min_stay_length,
+        preferred_types=scan.preferred_types or [],
+        require_electric=scan.require_electric,
+        allowed_weekdays=scan.allowed_weekdays or list(range(7)),
+        row_version=scan.row_version,
+        last_checked_at=scan.target.last_checked_at,
+        created_at=scan.created_at,
+        results=_filtered_campground_result_items(scan),
+    )
 
 
 # ===========================================================================
@@ -785,66 +838,7 @@ async def get_admin_scan(
             detail="Scan not found",
         )
 
-    if scan.destination_type == "recreation_area":
-        owner = _current_user_from_row(scan.user)
-        owner_email = owner.email
-        owner_scanning_enabled = owner.scanning_enabled
-        detail = await get_scan(
-            scan_id=scan.id,
-            current_user=owner,
-            session=session,
-        )
-        return AdminScanDetailResponse(
-            **detail.model_dump(),
-            user_id=scan.user_id,
-            user_email=owner_email,
-            target_id=None,
-            is_eligible=is_scan_eligible(owner_scanning_enabled, detail.is_active),
-            user_scanning_enabled=owner_scanning_enabled,
-        )
-
-    cg_map = await _lookup_campgrounds_map(
-        session, {(scan.target.provider_id, scan.target.campground_id)}
-    )
-    cg = cg_map.get((scan.target.provider_id, scan.target.campground_id))
-
-    # Build result items
-    results_raw = scan.target.scan_results or []
-    seen: dict[str, list[str]] = {}
-    for sr in results_raw:
-        seen.setdefault(sr.campsite_id, []).extend(sr.available_dates or [])
-
-    result_items = [
-        ScanResultItem(
-            campsite_id=cid,
-            available_dates=sorted(set(dates)),
-        )
-        for cid, dates in seen.items()
-    ]
-
-    return AdminScanDetailResponse(
-        id=scan.id,
-        user_id=scan.user_id,
-        user_email=scan.user.email,
-        target_id=scan.target_id,
-        provider_id=scan.target.provider_id,
-        campground_id=scan.target.campground_id,
-        campground_name=cg.name if cg else "",
-        recreation_area_name=(
-            cg.recreation_area.name if cg and cg.recreation_area else ""
-        ),
-        start_date=scan.target.start_date,
-        end_date=scan.target.end_date,
-        is_active=scan.is_active,
-        is_eligible=is_scan_eligible(scan.user.scanning_enabled, scan.is_active),
-        user_scanning_enabled=scan.user.scanning_enabled,
-        min_stay_length=scan.min_stay_length,
-        preferred_types=scan.preferred_types or [],
-        require_electric=scan.require_electric,
-        last_checked_at=scan.target.last_checked_at,
-        created_at=scan.created_at,
-        results=result_items,
-    )
+    return await _build_admin_scan_detail(session, scan)
 
 
 # ===========================================================================
@@ -869,7 +863,7 @@ async def update_admin_scan(
             *scan_load_options(),
         )
         .where(UserScan.id == scan_id)
-        .with_for_update()
+        .with_for_update(of=UserScan)
     )
     scan = (await session.execute(stmt)).unique().scalar_one_or_none()
     if scan is None:
@@ -905,65 +899,7 @@ async def update_admin_scan(
     await session.commit()
     await session.refresh(scan)
 
-    if scan.destination_type == "recreation_area":
-        owner = _current_user_from_row(scan.user)
-        owner_email = owner.email
-        owner_scanning_enabled = owner.scanning_enabled
-        detail = await get_scan(
-            scan_id=scan.id,
-            current_user=owner,
-            session=session,
-        )
-        return AdminScanDetailResponse(
-            **detail.model_dump(),
-            user_id=scan.user_id,
-            user_email=owner_email,
-            target_id=None,
-            is_eligible=is_scan_eligible(owner_scanning_enabled, detail.is_active),
-            user_scanning_enabled=owner_scanning_enabled,
-        )
-
-    cg_map = await _lookup_campgrounds_map(
-        session, {(scan.target.provider_id, scan.target.campground_id)}
-    )
-    cg = cg_map.get((scan.target.provider_id, scan.target.campground_id))
-
-    results_raw = scan.target.scan_results or []
-    seen: dict[str, list[str]] = {}
-    for sr in results_raw:
-        seen.setdefault(sr.campsite_id, []).extend(sr.available_dates or [])
-
-    result_items = [
-        ScanResultItem(
-            campsite_id=cid,
-            available_dates=sorted(set(dates)),
-        )
-        for cid, dates in seen.items()
-    ]
-
-    return AdminScanDetailResponse(
-        id=scan.id,
-        user_id=scan.user_id,
-        user_email=scan.user.email,
-        target_id=scan.target_id,
-        provider_id=scan.target.provider_id,
-        campground_id=scan.target.campground_id,
-        campground_name=cg.name if cg else "",
-        recreation_area_name=(
-            cg.recreation_area.name if cg and cg.recreation_area else ""
-        ),
-        start_date=scan.target.start_date,
-        end_date=scan.target.end_date,
-        is_active=scan.is_active,
-        is_eligible=is_scan_eligible(scan.user.scanning_enabled, scan.is_active),
-        user_scanning_enabled=scan.user.scanning_enabled,
-        min_stay_length=scan.min_stay_length,
-        preferred_types=scan.preferred_types or [],
-        require_electric=scan.require_electric,
-        last_checked_at=scan.target.last_checked_at,
-        created_at=scan.created_at,
-        results=result_items,
-    )
+    return await _build_admin_scan_detail(session, scan)
 
 
 # ===========================================================================

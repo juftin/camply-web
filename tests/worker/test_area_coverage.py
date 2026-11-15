@@ -287,3 +287,15 @@ async def test_area_coverage_timeouts_recoveries_deadlines_and_stale_callbacks(
             link.error_category in {"round_deadline", "interrupted_attempt", None}
             for link in scan_row.coverage
         )
+
+
+def test_postgres_for_update_targets_user_scans_only() -> None:
+    """Queries locking UserScan with outer-joined target specify OF user_scans."""
+    from sqlalchemy import select
+    from sqlalchemy.dialects import postgresql
+
+    from camply.db.coverage import scan_load_options
+
+    stmt = select(UserScan).options(*scan_load_options()).with_for_update(of=UserScan)
+    sql = str(stmt.compile(dialect=postgresql.dialect()))
+    assert "FOR UPDATE OF user_scans" in sql

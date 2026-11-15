@@ -13,6 +13,7 @@ import httpx2
 from pydantic import ValidationError
 from sqlalchemy import delete, select, true, update
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from camply.db.config import DatabaseConfig
 from camply.db.models import NotificationOutbox, UniqueTarget, User, UserScan
@@ -165,7 +166,72 @@ async def delivery_outcome(
     return outcome, reason
 
 
-async def deliver_next(  # noqa: C901
+async def _resolve_delivery_candidate(
+    session: AsyncSession,
+    row: NotificationOutbox,
+    *,
+    now: dt.datetime,
+    invite_only: bool,
+) -> tuple[NotificationDTO | None, str, str, dict[str, Any], str | None]:
+    """Load current scan/user eligibility and revalidate the queued payload."""
+    outcome, reason = "skipped", "scan_ineligible"
+    payload: NotificationDTO | None = None
+    user = await session.get(User, row.user_id) if row.user_id else None
+    scan = await session.get(UserScan, row.scan_id) if row.scan_id else None
+    target = await session.get(UniqueTarget, row.target_id) if row.target_id else None
+    if (
+        user
+        and scan
+        and (target or row.payload_kind == "area")
+        and scan.user_id == user.id
+        and (
+            row.payload_kind == "area"
+            or (target is not None and scan.target_id == target.id)
+        )
+        and user.notification_provider == row.channel
+        and user.scanning_enabled
+        and scan.is_active
+        and (not invite_only or user.is_invited)
+    ):
+        try:
+            payload = (
+                await current_area_payload(
+                    session,
+                    row,
+                    today=now.date(),
+                    app_url=str(worker_config.app_url),
+                )
+                if row.payload_kind == "area"
+                else current_payload(
+                    NotificationDTO.model_validate(row.payload),
+                    scan,
+                    cast(UniqueTarget, target),
+                    now.date(),
+                )
+            )
+        except (ValidationError, ValueError, KeyError, TypeError):
+            outcome, reason = "failure", "invalid_payload"
+    ntfy_config = (
+        {
+            "topic": user.ntfy_topic,
+            "server_url": ntfy_defaults.publish_server(user.ntfy_server_url),
+            "access_token": user.ntfy_access_token,
+        }
+        if user
+        else {}
+    )
+    token = (
+        (user.ntfy_topic if user.notification_provider == "ntfy" else None)
+        if user and row.channel == "ntfy"
+        else (user.pushover_token if user else None)
+    )
+    if payload is not None and not token:
+        payload = None
+        reason = "missing_user_credentials"
+    return payload, outcome, reason, ntfy_config, token
+
+
+async def deliver_next(
     database: DatabaseConfig,
     *,
     invite_only: bool = False,
@@ -175,110 +241,81 @@ async def deliver_next(  # noqa: C901
     """Consume one due intent without holding a transaction across network delivery."""
     started = time.monotonic()
     now = dt.datetime.now(dt.timezone.utc)
+    payload: NotificationDTO | None = None
+    channel = "pushover"
+    ntfy_config: dict[str, Any] = {}
+    token: str | None = None
+    job_id = uuid.UUID(int=0)
+    attempt = 0
+    target_id: uuid.UUID | None = None
+    scan_id: uuid.UUID | None = None
+    outcome, reason = "skipped", "scan_ineligible"
+    claimed_row = False
     async with database.get_session() as session:
-        row = (
-            await session.scalars(
-                select(NotificationOutbox)
-                .where(
-                    NotificationOutbox.status.in_(["pending", "retry"]),
-                    NotificationOutbox.next_attempt_at <= now,
-                    NotificationOutbox.payload_kind == "area" if area_only else true(),
-                )
-                .order_by(NotificationOutbox.next_attempt_at, NotificationOutbox.id)
-                .limit(1)
-            )
-        ).first()
-        if row is None:
-            return None
-        outcome, reason = "skipped", "scan_ineligible"
-        payload = None
-        user = await session.get(User, row.user_id) if row.user_id else None
-        scan = await session.get(UserScan, row.scan_id) if row.scan_id else None
-        target = (
-            await session.get(UniqueTarget, row.target_id) if row.target_id else None
-        )
-        if (
-            user
-            and scan
-            and (target or row.payload_kind == "area")
-            and scan.user_id == user.id
-            and (
-                row.payload_kind == "area"
-                or (target is not None and scan.target_id == target.id)
-            )
-            and user.notification_provider == row.channel
-            and user.scanning_enabled
-            and scan.is_active
-            and (not invite_only or user.is_invited)
-        ):
-            try:
-                payload = (
-                    await current_area_payload(
-                        session,
-                        row,
-                        today=now.date(),
-                        app_url=str(worker_config.app_url),
+        for _ in range(5):
+            now = dt.datetime.now(dt.timezone.utc)
+            row = (
+                await session.scalars(
+                    select(NotificationOutbox)
+                    .where(
+                        NotificationOutbox.status.in_(["pending", "retry"]),
+                        NotificationOutbox.next_attempt_at <= now,
+                        NotificationOutbox.payload_kind == "area"
+                        if area_only
+                        else true(),
                     )
-                    if row.payload_kind == "area"
-                    else current_payload(
-                        NotificationDTO.model_validate(row.payload),
-                        scan,
-                        cast(UniqueTarget, target),
-                        now.date(),
-                    )
+                    .order_by(NotificationOutbox.next_attempt_at, NotificationOutbox.id)
+                    .limit(1)
                 )
-            except (ValidationError, ValueError, KeyError, TypeError):
-                outcome, reason = "failure", "invalid_payload"
-        channel = row.channel
-        ntfy_config = (
-            {
-                "topic": user.ntfy_topic,
-                "server_url": ntfy_defaults.publish_server(user.ntfy_server_url),
-                "access_token": user.ntfy_access_token,
-            }
-            if user
-            else {}
-        )
-        token = (
-            (user.ntfy_topic if user.notification_provider == "ntfy" else None)
-            if user and channel == "ntfy"
-            else (user.pushover_token if user else None)
-        )
-        if payload is not None and not token:
-            payload = None
-            reason = "missing_user_credentials"
-        if payload is not None:
-            claimed = await session.execute(
-                update(NotificationOutbox)
-                .where(
-                    NotificationOutbox.id == row.id,
-                    NotificationOutbox.status.in_(["pending", "retry"]),
-                    NotificationOutbox.payload_version == row.payload_version,
-                    NotificationOutbox.attempt_count == row.attempt_count,
-                )
-                .values(
-                    status="sending",
-                    attempt_count=row.attempt_count + 1,
-                    next_attempt_at=now + dt.timedelta(seconds=45),
-                )
-                .returning(NotificationOutbox.id)
-                .execution_options(synchronize_session=False)
-            )
-            if claimed.scalar_one_or_none() is None:
-                await session.rollback()
+            ).first()
+            if row is None:
                 return None
-            await session.refresh(row)
-        else:
-            row.status = "failed" if outcome == "failure" else "skipped"
-            row.error_category = reason
-            row.finished_at = now
-        job_id, attempt, target_id, scan_id = (
-            row.id,
-            row.attempt_count,
-            row.target_id,
-            row.scan_id,
-        )
-        await session.commit()
+            (
+                payload,
+                outcome,
+                reason,
+                ntfy_config,
+                token,
+            ) = await _resolve_delivery_candidate(
+                session, row, now=now, invite_only=invite_only
+            )
+            channel = row.channel
+            if payload is not None:
+                claimed = await session.execute(
+                    update(NotificationOutbox)
+                    .where(
+                        NotificationOutbox.id == row.id,
+                        NotificationOutbox.status.in_(["pending", "retry"]),
+                        NotificationOutbox.payload_version == row.payload_version,
+                        NotificationOutbox.attempt_count == row.attempt_count,
+                    )
+                    .values(
+                        status="sending",
+                        attempt_count=row.attempt_count + 1,
+                        next_attempt_at=now + dt.timedelta(seconds=45),
+                    )
+                    .returning(NotificationOutbox.id)
+                    .execution_options(synchronize_session=False)
+                )
+                if claimed.scalar_one_or_none() is None:
+                    await session.rollback()
+                    continue
+                await session.refresh(row)
+            else:
+                row.status = "failed" if outcome == "failure" else "skipped"
+                row.error_category = reason
+                row.finished_at = now
+            job_id, attempt, target_id, scan_id = (
+                row.id,
+                row.attempt_count,
+                row.target_id,
+                row.scan_id,
+            )
+            await session.commit()
+            claimed_row = True
+            break
+    if not claimed_row:
+        return None
     if payload is not None:
 
         async def send_ntfy(token: str, payload: NotificationDTO) -> bool:

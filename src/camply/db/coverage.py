@@ -204,7 +204,9 @@ async def get_or_create_target(
     return target
 
 
-async def reconcile_coverage(session: AsyncSession, scan: UserScan) -> bool:
+async def reconcile_coverage(
+    session: AsyncSession, scan: UserScan, *, bump_row_version: bool = True
+) -> bool:
     """Replace resolved links under a serialized provider publication/scan edit lock."""
     await session.scalar(
         select(Provider).where(Provider.id == scan.provider_id).with_for_update()
@@ -250,7 +252,8 @@ async def reconcile_coverage(session: AsyncSession, scan: UserScan) -> bool:
     if desired == existing:
         return False
     scan.coverage_revision = (scan.coverage_revision or 1) + 1
-    scan.row_version = (scan.row_version or 1) + 1
+    if bump_row_version:
+        scan.row_version = (scan.row_version or 1) + 1
     scan.last_full_checked_at = None
     scan.current_round_id = None
     scan.round_completed_at = None

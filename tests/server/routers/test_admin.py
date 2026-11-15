@@ -544,3 +544,33 @@ async def test_admin_area_scans_disabled_subscribers_and_prometheus_gauge(
     await refresh_db_gauges()
     after_gauge = ELIGIBLE_TARGETS._value.get()
     assert after_gauge == before_gauge - 1
+
+
+@pytest.mark.asyncio
+async def test_admin_scans_expose_criteria_and_filter_results_by_weekdays(
+    test_client: TestClient,
+    override_admin: CurrentUser,
+) -> None:
+    """Admin scan list & detail serialize allowed_weekdays/preferred_types/row_version and filter results."""
+    user_id, scan_id, _, _ = await _seed_admin_area_fixture()
+    async with maker() as session:
+        scan = await session.get(UserScan, uuid.UUID(scan_id))
+        assert scan is not None
+        # 2027-07-01 is a Thursday (weekday=3); restrict to Friday (weekday=4) to filter out Site A.
+        scan.allowed_weekdays = [4]
+        scan.preferred_types = ["Standard Electric"]
+        await session.commit()
+
+    listed = test_client.get(f"/api/admin/scans?owner_id={user_id}").json()
+    assert len(listed["scans"]) == 1
+    row = listed["scans"][0]
+    assert row["allowed_weekdays"] == [4]
+    assert row["preferred_types"] == ["Standard Electric"]
+    assert row["row_version"] == scan.row_version
+    assert row["found_count"] == 0
+
+    detail = test_client.get(f"/api/admin/scans/{scan_id}").json()
+    assert detail["allowed_weekdays"] == [4]
+    assert detail["preferred_types"] == ["Standard Electric"]
+    assert detail["found_count"] == 0
+    assert detail["results"] == []

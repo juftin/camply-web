@@ -305,3 +305,70 @@ def test_suspended_owner_area_scan_editing(
         test_client.patch(f"/api/scans/{susp_id}", json={"is_active": True}).status_code
         == 403
     )
+
+
+def test_area_scan_weekday_filtering_and_single_row_version_increment(
+    test_client: TestClient,
+) -> None:
+    """Area scans honor allowed_weekdays and increment row_version once per edit."""
+    import uuid
+
+    from camply.db.models import RecreationArea
+
+    uid = uuid.uuid4().hex[:8]
+    area = RecreationArea(id=f"area-wk-{uid}", provider_id=1, name="Weekday Park")
+    members = [
+        Campground(
+            id=f"wk-cg1-{uid}",
+            provider_id=1,
+            recreation_area_id=area.id,
+            name="Campground One",
+            enabled=True,
+            reservable=True,
+        ),
+        Campground(
+            id=f"wk-cg2-{uid}",
+            provider_id=1,
+            recreation_area_id=area.id,
+            name="Campground Two",
+            enabled=True,
+            reservable=True,
+        ),
+    ]
+    seed_data([area, *members])
+    first_member = members[0]
+    created = test_client.post(
+        "/api/scans",
+        json={
+            "provider_id": 1,
+            "destination_type": "recreation_area",
+            "recreation_area_id": area.id,
+            "coverage_mode": "selected",
+            "campground_ids": [first_member.id],
+            "start_date": "2099-07-01",
+            "end_date": "2099-07-08",
+            "allowed_weekdays": [4, 5],
+            "min_stay_length": 2,
+        },
+    )
+    assert created.status_code == 201, created.text
+    scan = created.json()
+    assert scan["row_version"] == 1
+    assert scan["allowed_weekdays"] == [4, 5]
+    assert scan["selected_campgrounds"] == [
+        {"id": first_member.id, "name": first_member.name}
+    ]
+
+    edited = test_client.patch(
+        f"/api/scans/{scan['id']}",
+        json={
+            "coverage_mode": "all",
+            "allowed_weekdays": [4, 5, 6],
+            "row_version": scan["row_version"],
+        },
+    )
+    assert edited.status_code == 200, edited.text
+    assert edited.json()["row_version"] == 2
+    assert edited.json()["allowed_weekdays"] == [4, 5, 6]
+    assert edited.json()["eligible_campground_count"] == len(members)
+    assert test_client.delete(f"/api/scans/{scan['id']}").status_code == 204

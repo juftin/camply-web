@@ -151,21 +151,31 @@ export function ScanForm({
     scan?.coverage_mode ?? "all",
   );
   const savedChoices = Object.fromEntries(
-    (scan?.campground_ids ?? []).map((id) => [
-      id,
-      (scan as import("@/lib/structs").ScanDetailResponse)?.campgrounds?.find(
-        (member) => member.campground_id === id,
-      )?.campground_name ?? id,
-    ]),
+    scan?.selected_campgrounds?.length
+      ? scan.selected_campgrounds.map((item) => [item.id, item.name])
+      : (scan?.campground_ids ?? []).map((id) => [
+          id,
+          (
+            scan as import("@/lib/structs").ScanDetailResponse
+          )?.campgrounds?.find((member) => member.campground_id === id)
+            ?.campground_name ?? id,
+        ]),
   );
   const [selectedChoices, setSelectedChoices] =
     useState<Record<string, string>>(savedChoices);
   useEffect(() => {
+    if (preselectedArea) {
+      setDestinationType("recreation_area");
+      setCampground(preselectedArea);
+      setProviderId(preselectedArea.provider_id);
+      return;
+    }
     if (preselectedCampground) {
+      setDestinationType("campground");
       setCampground(preselectedCampground);
       setProviderId(preselectedProviderId ?? preselectedCampground.provider_id);
     }
-  }, [preselectedCampground, preselectedProviderId, open]);
+  }, [preselectedArea, preselectedCampground, preselectedProviderId, open]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -327,7 +337,12 @@ export function ScanForm({
                 ? { campground_ids: Object.keys(selectedChoices) }
                 : {}),
             }
-          : { campground_id: campground.id }),
+          : scan?.destination_type === "recreation_area"
+            ? {
+                destination_type: "campground" as const,
+                campground_id: campground.id,
+              }
+            : { campground_id: campground.id }),
         start_date: data.start_date,
         end_date: data.end_date,
         min_stay_length: Number(data.min_stay_length),

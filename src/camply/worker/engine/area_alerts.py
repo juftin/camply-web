@@ -91,9 +91,31 @@ async def enqueue_area(
     ]
     for candidate_set in [[item] for item in candidates] if direct else [candidates]:
         window = int(now.timestamp()) // 5 * 5
+        bumped = False
         while True:
+            wall_now = dt.datetime.now(dt.timezone.utc)
+            row = (
+                await session.scalar(
+                    select(NotificationOutbox)
+                    .where(
+                        NotificationOutbox.scan_id == scan.id,
+                        NotificationOutbox.delivery_key == "area-summary",
+                        NotificationOutbox.channel == channel,
+                        NotificationOutbox.payload_kind == "area",
+                        NotificationOutbox.scan_revision == scan.definition_revision,
+                        NotificationOutbox.status == "pending",
+                        NotificationOutbox.attempt_count == 0,
+                        NotificationOutbox.next_attempt_at > max(now, wall_now),
+                    )
+                    .order_by(NotificationOutbox.next_attempt_at.desc())
+                )
+                if not direct
+                else None
+            )
             detection = (
-                uuid.uuid4()
+                row.detection_id
+                if row is not None
+                else uuid.uuid4()
                 if direct
                 else uuid.uuid5(
                     scan.id, f"{scan.definition_revision}:{channel}:{window}"
@@ -104,17 +126,18 @@ async def enqueue_area(
                 if direct
                 else "area-summary"
             )
-            row = await session.scalar(
-                select(NotificationOutbox).where(
-                    NotificationOutbox.detection_id == detection,
-                    NotificationOutbox.scan_id == scan.id,
-                    NotificationOutbox.delivery_key == key,
+            if row is None:
+                row = await session.scalar(
+                    select(NotificationOutbox).where(
+                        NotificationOutbox.detection_id == detection,
+                        NotificationOutbox.scan_id == scan.id,
+                        NotificationOutbox.delivery_key == key,
+                    )
                 )
-            )
             due = (
                 dt.datetime.fromtimestamp(window + 5, dt.timezone.utc)
-                if not direct
-                else now
+                if (bumped and not direct)
+                else (now + dt.timedelta(seconds=5) if not direct else now)
             )
             if row is None:
                 try:
@@ -138,20 +161,17 @@ async def enqueue_area(
                         await session.flush()
                     break
                 except IntegrityError:
+                    bumped = True
+                    window = max(window + 5, int(wall_now.timestamp()) // 5 * 5)
                     continue
             version = row.payload_version
             if (
                 row.status != "pending"
                 or row.attempt_count
-                or (
-                    row.next_attempt_at.replace(tzinfo=dt.timezone.utc)
-                    <= dt.datetime.now(dt.timezone.utc)
-                )
+                or (row.next_attempt_at.replace(tzinfo=dt.timezone.utc) <= wall_now)
             ):
-                window = max(
-                    window + 5,
-                    int(dt.datetime.now(dt.timezone.utc).timestamp()) // 5 * 5,
-                )
+                bumped = True
+                window = max(window + 5, int(wall_now.timestamp()) // 5 * 5)
                 continue
             payload = {
                 **row.payload,

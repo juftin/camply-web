@@ -1000,6 +1000,8 @@ export interface components {
             coverage_mode?: ("all" | "selected") | null;
             /** Campground Ids */
             campground_ids?: string[];
+            /** Selected Campgrounds */
+            selected_campgrounds?: components["schemas"]["ScanChoiceItem"][];
             /**
              * Eligible Campground Count
              * @default 1
@@ -1132,6 +1134,8 @@ export interface components {
             coverage_mode?: ("all" | "selected") | null;
             /** Campground Ids */
             campground_ids?: string[];
+            /** Selected Campgrounds */
+            selected_campgrounds?: components["schemas"]["ScanChoiceItem"][];
             /**
              * Eligible Campground Count
              * @default 1
@@ -2056,6 +2060,16 @@ export interface components {
             error_category?: string | null;
         };
         /**
+         * ScanChoiceItem
+         * @description Saved campground identifier and fallback label for area selections.
+         */
+        ScanChoiceItem: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
          * ScanCreateRequest
          * @description Payload for creating a new user scan.
          */
@@ -2136,6 +2150,8 @@ export interface components {
             coverage_mode?: ("all" | "selected") | null;
             /** Campground Ids */
             campground_ids?: string[];
+            /** Selected Campgrounds */
+            selected_campgrounds?: components["schemas"]["ScanChoiceItem"][];
             /**
              * Eligible Campground Count
              * @default 1
@@ -2271,6 +2287,8 @@ export interface components {
             coverage_mode?: ("all" | "selected") | null;
             /** Campground Ids */
             campground_ids?: string[];
+            /** Selected Campgrounds */
+            selected_campgrounds?: components["schemas"]["ScanChoiceItem"][];
             /**
              * Eligible Campground Count
              * @default 1
