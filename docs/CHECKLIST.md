@@ -198,6 +198,7 @@ Implementation specification and tasks: [Admin UI plan](specs/002-admin-ui/plan.
 - [ ] T3.2.3 Implement minimum stay requirement (X nights) in poller logic.
 - [x] T3.2.4 Specify recurring nights-of-the-week selection for saved web scans with existing CLI day/weekend parity, stay-length semantics, validation, and consistent results/alerts; see the [night-selection specification](specs/029-weekday-night-filter/spec.md).
 - [x] T3.2.5 Plan, implement and verify saved night preferences, accessible web selection/editing, consistent results and notification delivery in both runtimes, and CLI parity; see the [night-selection plan](specs/029-weekday-night-filter/plan.md) and [completed tasks](specs/029-weekday-night-filter/tasks.md).
+- [x] T3.2.5a Review and align affected scan and design-preview visual baselines with CI captures, including the scan-card night preference badge.
 
 ### 3.3 Open-Source Maps & Explore Discovery
 
