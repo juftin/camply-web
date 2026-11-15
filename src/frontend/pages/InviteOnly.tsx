@@ -35,9 +35,7 @@ export function InviteOnly() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isApproved = Boolean(
-    user && (user.is_invited || user.invitation_status === "approved"),
-  );
+  const isApproved = Boolean(user?.is_invited);
   const isPending =
     !isApproved && (user?.invitation_status === "pending" || submitted);
   const isRejected =
@@ -99,9 +97,7 @@ export function InviteOnly() {
 
   const renderDescription = () => {
     if (isApproved) {
-      return user?.is_invited
-        ? "Your invitation is active. Continue to your dashboard to manage campsite scans."
-        : "Your invitation request has been approved. Refresh your status if dashboard access does not open right away.";
+      return "Your invitation is active. Continue to your dashboard to manage campsite scans.";
     }
     if (isPending) {
       return submitted
@@ -142,22 +138,6 @@ export function InviteOnly() {
                 <Button className="w-full" asChild>
                   <Link to="/dashboard">Continue to Dashboard</Link>
                 </Button>
-                {!user?.is_invited && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    disabled={refreshing}
-                    onClick={handleRefresh}
-                  >
-                    {refreshing ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                    )}
-                    Refresh Status
-                  </Button>
-                )}
               </div>
             ) : isPending ? (
               <div className="space-y-3">

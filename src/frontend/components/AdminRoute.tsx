@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,8 @@ interface AdminRouteProps {
 }
 
 export function AdminRoute({ children }: AdminRouteProps) {
-  const { user, isLoading, isReady, error } = useAuth();
+  const { user, isLoading, isReady, error, autoLogin } = useAuth();
+  const location = useLocation();
 
   if (isLoading || !isReady) {
     return (
@@ -29,8 +30,17 @@ export function AdminRoute({ children }: AdminRouteProps) {
 
   if (error && !user) {
     return (
-      <div role="alert" className="p-8 text-center">
-        {error}
+      <div role="alert" className="p-8 text-center space-y-4">
+        <p>{error}</p>
+        {!autoLogin && (
+          <Button asChild variant="outline">
+            <Link
+              to={`/auth?returnTo=${encodeURIComponent(location.pathname + location.search + location.hash)}`}
+            >
+              Sign In
+            </Link>
+          </Button>
+        )}
       </div>
     );
   }

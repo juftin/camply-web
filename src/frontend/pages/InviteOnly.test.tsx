@@ -89,7 +89,7 @@ describe("InviteOnly", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows Refresh Status alongside Continue to Dashboard when approved but not yet marked invited", async () => {
+  it("does not render Continue to Dashboard when invitation_status is approved but is_invited is false", () => {
     mockAuthState = {
       user: {
         id: "u-1",
@@ -103,15 +103,16 @@ describe("InviteOnly", () => {
       refresh: refreshMock,
     };
 
-    const user = setup();
+    setup();
     expect(
-      screen.getByRole("heading", { name: "Invitation Approved" }),
+      screen.queryByRole("heading", { name: "Invitation Approved" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Continue to Dashboard" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Invitation Required" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Continue to Dashboard" }),
-    ).toHaveAttribute("href", "/dashboard");
-    await user.click(screen.getByRole("button", { name: "Refresh Status" }));
-    expect(refreshMock).toHaveBeenCalledTimes(1);
   });
 
   it("shows Request Declined status card without resubmit form when rejected", async () => {

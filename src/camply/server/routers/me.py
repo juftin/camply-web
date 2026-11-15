@@ -46,7 +46,7 @@ _VALID_INVITATION_STATUSES: frozenset[str] = frozenset(
 )
 
 
-async def _get_invitation_status(
+async def get_invitation_status(
     session: AsyncSession,
     user_id: uuid.UUID,
     email: str,
@@ -85,7 +85,7 @@ async def _get_invitation_status(
     return None
 
 
-def _build_me_response(
+def build_me_response(
     user: CurrentUser | UserDB,
     invitation_status: InvitationStatus | None,
 ) -> MeResponse:
@@ -153,12 +153,12 @@ async def get_me(
     session: SessionDep,
 ) -> MeResponse:
     """Return the authenticated user's profile."""
-    invitation_status = await _get_invitation_status(
+    invitation_status = await get_invitation_status(
         session=session,
         user_id=current_user.id,
         email=current_user.email,
     )
-    return _build_me_response(user=current_user, invitation_status=invitation_status)
+    return build_me_response(user=current_user, invitation_status=invitation_status)
 
 
 # ---------------------------------------------------------------------------
@@ -205,12 +205,12 @@ async def update_me(
         ) from exc
     await session.refresh(user)
 
-    invitation_status = await _get_invitation_status(
+    invitation_status = await get_invitation_status(
         session=session,
         user_id=user.id,
         email=user.email,
     )
-    return _build_me_response(user=user, invitation_status=invitation_status)
+    return build_me_response(user=user, invitation_status=invitation_status)
 
 
 @me_router.post(

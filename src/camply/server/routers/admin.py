@@ -434,7 +434,7 @@ async def get_user_detail(
 # ===========================================================================
 
 
-def _apply_user_access_updates(
+async def _apply_user_access_updates(
     session: AsyncSession,
     *,
     admin: CurrentUser,
@@ -477,7 +477,9 @@ def _apply_user_access_updates(
     if body.is_invited is not None:
         if not body.is_invited:
             _ensure_invitation_revocable(admin, user)
-        _set_user_invited(session, admin=admin, user=user, is_invited=body.is_invited)
+        await _set_user_invited(
+            session, admin=admin, user=user, is_invited=body.is_invited
+        )
 
     if body.scanning_enabled is not None:
         prev_val = user.scanning_enabled
@@ -580,7 +582,7 @@ async def update_user(
             detail="User not found",
         )
 
-    _apply_user_access_updates(session, admin=admin, user=user, body=body)
+    await _apply_user_access_updates(session, admin=admin, user=user, body=body)
     await _apply_user_credential_updates(session, admin=admin, user=user, body=body)
 
     await session.commit()
@@ -633,11 +635,92 @@ def _ensure_invitation_revocable(admin: CurrentUser, user: User) -> None:
         )
 
 
-def _set_user_invited(
-    session: AsyncSession, *, admin: CurrentUser, user: User, is_invited: bool
+async def _sync_user_access_requests(
+    session: AsyncSession,
+    *,
+    admin: CurrentUser,
+    user: User,
+    is_invited: bool,
+    exclude_request_id: uuid.UUID | None = None,
 ) -> None:
     """
-    Set ``User.is_invited`` and record a ``user.is_invited`` audit event.
+    Synchronize matching access requests when a user's invitation state changes.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        Database session tracking pending mutations.
+    admin : CurrentUser
+        The administrator making the change.
+    user : User
+        The account whose invitation status changed.
+    is_invited : bool
+        The newly applied invitation state.
+    exclude_request_id : uuid.UUID or None
+        Optional access request already updated and audited by the caller.
+    """
+    target_statuses = (
+        (AccessRequestStatus.PENDING.value, AccessRequestStatus.REJECTED.value)
+        if is_invited
+        else (AccessRequestStatus.APPROVED.value,)
+    )
+    conditions = [
+        or_(
+            AccessRequest.user_id == user.id,
+            func.lower(AccessRequest.email) == user.email.strip().lower(),
+        ),
+        AccessRequest.status.in_(target_statuses),
+    ]
+    if exclude_request_id is not None:
+        conditions.append(AccessRequest.id != exclude_request_id)
+
+    matching_requests = (
+        (
+            await session.execute(
+                select(AccessRequest).where(*conditions).with_for_update()
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not matching_requests:
+        return
+
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
+    new_status = (
+        AccessRequestStatus.APPROVED.value
+        if is_invited
+        else AccessRequestStatus.REJECTED.value
+    )
+    action = "access_request.approve" if is_invited else "access_request.reject"
+    for req in matching_requests:
+        prev_status = req.status
+        req.status = new_status
+        req.reviewed_at = now
+        req.reviewed_by_id = admin.id
+        req.user_id = user.id
+        session.add(
+            AdminAuditEvent(
+                actor_id=admin.id,
+                action=action,
+                subject_type="access_request",
+                subject_id=req.id,
+                prev_value=prev_status == AccessRequestStatus.APPROVED.value,
+                new_value=is_invited,
+            )
+        )
+
+
+async def _set_user_invited(
+    session: AsyncSession,
+    *,
+    admin: CurrentUser,
+    user: User,
+    is_invited: bool,
+    exclude_request_id: uuid.UUID | None = None,
+) -> None:
+    """
+    Set ``User.is_invited``, sync matching access requests, and emit audit events.
 
     Parameters
     ----------
@@ -649,6 +732,8 @@ def _set_user_invited(
         The account to update; unchanged values record no audit event.
     is_invited : bool
         The desired invitation state.
+    exclude_request_id : uuid.UUID or None
+        Optional access request already updated and audited by the caller.
     """
     if user.is_invited == is_invited:
         return
@@ -663,6 +748,13 @@ def _set_user_invited(
             prev_value=prev_value,
             new_value=is_invited,
         )
+    )
+    await _sync_user_access_requests(
+        session,
+        admin=admin,
+        user=user,
+        is_invited=is_invited,
+        exclude_request_id=exclude_request_id,
     )
 
 
@@ -801,10 +893,22 @@ async def update_access_request(
 
     if user is not None and approving:
         access_request.user_id = user.id
-        _set_user_invited(session, admin=admin, user=user, is_invited=True)
+        await _set_user_invited(
+            session,
+            admin=admin,
+            user=user,
+            is_invited=True,
+            exclude_request_id=access_request.id,
+        )
     elif user is not None and revoking:
         access_request.user_id = user.id
-        _set_user_invited(session, admin=admin, user=user, is_invited=False)
+        await _set_user_invited(
+            session,
+            admin=admin,
+            user=user,
+            is_invited=False,
+            exclude_request_id=access_request.id,
+        )
 
     await session.commit()
     await session.refresh(access_request)

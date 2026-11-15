@@ -424,7 +424,7 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const config = useContext(AuthConfigContext);
 
-  if (config.auth_mode === "auth0") {
+  if (!config.auto_login && config.auth_mode === "auth0") {
     return <Auth0AuthProvider>{children}</Auth0AuthProvider>;
   }
   return <CookieAuthProvider>{children}</CookieAuthProvider>;

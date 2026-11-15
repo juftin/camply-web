@@ -13,8 +13,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from camply.db.models import AccessRequest, AdminAuditEvent, User
+from camply.db.models.access_request import AccessRequestStatus
 from camply.server.app import app
-from camply.server.auth import CurrentUser, resolve_current_user
+from camply.server.auth import (
+    CurrentUser,
+    _sync_existing_auth0_user_email,
+    resolve_current_user,
+)
 from camply.server.config import backend_config
 from tests.server.conftest import maker
 
@@ -473,3 +478,95 @@ class TestUserInvitationToggle:
         assert response.status_code == 400
         assert (await _load_user(owner.id)).is_invited is True
         assert await _audit_actions(owner.id) == []
+
+    @pytest.mark.asyncio
+    async def test_revoking_is_invited_rejects_approved_request_and_blocks_email_bypass(
+        self, test_client: TestClient, admin: User
+    ) -> None:
+        """Revoking ``is_invited`` rejects approved requests, updates ``/api/me``, and blocks email-change re-invitation."""
+        tag = _tag()
+        email = f"revoke-sync-{tag}@example.test"
+        other_approved_email = f"other-approved-{tag}@example.test"
+        user = await _add_user(email=email, is_invited=True)
+        access_request = await _add_request(email=email, status="approved")
+        await _add_request(email=other_approved_email, status="approved")
+
+        resp = test_client.patch(
+            f"/api/admin/users/{user.id}", json={"is_invited": False}
+        )
+        assert resp.status_code == 200
+        assert resp.json()["is_invited"] is False
+
+        async with maker() as session:
+            refreshed_req = await session.get(AccessRequest, access_request.id)
+            assert refreshed_req is not None
+            assert refreshed_req.status == AccessRequestStatus.REJECTED.value
+            assert refreshed_req.user_id == user.id
+            assert refreshed_req.reviewed_by_id == admin.id
+            assert refreshed_req.reviewed_at is not None
+
+        req_events = await _audit_actions(access_request.id)
+        assert [(e.action, e.prev_value, e.new_value) for e in req_events] == [
+            ("access_request.reject", True, False)
+        ]
+        assert req_events[0].subject_type == "access_request"
+        assert req_events[0].actor_id == admin.id
+
+        current = CurrentUser(
+            id=user.id,
+            email=user.email,
+            is_invited=False,
+            is_admin=False,
+            scanning_enabled=True,
+        )
+        app.dependency_overrides[resolve_current_user] = lambda: current
+        try:
+            me_resp = test_client.get("/api/me")
+            assert me_resp.status_code == 200
+            assert me_resp.json()["is_invited"] is False
+            assert me_resp.json()["invitation_status"] == "rejected"
+        finally:
+            app.dependency_overrides.pop(resolve_current_user, None)
+
+        async with maker() as session:
+            db_user = await session.get(User, user.id)
+            assert db_user is not None
+            synced = await _sync_existing_auth0_user_email(
+                session=session,
+                auth0_user=db_user,
+                verified_email=other_approved_email,
+            )
+            assert synced.email == other_approved_email
+            assert synced.is_invited is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("initial_status", ["pending", "rejected"])
+    async def test_granting_is_invited_approves_pending_or_rejected_request(
+        self, test_client: TestClient, admin: User, initial_status: str
+    ) -> None:
+        """Setting ``is_invited=True`` approves matching pending or rejected requests."""
+        tag = _tag()
+        email = f"grant-sync-{initial_status}-{tag}@example.test"
+        user = await _add_user(email=email, is_invited=False)
+        access_request = await _add_request(email=email, status=initial_status)
+
+        resp = test_client.patch(
+            f"/api/admin/users/{user.id}", json={"is_invited": True}
+        )
+        assert resp.status_code == 200
+        assert resp.json()["is_invited"] is True
+
+        async with maker() as session:
+            refreshed_req = await session.get(AccessRequest, access_request.id)
+            assert refreshed_req is not None
+            assert refreshed_req.status == AccessRequestStatus.APPROVED.value
+            assert refreshed_req.user_id == user.id
+            assert refreshed_req.reviewed_by_id == admin.id
+            assert refreshed_req.reviewed_at is not None
+
+        req_events = await _audit_actions(access_request.id)
+        assert [(e.action, e.prev_value, e.new_value) for e in req_events] == [
+            ("access_request.approve", False, True)
+        ]
+        assert req_events[0].subject_type == "access_request"
+        assert req_events[0].actor_id == admin.id

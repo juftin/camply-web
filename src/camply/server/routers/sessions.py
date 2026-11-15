@@ -24,6 +24,7 @@ from camply.server.auth import (
 )
 from camply.server.config import AuthMode, backend_config
 from camply.server.dependencies import SessionDep
+from camply.server.routers.me import build_me_response, get_invitation_status
 from camply.server.schemas import (
     ChangePasswordRequest,
     MeResponse,
@@ -175,13 +176,18 @@ async def login(
     session_id = db_session.id
     await session.commit()
     await session.refresh(user)
+    invitation_status = await get_invitation_status(
+        session=session,
+        user_id=user.id,
+        email=user.email,
+    )
     _set_session_cookies(
         response,
         user=user,
         csrf=secrets.token_urlsafe(32),
         session_id=session_id,
     )
-    return MeResponse.model_validate(user, from_attributes=True)
+    return build_me_response(user=user, invitation_status=invitation_status)
 
 
 @session_router.post("/change-password")
@@ -230,14 +236,18 @@ async def change_password(
     new_session_id = new_db_session.id
     await session.commit()
     await session.refresh(user)
-
+    invitation_status = await get_invitation_status(
+        session=session,
+        user_id=user.id,
+        email=user.email,
+    )
     _set_session_cookies(
         response,
         user=user,
-        csrf=request.headers["X-CSRF-Token"],
+        csrf=secrets.token_urlsafe(32),
         session_id=new_session_id,
     )
-    return MeResponse.model_validate(user, from_attributes=True)
+    return build_me_response(user=user, invitation_status=invitation_status)
 
 
 @session_router.post("/logout", status_code=204)

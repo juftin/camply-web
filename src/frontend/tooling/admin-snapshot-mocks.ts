@@ -241,7 +241,7 @@ export async function setupAdminSnapshotMocks(
       body = USERS.find((user) => endpoint.endsWith(user.id));
     } else if (endpoint === "access-requests") {
       body = {
-        items: [
+        access_requests: [
           {
             id: "req-mock-1",
             email: "hiker@example.test",

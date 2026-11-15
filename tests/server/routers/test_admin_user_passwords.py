@@ -10,7 +10,9 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from camply.db.models import AdminAuditEvent, User, UserSession
+from camply.db.models import AccessRequest, AdminAuditEvent, User, UserSession
+from camply.db.models.access_request import AccessRequestStatus
+from camply.db.notification_config import ntfy_config
 from camply.server.app import app
 from camply.server.auth import CurrentUser, resolve_current_user, session_signing_key
 from camply.server.config import AuthMode, backend_config
@@ -215,7 +217,7 @@ def test_user_login_and_forced_password_change_workflow(
     assert fail_change.status_code == 400
     assert "incorrect" in fail_change.json()["detail"].lower()
 
-    # 6. Change password successfully
+    # 6. Change password successfully and pick up rotated CSRF token
     success_change = test_client.post(
         "/api/change-password",
         json={
@@ -225,6 +227,7 @@ def test_user_login_and_forced_password_change_workflow(
     )
     assert success_change.status_code == 200
     assert success_change.json()["must_change_password"] is False
+    test_client.headers["X-CSRF-Token"] = test_client.cookies["camply_csrf"]
 
     # 7. GET /me now shows must_change_password=False
     me_after = test_client.get("/api/me")
@@ -510,6 +513,7 @@ async def test_password_change_revokes_other_sessions(
     _login(old_client, username=email, password="InitialPassword123!")
     _login(test_client, username=email, password="InitialPassword123!")
     previous_cookie = test_client.cookies["camply_session"]
+    previous_csrf = test_client.cookies["camply_csrf"]
     previous_jti = uuid.UUID(
         jwt.decode(previous_cookie, session_signing_key(), algorithms=["HS256"])["jti"]
     )
@@ -520,6 +524,8 @@ async def test_password_change_revokes_other_sessions(
     )
     assert changed.status_code == 200
     assert test_client.cookies["camply_session"] != previous_cookie
+    rotated_csrf = test_client.cookies["camply_csrf"]
+    assert rotated_csrf != previous_csrf
     new_jti = uuid.UUID(
         jwt.decode(
             test_client.cookies["camply_session"],
@@ -528,6 +534,11 @@ async def test_password_change_revokes_other_sessions(
         )["jti"]
     )
     assert new_jti != previous_jti
+    assert (
+        test_client.patch("/api/me", json={"pushover_token": "should-fail"}).status_code
+        == 403
+    )
+    test_client.headers["X-CSRF-Token"] = rotated_csrf
     assert test_client.get("/api/scans").status_code == 200
     assert (
         test_client.patch(
@@ -729,3 +740,65 @@ async def test_auth0_ignores_session_password_change_flag(
     )
     assert response.status_code == 200
     assert response.json()["must_change_password"] is False
+
+
+@pytest.mark.asyncio
+async def test_login_and_change_password_include_full_profile_fields(
+    session_mode: None,
+    test_client: TestClient,
+    override_admin_user: CurrentUser,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``POST /api/login`` and ``POST /api/change-password`` match ``GET /api/me`` fields."""
+    monkeypatch.setattr(
+        ntfy_config, "subscription_url", "https://push.example.test/public"
+    )
+    monkeypatch.setattr(ntfy_config, "publish_url", "http://ntfy.internal/publish")
+    test_email = f"profile_match_{uuid.uuid4().hex[:6]}@example.test"
+    create_resp = test_client.post(
+        "/api/admin/users",
+        json={
+            "email": test_email,
+            "password": "InitialPassword123!",
+            "is_invited": False,
+        },
+    )
+    assert create_resp.status_code == 201
+    user_id = uuid.UUID(create_resp.json()["id"])
+
+    async with maker() as db_session:
+        db_session.add(
+            AccessRequest(
+                email=test_email,
+                user_id=user_id,
+                status=AccessRequestStatus.PENDING.value,
+            )
+        )
+        await db_session.commit()
+
+    app.dependency_overrides.pop(resolve_current_user, None)
+    login_resp = test_client.post(
+        "/api/login",
+        json={"username": test_email, "password": "InitialPassword123!"},
+    )
+    assert login_resp.status_code == 200
+    login_data = login_resp.json()
+    me_data = test_client.get("/api/me").json()
+    assert login_data == me_data
+    assert login_data["invitation_status"] == "pending"
+    assert (
+        login_data["ntfy_default_subscription_url"]
+        == "https://push.example.test/public"
+    )
+    assert login_data["ntfy_subscription_url"] == "https://push.example.test/public"
+
+    test_client.headers["X-CSRF-Token"] = test_client.cookies["camply_csrf"]
+    change_resp = test_client.post(
+        "/api/change-password",
+        json={
+            "current_password": "InitialPassword123!",
+            "new_password": "UpdatedPassword456!",
+        },
+    )
+    assert change_resp.status_code == 200
+    assert change_resp.json() == test_client.get("/api/me").json()

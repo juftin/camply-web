@@ -165,6 +165,67 @@ class TestRequestAccess:
         )
         assert response.status_code == 201
 
+    @pytest.mark.parametrize(
+        "synthetic_email",
+        [
+            "user@example.test",
+            "user@test.local",
+        ],
+    )
+    def test_request_access_accepts_synthetic_test_domains(
+        self, test_client: TestClient, synthetic_email: str
+    ) -> None:
+        """Synthetic test domains such as ``.test`` and ``.local`` remain valid."""
+        local, domain = synthetic_email.split("@", 1)
+        response = test_client.post(
+            "/api/request-access",
+            json={"email": f"{local}-{_tag()}@{domain}"},
+        )
+        assert response.status_code == 201
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "invalid_email",
+        [
+            "   ",
+            "not-an-email",
+            "a" * 300,
+            "foo @bar.com",
+            "foo@bar",
+            "@bar.com",
+            "foo@.com",
+            "foo@bar.",
+            "foo@bar..com",
+        ],
+    )
+    async def test_request_access_rejects_invalid_email_without_admin_alerts(
+        self,
+        test_client: TestClient,
+        monkeypatch: pytest.MonkeyPatch,
+        mock_notification_providers: tuple[AsyncMock, AsyncMock],
+        invalid_email: str,
+    ) -> None:
+        """Invalid emails fail validation with 422 and do not notify admins."""
+        ntfy_send, pushover_send = mock_notification_providers
+        await _disable_existing_admins()
+        monkeypatch.setattr(PushoverProvider.config, "app_token", "synthetic-app-token")
+        tag = _tag()
+        await _add_user(
+            email=f"val-admin-{tag}@example.test",
+            is_admin=True,
+            scanning_enabled=True,
+            notification_provider="ntfy",
+            ntfy_topic=f"val-topic-{tag}",
+        )
+
+        response = test_client.post(
+            "/api/request-access",
+            json={"email": invalid_email},
+        )
+        assert response.status_code == 422
+        ntfy_send.assert_not_awaited()
+        pushover_send.assert_not_awaited()
+
 
 class TestRequestAccessAdminNotifications:
     """Tests for zero-email admin notifications on new access requests."""

@@ -158,14 +158,59 @@ class UserSessionListResponse(BaseModel):
 # Access Requests
 # ===========================================================================
 
+_MIN_EMAIL_LENGTH = 3
+"""Minimum length for a valid ``local@domain`` email address."""
+_MAX_EMAIL_LENGTH = 255
+"""Maximum length for a stored email address."""
+
 
 class AccessRequestCreate(BaseModel):
     """Payload for ``POST /request-access``."""
 
-    email: str = Field(..., description="Email address requesting an invitation")
+    email: str = Field(
+        ...,
+        min_length=_MIN_EMAIL_LENGTH,
+        max_length=_MAX_EMAIL_LENGTH,
+        description="Email address requesting an invitation",
+    )
     name: Optional[str] = Field(
         default=None, max_length=255, description="Optional name"
     )
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        """
+        Strip outer whitespace and validate basic ``local@domain`` structure.
+
+        Parameters
+        ----------
+        value : str
+            Raw submitted email address.
+
+        Returns
+        -------
+        str
+            Stripped email address.
+
+        Raises
+        ------
+        ValueError
+            When the trimmed email length, whitespace, or ``local@domain`` format is invalid.
+        """
+        cleaned = value.strip()
+        if not (_MIN_EMAIL_LENGTH <= len(cleaned) <= _MAX_EMAIL_LENGTH):
+            raise ValueError(
+                f"Email address must be between {_MIN_EMAIL_LENGTH} and {_MAX_EMAIL_LENGTH} characters"
+            )
+        if any(char.isspace() for char in cleaned):
+            raise ValueError("Email address must not contain whitespace")
+        if cleaned.count("@") != 1:
+            raise ValueError("Email address must contain a single '@' separator")
+        local, domain = cleaned.split("@", 1)
+        if not local or not domain or "." not in domain or not all(domain.split(".")):
+            raise ValueError("Email address must be a valid email address")
+        return cleaned
 
 
 class AccessRequestResponse(BaseModel):
