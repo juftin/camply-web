@@ -613,12 +613,21 @@ it("transitions cleanly to /auth when revoking the current session from the prof
   renderApp(sessionConfig, "/profile");
 
   const revokeButton = await screen.findByRole("button", { name: "Revoke" });
+  vi.mocked(getMe).mockRejectedValue(
+    new AxiosError("Session revoked", "401", undefined, undefined, {
+      status: 401,
+      data: {},
+      statusText: "Unauthorized",
+      headers: {},
+      config: {} as never,
+    }),
+  );
   fireEvent.click(revokeButton);
 
   await waitFor(() =>
     expect(revokeMySession).toHaveBeenCalledWith("sess-current"),
   );
-  await screen.findByRole("button", { name: "Sign In" });
+  await screen.findByLabelText("Username");
   expect(logoutSession).not.toHaveBeenCalled();
-  expect(window.location.pathname).toBe(appPath("/auth"));
+  await waitFor(() => expect(window.location.pathname).toBe(appPath("/auth")));
 });

@@ -59,6 +59,11 @@ export function ActiveSessions() {
             !(query.queryKey.length === 1 && query.queryKey[0] === "me"),
         });
         queryClient.setQueryData(["me"], null);
+        // Yield once so TanStack Query flushes its setTimeout(0) subscriber
+        // notification before /auth renders and checks useAuth().user.
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 0);
+        });
         navigate("/auth", { replace: true });
         return;
       }
