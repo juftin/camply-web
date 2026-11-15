@@ -22,7 +22,7 @@ function Auth0Content() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { loginWithRedirect } = useAuth0();
-  const { isReady, user, signupEnabled } = useAuth();
+  const { isReady, user, signupEnabled, error } = useAuth();
   const isSignUp = signupEnabled && searchParams.get("mode") === "signup";
   const returnTo = authReturnTo(searchParams.get("returnTo"));
 
@@ -82,6 +82,14 @@ function Auth0Content() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {error && (
+                <p
+                  role="alert"
+                  className="text-sm text-destructive text-center"
+                >
+                  {error}
+                </p>
+              )}
               <Button
                 className="w-full"
                 onClick={isSignUp ? handleSignUp : handleLogin}

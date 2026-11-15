@@ -124,6 +124,32 @@ The scanner replaces the latest snapshot, including these attributes, after ever
 
 User-facing results and counts exclude nights before the current UTC date and outside the target's check-in/check-out interval before applying minimum-stay rules. The worker applies the same window before snapshot replacement and new-opening detection, so notifications cannot qualify using expired nights. Read-time filtering also expires past availability when a scan is paused or no worker is running. A successful empty provider response clears the snapshot. Failed checks preserve the previous snapshot and its last-successful-check timestamp; snapshot age alone does not establish that a site is unavailable.
 
+### 10. `access_requests` Table
+
+Stores public invitation requests and administrator review metadata.
+
+- `id`: `UUID` (Primary Key)
+- `email`: `String(255)` (Unique Index, normalized to stripped lowercase on write)
+- `name`: `String(255) | null` (Optional requester name supplied with the request)
+- `status`: `String(20)` (`pending`, `approved`, or `rejected`)
+- `created_at`: `Timestamp`
+- `updated_at`: `Timestamp`
+- `reviewed_at`: `Timestamp | null` (UTC timestamp of the last approval or rejection)
+- `reviewed_by_id`: `UUID | null` (Foreign Key -> `users.id`, `ON DELETE SET NULL`)
+- `user_id`: `UUID | null` (Foreign Key -> `users.id`, `ON DELETE SET NULL`; matched account once one exists)
+
+### 11. `user_sessions` Table
+
+Stores server-side state for issued password-session cookies so individual sessions can be listed and revoked before cookie expiration.
+
+- `id`: `UUID` (Primary Key, stored as the JWT `jti` claim)
+- `user_id`: `UUID` (Foreign Key -> `users.id`, `ON DELETE CASCADE`, Indexed)
+- `user_agent`: `String(512) | null` (Truncated `User-Agent` header captured on login)
+- `ip_address`: `String(64) | null` (Client IP address or first `X-Forwarded-For` hop)
+- `created_at`: `Timestamp` (UTC creation timestamp)
+- `expires_at`: `Timestamp` (Indexed UTC expiration timestamp matching cookie lifetime)
+- `revoked_at`: `Timestamp | null` (UTC revocation timestamp; `null` while active)
+
 ---
 
 ## 🔄 Reconciled Implementation Details

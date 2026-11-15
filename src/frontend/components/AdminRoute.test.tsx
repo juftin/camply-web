@@ -11,13 +11,13 @@ vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => mockAuthState,
 }));
 
-function renderAdminRoute() {
+function renderAdminRoute(initialEntry = "/admin") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <AdminRoute>
           <div data-testid="admin-content">Admin Protected Content</div>
         </AdminRoute>
@@ -149,5 +149,62 @@ describe("AdminRoute", () => {
     renderAdminRoute();
     expect(screen.getByText("Password Change Required")).toBeInTheDocument();
     expect(screen.queryByTestId("admin-content")).not.toBeInTheDocument();
+  });
+
+  it("renders Sign In link on auth error when autoLogin is false", () => {
+    mockAuthState = {
+      user: null,
+      isLoading: false,
+      error: "Sign in required",
+      isInvited: false,
+      isAdmin: false,
+      isScanningEnabled: true,
+      isReady: true,
+      refresh: vi.fn(),
+      updatePushoverToken: vi.fn(),
+      signOut: vi.fn(),
+      login: vi.fn(),
+      authMode: "session",
+      inviteOnly: false,
+      autoLogin: false,
+      signupEnabled: false,
+      accountPath: "/auth",
+    };
+
+    renderAdminRoute("/admin/users?page=2");
+    expect(screen.getByRole("alert")).toHaveTextContent("Sign in required");
+    expect(screen.getByRole("link", { name: "Sign In" })).toHaveAttribute(
+      "href",
+      "/auth?returnTo=%2Fadmin%2Fusers%3Fpage%3D2",
+    );
+  });
+
+  it("does not render Sign In link on auth error when autoLogin is true", () => {
+    mockAuthState = {
+      user: null,
+      isLoading: false,
+      error: "Unable to load account",
+      isInvited: false,
+      isAdmin: false,
+      isScanningEnabled: true,
+      isReady: true,
+      refresh: vi.fn(),
+      updatePushoverToken: vi.fn(),
+      signOut: vi.fn(),
+      login: vi.fn(),
+      authMode: "none",
+      inviteOnly: false,
+      autoLogin: true,
+      signupEnabled: false,
+      accountPath: "/dashboard",
+    };
+
+    renderAdminRoute();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Unable to load account",
+    );
+    expect(
+      screen.queryByRole("link", { name: "Sign In" }),
+    ).not.toBeInTheDocument();
   });
 });

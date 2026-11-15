@@ -83,7 +83,7 @@ PyPI publication remains separate work.
 **Goal**: Enable secure, multi-user management of scans.
 
 - [x] **Auth0**: Implement login/signup, API audience configuration, and optional invite-only enforcement.
-- [ ] **Invitations**: Implement approval/revocation, verified identity matching, and notification delivery.
+- [x] **Invitations**: Implement approval/revocation (`/admin/invitations` and user `is_invited` toggle), verified Auth0 identity matching, admin ntfy/Pushover alerts, and in-app `/invite-only` status updates (zero-email delivery).
 - [ ] **Scan Management**: Build a dashboard to create, pause, and delete user-specific scans.
 - [x] **Frontend Refactor**: Update `package.json` scripts and dependency management with pnpm, Oxlint, Oxfmt, Vite 8, Vitest 5, and native TypeScript 7.
 - [ ] **Dockerization**: Update `docker-compose.yaml` and `Dockerfile` for optimized frontend builds.
@@ -128,8 +128,8 @@ PyPI publication remains separate work.
 4. [x] **API Endpoints**: FastAPI scan/search/me CRUD endpoints.
 5. [x] **Dashboard UI**: Scan management dashboard with creation, toggling, and deletion.
 6. [x] **Auth0 Integration**: Wire up JWT validation, API audience, and profile pages.
-7. [ ] **Invitation Workflow**: Implement approval/revocation and notification delivery.
-8. [ ] **Provider Parity**: Port remaining providers (usedirect, xanterra)."}]}
+7. [x] **Invitation Workflow**: Implement approval/revocation, verified identity matching, admin alerts, and in-app status UI.
+8. [ ] **Provider Parity**: Port remaining providers (usedirect, xanterra).
 
 ## Standalone runtime delivery
 

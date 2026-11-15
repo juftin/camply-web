@@ -15,7 +15,10 @@ import { formatDisplayDate } from "@/lib/utils";
 
 let scanningEnabled = true;
 vi.mock("@/hooks/useAuth", () => ({
-  useAuth: () => ({ user: { scanning_enabled: scanningEnabled } }),
+  useAuth: () => ({
+    isReady: true,
+    user: { scanning_enabled: scanningEnabled },
+  }),
 }));
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),

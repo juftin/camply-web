@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { InviteOnly } from "@/pages/InviteOnly";
 import { ChangePasswordRequired } from "@/components/ChangePasswordRequired";
@@ -11,7 +12,8 @@ export function ProtectedRoute({
   children: ReactNode;
   requireInvite?: boolean;
 }) {
-  const { user, isReady, isLoading, error, inviteOnly, isInvited } = useAuth();
+  const { user, isReady, isLoading, error, inviteOnly, isInvited, autoLogin } =
+    useAuth();
   const location = useLocation();
   if (isLoading || !isReady) {
     return (
@@ -22,8 +24,17 @@ export function ProtectedRoute({
   }
   if (error) {
     return (
-      <div role="alert" className="p-8 text-center">
-        {error}
+      <div role="alert" className="p-8 text-center space-y-4">
+        <p>{error}</p>
+        {!user && !autoLogin && (
+          <Button asChild variant="outline">
+            <Link
+              to={`/auth?returnTo=${encodeURIComponent(location.pathname + location.search + location.hash)}`}
+            >
+              Sign In
+            </Link>
+          </Button>
+        )}
       </div>
     );
   }

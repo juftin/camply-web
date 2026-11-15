@@ -188,3 +188,40 @@ export function formatRelativeTime(iso: string): string {
   if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
   return `${Math.floor(diffSec / 86400)}d ago`;
 }
+
+function detectBrowser(userAgent: string): string | null {
+  if (/Edg(?:A|iOS)?\//i.test(userAgent)) return "Microsoft Edge";
+  if (/OPR\/|Opera/i.test(userAgent)) return "Opera";
+  if (/Firefox\/|FxiOS\//i.test(userAgent)) return "Firefox";
+  if (/Chrome\/|CriOS\//i.test(userAgent)) return "Chrome";
+  if (/Safari\//i.test(userAgent)) return "Safari";
+  if (/curl\//i.test(userAgent)) return "curl";
+  if (/httpx/i.test(userAgent)) return "httpx";
+  return null;
+}
+
+function detectPlatform(userAgent: string): string | null {
+  if (/iPhone/i.test(userAgent)) return "iPhone";
+  if (/iPad/i.test(userAgent)) return "iPad";
+  if (/Android/i.test(userAgent)) return "Android";
+  if (/Windows/i.test(userAgent)) return "Windows";
+  if (/Macintosh|Mac OS X/i.test(userAgent)) return "macOS";
+  if (/Linux|X11/i.test(userAgent)) return "Linux";
+  return null;
+}
+
+/** Summarize a raw HTTP User-Agent string into a concise browser/platform label. */
+export function formatSessionDevice(
+  userAgent: string | null | undefined,
+): string {
+  const trimmed = userAgent?.trim();
+  if (!trimmed) return "Unknown device";
+
+  const browser = detectBrowser(trimmed);
+  const platform = detectPlatform(trimmed);
+
+  if (browser && platform) return `${browser} on ${platform}`;
+  if (browser) return browser;
+  if (platform) return platform;
+  return trimmed.length > 60 ? `${trimmed.slice(0, 57)}...` : trimmed;
+}
