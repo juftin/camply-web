@@ -160,6 +160,10 @@ class ScanResultItem(BaseModel):
 
 User scan results and `found_count` apply the saved site preferences and minimum consecutive stay. Dates represent available nights in qualifying blocks; check-out is the day after the last night. Booking links are derived from the provider's campground URL without making a provider request. Legacy snapshots have an empty name and unknown attributes until refreshed. Admin shared-target views remain unfiltered.
 
+Scan create/PATCH accept `allowed_weekdays`, a nonempty list of strict integers from 0 (Monday) to 6 (Sunday), normalized by sorting and removing duplicates. Omitted creation values allow all seven; omitted PATCH values preserve the saved preference. Explicit all-seven selection resets to unrestricted, while null, empty lists, booleans, strings, fractions and out-of-range values are invalid. List/detail/create/update responses expose all seven for unrestricted scans, including existing rows. The field belongs to each subscription; shared target identity and duplicate subscription rules stay unchanged.
+
+Creation and edits to dates, nights or minimum stay validate that the merged criteria can contain a qualifying consecutive stay in the remaining date range, before mutation. Impossible combinations return 422 with guidance to change dates, selected nights or length. Provider availability is not part of this validation. Reads, unrelated edits and status-only updates remain possible after expiration. Results and counts exclude disallowed occupied nights before consecutive grouping; checkout itself need not be a selected weekday.
+
 ---
 
 ## 🔄 Client Generation Workflow

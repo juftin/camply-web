@@ -23,6 +23,7 @@ import { useCreateScan, useUpdateScan } from "@/hooks/useScans";
 import { useAuth } from "@/hooks/useAuth";
 import { getApiErrorMessage, searchCampgrounds } from "@/lib/api";
 import type { Campground, ScanResponse, SearchResult } from "@/lib/structs";
+import { ALL_WEEKDAYS, WEEKDAY_NAMES, hasQualifyingStay } from "@/lib/weekdays";
 import {
   addDays,
   daysBetween,
@@ -41,6 +42,9 @@ const scanFormSchema = z
     min_stay_length: z.coerce.number().int().min(1).default(1),
     require_electric: z.boolean().default(false),
     preferred_types: z.array(z.string()).default([]),
+    allowed_weekdays: z
+      .array(z.number().int().min(0).max(6))
+      .min(1, "Select at least one night."),
   })
   .refine(
     (data) => {
@@ -50,6 +54,29 @@ const scanFormSchema = z
     {
       message: "Check-out must be after check-in",
       path: ["end_date"],
+    },
+  )
+  .refine(
+    (data) => {
+      if (
+        !data.start_date ||
+        !data.end_date ||
+        data.end_date <= data.start_date ||
+        !data.allowed_weekdays.length ||
+        data.min_stay_length < 1
+      )
+        return true;
+      return hasQualifyingStay(
+        data.start_date,
+        data.end_date,
+        data.allowed_weekdays,
+        data.min_stay_length,
+      );
+    },
+    {
+      message:
+        "The remaining dates and selected nights cannot contain the requested consecutive stay. Extend the dates, select more nights, or reduce the stay length.",
+      path: ["allowed_weekdays"],
     },
   );
 
@@ -124,6 +151,7 @@ export function ScanForm({
     min_stay_length: scan?.min_stay_length ?? 1,
     require_electric: scan?.require_electric ?? false,
     preferred_types: scan?.preferred_types ?? [],
+    allowed_weekdays: scan?.allowed_weekdays ?? ALL_WEEKDAYS,
   };
   const {
     register,
@@ -147,6 +175,7 @@ export function ScanForm({
   const minStayLength = watch("min_stay_length") ?? 1;
   const preferredTypes = watch("preferred_types");
   const requireElectric = watch("require_electric");
+  const allowedWeekdays = watch("allowed_weekdays") ?? ALL_WEEKDAYS;
 
   const todayStr = useMemo(() => getTodayString(), []);
   const minEndDate = useMemo(() => {
@@ -251,6 +280,7 @@ export function ScanForm({
         min_stay_length: Number(data.min_stay_length),
         preferred_types: data.preferred_types,
         require_electric: data.require_electric,
+        allowed_weekdays: data.allowed_weekdays,
       };
       if (scan) {
         await updateScan.mutateAsync({ scanId: scan.id, payload });
@@ -291,7 +321,7 @@ export function ScanForm({
       <DialogTrigger asChild>
         {trigger ?? <Button>{scan ? "Edit Scan" : "New Scan"}</Button>}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{scan ? "Edit Scan" : "Create a New Scan"}</DialogTitle>
           <DialogDescription>
@@ -453,6 +483,74 @@ export function ScanForm({
               </div>
             )}
           </div>
+
+          <fieldset
+            className="space-y-2"
+            aria-describedby="night-selection-help"
+          >
+            <legend className="text-sm font-medium">Nights of the week</legend>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setValue("allowed_weekdays", [4, 5], { shouldValidate: true })
+                }
+              >
+                Weekends
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setValue("allowed_weekdays", [...ALL_WEEKDAYS], {
+                    shouldValidate: true,
+                  })
+                }
+              >
+                Any night
+              </Button>
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {WEEKDAY_NAMES.map((name, day) => (
+                <Button
+                  key={name}
+                  type="button"
+                  variant={
+                    allowedWeekdays.includes(day) ? "default" : "outline"
+                  }
+                  className="min-h-11 px-0 text-xs"
+                  aria-label={name}
+                  aria-pressed={allowedWeekdays.includes(day)}
+                  onClick={() =>
+                    setValue(
+                      "allowed_weekdays",
+                      allowedWeekdays.includes(day)
+                        ? allowedWeekdays.filter((value) => value !== day)
+                        : [...allowedWeekdays, day].sort((a, b) => a - b),
+                      { shouldValidate: true },
+                    )
+                  }
+                >
+                  {name.slice(0, 3)}
+                </Button>
+              ))}
+            </div>
+            <p
+              id="night-selection-help"
+              className="text-xs text-muted-foreground"
+            >
+              Choose the nights you will stay. Friday and Saturday nights check
+              out Sunday. Set a two-night minimum for a full weekend.
+            </p>
+            {errors.allowed_weekdays && (
+              <p role="alert" className="text-xs text-destructive">
+                {errors.allowed_weekdays.message}
+              </p>
+            )}
+          </fieldset>
 
           {/* ---- Min stay ---- */}
           <div className="space-y-1">

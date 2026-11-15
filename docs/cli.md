@@ -72,6 +72,30 @@ site. A four-night opening yields two overlapping three-night stays with
 adds Friday and Saturday to explicitly selected days. A requested stay that cannot
 fit the selected dates and days fails before checking availability.
 
+To look for any full weekend during a summer date range, use one search:
+
+```bash
+camply campsites --campground 232450 \
+  --start-date 2027-06-01 --end-date 2027-09-01 \
+  --weekends --nights 2
+```
+
+In the Web UI, choose the same campground and dates, select **Weekends** under
+**Nights of the week**, and set the minimum stay to two nights. Both searches
+consider Friday and Saturday occupied nights, with Sunday checkout. Selecting
+weekends alone permits a single Friday or Saturday night when the stay length is
+one. Add `--day Sunday` in the CLI, or select Sunday in the web form, to allow
+Sunday night as well. Repeated `--day` options allow any other combination.
+
+Weekday restrictions apply to every occupied night, not just check-in. Excluded
+nights break consecutive stays; a Friday-only selection cannot combine two
+Fridays a week apart. The checkout weekday does not need to be selected. Calendar
+weekdays follow the booking dates without conversion to your browser's timezone.
+The CLI displays exact-length stays; the web displays available blocks meeting
+the minimum length. Web scans save these preferences and let you edit them later;
+**Any night** restores unrestricted matching. Leaving out CLI day/weekend options
+also allows every night.
+
 Results appear on stdout; warnings, errors and debug diagnostics appear on stderr.
 Availability is a live observation and can change before you complete a booking.
 

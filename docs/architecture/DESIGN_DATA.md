@@ -106,6 +106,7 @@ Stores individual site metadata. Populated during scans or full metadata syncs.
   - `min_stay_length`: `Integer`
   - `preferred_types`: `Array[String]`
   - `require_electric`: `Boolean`
+  - `allowed_weekdays`: Nullable `JSON` integer array, Monday=0 through Sunday=6. Null permits all nights; restricted values are sorted and unique. Existing rows remain unrestricted. This is a subscription preference and does not participate in shared target identity or alter cached provider observations.
 
 ### 9. `scan_results` Table (The Cache - New)
 

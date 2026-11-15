@@ -78,8 +78,8 @@ def _create_scan(
     payload = {
         "provider_id": 1,
         "campground_id": cg_id,
-        "start_date": "2026-07-01",
-        "end_date": "2026-07-05",
+        "start_date": "2027-07-01",
+        "end_date": "2027-07-05",
         "min_stay_length": 1,
         "preferred_types": [],
         "require_electric": False,
@@ -111,8 +111,8 @@ class TestCreateScan:
         )
 
         assert data["campground_name"] == "Lower Pines"
-        assert data["start_date"] == "2026-07-01"
-        assert data["end_date"] == "2026-07-05"
+        assert data["start_date"] == "2027-07-01"
+        assert data["end_date"] == "2027-07-05"
         assert data["min_stay_length"] == 2
         assert data["preferred_types"] == ["TENT"]
         assert data["require_electric"] is True
@@ -132,8 +132,8 @@ class TestCreateScan:
             json={
                 "provider_id": 1,
                 "campground_id": cg_id,
-                "start_date": "2026-07-01",
-                "end_date": "2026-07-05",
+                "start_date": "2027-07-01",
+                "end_date": "2027-07-05",
             },
         )
         assert resp2.status_code == 409, resp2.text
@@ -145,8 +145,8 @@ class TestCreateScan:
             json={
                 "provider_id": 1,
                 "campground_id": "not-a-real-cg",
-                "start_date": "2026-07-01",
-                "end_date": "2026-07-05",
+                "start_date": "2027-07-01",
+                "end_date": "2027-07-05",
             },
         )
         assert response.status_code == 404, response.text

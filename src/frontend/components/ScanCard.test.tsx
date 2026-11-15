@@ -245,3 +245,22 @@ describe("ScanCard", () => {
     );
   });
 });
+
+it("shows named saved nights and the unrestricted fallback on cards", () => {
+  const { rerender } = renderWithRouter(
+    <ScanCard
+      scan={{ ...baseScan, allowed_weekdays: [4, 5] }}
+      onToggleActive={vi.fn()}
+      onDelete={vi.fn()}
+    />,
+  );
+  expect(screen.getByText("Friday, Saturday")).toBeInTheDocument();
+  rerender(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter>
+        <ScanCard scan={baseScan} onToggleActive={vi.fn()} onDelete={vi.fn()} />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  expect(screen.getByText("Any night")).toBeInTheDocument();
+});

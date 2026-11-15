@@ -1,5 +1,6 @@
 """Shared async notification lookup and delivery, independent of task transports."""
 
+import datetime as dt
 import uuid as uuid_mod
 from collections.abc import Callable
 from typing import Optional
@@ -8,17 +9,18 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from camply.db.models import User, UserScan
+from camply.db.models import UniqueTarget, User, UserScan
 from camply.db.notification_config import ntfy_config as ntfy_defaults
 from camply.worker.config import worker_config
 from camply.worker.notifications.base import NotificationDTO
 from camply.worker.notifications.ntfy import NtfyProvider
 from camply.worker.notifications.pushover import PushoverProvider
+from camply.worker.outbox import current_payload
 
 logger = structlog.getLogger(__name__)
 
 
-async def send_notification(  # noqa: C901
+async def send_notification(  # noqa: C901, PLR0912
     user_id: str,
     notification: dict,
     scan_id: Optional[str] = None,
@@ -50,6 +52,7 @@ async def send_notification(  # noqa: C901
             )
             return {"status": "skipped", "reason": "user_suspended"}
 
+        scan = None
         if scan_id is not None:
             scan_uuid = uuid_mod.UUID(scan_id)
             scan_stmt = select(UserScan).where(UserScan.id == scan_uuid)
@@ -81,16 +84,25 @@ async def send_notification(  # noqa: C901
 
         pushover_token = user.pushover_token
 
-    # Reconstruct NotificationDTO from dict
-    try:
-        payload = NotificationDTO.model_validate(notification)
-    except Exception as exc:
-        logger.error(
-            "Invalid notification DTO",
-            user_id=str(user_id),
-            error=str(exc),
-        )
-        return {"status": "error", "reason": str(exc)}
+        try:
+            payload = NotificationDTO.model_validate(notification)
+            if scan is not None:
+                target = await session.get(UniqueTarget, scan.target_id)
+                if target is None:
+                    return {"status": "skipped", "reason": "target_not_found"}
+                if payload.metadata.get("target_id", str(target.id)) != str(target.id):
+                    return {"status": "skipped", "reason": "target_changed"}
+                current = current_payload(
+                    payload, scan, target, dt.datetime.now(dt.timezone.utc).date()
+                )
+                if current is None:
+                    return {"status": "skipped", "reason": "no_matching_openings"}
+                payload = current
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.error(
+                "Invalid notification DTO", user_id=str(user_id), error=str(exc)
+            )
+            return {"status": "error", "reason": "invalid_payload"}
 
     provider = NtfyProvider() if channel == "ntfy" else provider_factory()
     try:
