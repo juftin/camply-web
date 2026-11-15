@@ -26,10 +26,13 @@ vi.mock("@/components/MapComponent", () => ({
   }: {
     latitude: number;
     longitude: number;
-    additionalLocations: unknown[];
+    additionalLocations: { lat: number; lng: number }[];
   }) => (
     <div data-testid="map">
       {latitude}/{longitude}/{additionalLocations.length}
+      <span data-testid="related-coordinates">
+        {additionalLocations.map((p) => `${p.lat}/${p.lng}`).join(",")}
+      </span>
     </div>
   ),
 }));
@@ -41,8 +44,8 @@ const campground = {
   description: null,
   state: null,
   country: null,
-  latitude: 0,
-  longitude: 0,
+  latitude: 37,
+  longitude: -119,
   enabled: true,
   reservable: true,
   url: "",
@@ -136,41 +139,92 @@ describe("Campground location coordinates", () => {
     expect(screen.queryByRole("heading", { name: "Photos" })).toBeNull();
   });
 
-  it("renders zero primary and related coordinates", async () => {
-    vi.mocked(api.getProvider).mockResolvedValue({
-      id: 2,
-      name: "Fixture",
-      description: null,
-      url: "",
-      enabled: true,
-    });
-    vi.mocked(api.getCampground).mockResolvedValue(campground);
-    vi.mocked(api.getRecreationArea).mockResolvedValue(area);
-    vi.mocked(api.getCampgrounds).mockResolvedValue([
-      { ...campground, id: "related" },
-    ]);
-    open();
-    expect(await screen.findByTestId("map")).toHaveTextContent("0/0/1");
-  });
-  it("keeps detail content when primary coordinates are missing", async () => {
-    vi.mocked(api.getProvider).mockResolvedValue({
-      id: 2,
-      name: "Fixture",
-      description: null,
-      url: "",
-      enabled: true,
-    });
-    vi.mocked(api.getCampground).mockResolvedValue({
-      ...campground,
-      latitude: null,
-    });
-    vi.mocked(api.getRecreationArea).mockResolvedValue({
-      ...area,
-      latitude: null,
-    });
-    vi.mocked(api.getCampgrounds).mockResolvedValue([]);
-    open();
-    await screen.findByRole("heading", { name: "Synthetic zero" });
-    expect(screen.queryByTestId("map")).not.toBeInTheDocument();
-  });
+  it.each([
+    { latitude: 0, longitude: 10 },
+    { latitude: 10, longitude: 0 },
+  ])(
+    "preserves valid coordinates $latitude/$longitude and inherits parent coordinates for related pins",
+    async (coordinates) => {
+      vi.mocked(api.getProvider).mockResolvedValue({
+        id: 2,
+        name: "Fixture",
+        description: null,
+        url: "",
+        enabled: true,
+      });
+      vi.mocked(api.getCampground).mockResolvedValue({
+        ...campground,
+        ...coordinates,
+      });
+      vi.mocked(api.getRecreationArea).mockResolvedValue(area);
+      vi.mocked(api.getCampgrounds).mockResolvedValue([
+        { ...campground, id: "placeholder", latitude: 0, longitude: 0 },
+        { ...campground, id: "equator", latitude: 0, longitude: 10 },
+        { ...campground, id: "meridian", latitude: 10, longitude: 0 },
+        { ...campground, id: "missing", latitude: null },
+        campground,
+      ]);
+      open();
+      expect(await screen.findByTestId("map")).toHaveTextContent(
+        `${coordinates.latitude}/${coordinates.longitude}/4`,
+      );
+      expect(screen.getByTestId("related-coordinates")).toHaveTextContent(
+        "37/-119,0/10,10/0,37/-119",
+      );
+    },
+  );
+  it.each([
+    { latitude: 0, longitude: 0 },
+    { latitude: null, longitude: -118 },
+    { latitude: 38, longitude: null },
+    { latitude: null, longitude: null },
+    { latitude: 91, longitude: 10 },
+  ])(
+    "inherits its parent's complete coordinate pair for $latitude/$longitude",
+    async (coordinates) => {
+      vi.mocked(api.getProvider).mockResolvedValue({
+        id: 2,
+        name: "Fixture",
+        description: null,
+        url: "",
+        enabled: true,
+      });
+      vi.mocked(api.getCampground).mockResolvedValue({
+        ...campground,
+        ...coordinates,
+      });
+      vi.mocked(api.getRecreationArea).mockResolvedValue(area);
+      vi.mocked(api.getCampgrounds).mockResolvedValue([]);
+      open();
+      expect(await screen.findByTestId("map")).toHaveTextContent("37/-119/0");
+    },
+  );
+  it.each([
+    { latitude: 0, longitude: 0 },
+    { latitude: null, longitude: -119 },
+    { latitude: null, longitude: null, recreation_area_id: null },
+  ])(
+    "keeps detail content without a map when neither campground nor parent has usable coordinates $latitude/$longitude",
+    async (coordinates) => {
+      vi.mocked(api.getProvider).mockResolvedValue({
+        id: 2,
+        name: "Fixture",
+        description: null,
+        url: "",
+        enabled: true,
+      });
+      vi.mocked(api.getCampground).mockResolvedValue({
+        ...campground,
+        ...coordinates,
+      });
+      vi.mocked(api.getRecreationArea).mockResolvedValue({
+        ...area,
+        ...coordinates,
+      });
+      vi.mocked(api.getCampgrounds).mockResolvedValue([]);
+      open();
+      await screen.findByRole("heading", { name: "Synthetic zero" });
+      expect(screen.queryByTestId("map")).not.toBeInTheDocument();
+    },
+  );
 });

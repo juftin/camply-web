@@ -1,4 +1,9 @@
-import type { Campground, SearchResult, MapSearchResult } from "./structs";
+import type {
+  Campground,
+  RecreationArea,
+  SearchResult,
+  MapSearchResult,
+} from "./structs";
 
 export interface GeoBounds {
   west: number;
@@ -41,6 +46,22 @@ export const hasMappableCoordinates = (
   item != null &&
   validCoordinates(item.latitude, item.longitude) &&
   !(item.latitude === 0 && item.longitude === 0);
+
+/** Use the parent's complete coordinate pair when a campground cannot be mapped. */
+export const withRecreationAreaCoordinates = (
+  campground: Campground,
+  recreationArea?: RecreationArea | null,
+): Campground =>
+  !hasMappableCoordinates(campground) &&
+  recreationArea &&
+  hasMappableCoordinates(recreationArea)
+    ? {
+        ...campground,
+        latitude: recreationArea.latitude,
+        longitude: recreationArea.longitude,
+      }
+    : campground;
+
 export const normalizeLongitude = (lng: number): number =>
   ((((lng + 180) % 360) + 360) % 360) - 180;
 export const displayLatitude = (lat: number): number =>
