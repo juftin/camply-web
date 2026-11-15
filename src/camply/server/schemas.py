@@ -73,6 +73,7 @@ class MeResponse(BaseModel):
     )
     ntfy_access_token: str | None = Field(default=None, repr=False)
     must_change_password: bool = False
+    invitation_status: Optional[Literal["pending", "approved", "rejected"]] = None
 
 
 class MeUpdateRequest(BaseModel):

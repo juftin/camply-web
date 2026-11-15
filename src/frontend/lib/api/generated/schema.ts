@@ -1803,6 +1803,8 @@ export interface components {
              * @default false
              */
             must_change_password: boolean;
+            /** Invitation Status */
+            invitation_status?: ("pending" | "approved" | "rejected") | null;
         };
         /**
          * MeUpdateRequest

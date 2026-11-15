@@ -33,7 +33,8 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from camply.db.models import User
+from camply.db.models import AccessRequest, User
+from camply.db.models.access_request import AccessRequestStatus
 from camply.server import auth
 from camply.server.config import AuthMode, backend_config
 from tests.server.conftest import maker
@@ -706,6 +707,75 @@ def _fetch_user(*, auth0_id: str) -> User | None:
             return await session.scalar(select(User).where(User.auth0_id == auth0_id))
 
     return asyncio.run(query())
+
+
+def _fetch_access_request(*, email: str) -> AccessRequest | None:
+    """
+    Return the persisted access request for ``email`` (or ``None``).
+
+    Parameters
+    ----------
+    email : str
+        Normalized or mixed-case email address to look up.
+
+    Returns
+    -------
+    AccessRequest or None
+        Matching access request record, if present.
+    """
+
+    async def query() -> AccessRequest | None:
+        async with maker() as session:
+            return await session.scalar(
+                select(AccessRequest).where(
+                    AccessRequest.email == email.strip().lower()
+                )
+            )
+
+    return asyncio.run(query())
+
+
+def _create_access_request(
+    *,
+    email: str,
+    status: str = AccessRequestStatus.PENDING.value,
+    name: str | None = None,
+    user_id: uuid.UUID | None = None,
+) -> AccessRequest:
+    """
+    Persist and return an ``AccessRequest`` record for testing.
+
+    Parameters
+    ----------
+    email : str
+        Requester email address.
+    status : str
+        Initial request status.
+    name : str or None
+        Optional requester name.
+    user_id : uuid.UUID or None
+        Optional pre-linked user identifier.
+
+    Returns
+    -------
+    AccessRequest
+        The persisted access request.
+    """
+
+    async def insert() -> AccessRequest:
+        async with maker() as session:
+            access_request = AccessRequest(
+                email=email,
+                status=status,
+                name=name,
+                user_id=user_id,
+            )
+            session.add(access_request)
+            await session.commit()
+            await session.refresh(access_request)
+            return access_request
+
+    return asyncio.run(insert())
 
 
 def _invite(*, auth0_id: str) -> None:
@@ -1394,3 +1464,306 @@ class TestSignedTokenApi:
         _, headers = signed_token()
         created = test_client.post(API_SCANS, json=_scan_payload(), headers=headers)
         assert created.status_code == 201, created.text
+
+    def test_verified_signin_matching_approved_request_invites_and_links_user(
+        self,
+        test_client: TestClient,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+    ) -> None:
+        """
+        Verified sign-in matching an approved request sets ``is_invited=True`` and links ``user_id``.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        """
+        email = f"approved-{uuid.uuid4().hex[:8]}@example.test"
+        _create_access_request(email=email, status=AccessRequestStatus.APPROVED.value)
+
+        subject, headers = signed_token(email=email.upper())
+        me_res = test_client.get(API_ME, headers=headers)
+        assert me_res.status_code == 200
+        assert me_res.json()["is_invited"] is True
+        assert me_res.json()["invitation_status"] == "approved"
+
+        patch_res = test_client.patch(
+            API_ME, json={"pushover_token": "tok_approved"}, headers=headers
+        )
+        assert patch_res.status_code == 200
+        assert patch_res.json()["invitation_status"] == "approved"
+
+        user = _fetch_user(auth0_id=subject)
+        assert user is not None
+        assert user.is_invited is True
+        stored_request = _fetch_access_request(email=email)
+        assert stored_request is not None
+        assert stored_request.user_id == user.id
+
+    def test_unverified_email_never_claims_approved_access_request(
+        self,
+        test_client: TestClient,
+        userinfo: UserinfoTransport,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+    ) -> None:
+        """
+        Unverified Auth0 emails are rejected with 403 and never claim an approved request.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        userinfo : UserinfoTransport
+            Mock transport for Auth0 userinfo.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        """
+        email = f"unverified-approved-{uuid.uuid4().hex[:8]}@example.test"
+        _create_access_request(email=email, status=AccessRequestStatus.APPROVED.value)
+
+        subject, headers = signed_token(email=email, email_verified=False)
+        userinfo.default_payload = {"email": email, "email_verified": False}
+        response = test_client.get(API_ME, headers=headers)
+        assert response.status_code == 403
+        assert response.json()["detail"]["error"] == "ERR_VERIFIED_EMAIL_REQUIRED"
+        assert _fetch_user(auth0_id=subject) is None
+
+        stored_request = _fetch_access_request(email=email)
+        assert stored_request is not None
+        assert stored_request.user_id is None
+
+    @pytest.mark.parametrize(
+        "request_status",
+        [AccessRequestStatus.PENDING.value, AccessRequestStatus.REJECTED.value],
+    )
+    def test_verified_signin_matching_pending_or_rejected_links_without_invite(
+        self,
+        test_client: TestClient,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+        request_status: str,
+    ) -> None:
+        """
+        Pending or rejected requests link ``user_id`` on sign-in while keeping ``is_invited=False``.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        request_status : str
+            Pre-existing request status (``pending`` or ``rejected``).
+        """
+        email = f"{request_status}-{uuid.uuid4().hex[:8]}@example.test"
+        _create_access_request(email=email, status=request_status)
+
+        subject, headers = signed_token(email=email)
+        me_res = test_client.get(API_ME, headers=headers)
+        assert me_res.status_code == 200
+        assert me_res.json()["is_invited"] is False
+        assert me_res.json()["invitation_status"] == request_status
+
+        patch_res = test_client.patch(
+            API_ME, json={"pushover_token": "tok_uninvited"}, headers=headers
+        )
+        assert patch_res.status_code == 200
+        assert patch_res.json()["invitation_status"] == request_status
+
+        user = _fetch_user(auth0_id=subject)
+        assert user is not None
+        assert user.is_invited is False
+        stored_request = _fetch_access_request(email=email)
+        assert stored_request is not None
+        assert stored_request.user_id == user.id
+
+    def test_verified_signin_without_request_returns_null_invitation_status(
+        self,
+        test_client: TestClient,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+    ) -> None:
+        """
+        Users with no matching access request receive ``invitation_status=None``.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        """
+        _, headers = signed_token()
+        me_res = test_client.get(API_ME, headers=headers)
+        assert me_res.status_code == 200
+        assert me_res.json()["invitation_status"] is None
+
+        patch_res = test_client.patch(
+            API_ME, json={"pushover_token": "tok_none"}, headers=headers
+        )
+        assert patch_res.status_code == 200
+        assert patch_res.json()["invitation_status"] is None
+
+    def test_verified_email_change_to_unclaimed_approved_request_grants_invite(
+        self,
+        test_client: TestClient,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+        key_one: SyntheticKey,
+    ) -> None:
+        """
+        Changing to a verified email with an unclaimed approved request grants ``is_invited=True``.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        key_one : SyntheticKey
+            Primary synthetic RSA key.
+        """
+        subject, headers_old = signed_token(
+            email=f"before-change-{uuid.uuid4().hex[:8]}@example.test"
+        )
+        first = test_client.get(API_ME, headers=headers_old)
+        assert first.status_code == 200
+        assert first.json()["is_invited"] is False
+
+        approved_email = f"approved-target-{uuid.uuid4().hex[:8]}@example.test"
+        _create_access_request(
+            email=approved_email, status=AccessRequestStatus.APPROVED.value
+        )
+
+        headers_new = _bearer(
+            _sign(
+                key_one,
+                _claims(sub=subject, email=approved_email.upper(), email_verified=True),
+            )
+        )
+        second = test_client.get(API_ME, headers=headers_new)
+        assert second.status_code == 200
+        assert second.json()["email"] == approved_email
+        assert second.json()["is_invited"] is True
+        assert second.json()["invitation_status"] == "approved"
+
+        user = _fetch_user(auth0_id=subject)
+        assert user is not None
+        assert user.is_invited is True
+        stored_request = _fetch_access_request(email=approved_email)
+        assert stored_request is not None
+        assert stored_request.user_id == user.id
+
+    def test_verified_email_change_does_not_override_rejected_request(
+        self,
+        test_client: TestClient,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+        key_one: SyntheticKey,
+    ) -> None:
+        """
+        A user with a rejected request cannot become invited by changing to an approved email.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        key_one : SyntheticKey
+            Primary synthetic RSA key.
+        """
+        rejected_email = f"revoked-user-{uuid.uuid4().hex[:8]}@example.test"
+        _create_access_request(
+            email=rejected_email, status=AccessRequestStatus.REJECTED.value
+        )
+
+        subject, headers_old = signed_token(email=rejected_email)
+        first = test_client.get(API_ME, headers=headers_old)
+        assert first.status_code == 200
+        assert first.json()["is_invited"] is False
+
+        other_approved_email = f"other-approved-{uuid.uuid4().hex[:8]}@example.test"
+        _create_access_request(
+            email=other_approved_email, status=AccessRequestStatus.APPROVED.value
+        )
+
+        headers_new = _bearer(
+            _sign(
+                key_one,
+                _claims(sub=subject, email=other_approved_email, email_verified=True),
+            )
+        )
+        second = test_client.get(API_ME, headers=headers_new)
+        assert second.status_code == 200
+        assert second.json()["email"] == other_approved_email
+        assert second.json()["is_invited"] is False
+
+        persisted_user = _fetch_user(auth0_id=subject)
+        assert persisted_user is not None
+        assert persisted_user.is_invited is False
+        other_request = _fetch_access_request(email=other_approved_email)
+        assert other_request is not None
+        assert other_request.user_id is None
+
+    def test_concurrent_first_login_race_with_approved_request_preserves_winner_invite(
+        self,
+        test_client: TestClient,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """
+        Loser of a concurrent first-login race returns the winner's committed ``is_invited`` state.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        monkeypatch : pytest.MonkeyPatch
+            Pytest monkeypatch fixture.
+        """
+        from sqlalchemy.exc import IntegrityError
+
+        from camply.server.services.users import flush_new_user as real_flush
+
+        email = f"race-approved-{uuid.uuid4().hex[:8]}@example.test"
+        access_request = _create_access_request(
+            email=email, status=AccessRequestStatus.APPROVED.value
+        )
+        subject, headers = signed_token(email=email)
+
+        async def race_flush(session: Any, user: User) -> None:
+            async with maker() as other_session:
+                winner_user = User(
+                    auth0_id=user.auth0_id,
+                    email=user.email,
+                    is_invited=False,
+                    is_admin=False,
+                    scanning_enabled=True,
+                )
+                await real_flush(other_session, winner_user)
+                await auth._match_access_request_on_provision(
+                    session=other_session,
+                    auth0_user=winner_user,
+                    verified_email=email,
+                )
+                await other_session.commit()
+            raise IntegrityError(
+                "duplicate key",
+                params={},
+                orig=Exception("duplicate key"),
+            )
+
+        monkeypatch.setattr(auth, "flush_new_user", race_flush)
+        res = test_client.get(API_ME, headers=headers)
+        assert res.status_code == 200
+        assert res.json()["is_invited"] is True
+        assert res.json()["invitation_status"] == "approved"
+
+        persisted = _fetch_user(auth0_id=subject)
+        assert persisted is not None
+        assert persisted.is_invited is True
+        stored_request = _fetch_access_request(email=email)
+        assert stored_request is not None
+        assert stored_request.id == access_request.id
+        assert stored_request.user_id == persisted.id

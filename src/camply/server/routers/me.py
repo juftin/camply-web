@@ -5,14 +5,18 @@ User profile router — ``/api/me`` endpoints.
 from __future__ import annotations
 
 import datetime as dt
-from typing import Any
+import uuid
+from typing import Any, Literal, cast
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from camply.db.models import AccessRequest
 from camply.db.models import User as UserDB
+from camply.db.models.access_request import AccessRequestStatus
 from camply.db.notification_config import ntfy_config
 from camply.notifications.base import NotificationDTO
 from camply.notifications.ntfy import NtfyProvider
@@ -29,6 +33,98 @@ from camply.server.schemas import MeResponse, MeUpdateRequest, NotificationTestR
 logger = structlog.getLogger(__name__)
 
 me_router = APIRouter(tags=["me"])
+
+InvitationStatus = Literal["pending", "approved", "rejected"]
+# Allowed invitation status values exposed on user profiles.
+
+_VALID_INVITATION_STATUSES: frozenset[str] = frozenset(
+    {
+        AccessRequestStatus.PENDING.value,
+        AccessRequestStatus.APPROVED.value,
+        AccessRequestStatus.REJECTED.value,
+    }
+)
+
+
+async def _get_invitation_status(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    email: str,
+) -> InvitationStatus | None:
+    """
+    Return the latest access-request status linked to or matching the user.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        Active database session.
+    user_id : uuid.UUID
+        Authenticated user identifier.
+    email : str
+        Authenticated user email address.
+
+    Returns
+    -------
+    Literal["pending", "approved", "rejected"] or None
+        Most recent matching access-request status, or None if absent.
+    """
+    normalized_email = email.strip().lower()
+    status_value = await session.scalar(
+        select(AccessRequest.status)
+        .where(
+            or_(
+                AccessRequest.user_id == user_id,
+                func.lower(AccessRequest.email) == normalized_email,
+            )
+        )
+        .order_by(AccessRequest.updated_at.desc(), AccessRequest.created_at.desc())
+        .limit(1)
+    )
+    if status_value in _VALID_INVITATION_STATUSES:
+        return cast(InvitationStatus, status_value)
+    return None
+
+
+def _build_me_response(
+    user: CurrentUser | UserDB,
+    invitation_status: InvitationStatus | None,
+) -> MeResponse:
+    """
+    Build a ``MeResponse`` payload from a user record and invitation status.
+
+    Parameters
+    ----------
+    user : CurrentUser or UserDB
+        Authenticated user model or ORM instance.
+    invitation_status : Literal["pending", "approved", "rejected"] or None
+        Latest matching access-request status for the user.
+
+    Returns
+    -------
+    MeResponse
+        Serialized user profile response.
+    """
+    return MeResponse(
+        id=user.id,
+        email=user.email,
+        is_invited=user.is_invited,
+        is_admin=user.is_admin,
+        scanning_enabled=user.scanning_enabled,
+        pushover_token=user.pushover_token,
+        notification_provider=user.notification_provider,
+        ntfy_default_subscription_url=(
+            ntfy_config.subscription_url
+            if ntfy_config.subscription_url != "https://ntfy.sh"
+            or ntfy_config.publish_url
+            else None
+        ),
+        ntfy_topic=user.ntfy_topic,
+        ntfy_server_url=user.ntfy_server_url,
+        ntfy_subscription_url=ntfy_config.subscription_server(user.ntfy_server_url),
+        ntfy_access_token=user.ntfy_access_token,
+        must_change_password=user.must_change_password,
+        invitation_status=invitation_status,
+    )
 
 
 def _profile_updates(
@@ -52,30 +148,17 @@ def _profile_updates(
 
 
 @me_router.get("/me")
-async def get_me(current_user: CurrentUserDep) -> MeResponse:
+async def get_me(
+    current_user: CurrentUserDep,
+    session: SessionDep,
+) -> MeResponse:
     """Return the authenticated user's profile."""
-    return MeResponse(
-        id=current_user.id,
+    invitation_status = await _get_invitation_status(
+        session=session,
+        user_id=current_user.id,
         email=current_user.email,
-        is_invited=current_user.is_invited,
-        is_admin=current_user.is_admin,
-        scanning_enabled=current_user.scanning_enabled,
-        pushover_token=current_user.pushover_token,
-        notification_provider=current_user.notification_provider,
-        ntfy_default_subscription_url=(
-            ntfy_config.subscription_url
-            if ntfy_config.subscription_url != "https://ntfy.sh"
-            or ntfy_config.publish_url
-            else None
-        ),
-        ntfy_topic=current_user.ntfy_topic,
-        ntfy_server_url=current_user.ntfy_server_url,
-        ntfy_subscription_url=ntfy_config.subscription_server(
-            current_user.ntfy_server_url
-        ),
-        ntfy_access_token=current_user.ntfy_access_token,
-        must_change_password=current_user.must_change_password,
     )
+    return _build_me_response(user=current_user, invitation_status=invitation_status)
 
 
 # ---------------------------------------------------------------------------
@@ -122,26 +205,12 @@ async def update_me(
         ) from exc
     await session.refresh(user)
 
-    return MeResponse(
-        id=user.id,
+    invitation_status = await _get_invitation_status(
+        session=session,
+        user_id=user.id,
         email=user.email,
-        is_invited=user.is_invited,
-        is_admin=user.is_admin,
-        scanning_enabled=user.scanning_enabled,
-        pushover_token=user.pushover_token,
-        notification_provider=user.notification_provider,
-        ntfy_default_subscription_url=(
-            ntfy_config.subscription_url
-            if ntfy_config.subscription_url != "https://ntfy.sh"
-            or ntfy_config.publish_url
-            else None
-        ),
-        ntfy_topic=user.ntfy_topic,
-        ntfy_server_url=user.ntfy_server_url,
-        ntfy_subscription_url=ntfy_config.subscription_server(user.ntfy_server_url),
-        ntfy_access_token=user.ntfy_access_token,
-        must_change_password=user.must_change_password,
     )
+    return _build_me_response(user=user, invitation_status=invitation_status)
 
 
 @me_router.post(

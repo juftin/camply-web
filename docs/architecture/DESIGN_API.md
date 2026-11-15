@@ -39,7 +39,7 @@ The owner selects `none`, `session`, or `auth0` with `CAMPLY_AUTH_MODE`, indepen
 - **Duplicate emails & account-linking rules**: camply never automatically merges or links user identities solely because their email addresses match. Explicit proof-of-ownership account linking is out of scope. If an incoming identity presents a verified email already belonging to another account (such as an in-app password session user or a different Auth0 subject), the backend rejects the request with `409 Conflict` (`ERR_EMAIL_CONFLICT`) without modifying either user. Concurrent first-login races on the same `auth0_id` safely resolve to the winning record without 500 errors.
 - **Email change synchronization**: For existing users matched by `auth0_id`, presenting a verified token with a new email address updates `User.email` (case-normalized) if unclaimed by another account. If the new email is already claimed, the request returns 409 `ERR_EMAIL_CONFLICT` without modifying the user. Unverified email changes are ignored and do not sync. Because subscriptions and preferences key on `User.id`, scans, notification settings, and invitation eligibility (`is_invited`) are fully preserved across email changes.
 - **`GET /api/auth-config`**: public configuration returns `auth_mode`, `auth0_domain`, `auth0_client_id`, `auth0_audience`, `auto_login`, `signup_enabled`, and `invite_only`. The React SDK requests the returned audience. Auth0 mode must supply domain, audience, and client ID.
-- **`GET /api/me`**: the profile exposes `is_invited`, `is_admin`, and `scanning_enabled`. The existing database column remains `is_early_access_user` for compatibility with stored data.
+- **`GET /api/me`**: the profile exposes `is_invited`, `invitation_status` (`pending`, `approved`, `rejected`, or `null`), `is_admin`, and `scanning_enabled`. The existing database column remains `is_early_access_user` for compatibility with stored data.
 
 Session cookies include a credential version derived by HMAC from the current salted password hash. Every authenticated session request checks this version against the database, so a password reset or change invalidates earlier cookies without adding a database column or exposing the hash. `POST /api/change-password` refreshes the current browser's cookies and preserves its CSRF token. Legacy cookies without a credential version require sign-in again. Stored bootstrap passwords replace the configured password for authentication; the configured username remains an alias. Session mode honors the stored administrator role, including bootstrap account demotions. Automatic login restores administrator access and ignores password-change flags; Auth0 also ignores these session-only flags.
 
@@ -49,11 +49,13 @@ Session cookies include a credential version derived by HMAC from the current sa
 
 ### 3. Invitation requests and admin review
 
-`POST /api/request-access` stores a pending request with a normalized lowercase email and optional `name`, accepting duplicate emails idempotently. It does not grant access or deliver notifications.
+`POST /api/request-access` stores a pending request with a normalized lowercase email and optional `name`, accepting duplicate emails idempotently. When a new request is persisted (not on duplicate submissions), best-effort background notifications are sent via `ntfy` or `Pushover` to configured administrators (`is_admin=True`, `scanning_enabled=True`, and valid channel credentials). It does not grant access or send email.
+
+On first-time Auth0 provisioning with a verified email, matching `AccessRequest` rows are linked via `user_id`; an `approved` request grants `is_invited=True`, while `pending` or `rejected` requests link `user_id` with `is_invited=False`. Existing uninvited Auth0 users who change to an unclaimed `approved` verified email also receive `is_invited=True`, unless they already have a `rejected` request. Unverified emails are rejected (`403 ERR_VERIFIED_EMAIL_REQUIRED`) and never claim approved requests. `GET /api/me` and `PATCH /api/me` expose `invitation_status` (`pending`, `approved`, `rejected`, or `null`) from the most recently updated matching request.
 
 Administrators review requests via `GET /api/admin/access-requests` (paginated, filterable by `status` and email/name `search`) and `PATCH /api/admin/access-requests/{id}` (`approved` or `rejected`), or toggle `is_invited` directly via `PATCH /api/admin/users/{id}`. Approving a request links any existing user with that lowercased email and sets `is_invited=True`; rejecting a previously approved request revokes `is_invited` for the linked/matching user while blocking self-revocation and bootstrap-admin revocation. All status and invitation changes emit `AdminAuditEvent` records.
 
-**TODO:** Automatically apply approved requests when a verified identity signs in for the first time, add the admin review UI, and deliver invitation notifications.
+**TODO:** Add the admin review UI and requester outcome UI.
 
 ---
 
@@ -71,8 +73,8 @@ Administrators review requests via `GET /api/admin/access-requests` (paginated, 
 
 ### 2. User & Profile (Auth-Required)
 
-- **`GET /api/me`**: Get current user profile, invitation status, administrator role, scanning eligibility, and password change status.
-- **`PATCH /api/me`**: Update user-specific settings (e.g., `pushover_token`). Requires password update first if `must_change_password` is set.
+- **`GET /api/me`**: Get current user profile, invitation eligibility and `invitation_status`, administrator role, scanning eligibility, and password change status.
+- **`PATCH /api/me`**: Update user-specific settings (e.g., `pushover_token`) and return the updated profile including `invitation_status`. Requires password update first if `must_change_password` is set.
 - **`POST /api/change-password`**: Update user password and clear `must_change_password` (session mode).
 
 ### 3. Scan Management (Auth-Required + Optional Invitation)

@@ -27,11 +27,12 @@ from fastapi.security import (
 )
 from jwt import PyJWKClient
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from camply.db.models import User
+from camply.db.models import AccessRequest, User
+from camply.db.models.access_request import AccessRequestStatus
 from camply.server.config import AuthMode, backend_config
 from camply.server.dependencies import SessionDep
 from camply.server.metrics import USERS_CREATED_TOTAL
@@ -474,6 +475,96 @@ def verify_session(request: Request) -> dict:
 # ---------------------------------------------------------------------------
 
 
+async def _match_approved_request_on_email_change(
+    session: AsyncSession,
+    auth0_user: User,
+    previous_email: str,
+    new_verified_email: str,
+) -> None:
+    """
+    Apply an unclaimed approved request on verified email change unless revoked.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        Active database session.
+    auth0_user : User
+        Existing uninvited user whose verified email is updating.
+    previous_email : str
+        Normalized previous email address before the update.
+    new_verified_email : str
+        Normalized new verified email address.
+    """
+    has_rejected_request = await session.scalar(
+        select(AccessRequest.id)
+        .where(
+            AccessRequest.status == AccessRequestStatus.REJECTED.value,
+            or_(
+                AccessRequest.user_id == auth0_user.id,
+                func.lower(AccessRequest.email) == previous_email,
+            ),
+        )
+        .limit(1)
+    )
+    if has_rejected_request is not None:
+        return
+
+    approved_request = (
+        await session.execute(
+            select(AccessRequest).where(
+                func.lower(AccessRequest.email) == new_verified_email.lower(),
+                AccessRequest.user_id.is_(None),
+                AccessRequest.status == AccessRequestStatus.APPROVED.value,
+            )
+        )
+    ).scalar_one_or_none()
+    if approved_request is not None:
+        auth0_user.is_invited = True
+        approved_request.user_id = auth0_user.id
+
+
+async def _match_access_request_on_provision(
+    session: AsyncSession,
+    auth0_user: User,
+    verified_email: str,
+) -> None:
+    """
+    Link a newly provisioned user to any matching access request.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        Active database session after flushing the new user.
+    auth0_user : User
+        Newly flushed user instance with a populated ``id``.
+    verified_email : str
+        Verified email address from Auth0 claims or userinfo.
+    """
+    access_request = (
+        await session.execute(
+            select(AccessRequest).where(
+                func.lower(AccessRequest.email) == verified_email.lower()
+            )
+        )
+    ).scalar_one_or_none()
+    if access_request is None:
+        return
+
+    if access_request.status == AccessRequestStatus.APPROVED.value:
+        if access_request.user_id is None:
+            auth0_user.is_invited = True
+            access_request.user_id = auth0_user.id
+    elif (
+        access_request.status
+        in {
+            AccessRequestStatus.PENDING.value,
+            AccessRequestStatus.REJECTED.value,
+        }
+        and access_request.user_id is None
+    ):
+        access_request.user_id = auth0_user.id
+
+
 async def _sync_existing_auth0_user_email(
     session: AsyncSession,
     auth0_user: User,
@@ -518,7 +609,15 @@ async def _sync_existing_auth0_user_email(
                 "message": "An account with this email address already exists.",
             },
         )
+    previous_email = auth0_user.email.lower()
     auth0_user.email = verified_email
+    if not auth0_user.is_invited:
+        await _match_approved_request_on_email_change(
+            session=session,
+            auth0_user=auth0_user,
+            previous_email=previous_email,
+            new_verified_email=verified_email,
+        )
     try:
         await session.commit()
         await session.refresh(auth0_user)
@@ -592,6 +691,11 @@ async def _provision_auth0_user(
     )
     try:
         await flush_new_user(session, auth0_user)
+        await _match_access_request_on_provision(
+            session=session,
+            auth0_user=auth0_user,
+            verified_email=verified_email,
+        )
         await session.commit()
     except IntegrityError:
         await session.rollback()
