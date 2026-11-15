@@ -47,11 +47,13 @@ Session cookies include a credential version derived by HMAC from the current sa
 
 `CAMPLY_INVITE_ONLY` defaults to `false`. When enabled, every `/api/scans` operation requires the user's `is_invited` flag. Uninvited authenticated callers receive `403` with `ERR_INVITE_REQUIRED`. The frontend gates dashboard and scan detail routes with the invitation request screen. Profiles and public metadata remain accessible. Existing scan ownership checks apply in both configurations.
 
-### 3. Invitation requests (collection only)
+### 3. Invitation requests and admin review
 
-`POST /api/request-access` stores a pending email request and accepts duplicates idempotently. It does not grant access or deliver notifications.
+`POST /api/request-access` stores a pending request with a normalized lowercase email and optional `name`, accepting duplicate emails idempotently. It does not grant access or deliver notifications.
 
-**TODO:** Provide an approval/revocation workflow, verified identity matching, and invitation notification delivery.
+Administrators review requests via `GET /api/admin/access-requests` (paginated, filterable by `status` and email/name `search`) and `PATCH /api/admin/access-requests/{id}` (`approved` or `rejected`), or toggle `is_invited` directly via `PATCH /api/admin/users/{id}`. Approving a request links any existing user with that lowercased email and sets `is_invited=True`; rejecting a previously approved request revokes `is_invited` for the linked/matching user while blocking self-revocation and bootstrap-admin revocation. All status and invitation changes emit `AdminAuditEvent` records.
+
+**TODO:** Automatically apply approved requests when a verified identity signs in for the first time, add the admin review UI, and deliver invitation notifications.
 
 ---
 
@@ -90,7 +92,9 @@ Session cookies include a credential version derived by HMAC from the current sa
 - **`GET /api/admin/users`**: List users with scanning status, scan counts, pagination, and search.
 - **`POST /api/admin/users`**: Create a new database user with password, scanning status, admin status, and optional forced password change (session mode only).
 - **`GET /api/admin/users/{id}`**: User detail with scans and audit history.
-- **`PATCH /api/admin/users/{id}`**: Update scanning access or administrator role, rejecting self-demotion. Password resets and `must_change_password` updates require session mode; requests containing either field outside session mode return `400` before applying changes. Password resets revoke existing sessions and default to requiring password rotation.
+- **`PATCH /api/admin/users/{id}`**: Update scanning access, invitation eligibility (`is_invited`), or administrator role, rejecting self-demotion and revocation of the acting or bootstrap administrator's invitation. Password resets and `must_change_password` updates require session mode; requests containing either field outside session mode return `400` before applying changes. Password resets revoke existing sessions and default to requiring password rotation.
+- **`GET /api/admin/access-requests`**: List invitation requests with pagination, `status` filter (`pending`, `approved`, `rejected`), and email/name `search`.
+- **`PATCH /api/admin/access-requests/{id}`**: Approve or reject (revoke) an invitation request, recording reviewer metadata, updating linked/matching user `is_invited`, guarding against acting/bootstrap-admin revocation, and recording audit events.
 - **`GET /api/admin/scans`**: List all system scans with filters and pagination.
 - **`GET /api/admin/scans/{id}`**: Scan detail including target and subscriber info.
 - **`PATCH /api/admin/scans/{id}`**: Update scan status (e.g., toggle `is_active`).
@@ -183,38 +187,40 @@ Creation and edits to dates, nights or minimum stay validate that the merged cri
 
 ## 🗺️ Endpoint Summary
 
-| Method | Path                                        | Auth      | Invitation (when enabled) | Purpose                        |
-| ------ | ------------------------------------------- | --------- | ------------------------- | ------------------------------ |
-| GET    | `/api/search?query=`                        | —         | —                         | Search campgrounds/rec areas   |
-| GET    | `/api/providers`                            | —         | —                         | List providers                 |
-| GET    | `/api/provider/{id}`                        | —         | —                         | Single provider                |
-| GET    | `/api/campground/{provider}/{id}`           | —         | —                         | Single campground              |
-| GET    | `/api/rec-area/{provider}/{id}`             | —         | —                         | Single rec area                |
-| GET    | `/api/rec-area/{provider}/{id}/campgrounds` | —         | —                         | Campgrounds in rec area        |
-| GET    | `/api/me`                                   | ✓         | —                         | Current user profile           |
-| PATCH  | `/api/me`                                   | ✓         | —                         | Update profile                 |
-| POST   | `/api/change-password`                      | ✓         | —                         | Change password (session)      |
-| GET    | `/api/scans`                                | ✓         | ✓                         | List user scans                |
-| POST   | `/api/scans`                                | ✓         | ✓                         | Create scan                    |
-| GET    | `/api/scans/{id}`                           | ✓         | ✓                         | Scan detail                    |
-| PATCH  | `/api/scans/{id}`                           | ✓         | ✓                         | Update scan                    |
-| DELETE | `/api/scans/{id}`                           | ✓         | ✓                         | Delete scan                    |
-| GET    | `/api/health`                               | —         | —                         | Health check                   |
-| GET    | `/api/admin/overview`                       | ✓ (Admin) | —                         | Admin KPI overview             |
-| GET    | `/api/admin/users`                          | ✓ (Admin) | —                         | List users with status         |
-| POST   | `/api/admin/users`                          | ✓ (Admin) | —                         | Create user with credentials   |
-| GET    | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | User details and audit         |
-| PATCH  | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | Update user (toggle scanning)  |
-| GET    | `/api/admin/scans`                          | ✓ (Admin) | —                         | List all system scans          |
-| GET    | `/api/admin/scans/{id}`                     | ✓ (Admin) | —                         | Scan detail and target info    |
-| PATCH  | `/api/admin/scans/{id}`                     | ✓ (Admin) | —                         | Update scan (toggle active)    |
-| GET    | `/api/admin/targets/{id}`                   | ✓ (Admin) | —                         | Shared target detail           |
-| GET    | `/api/admin/audit`                          | ✓ (Admin) | —                         | Immutable audit event log      |
-| GET    | `/api/admin/operations`                     | ✓ (Admin) | —                         | Celery worker states & queue   |
-| GET    | `/api/admin/operations/tasks`               | ✓ (Admin) | —                         | Valkey telemetry stream        |
-| GET    | `/api/admin/operations/tasks/{id}`          | ✓ (Admin) | —                         | Task execution telemetry       |
-| POST   | `/api/admin/operations/sync-providers`      | ✓ (Admin) | —                         | Dispatch provider catalog sync |
-| GET    | `/api/admin/trends`                         | ✓ (Admin) | —                         | Prometheus metrics proxy       |
+| Method | Path                                        | Auth      | Invitation (when enabled) | Purpose                              |
+| ------ | ------------------------------------------- | --------- | ------------------------- | ------------------------------------ |
+| GET    | `/api/search?query=`                        | —         | —                         | Search campgrounds/rec areas         |
+| GET    | `/api/providers`                            | —         | —                         | List providers                       |
+| GET    | `/api/provider/{id}`                        | —         | —                         | Single provider                      |
+| GET    | `/api/campground/{provider}/{id}`           | —         | —                         | Single campground                    |
+| GET    | `/api/rec-area/{provider}/{id}`             | —         | —                         | Single rec area                      |
+| GET    | `/api/rec-area/{provider}/{id}/campgrounds` | —         | —                         | Campgrounds in rec area              |
+| GET    | `/api/me`                                   | ✓         | —                         | Current user profile                 |
+| PATCH  | `/api/me`                                   | ✓         | —                         | Update profile                       |
+| POST   | `/api/change-password`                      | ✓         | —                         | Change password (session)            |
+| GET    | `/api/scans`                                | ✓         | ✓                         | List user scans                      |
+| POST   | `/api/scans`                                | ✓         | ✓                         | Create scan                          |
+| GET    | `/api/scans/{id}`                           | ✓         | ✓                         | Scan detail                          |
+| PATCH  | `/api/scans/{id}`                           | ✓         | ✓                         | Update scan                          |
+| DELETE | `/api/scans/{id}`                           | ✓         | ✓                         | Delete scan                          |
+| GET    | `/api/health`                               | —         | —                         | Health check                         |
+| GET    | `/api/admin/overview`                       | ✓ (Admin) | —                         | Admin KPI overview                   |
+| GET    | `/api/admin/users`                          | ✓ (Admin) | —                         | List users with status               |
+| POST   | `/api/admin/users`                          | ✓ (Admin) | —                         | Create user with credentials         |
+| GET    | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | User details and audit               |
+| PATCH  | `/api/admin/users/{id}`                     | ✓ (Admin) | —                         | Update user (scanning, invite, role) |
+| GET    | `/api/admin/access-requests`                | ✓ (Admin) | —                         | List invitation requests             |
+| PATCH  | `/api/admin/access-requests/{id}`           | ✓ (Admin) | —                         | Approve or reject access request     |
+| GET    | `/api/admin/scans`                          | ✓ (Admin) | —                         | List all system scans                |
+| GET    | `/api/admin/scans/{id}`                     | ✓ (Admin) | —                         | Scan detail and target info          |
+| PATCH  | `/api/admin/scans/{id}`                     | ✓ (Admin) | —                         | Update scan (toggle active)          |
+| GET    | `/api/admin/targets/{id}`                   | ✓ (Admin) | —                         | Shared target detail                 |
+| GET    | `/api/admin/audit`                          | ✓ (Admin) | —                         | Immutable audit event log            |
+| GET    | `/api/admin/operations`                     | ✓ (Admin) | —                         | Celery worker states & queue         |
+| GET    | `/api/admin/operations/tasks`               | ✓ (Admin) | —                         | Valkey telemetry stream              |
+| GET    | `/api/admin/operations/tasks/{id}`          | ✓ (Admin) | —                         | Task execution telemetry             |
+| POST   | `/api/admin/operations/sync-providers`      | ✓ (Admin) | —                         | Dispatch provider catalog sync       |
+| GET    | `/api/admin/trends`                         | ✓ (Admin) | —                         | Prometheus metrics proxy             |
 
 ### Admin contract and monitoring availability
 

@@ -27,7 +27,7 @@ async def request_access(
 
     Duplicate emails are silently accepted (idempotent).
     """
-    access_req = AccessRequest(email=body.email.lower().strip())
+    access_req = AccessRequest(email=body.email, name=body.name)
     session.add(access_req)
     try:
         await session.commit()

@@ -122,7 +122,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 - [x] T2.1.5 Gate dashboard and scan-detail routes for uninvited users when invite-only access is enabled.
 - [x] T2.1.6 Collect pending invitation requests (email collection only).
-- [ ] TODO: Add invitation approval/revocation and safe matching to verified identities.
+- [ ] TODO: Add invitation approval/revocation and safe matching to verified identities. _(Backend `access_requests` review schema/migration, admin approval/revocation API, and `is_invited` user toggle implemented; frontend admin UI and automatic matching on verified sign-in remain pending.)_
 - [ ] TODO: Deliver invitation notifications; request collection currently sends no email.
 
 ### 2.3 Email & Account Linking

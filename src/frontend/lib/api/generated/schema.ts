@@ -531,9 +531,55 @@ export interface paths {
         head?: never;
         /**
          * Update User
-         * @description Update a user's scanning access or credentials and record audit events.
+         * @description Update a user's scanning access, invitation, role, or credentials and audit changes.
          */
         patch: operations["update_user_api_admin_users__user_id__patch"];
+        trace?: never;
+    };
+    "/api/admin/access-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Access Requests
+         * @description List invitation requests, newest first, filtered by status or email/name search.
+         */
+        get: operations["list_access_requests_api_admin_access_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/access-requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Access Request
+         * @description Approve or reject an invitation request, revoking access when it was approved.
+         *
+         *     Approving links the request to the existing user with the same email (if
+         *     any) and sets ``is_invited``. Rejecting a previously approved request
+         *     clears ``is_invited`` for that user, except for the acting and bootstrap
+         *     administrators. Status changes and ``is_invited`` changes are audited;
+         *     repeating the current status records no new review.
+         */
+        patch: operations["update_access_request_api_admin_access_requests__request_id__patch"];
         trace?: never;
     };
     "/api/admin/scans": {
@@ -757,6 +803,63 @@ export interface components {
         AccessRequestResponse: {
             /** Message */
             message: string;
+        };
+        /**
+         * AdminAccessRequestItem
+         * @description Invitation request row in the admin access request list.
+         */
+        AdminAccessRequestItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            /** Name */
+            name?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "approved" | "rejected";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Reviewed At */
+            reviewed_at?: string | null;
+            /** Reviewed By Id */
+            reviewed_by_id?: string | null;
+            /** User Id */
+            user_id?: string | null;
+        };
+        /**
+         * AdminAccessRequestListResponse
+         * @description Paginated admin invitation request list.
+         */
+        AdminAccessRequestListResponse: {
+            /** Access Requests */
+            access_requests: components["schemas"]["AdminAccessRequestItem"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * AdminAccessRequestUpdateRequest
+         * @description Payload to approve or reject (revoke) an invitation request.
+         */
+        AdminAccessRequestUpdateRequest: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "approved" | "rejected";
         };
         /**
          * AdminAuditEventItem
@@ -1395,6 +1498,8 @@ export interface components {
         AdminUserUpdateRequest: {
             /** Is Admin */
             is_admin?: boolean | null;
+            /** Is Invited */
+            is_invited?: boolean | null;
             /** Scanning Enabled */
             scanning_enabled?: boolean | null;
             /** Must Change Password */
@@ -3267,6 +3372,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminUserDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_access_requests_api_admin_access_requests_get: {
+        parameters: {
+            query?: {
+                status?: ("pending" | "approved" | "rejected") | null;
+                search?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccessRequestListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_access_request_api_admin_access_requests__request_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminAccessRequestUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccessRequestItem"];
                 };
             };
             /** @description Validation Error */

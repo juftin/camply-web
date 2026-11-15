@@ -9,4 +9,5 @@
 - [x] Auth0 audience and configuration validation.
 - [x] Mode-aware signup, protected routes, and invitation UI.
 - [x] Regression tests and documentation.
-- [ ] TODO: approval/revocation workflow, identity linking, and invitation notifications.
+- [x] Backend `access_requests` review migration, admin approval/revocation API (`GET/PATCH /api/admin/access-requests`), and audited user `is_invited` toggle with self/bootstrap-admin guards.
+- [ ] TODO: admin review UI, automatic invitation matching on verified sign-in, and invitation notifications.

@@ -145,7 +145,9 @@ class AccessRequestCreate(BaseModel):
     """Payload for ``POST /request-access``."""
 
     email: str = Field(..., description="Email address requesting an invitation")
-    name: Optional[str] = Field(default=None, description="Optional name")
+    name: Optional[str] = Field(
+        default=None, max_length=255, description="Optional name"
+    )
 
 
 class AccessRequestResponse(BaseModel):
@@ -388,11 +390,39 @@ class AdminUserUpdateRequest(BaseModel):
     """Payload to update an existing user."""
 
     is_admin: Optional[bool] = None
+    is_invited: Optional[bool] = None
     scanning_enabled: Optional[bool] = None
     must_change_password: Optional[bool] = None
     password: Optional[str] = Field(
         default=None, min_length=1, max_length=1024, repr=False
     )
+
+
+class AdminAccessRequestItem(BaseModel):
+    """Invitation request row in the admin access request list."""
+
+    id: uuid.UUID
+    email: str
+    name: Optional[str] = None
+    status: Literal["pending", "approved", "rejected"]
+    created_at: UtcDateTime
+    updated_at: UtcDateTime
+    reviewed_at: Optional[UtcDateTime] = None
+    reviewed_by_id: Optional[uuid.UUID] = None
+    user_id: Optional[uuid.UUID] = None
+
+
+class AdminAccessRequestListResponse(BaseModel):
+    """Paginated admin invitation request list."""
+
+    access_requests: list[AdminAccessRequestItem]
+    total: int
+
+
+class AdminAccessRequestUpdateRequest(BaseModel):
+    """Payload to approve or reject (revoke) an invitation request."""
+
+    status: Literal["approved", "rejected"]
 
 
 class AdminScanItem(BaseModel):

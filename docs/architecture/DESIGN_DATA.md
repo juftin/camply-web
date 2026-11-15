@@ -124,6 +124,20 @@ The scanner replaces the latest snapshot, including these attributes, after ever
 
 User-facing results and counts exclude nights before the current UTC date and outside the target's check-in/check-out interval before applying minimum-stay rules. The worker applies the same window before snapshot replacement and new-opening detection, so notifications cannot qualify using expired nights. Read-time filtering also expires past availability when a scan is paused or no worker is running. A successful empty provider response clears the snapshot. Failed checks preserve the previous snapshot and its last-successful-check timestamp; snapshot age alone does not establish that a site is unavailable.
 
+### 10. `access_requests` Table
+
+Stores public invitation requests and administrator review metadata.
+
+- `id`: `UUID` (Primary Key)
+- `email`: `String(255)` (Unique Index, normalized to stripped lowercase on write)
+- `name`: `String(255) | null` (Optional requester name supplied with the request)
+- `status`: `String(20)` (`pending`, `approved`, or `rejected`)
+- `created_at`: `Timestamp`
+- `updated_at`: `Timestamp`
+- `reviewed_at`: `Timestamp | null` (UTC timestamp of the last approval or rejection)
+- `reviewed_by_id`: `UUID | null` (Foreign Key -> `users.id`, `ON DELETE SET NULL`)
+- `user_id`: `UUID | null` (Foreign Key -> `users.id`, `ON DELETE SET NULL`; matched account once one exists)
+
 ---
 
 ## 🔄 Reconciled Implementation Details
