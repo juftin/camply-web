@@ -136,6 +136,7 @@ export interface ScanCreateRequest {
   min_stay_length?: number;
   preferred_types?: string[];
   require_electric?: boolean;
+  allowed_weekdays?: number[];
 }
 
 export type ScanUpdateRequest = components["schemas"]["ScanUpdateRequest"];
@@ -182,6 +183,7 @@ export interface ScanResponse {
   min_stay_length: number;
   preferred_types: string[];
   require_electric: boolean;
+  allowed_weekdays?: number[];
   last_checked_at: string | null;
   found_count: number;
   created_at: string;

@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import StaleDataError
 
-from camply.db.availability import matching_scan_results
+from camply.db.availability import matching_scan_results, validate_scan_dates
 from camply.db.coverage import (
     definition_hash,
     eligible_members,
@@ -188,6 +188,7 @@ async def _scan_to_response(scan: UserScanDB, **unused: object) -> ScanResponse:
         min_stay_length=scan.min_stay_length,
         preferred_types=scan.preferred_types or [],
         require_electric=scan.require_electric,
+        allowed_weekdays=scan.allowed_weekdays or list(range(7)),
         last_checked_at=last,
         found_count=len(matches),
         created_at=scan.created_at,
@@ -291,6 +292,9 @@ async def _assign_definition(  # noqa: C901
     scan.min_stay_length = body.min_stay_length
     scan.preferred_types = body.preferred_types
     scan.require_electric = body.require_electric
+    scan.allowed_weekdays = (
+        body.allowed_weekdays if body.allowed_weekdays != list(range(7)) else None
+    )
     scan.definition_hash = definition_hash(
         provider_id=scan.provider_id,
         destination_type=scan.destination_type,
@@ -312,6 +316,25 @@ async def _assign_definition(  # noqa: C901
             status_code=409,
             detail="duplicate_scan: A scan for this destination and date range already exists",
         )
+
+
+def _validate_scan_criteria(
+    *,
+    start_date: datetime.date,
+    end_date: datetime.date,
+    min_stay_length: int,
+    allowed_weekdays: list[int] | None,
+) -> None:
+    """Translate impossible calendar combinations to actionable request errors."""
+    try:
+        validate_scan_dates(
+            start_date=start_date,
+            end_date=end_date,
+            min_stay_length=min_stay_length,
+            allowed_weekdays=allowed_weekdays,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @scan_router.get("")
@@ -371,6 +394,12 @@ async def create_scan(
         definition_revision=1,
         coverage_revision=1,
         row_version=1,
+    )
+    _validate_scan_criteria(
+        start_date=body.start_date,
+        end_date=body.end_date,
+        min_stay_length=body.min_stay_length,
+        allowed_weekdays=body.allowed_weekdays,
     )
     await _assign_definition(session, scan, body)
     session.add(scan)
@@ -459,6 +488,20 @@ async def update_scan(  # noqa: C901
                 "message": "Scanning is currently disabled for this account.",
             },
         )
+    if body.model_fields_set & {
+        "start_date",
+        "end_date",
+        "min_stay_length",
+        "allowed_weekdays",
+    }:
+        _validate_scan_criteria(
+            start_date=body.start_date or scan.start_date,
+            end_date=body.end_date or scan.end_date,
+            min_stay_length=body.min_stay_length or scan.min_stay_length,
+            allowed_weekdays=body.allowed_weekdays
+            if "allowed_weekdays" in body.model_fields_set
+            else scan.allowed_weekdays,
+        )
     definition_fields = {
         "provider_id",
         "destination_type",
@@ -531,6 +574,9 @@ async def update_scan(  # noqa: C901
             "require_electric": body.require_electric
             if body.require_electric is not None
             else scan.require_electric,
+            "allowed_weekdays": body.allowed_weekdays
+            if "allowed_weekdays" in body.model_fields_set
+            else (scan.allowed_weekdays or list(range(7))),
         }
         try:
             definition = ScanCreateRequest.model_validate(values)
@@ -554,6 +600,10 @@ async def update_scan(  # noqa: C901
         value = getattr(body, field)
         if value is not None:
             setattr(scan, field, value)
+    if "allowed_weekdays" in body.model_fields_set:
+        scan.allowed_weekdays = (
+            body.allowed_weekdays if body.allowed_weekdays != list(range(7)) else None
+        )
     if scan.min_stay_length > (scan.end_date - scan.start_date).days:
         raise HTTPException(status_code=422, detail="Minimum stay exceeds date window")
     scan.definition_revision += 1

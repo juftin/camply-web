@@ -29,6 +29,7 @@ import {
   formatRelativeTime,
 } from "@/lib/utils";
 import type { ScanResponse } from "@/lib/structs";
+import { formatAllowedWeekdays } from "@/lib/weekdays";
 
 interface ScanCardProps {
   scan: ScanResponse;
@@ -143,6 +144,12 @@ export function ScanCard({
 
           {/* Filters */}
           <div className="flex flex-wrap gap-1.5">
+            <Badge
+              variant="secondary"
+              className="max-w-full whitespace-normal text-[10px]"
+            >
+              {formatAllowedWeekdays(scan.allowed_weekdays)}
+            </Badge>
             {scan.require_electric && (
               <Badge variant="secondary" className="text-[10px] gap-0.5">
                 <Zap className="h-3 w-3" /> Electric

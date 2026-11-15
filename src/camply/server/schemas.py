@@ -159,6 +159,19 @@ class AccessRequestResponse(BaseModel):
 # ===========================================================================
 
 
+def _normalize_weekdays(days: list[int]) -> list[int]:
+    """Treat day selections as unordered sets while retaining stable responses."""
+    return sorted(set(days))
+
+
+AllowedWeekdays = Annotated[
+    list[Annotated[int, Field(strict=True, ge=0, le=6)]],
+    Field(min_length=1),
+    AfterValidator(_normalize_weekdays),
+]
+"""Nonempty booking weekdays, using Monday=0 through Sunday=6."""
+
+
 class ScanCreateRequest(BaseModel):
     """Payload for creating a new user scan."""
 
@@ -179,6 +192,10 @@ class ScanCreateRequest(BaseModel):
     )
     require_electric: bool = Field(
         default=False, description="Only alert on electric hookup sites"
+    )
+    allowed_weekdays: AllowedWeekdays = Field(
+        default_factory=lambda: list(range(7)),
+        description="Allowed occupied nights, Monday=0 through Sunday=6; all seven means any night",
     )
 
     @model_validator(mode="after")
@@ -225,6 +242,10 @@ class ScanUpdateRequest(BaseModel):
     min_stay_length: Optional[int] = Field(default=None, ge=1)
     preferred_types: Optional[list[str]] = None
     require_electric: Optional[bool] = None
+    allowed_weekdays: AllowedWeekdays = Field(
+        default_factory=lambda: list(range(7)),
+        description="Allowed occupied nights; omitted preserves the saved selection",
+    )
 
 
 class ScanResultItem(BaseModel):
@@ -273,6 +294,7 @@ class ScanResponse(BaseModel):
     min_stay_length: int
     preferred_types: list[str] = Field(default_factory=list)
     require_electric: bool
+    allowed_weekdays: list[int] = Field(default_factory=lambda: list(range(7)))
     last_checked_at: Optional[UtcDateTime] = None
     found_count: int = 0
     created_at: UtcDateTime

@@ -22,7 +22,7 @@ def test_migration_config_uses_packaged_history() -> None:
     config = get_alembic_config()
     scripts = ScriptDirectory.from_config(config)
     assert scripts.get_heads() == ["d834b6f82260"]
-    assert len(list(scripts.walk_revisions())) == 26
+    assert len(list(scripts.walk_revisions())) == 27
     assert config.config_file_name is None
     assert config.get_section("post_write_hooks") is None
     assert (Path(scripts.dir) / "env.py").is_file()

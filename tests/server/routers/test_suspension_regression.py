@@ -113,8 +113,8 @@ class TestSuspensionAndAdminAuth:
             target = UniqueTarget(
                 provider_id=1,
                 campground_id="cg_1",
-                start_date=dt.date(2027, 10, 15),
-                end_date=dt.date(2027, 10, 20),
+                start_date=dt.date(2099, 10, 15),
+                end_date=dt.date(2099, 10, 19),
             )
             session.add(target)
             await session.flush()

@@ -1046,6 +1046,61 @@ SCENARIOS.push({
   },
 });
 
+for (const mobile of [false, true]) {
+  SCENARIOS.push({
+    name: mobile
+      ? "scan-night-selection-mobile-dark"
+      : "scan-night-selection-desktop-light",
+    route: "/dashboard",
+    viewport: mobile
+      ? { width: 390, height: 844 }
+      : { width: 1280, height: 800 },
+    theme: mobile ? "dark" : "light",
+    description: mobile
+      ? "Keyboard selection adds Sunday to weekend nights in the mobile scan form"
+      : "Recurring Friday and Saturday night selection leaves seasonal dates independent",
+    action: async (page: Page) => {
+      await page.getByRole("button", { name: "New Scan", exact: true }).click();
+      const weekends = page.getByRole("button", {
+        name: "Weekends",
+        exact: true,
+      });
+      await weekends.focus();
+      await page.keyboard.press("Enter");
+      if (mobile) {
+        await page.getByRole("button", { name: "Sunday", exact: true }).focus();
+        await page.keyboard.press("Space");
+      }
+      for (const name of [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+      ]) {
+        const pressed = await page
+          .getByRole("button", { name, exact: true })
+          .getAttribute("aria-pressed");
+        const selected =
+          name === "Friday" ||
+          name === "Saturday" ||
+          (mobile && name === "Sunday");
+        if (pressed !== String(selected))
+          throw new Error(`Unexpected night selection: ${name}`);
+      }
+      const fits = await page
+        .getByRole("group", { name: "Nights of the week" })
+        .evaluate((element) => {
+          const bounds = element.getBoundingClientRect();
+          return bounds.left >= 0 && bounds.right <= window.innerWidth;
+        });
+      if (!fits) throw new Error("Night controls overflow the viewport");
+    },
+  });
+}
+
 /**
  * Mock data used for consistent and deterministic rendering.
  */

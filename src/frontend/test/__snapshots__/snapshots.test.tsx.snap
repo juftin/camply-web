@@ -1081,6 +1081,11 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                 class="flex flex-wrap gap-1.5"
               >
                 <div
+                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 max-w-full whitespace-normal text-[10px]"
+                >
+                  Any night
+                </div>
+                <div
                   class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px]"
                 >
                   Min 2 nights
@@ -1345,6 +1350,11 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
                 class="flex flex-wrap gap-1.5"
               >
                 <div
+                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 max-w-full whitespace-normal text-[10px]"
+                >
+                  Any night
+                </div>
+                <div
                   class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 max-w-full whitespace-normal break-words text-[10px]"
                 >
                   TENT ONLY
@@ -1603,6 +1613,11 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
               <div
                 class="flex flex-wrap gap-1.5"
               >
+                <div
+                  class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 max-w-full whitespace-normal text-[10px]"
+                >
+                  Any night
+                </div>
                 <div
                   class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px] gap-0.5"
                 >
@@ -2959,6 +2974,11 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for active sca
           class="flex flex-wrap gap-1.5"
         >
           <div
+            class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 max-w-full whitespace-normal text-[10px]"
+          >
+            Any night
+          </div>
+          <div
             class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px] gap-0.5"
           >
             <svg
@@ -3248,7 +3268,13 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for ended scan
         </div>
         <div
           class="flex flex-wrap gap-1.5"
-        />
+        >
+          <div
+            class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 max-w-full whitespace-normal text-[10px]"
+          >
+            Any night
+          </div>
+        </div>
         <div
           class="flex items-center gap-1.5 text-xs text-muted-foreground"
         >
@@ -3501,7 +3527,13 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for paused sca
         </div>
         <div
           class="flex flex-wrap gap-1.5"
-        />
+        >
+          <div
+            class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 max-w-full whitespace-normal text-[10px]"
+          >
+            Any night
+          </div>
+        </div>
         <div
           class="flex items-center gap-1.5 text-xs text-muted-foreground"
         >

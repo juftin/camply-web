@@ -325,3 +325,44 @@ async def test_rollover_clips_the_next_window_and_preserves_explicit_today(monke
         date(2030, 1, 6),
     ]
     assert [stay.arrival.day for stay in stays] == [1, 2, 6, 7, 8]
+
+
+@pytest.mark.parametrize("mask", range(1, 128))
+def test_saved_scan_and_cli_weekday_parity(mask: int) -> None:
+    """Every nonempty CLI day union matches the saved scan's eligible nights."""
+    from datetime import timedelta
+
+    names = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
+    selected = [day for day in range(7) if mask & (1 << day)]
+    start = date(2030, 1, 1)
+    end = date(2030, 1, 22)
+    normalized = normalize_request(
+        start_dates=[start],
+        end_dates=[end],
+        days=[names[day] for day in selected],
+        today=TODAY,
+    )
+    all_dates = [
+        (start + timedelta(days=offset)).isoformat()
+        for offset in range((end - start).days)
+    ]
+    assert sorted(
+        night.isoformat() for night in normalized.eligible_dates
+    ) == matching_available_dates(
+        all_dates, min_stay_length=1, allowed_weekdays=selected
+    )
+    for minimum in (2, 3):
+        assert matching_available_dates(
+            [night.isoformat() for night in normalized.eligible_dates],
+            min_stay_length=minimum,
+        ) == matching_available_dates(
+            all_dates, min_stay_length=minimum, allowed_weekdays=selected
+        )

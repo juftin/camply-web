@@ -17,6 +17,7 @@ import { ScanForm } from "@/components/ScanForm";
 import { FoundCampsites } from "@/components/FoundCampsites";
 import { useScanDetail } from "@/hooks/useScans";
 import { getCampground, getRecreationArea } from "@/lib/api";
+import { formatAllowedWeekdays } from "@/lib/weekdays";
 import {
   toTitleCase,
   formatDate,
@@ -137,6 +138,7 @@ export function ScanDetail() {
             {formatDisplayDate(scan.end_date, false)}
           </span>
           <span>· {scan.min_stay_length}+ nights</span>
+          <span>· {formatAllowedWeekdays(scan.allowed_weekdays)}</span>
           {(scan.preferred_types ?? []).length > 0 && (
             <span>· {scan.preferred_types.join(", ")}</span>
           )}
@@ -254,6 +256,9 @@ export function ScanDetail() {
 
             {/* Filters */}
             <div className="flex flex-wrap gap-2 pt-2 border-t">
+              <Badge variant="secondary">
+                {formatAllowedWeekdays(scan.allowed_weekdays)}
+              </Badge>
               {scan.require_electric && (
                 <Badge variant="secondary" className="gap-1">
                   <Zap className="h-3 w-3" /> Electric Required

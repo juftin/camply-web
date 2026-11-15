@@ -1078,6 +1078,8 @@ export interface components {
             preferred_types?: string[];
             /** Require Electric */
             require_electric: boolean;
+            /** Allowed Weekdays */
+            allowed_weekdays?: number[];
             /** Last Checked At */
             last_checked_at?: string | null;
             /**
@@ -1211,6 +1213,8 @@ export interface components {
             preferred_types?: string[];
             /** Require Electric */
             require_electric: boolean;
+            /** Allowed Weekdays */
+            allowed_weekdays?: number[];
             /** Last Checked At */
             last_checked_at?: string | null;
             /** Found Count */
@@ -2104,6 +2108,11 @@ export interface components {
              * @default false
              */
             require_electric: boolean;
+            /**
+             * Allowed Weekdays
+             * @description Allowed occupied nights, Monday=0 through Sunday=6; all seven means any night
+             */
+            allowed_weekdays?: number[];
         };
         /**
          * ScanDetailResponse
@@ -2211,6 +2220,8 @@ export interface components {
             preferred_types?: string[];
             /** Require Electric */
             require_electric: boolean;
+            /** Allowed Weekdays */
+            allowed_weekdays?: number[];
             /** Last Checked At */
             last_checked_at?: string | null;
             /**
@@ -2344,6 +2355,8 @@ export interface components {
             preferred_types?: string[];
             /** Require Electric */
             require_electric: boolean;
+            /** Allowed Weekdays */
+            allowed_weekdays?: number[];
             /** Last Checked At */
             last_checked_at?: string | null;
             /**
@@ -2436,6 +2449,11 @@ export interface components {
             preferred_types?: string[] | null;
             /** Require Electric */
             require_electric?: boolean | null;
+            /**
+             * Allowed Weekdays
+             * @description Allowed occupied nights; omitted preserves the saved selection
+             */
+            allowed_weekdays?: number[];
         };
         /**
          * SearchExploreResponse

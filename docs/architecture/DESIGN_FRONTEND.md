@@ -2,6 +2,12 @@
 
 This document defines the user experience and visual architecture for the `camply` frontend.
 
+## Nights of the week
+
+Scan creation and editing offer seven named night buttons with accessible pressed states, plus **Weekends** (Friday/Saturday) and **Any night** shortcuts. New and legacy unrestricted scans select all seven; saved custom selections are restored for editing and shown on scan cards and detail overviews. These choices apply to occupied nights, so Friday/Saturday permits Sunday checkout. A two-night minimum requires both nights; the weekend shortcut itself changes neither the stay length nor the date range. Existing quick-date shortcuts change dates without changing selected nights.
+
+An empty selection or date/night/minimum combination with no possible remaining stay shows actionable validation. Cancel discards changes and failed saves preserve entered values. Controls support keyboard use and mobile widths. See the [night-selection contract](../specs/029-weekday-night-filter/contracts/night-selection.md).
+
 ## 🎯 Design Goals
 
 1. **Frictionless Search**: Find a campground and start a scan in < 30 seconds.

@@ -2,6 +2,12 @@
 
 This document defines the architecture for the notification layer in `camply`, focusing on a standardized interface, multiple provider support, and asynchronous delivery.
 
+## Selected booking nights
+
+Direct and summary detection apply each subscription's `allowed_weekdays` before consecutive minimum-stay matching. The shared provider snapshot remains unrestricted. Changes confined to excluded nights do not trigger an alert, and users sharing a target can receive different matching openings without additional provider polling.
+
+Both standalone outbox delivery and distributed task delivery revalidate the current night selection, dates, site preferences, ownership, active state and target linkage immediately before sending. Excluded nights are removed from each opening; summaries recalculate their matching site count and skip when none remain. New queued payloads identify their originating target so retargeted scans do not deliver stale alerts. Existing unscoped test notifications retain their delivery contract. Preference edits do not replay previously suppressed observations as new availability.
+
 ## Standalone delivery
 
 Standalone stores delivery intents in the same transaction as successful scan results and uses one asynchronous outbox consumer. It commits `sending` and increments the attempt count before HTTP; it records `sent` only after explicit Pushover acceptance. Missing application/user credentials or current ineligibility produce a skip. Invalid payloads, malformed acceptance responses, and permanent upstream rejection fail. Transport errors, HTTP 429, and server failures retry after 120 seconds, with three retries and four total sends. Interrupted attempts retain their consumed budget and are retried on startup unless exhausted.
