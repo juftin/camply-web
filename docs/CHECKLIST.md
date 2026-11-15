@@ -145,7 +145,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T2.5.2 Implement the chosen storage strategy, including token lifetime/renewal settings and, if cookies are used, secure cookie attributes and CSRF protection.
 - [x] T2.5.3 Test page reloads, multiple tabs, logout, and session expiry; verify credentials/tokens do not appear in application logs or unintended persistent storage.
 
-- [ ] T2.5.4 Add individual server-side revocation for password sessions; current signed cookies remain valid until expiry or credential/secret rotation.
+- [x] T2.5.4 Add individual server-side revocation for password sessions (`UserSession` persistence, `GET/DELETE /api/me/sessions`, and the profile Active Sessions UI).
 
 ### 2.6 Signed JWT Verification Tests
 

@@ -129,7 +129,7 @@ PyPI publication remains separate work.
 5. [x] **Dashboard UI**: Scan management dashboard with creation, toggling, and deletion.
 6. [x] **Auth0 Integration**: Wire up JWT validation, API audience, and profile pages.
 7. [x] **Invitation Workflow**: Implement approval/revocation, verified identity matching, admin alerts, and in-app status UI.
-8. [ ] **Provider Parity**: Port remaining providers (usedirect, xanterra)."}]}
+8. [ ] **Provider Parity**: Port remaining providers (usedirect, xanterra).
 
 ## Standalone runtime delivery
 

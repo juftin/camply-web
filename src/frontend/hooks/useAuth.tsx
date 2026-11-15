@@ -159,7 +159,8 @@ function CookieAuthProvider({ children }: { children: ReactNode }) {
     }
     await queryClient.cancelQueries();
     queryClient.removeQueries({
-      predicate: (query) => query.queryKey[0] !== "me",
+      predicate: (query) =>
+        !(query.queryKey.length === 1 && query.queryKey[0] === "me"),
     });
     queryClient.setQueryData(["me"], null);
     setHasError(null);

@@ -17,10 +17,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NotificationSettings } from "@/components/NotificationSettings";
+import { ActiveSessions } from "@/components/ActiveSessions";
 import { useAuth } from "@/hooks/useAuth";
 
 export function Profile() {
-  const { user, isLoading, refresh, signOut, autoLogin } = useAuth();
+  const { user, isLoading, refresh, signOut, authMode, autoLogin } = useAuth();
   const navigate = useNavigate();
 
   if (isLoading) {
@@ -76,6 +77,10 @@ export function Profile() {
           </div>
 
           <NotificationSettings key={user.id} user={user} refresh={refresh} />
+
+          {authMode === "session" &&
+            !autoLogin &&
+            !user.must_change_password && <ActiveSessions />}
 
           {/* Actions */}
           <div className="pt-4 border-t space-y-3">

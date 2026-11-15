@@ -6,6 +6,7 @@ const mockGet = vi.fn();
 const mockLocationGet = vi.hoisted(() => vi.fn());
 const mockPost = vi.fn();
 const mockPatch = vi.fn();
+const mockDelete = vi.fn();
 const mockRequest = vi.fn();
 const mockUseFn = vi.fn();
 const mockResponseUseFn = vi.fn();
@@ -13,6 +14,7 @@ const mockAxiosInstance = Object.assign(mockRequest, {
   get: mockGet,
   post: mockPost,
   patch: mockPatch,
+  delete: mockDelete,
   request: mockRequest,
   interceptors: {
     request: { use: mockUseFn },
@@ -296,6 +298,30 @@ it("calls admin access request endpoints with typed params and payload", async (
   expect(mockPatch).toHaveBeenLastCalledWith("/admin/access-requests/req-1", {
     status: "approved",
   });
+});
+
+it("lists and revokes active password sessions for the current user", async () => {
+  const sessionList = {
+    items: [
+      {
+        id: "sess-1",
+        user_agent: "Mozilla/5.0",
+        ip_address: "198.51.100.1",
+        created_at: "2026-11-15T10:00:00Z",
+        expires_at: "2026-11-22T10:00:00Z",
+        is_current: true,
+      },
+    ],
+  };
+  mockGet.mockResolvedValue({ data: sessionList });
+  mockDelete.mockResolvedValue({ data: undefined });
+
+  const api = await import("@/lib/api");
+  expect(await api.listMySessions()).toEqual(sessionList);
+  expect(mockGet).toHaveBeenLastCalledWith("/me/sessions");
+
+  await api.revokeMySession("sess-1");
+  expect(mockDelete).toHaveBeenLastCalledWith("/me/sessions/sess-1");
 });
 
 describe("Token acquisition classification and bounded 401 renewal", () => {

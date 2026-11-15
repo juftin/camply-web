@@ -9,6 +9,7 @@ import type {
   MeResponse,
   MeUpdateRequest,
   NotificationTestResponse,
+  UserSessionListResponse,
   ScanCreateRequest,
   ScanListResponse,
   ScanDetailResponse,
@@ -662,6 +663,15 @@ export async function sendTestNotification(
       "Could not send the test notification. Check your settings and try again.",
     );
   }
+}
+
+export async function listMySessions(): Promise<UserSessionListResponse> {
+  const response = await api.get<UserSessionListResponse>("/me/sessions");
+  return response.data;
+}
+
+export async function revokeMySession(sessionId: string): Promise<void> {
+  await api.delete(`/me/sessions/${sessionId}`);
 }
 
 // ---------------------------------------------------------------------------

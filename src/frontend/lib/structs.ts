@@ -119,6 +119,10 @@ export type ChangePasswordRequest =
 export type NotificationTestResponse =
   components["schemas"]["NotificationTestResponse"];
 
+export type UserSessionItem = components["schemas"]["UserSessionItem"];
+export type UserSessionListResponse =
+  components["schemas"]["UserSessionListResponse"];
+
 export interface MeUpdateRequest {
   ntfy_topic?: string;
   pushover_token?: string | null;

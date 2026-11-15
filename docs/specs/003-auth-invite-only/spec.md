@@ -9,7 +9,7 @@
 - Expose the API audience and auth capabilities to the frontend. Request that audience from Auth0. Show configuration failures explicitly.
 - Signup appears only in Auth0 mode. Marketing links follow login capabilities.
 - Rename the public access flag to `is_invited`; preserve its existing database column.
-- Invitation approval, revocation, account linking, and notification delivery remain TODOs.
+- Invitation approval, revocation, and zero-email notification delivery (admin ntfy/Pushover alerts and in-app `/invite-only` requester status) are implemented; explicit password+Auth0 account linking is deferred/out of scope (identities are never auto-merged by email).
 
 ## Acceptance
 

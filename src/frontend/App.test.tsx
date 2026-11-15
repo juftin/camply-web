@@ -17,6 +17,8 @@ import {
   submitAccessRequest,
   loginSession,
   logoutSession,
+  listMySessions,
+  revokeMySession,
   listScans,
   getScan,
 } from "@/lib/api";
@@ -48,6 +50,8 @@ vi.mock("@/lib/api", async (importOriginal) => {
     sendTestNotification: vi.fn(),
     loginSession: vi.fn(),
     logoutSession: vi.fn(),
+    listMySessions: vi.fn().mockResolvedValue({ items: [] }),
+    revokeMySession: vi.fn().mockResolvedValue(undefined),
     listScans: vi.fn(),
     getScan: vi.fn(),
     submitAccessRequest: vi.fn(),
@@ -588,4 +592,33 @@ it("clears a password session when signing out from the profile", async () => {
   fireEvent.click(button);
   await waitFor(() => expect(logoutSession).toHaveBeenCalled());
   await screen.findByRole("button", { name: "Sign In" });
+});
+
+it("transitions cleanly to /auth when revoking the current session from the profile", async () => {
+  vi.mocked(getMe).mockResolvedValue({ ...user, is_invited: true });
+  vi.mocked(listMySessions).mockResolvedValue({
+    items: [
+      {
+        id: "sess-current",
+        user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X) Chrome/130.0.0.0",
+        ip_address: "198.51.100.1",
+        created_at: "2026-11-15T10:00:00Z",
+        expires_at: "2026-11-22T10:00:00Z",
+        is_current: true,
+      },
+    ],
+  });
+  vi.mocked(revokeMySession).mockResolvedValue(undefined);
+
+  renderApp(sessionConfig, "/profile");
+
+  const revokeButton = await screen.findByRole("button", { name: "Revoke" });
+  fireEvent.click(revokeButton);
+
+  await waitFor(() =>
+    expect(revokeMySession).toHaveBeenCalledWith("sess-current"),
+  );
+  await screen.findByRole("button", { name: "Sign In" });
+  expect(logoutSession).not.toHaveBeenCalled();
+  expect(window.location.pathname).toBe(appPath("/auth"));
 });
