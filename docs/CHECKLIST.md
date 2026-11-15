@@ -149,10 +149,10 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ### 2.6 Signed JWT Verification Tests
 
-- [ ] T2.6.1 Generate synthetic RSA keys and signed JWTs in tests; exercise the real verifier while mocking only JWKS transport, without live Auth0 credentials.
-- [ ] T2.6.2 Explicitly require expiration and a nonempty subject; test valid tokens, expired tokens, missing claims, incorrect issuer/audience, tampered signatures, and disallowed algorithms.
-- [ ] T2.6.3 Test JWKS caching, key rotation, unknown key IDs, and JWKS outages; distinguish invalid credentials from temporary verification-service failures.
-- [ ] T2.6.4 Exercise signed-token API requests to verify user provisioning, scan ownership isolation, and optional invitation enforcement.
+- [x] T2.6.1 Generate synthetic RSA keys and signed JWTs in tests; exercise the real verifier while mocking only JWKS transport, without live Auth0 credentials.
+- [x] T2.6.2 Explicitly require expiration and a nonempty subject; test valid tokens, expired tokens, missing claims, incorrect issuer/audience, tampered signatures, and disallowed algorithms.
+- [x] T2.6.3 Test JWKS caching, key rotation, unknown key IDs, and JWKS outages; distinguish invalid credentials from temporary verification-service failures.
+- [x] T2.6.4 Exercise signed-token API requests to verify user provisioning, scan ownership isolation, and optional invitation enforcement.
 
 ---
 

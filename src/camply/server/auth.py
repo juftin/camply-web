@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import secrets
 import uuid
 from typing import Annotated, Literal, Optional
@@ -59,9 +60,34 @@ def _get_jwks_client() -> PyJWKClient:
 
 
 async def _verify_auth0_token(token: str) -> dict:
-    """Validate an Auth0 RS256 JWT and return its payload."""
+    """
+    Validate an Auth0 RS256 JWT and return its payload.
+
+    Parameters
+    ----------
+    token : str
+        Bearer token presented by the client.
+
+    Returns
+    -------
+    dict
+        Verified claims; ``exp`` and a nonempty string ``sub`` are guaranteed.
+
+    Raises
+    ------
+    HTTPException
+        401 when the credentials are invalid, expired, or unverifiable; 503
+        when the JWKS endpoint is unreachable or returns unusable data, so
+        clients can retry instead of treating a valid session as rejected.
+    """
     try:
         signing_key = _get_jwks_client().get_signing_key_from_jwt(token)
+    except (jwt.PyJWKClientConnectionError, jwt.PyJWKSetError, json.JSONDecodeError):
+        logger.warning("auth0_jwks_unavailable", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to verify credentials right now. Please retry shortly.",
+        ) from None
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -75,6 +101,7 @@ async def _verify_auth0_token(token: str) -> dict:
             algorithms=_AUTH0_ALGORITHMS,
             audience=backend_config.auth0_audience,
             issuer=f"https://{backend_config.auth0_domain}/",
+            options={"require": ["exp", "sub", "iss", "aud"]},
         )
     except jwt.ExpiredSignatureError:
         raise HTTPException(
@@ -86,6 +113,12 @@ async def _verify_auth0_token(token: str) -> dict:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid token: {exc}",
         ) from exc
+    subject = payload.get("sub")
+    if not isinstance(subject, str) or not subject.strip():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token: missing subject",
+        )
     return payload
 
 
