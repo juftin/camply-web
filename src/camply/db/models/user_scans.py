@@ -40,6 +40,8 @@ class UserScan(Base):
         ARRAY(String).with_variant(JSON(), "sqlite")
     )
     require_electric: Mapped[bool] = mapped_column(Boolean, default=False)
+    allowed_weekdays: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
+    """Allowed booking weekdays (Monday=0); null permits every night."""
     created_at: Mapped[datetime.datetime] = mapped_column(
         default=partial(datetime.datetime.now, tz=datetime.timezone.utc),
         server_default=func.CURRENT_TIMESTAMP(),

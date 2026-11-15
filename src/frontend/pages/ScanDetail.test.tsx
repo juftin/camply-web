@@ -96,6 +96,18 @@ describe("Found campsites", () => {
     vi.mocked(getCampground).mockResolvedValue(campground);
   });
 
+  it("shows the saved nights in the scan summary and overview", async () => {
+    vi.mocked(getScan).mockResolvedValue({ ...scan, allowed_weekdays: [0, 2] });
+    open();
+    expect(await screen.findByText("· Monday, Wednesday")).toBeInTheDocument();
+    expect(screen.getByText("Monday, Wednesday")).toBeInTheDocument();
+  });
+
+  it("describes older unrestricted scans as any night", async () => {
+    open();
+    expect(await screen.findByText("· Any night")).toBeInTheDocument();
+  });
+
   it("shows separate date groups with site details and provider links", async () => {
     open();
     const results = await screen.findByRole("region", {

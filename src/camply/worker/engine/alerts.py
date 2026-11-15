@@ -11,6 +11,8 @@ def matching_opening(
     payload: NotificationDTO, scan: UserScan, target: UniqueTarget, today: dt.date
 ) -> NotificationDTO | None:
     """Retain only unexpired nights in qualifying stays under current preferences."""
+    if payload.metadata.get("target_id", str(target.id)) != str(target.id):
+        return None
     dates = sorted(
         {
             value
@@ -27,12 +29,20 @@ def matching_opening(
         scan=scan,
     ):
         return None
-    dates = matching_available_dates(dates, min_stay_length=scan.min_stay_length or 1)
+    dates = matching_available_dates(
+        dates,
+        min_stay_length=scan.min_stay_length or 1,
+        allowed_weekdays=scan.allowed_weekdays,
+    )
     return payload.model_copy(
         update={
             "start_date": dt.date.fromisoformat(dates[0]),
             "end_date": dt.date.fromisoformat(dates[-1]) + dt.timedelta(days=1),
-            "metadata": {**payload.metadata, "available_dates": dates},
+            "metadata": {
+                **payload.metadata,
+                "available_dates": dates,
+                "target_id": str(target.id),
+            },
         }
     )
 
@@ -62,6 +72,7 @@ def summarize_openings(
         start_date=target.start_date,
         end_date=target.end_date,
         metadata={
+            "target_id": str(target.id),
             "new_campsite_count": count,
             "openings": [opening.model_dump(mode="json") for opening in openings],
         },

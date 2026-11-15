@@ -174,6 +174,7 @@ describe("ScanForm editing", () => {
         min_stay_length: 3,
         preferred_types: ["RV", "CUSTOM TYPE", "TENT"],
         require_electric: false,
+        allowed_weekdays: [0, 1, 2, 3, 4, 5, 6],
       }),
     );
     expect(createScan).not.toHaveBeenCalled();
@@ -347,5 +348,138 @@ describe("ScanForm editing", () => {
       ),
     );
     expect(updateScan).not.toHaveBeenCalled();
+  });
+});
+
+describe("ScanForm nights of the week", () => {
+  it("defaults legacy scans to any night and applies weekends without changing dates or stay length", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+    for (const day of [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ]) {
+      expect(screen.getByRole("button", { name: day })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    }
+    await user.click(screen.getByRole("button", { name: "Weekends" }));
+    expect(screen.getByRole("button", { name: "Monday" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.getByRole("button", { name: "Friday" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Saturday" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByLabelText("Minimum Stay (nights)")).toHaveValue(2);
+    expect(screen.getByLabelText("Check-in")).toHaveTextContent(
+      formatDisplayDate(savedScan.start_date),
+    );
+    expect(screen.getByLabelText("Check-out")).toHaveTextContent(
+      formatDisplayDate(savedScan.end_date),
+    );
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() =>
+      expect(updateScan).toHaveBeenCalledWith(
+        savedScan.id,
+        expect.objectContaining({ allowed_weekdays: [4, 5] }),
+      ),
+    );
+  });
+
+  it("restores saved nights and supports keyboard changes, cancel and any-night reset", async () => {
+    const user = userEvent.setup();
+    renderForm({ ...savedScan, allowed_weekdays: [0, 2], min_stay_length: 1 });
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+    const monday = screen.getByRole("button", { name: "Monday" });
+    expect(monday).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Tuesday" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    monday.focus();
+    await user.keyboard(" ");
+    expect(monday).toHaveAttribute("aria-pressed", "false");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+    expect(screen.getByRole("button", { name: "Monday" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await user.click(screen.getByRole("button", { name: "Any night" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() =>
+      expect(updateScan).toHaveBeenCalledWith(
+        savedScan.id,
+        expect.objectContaining({ allowed_weekdays: [0, 1, 2, 3, 4, 5, 6] }),
+      ),
+    );
+  });
+
+  it("rejects an empty night selection without submitting", async () => {
+    const user = userEvent.setup();
+    renderForm({ ...savedScan, allowed_weekdays: [0], min_stay_length: 1 });
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+    await user.click(screen.getByRole("button", { name: "Monday" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(
+      await screen.findByText("Select at least one night."),
+    ).toBeInTheDocument();
+    expect(updateScan).not.toHaveBeenCalled();
+  });
+
+  it("rejects impossible weekend stay lengths without silently widening the selection", async () => {
+    const user = userEvent.setup();
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+    await user.click(screen.getByRole("button", { name: "Weekends" }));
+    fireEvent.change(screen.getByLabelText("Minimum Stay (nights)"), {
+      target: { value: "3" },
+    });
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(
+      await screen.findByText(
+        /Extend the dates, select more nights, or reduce the stay length/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sunday" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(updateScan).not.toHaveBeenCalled();
+  });
+
+  it("preserves custom nights through quick dates and a failed save", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateScan).mockRejectedValueOnce(new Error("Save unavailable"));
+    renderForm({ ...savedScan, allowed_weekdays: [4, 5] });
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+    await user.click(screen.getByRole("button", { name: "Next Weekend" }));
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Save unavailable",
+    );
+    expect(screen.getByRole("button", { name: "Friday" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Sunday" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() => expect(updateScan).toHaveBeenCalledTimes(2));
   });
 });

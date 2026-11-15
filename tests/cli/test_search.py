@@ -805,3 +805,29 @@ def test_rich_cli_screenshot_html_and_svg_export() -> None:
         assert "Wed, July" in export
         assert "https://www.recreation.gov/camping/campsites/1001" in export
         assert "Exiting camply" in export
+
+
+def test_weekends_only_print_full_weekend_stay(transcript: Transcript) -> None:
+    """The public command excludes Sunday occupied nights but permits Sunday checkout."""
+    result = CliRunner().invoke(
+        cli,
+        ["campsites", "--campground", "001", *_DATES, "--weekends", "--nights", "2"],
+    )
+    assert result.exit_code == 1
+    assert result.stdout.count("📅 Fri, July 09 🏕  1 sites") == 2
+    assert "📅 Sat, July 10" not in result.stdout
+    assert "📅 Sun, July 11" not in result.stdout
+    assert "(2 nights)" in result.stdout
+
+
+def test_impossible_weekend_three_nights_avoids_provider_io(
+    transcript: Transcript,
+) -> None:
+    """Do not widen weekend selections or shorten a requested CLI stay."""
+    result = CliRunner().invoke(
+        cli,
+        ["campsites", "--campground", "001", *_DATES, "--weekends", "--nights", "3"],
+    )
+    assert result.exit_code != 0
+    assert "cannot contain" in result.stderr
+    assert transcript.checks == []

@@ -141,14 +141,24 @@ async def test_distributed_ntfy_without_pushover(
         user.notification_provider = "ntfy"
         user.pushover_token = None
         await session.commit()
+    today = dt.datetime.now(dt.timezone.utc).date()
     payload = NotificationDTO(
         park_name="Park",
         campsite_name="Site",
-        start_date=dt.date(2027, 1, 1),
-        end_date=dt.date(2027, 1, 3),
+        start_date=today,
+        end_date=today + dt.timedelta(days=2),
         title="Alert",
         message="Opening",
         booking_url="https://example.test",
+        metadata={
+            "campsite_id": "synthetic-site",
+            "campsite_type": "TENT",
+            "is_electric": False,
+            "available_dates": [
+                today.isoformat(),
+                (today + dt.timedelta(days=1)).isoformat(),
+            ],
+        },
     ).model_dump(mode="json")
     with patch.object(NtfyProvider, "send_alert", new_callable=AsyncMock) as send:
         result = await send_notification(

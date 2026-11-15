@@ -22,7 +22,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from camply.db.availability import matching_scan_results
+from camply.db.availability import matching_scan_results, validate_scan_dates
 from camply.db.models import (
     Campground as CampgroundDB,
 )
@@ -100,6 +100,7 @@ async def _scan_to_response(
         min_stay_length=scan.min_stay_length,
         preferred_types=scan.preferred_types or [],
         require_electric=scan.require_electric,
+        allowed_weekdays=scan.allowed_weekdays or list(range(7)),
         last_checked_at=scan.target.last_checked_at,
         found_count=found_count,
         created_at=scan.created_at,
@@ -182,6 +183,25 @@ async def _edited_target(
             detail="A scan for this campground and date range already exists",
         )
     return target
+
+
+def _validate_scan_criteria(
+    *,
+    start_date: datetime.date,
+    end_date: datetime.date,
+    min_stay_length: int,
+    allowed_weekdays: list[int] | None,
+) -> None:
+    """Translate impossible calendar combinations to actionable request errors."""
+    try:
+        validate_scan_dates(
+            start_date=start_date,
+            end_date=end_date,
+            min_stay_length=min_stay_length,
+            allowed_weekdays=allowed_weekdays,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -302,6 +322,13 @@ async def create_scan(
             detail=f"Campground {body.campground_id!r} not found for provider {body.provider_id}",
         )
 
+    _validate_scan_criteria(
+        start_date=body.start_date,
+        end_date=body.end_date,
+        min_stay_length=body.min_stay_length,
+        allowed_weekdays=body.allowed_weekdays,
+    )
+
     # Check / create unique target (de-duplication)
     target = await _get_or_create_target(
         session,
@@ -330,6 +357,9 @@ async def create_scan(
         min_stay_length=body.min_stay_length,
         preferred_types=body.preferred_types,
         require_electric=body.require_electric,
+        allowed_weekdays=body.allowed_weekdays
+        if body.allowed_weekdays != list(range(7))
+        else None,
     )
     session.add(user_scan)
     await session.commit()
@@ -419,6 +449,7 @@ async def get_scan(
         min_stay_length=scan.min_stay_length,
         preferred_types=scan.preferred_types or [],
         require_electric=scan.require_electric,
+        allowed_weekdays=scan.allowed_weekdays or list(range(7)),
         last_checked_at=scan.target.last_checked_at,
         found_count=len(result_items),
         created_at=scan.created_at,
@@ -467,6 +498,21 @@ async def update_scan(
         )
 
     if body.model_fields_set & {
+        "start_date",
+        "end_date",
+        "min_stay_length",
+        "allowed_weekdays",
+    }:
+        _validate_scan_criteria(
+            start_date=body.start_date or scan.target.start_date,
+            end_date=body.end_date or scan.target.end_date,
+            min_stay_length=body.min_stay_length or scan.min_stay_length,
+            allowed_weekdays=body.allowed_weekdays
+            if "allowed_weekdays" in body.model_fields_set
+            else scan.allowed_weekdays,
+        )
+
+    if body.model_fields_set & {
         "provider_id",
         "campground_id",
         "start_date",
@@ -482,6 +528,10 @@ async def update_scan(
         scan.preferred_types = body.preferred_types
     if body.require_electric is not None:
         scan.require_electric = body.require_electric
+    if "allowed_weekdays" in body.model_fields_set:
+        scan.allowed_weekdays = (
+            body.allowed_weekdays if body.allowed_weekdays != list(range(7)) else None
+        )
 
     await session.commit()
     await session.refresh(scan)

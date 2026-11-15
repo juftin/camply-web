@@ -88,3 +88,93 @@ def test_expire_nights_before_applying_minimum_stay() -> None:
     assert [(site.campsite_id, dates) for site, dates in results] == [
         ("remaining", [today.isoformat(), tomorrow.isoformat()])
     ]
+
+
+@pytest.mark.parametrize("mask", range(1, 128))
+def test_every_weekday_subset_filters_booking_nights(mask: int) -> None:
+    """Every nonempty day selection retains exactly the requested booking dates."""
+    start = datetime.date(2027, 6, 1)
+    dates = [start + datetime.timedelta(days=offset) for offset in range(21)]
+    selected = [day for day in range(7) if mask & (1 << day)]
+    assert matching_available_dates(
+        [night.isoformat() for night in dates],
+        min_stay_length=1,
+        allowed_weekdays=selected,
+    ) == [night.isoformat() for night in dates if night.weekday() in selected]
+
+
+@pytest.mark.parametrize(
+    ("dates", "selected", "minimum", "expected"),
+    [
+        (
+            ["2027-07-01", "2027-07-02", "2027-07-03", "2027-07-04"],
+            [4, 5],
+            2,
+            ["2027-07-02", "2027-07-03"],
+        ),
+        (["2027-07-02", "2027-07-03", "2027-07-04"], [4, 5], 3, []),
+        (["2027-07-04", "2027-07-05"], [6, 0], 2, ["2027-07-04", "2027-07-05"]),
+        (["2027-07-02", "2027-07-09"], [4], 2, []),
+        (["2027-12-31", "2028-01-01"], [4, 5], 2, ["2027-12-31", "2028-01-01"]),
+        (["2028-02-28", "2028-02-29", "2028-03-01"], [0, 2], 2, []),
+    ],
+)
+def test_weekday_filter_precedes_consecutive_matching(
+    dates: list[str], selected: list[int], minimum: int, expected: list[str]
+) -> None:
+    """Excluded nights break blocks; week and year boundaries do not."""
+    assert (
+        matching_available_dates(
+            dates, min_stay_length=minimum, allowed_weekdays=selected
+        )
+        == expected
+    )
+
+
+def test_saved_nights_filter_returned_dates_and_subscribers() -> None:
+    """Subscribers share observations without leaking excluded dates into results."""
+    target = UniqueTarget(
+        start_date=datetime.date(2099, 7, 1), end_date=datetime.date(2099, 7, 9)
+    )
+    dates = [datetime.date(2099, 7, day).isoformat() for day in range(1, 9)]
+    target.scan_results = [ScanResult(campsite_id="one", available_dates=dates)]
+    weekends = UserScan(target=target, min_stay_length=2, allowed_weekdays=[4, 5])
+    weekdays = UserScan(target=target, min_stay_length=1, allowed_weekdays=[0, 2])
+    for scan in [weekends, weekdays]:
+        assert matching_scan_results(scan)[0][1] == [
+            night
+            for night in dates
+            if datetime.date.fromisoformat(night).weekday() in scan.allowed_weekdays
+        ]
+    assert target.scan_results[0].available_dates == dates
+
+
+@pytest.mark.parametrize(
+    ("selected", "minimum", "valid"),
+    [
+        ([4, 5], 2, True),
+        ([4, 5], 3, False),
+        ([0, 2], 2, False),
+        ([0, 6], 2, True),
+        (None, 8, True),
+        ([], 1, False),
+    ],
+)
+def test_calendar_feasibility(
+    selected: list[int] | None, minimum: int, valid: bool
+) -> None:
+    """Validate the calendar independently of provider availability."""
+    from camply.db.availability import validate_scan_dates
+
+    kwargs = {
+        "start_date": datetime.date(2027, 7, 1),
+        "end_date": datetime.date(2027, 7, 15),
+        "allowed_weekdays": selected,
+        "min_stay_length": minimum,
+        "today": datetime.date(2027, 1, 1),
+    }
+    if valid:
+        validate_scan_dates(**kwargs)
+    else:
+        with pytest.raises(ValueError, match="selected nights"):
+            validate_scan_dates(**kwargs)
