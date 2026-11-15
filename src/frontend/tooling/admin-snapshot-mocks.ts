@@ -239,6 +239,46 @@ export async function setupAdminSnapshotMocks(
       body = { users: USERS, total: USERS.length };
     } else if (endpoint.startsWith("users/")) {
       body = USERS.find((user) => endpoint.endsWith(user.id));
+    } else if (endpoint === "access-requests") {
+      body = {
+        items: [
+          {
+            id: "req-mock-1",
+            email: "hiker@example.test",
+            name: "Alex Camper",
+            status: "pending",
+            created_at: NOW,
+            updated_at: NOW,
+            reviewed_at: null,
+            reviewed_by_id: null,
+            user_id: null,
+          },
+          {
+            id: "req-mock-2",
+            email: "camper@example.test",
+            name: null,
+            status: "approved",
+            created_at: "2026-10-05T11:50:00Z",
+            updated_at: "2026-10-05T12:00:00Z",
+            reviewed_at: "2026-10-05T12:00:00Z",
+            reviewed_by_id: USERS[0].id,
+            user_id: USERS[1].id,
+          },
+        ],
+        total: 2,
+      };
+    } else if (endpoint.startsWith("access-requests/")) {
+      body = {
+        id: "req-mock-1",
+        email: "hiker@example.test",
+        name: "Alex Camper",
+        status: "approved",
+        created_at: NOW,
+        updated_at: NOW,
+        reviewed_at: NOW,
+        reviewed_by_id: USERS[0].id,
+        user_id: null,
+      };
     } else if (endpoint === "scans") {
       const owner = url.searchParams.get("owner_id");
       const scans = owner
