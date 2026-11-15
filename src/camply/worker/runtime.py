@@ -14,9 +14,11 @@ from camply.db.config import DatabaseConfig
 from camply.providers import PROVIDERS
 from camply.worker.config import worker_config
 from camply.worker.engine.catalog import enrich_provider_details, populate_provider
+from camply.worker.engine.coverage import recover_interrupted_attempts
 from camply.worker.engine.discovery import due_targets
 from camply.worker.engine.scanner import check_target
 from camply.worker.outbox import (
+    MAX_ATTEMPTS,
     deliver_next,
     is_sqlite_busy,
     prune_finished,
@@ -124,6 +126,7 @@ class LocalRunner:
 
     async def start(self) -> None:
         """Recover persisted alerts before starting supervised asynchronous loops."""
+        await recover_interrupted_attempts(self.database.get_session)
         await recover_deliveries(self.database)
         await prune_finished(self.database)
         self.tasks = [
@@ -167,6 +170,7 @@ class LocalRunner:
                 targets = await due_targets(
                     sessions=self.database.get_session,
                     cooldown=self.cooldown,
+                    heartbeat=self.heartbeat,
                     limit=100,
                     today=now.date(),
                     invite_only=self.invite_only,
@@ -229,6 +233,7 @@ class LocalRunner:
                     sessions=self.database.get_session,
                     registry=PROVIDERS,
                     persistent=True,
+                    terminal_attempt=attempt >= MAX_ATTEMPTS,
                     notification_mode=worker_config.notification_mode,
                     app_url=str(worker_config.app_url),
                     invite_only=self.invite_only,

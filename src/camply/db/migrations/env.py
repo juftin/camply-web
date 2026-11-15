@@ -44,12 +44,23 @@ def do_migrations(connection: Connection) -> None:
     """
     Perform migrations using the provided connection.
     """
+    sqlite = connection.dialect.name == "sqlite"
+    if sqlite:
+        connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        connection.commit()
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
     )
-    with context.begin_transaction():
-        context.run_migrations()
+    try:
+        with context.begin_transaction():
+            context.run_migrations()
+        if sqlite and connection.exec_driver_sql("PRAGMA foreign_key_check").first():
+            raise RuntimeError("Migration left invalid foreign-key references")
+    finally:
+        if sqlite:
+            connection.commit()
+            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
 
 
 async def run_migrations_online_async() -> None:

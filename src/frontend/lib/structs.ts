@@ -125,8 +125,12 @@ export interface MeUpdateRequest {
 // ---- Scans ----
 
 export interface ScanCreateRequest {
+  destination_type?: "campground" | "recreation_area";
+  recreation_area_id?: string;
+  coverage_mode?: "all" | "selected";
+  campground_ids?: string[];
   provider_id: number;
-  campground_id: string;
+  campground_id?: string;
   start_date: string; // YYYY-MM-DD
   end_date: string; // YYYY-MM-DD
   min_stay_length?: number;
@@ -137,6 +141,11 @@ export interface ScanCreateRequest {
 export type ScanUpdateRequest = components["schemas"]["ScanUpdateRequest"];
 
 export interface ScanResultItem {
+  provider_id?: number;
+  campground_id?: string;
+  campground_name?: string;
+  last_checked_at?: string | null;
+  is_stale?: boolean;
   campsite_id: string;
   campsite_name: string;
   available_dates: string[];
@@ -147,10 +156,25 @@ export interface ScanResultItem {
 }
 
 export interface ScanResponse {
+  destination_type?: "campground" | "recreation_area";
+  destination_name?: string;
+  recreation_area_id?: string | null;
+  coverage_mode?: "all" | "selected" | null;
+  campground_ids?: string[];
+  eligible_campground_count?: number;
+  unavailable_selection_count?: number;
+  matching_campground_count?: number;
+  destination_available?: boolean;
+  coverage_status?: string;
+  checked_campground_count?: number;
+  failed_campground_count?: number;
+  pending_campground_count?: number;
+  last_full_checked_at?: string | null;
+  row_version?: number;
   id: string;
   provider_id: number;
-  campground_id: string;
-  campground_name: string;
+  campground_id: string | null;
+  campground_name: string | null;
   recreation_area_name: string;
   start_date: string;
   end_date: string;
@@ -169,6 +193,16 @@ export interface ScanListResponse {
 }
 
 export interface ScanDetailResponse extends ScanResponse {
+  campgrounds?: {
+    provider_id: number;
+    campground_id: string;
+    campground_name: string;
+    eligible: boolean;
+    target_id?: string | null;
+    outcome: string;
+    last_checked_at?: string | null;
+    unavailable_reason?: string | null;
+  }[];
   results: ScanResultItem[];
 }
 
@@ -191,9 +225,18 @@ export type AdminUserCreateRequest =
   components["schemas"]["AdminUserCreateRequest"];
 export type AdminUserUpdateRequest =
   components["schemas"]["AdminUserUpdateRequest"];
-export type AdminScanItem = components["schemas"]["AdminScanItem"];
-export type AdminScanListResponse =
-  components["schemas"]["AdminScanListResponse"];
+export type AdminScanItem = Omit<
+  components["schemas"]["AdminScanItem"],
+  keyof ScanResponse
+> &
+  Omit<
+    ScanResponse,
+    | "recreation_area_name"
+    | "min_stay_length"
+    | "preferred_types"
+    | "require_electric"
+  >;
+export type AdminScanListResponse = { scans: AdminScanItem[]; total: number };
 export type AdminScanDetailResponse =
   components["schemas"]["AdminScanDetailResponse"];
 export type AdminScanUpdateRequest =
@@ -231,3 +274,20 @@ export type SearchMapMembers =
 export type SearchMapGroup = components["schemas"]["SearchMapGroup"];
 
 export type MapSearchResult = components["schemas"]["SearchResultResponse"];
+
+export interface MonitoringCampgroundsResponse {
+  items: {
+    id: string;
+    provider_id: number;
+    recreation_area_id: string;
+    name: string;
+    state?: string | null;
+    city?: string | null;
+  }[];
+  total: number;
+  eligible_total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+  catalog_revision: number;
+}

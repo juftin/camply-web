@@ -118,7 +118,11 @@ export function Dashboard() {
   const foundCount = scans.reduce((acc, s) => acc + s.found_count, 0);
   const campgroundGroups = new Map<string, ScanResponse[]>();
   for (const scan of scans) {
-    const key = `${scan.provider_id}:${scan.campground_id}`;
+    const destinationId =
+      scan.destination_type === "recreation_area"
+        ? scan.recreation_area_id
+        : scan.campground_id;
+    const key = `${scan.provider_id}:${scan.destination_type ?? "campground"}:${destinationId}`;
     const group = campgroundGroups.get(key) ?? [];
     group.push(scan);
     campgroundGroups.set(key, group);
@@ -325,9 +329,10 @@ export function Dashboard() {
                   <div className="min-w-0">
                     <h3 className="font-semibold break-words">
                       {toTitleCase(
-                        campground.campground_name ||
+                        campground.destination_name ||
+                          campground.campground_name ||
                           campground.recreation_area_name ||
-                          "Unknown Campground",
+                          "Unknown Destination",
                       )}
                     </h3>
                     {campground.recreation_area_name &&

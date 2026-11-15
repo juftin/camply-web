@@ -2,6 +2,7 @@
 
 import datetime
 
+from camply.db.coverage import live_targets
 from camply.db.models import ScanResult, UserScan
 
 
@@ -42,17 +43,26 @@ def matches_scan_filters(
 
 def matching_scan_results(scan: UserScan) -> list[tuple[ScanResult, list[str]]]:
     """Return matching sites after expiring past nights and applying target dates."""
+    targets = live_targets(scan)
+    if not targets:
+        return []
     first_night = max(
-        scan.target.start_date,
+        scan.start_date or targets[0].start_date,
         datetime.datetime.now(tz=datetime.timezone.utc).date(),
     ).isoformat()
-    checkout = scan.target.end_date.isoformat()
-    grouped: dict[str, tuple[ScanResult, list[str]]] = {}
-    for result in scan.target.scan_results:
-        _, nights = grouped.setdefault(result.campsite_id, (result, []))
-        nights.extend(
-            night for night in result.available_dates if first_night <= night < checkout
-        )
+    checkout = (scan.end_date or targets[0].end_date).isoformat()
+    grouped: dict[tuple[int, str, str], tuple[ScanResult, list[str]]] = {}
+    for target in targets:
+        for result in target.scan_results:
+            _, nights = grouped.setdefault(
+                (target.provider_id, target.campground_id, result.campsite_id),
+                (result, []),
+            )
+            nights.extend(
+                night
+                for night in result.available_dates
+                if first_night <= night < checkout
+            )
     return [
         (
             result,

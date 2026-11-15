@@ -62,6 +62,7 @@ interface Scenario {
   theme: "light" | "dark";
   description: string;
   emptyScans?: boolean;
+  areaScans?: boolean;
   partialOperations?: boolean;
   missingMeasurements?: boolean;
   manyCampsites?: boolean;
@@ -223,6 +224,22 @@ const SCENARIOS: Scenario[] = [
     viewport: { width: 1280, height: 800 },
     theme: "light",
     description: "Admin scan detail with synthetic data (desktop, light)",
+  },
+  {
+    name: "admin-area-scan-detail-desktop-light",
+    route: "/admin/scans/area-scan-mock-1",
+    viewport: { width: 1280, height: 800 },
+    theme: "light",
+    description:
+      "Admin area scan detail with partial coverage members and attributed results (desktop, light)",
+  },
+  {
+    name: "admin-area-scan-detail-mobile-dark",
+    route: "/admin/scans/area-scan-mock-1",
+    viewport: { width: 390, height: 844 },
+    theme: "dark",
+    description:
+      "Admin area scan detail with partial coverage members and attributed results (mobile, dark)",
   },
   {
     name: "admin-target-detail-desktop-light",
@@ -634,6 +651,73 @@ const SCENARIOS: Scenario[] = [
       await page.waitForTimeout(200);
     },
   })),
+  ...(["light", "dark"] as const).flatMap((theme) =>
+    (["desktop", "mobile"] as const).map((size) => ({
+      name: `area-scan-detail-${size}-${theme}`,
+      route: "/dashboard/scans/area-scan-mock-1",
+      viewport:
+        size === "desktop"
+          ? { width: 1280, height: 800 }
+          : { width: 390, height: 844 },
+      theme,
+      description: `Area scan detail with partial coverage and attributed results (${size}, ${theme})`,
+      action: async (page: Page) => {
+        await page
+          .getByRole("region", { name: "Campground coverage" })
+          .waitFor();
+        if (
+          await page.evaluate(
+            () => document.documentElement.scrollWidth > window.innerWidth,
+          )
+        )
+          throw new Error("Area scan detail overflows the viewport");
+      },
+    })),
+  ),
+  ...(["desktop", "mobile"] as const).map((size) => ({
+    name: `area-dashboard-${size}-${size === "desktop" ? "light" : "dark"}`,
+    route: "/dashboard",
+    viewport:
+      size === "desktop"
+        ? { width: 1280, height: 800 }
+        : { width: 390, height: 844 },
+    theme: size === "desktop" ? ("light" as const) : ("dark" as const),
+    areaScans: true,
+    description: `Dashboard displaying area all-campgrounds and selected-subset scan cards (${size})`,
+    action: async (page: Page) => {
+      await page.locator("details > summary").first().click();
+      await page
+        .getByRole("button", { name: "Edit scan", exact: true })
+        .first()
+        .waitFor();
+      if (
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > window.innerWidth,
+        )
+      )
+        throw new Error("Area dashboard overflows the viewport");
+    },
+  })),
+  ...(["desktop", "mobile"] as const).map((size) => ({
+    name: `area-picker-${size}-${size === "desktop" ? "light" : "dark"}`,
+    route: "/rec-area/1/2991",
+    viewport:
+      size === "desktop"
+        ? { width: 1280, height: 800 }
+        : { width: 390, height: 844 },
+    theme: size === "desktop" ? ("light" as const) : ("dark" as const),
+    description: `Monitor recreation area dialog with selected campground coverage picker (${size})`,
+    action: async (page: Page) => {
+      await page
+        .getByRole("button", { name: "Monitor recreation area" })
+        .click();
+      const dialog = page.getByRole("dialog");
+      await dialog.waitFor();
+      await dialog.getByLabel("Selected campgrounds").click();
+      await dialog.getByText("Upper Pines Campground").first().waitFor();
+      await page.waitForTimeout(150);
+    },
+  })),
   {
     name: "home-search-dropdown-desktop-light",
     route: "/",
@@ -1025,6 +1109,69 @@ const MOCK_SCANS = [
   },
 ];
 
+const MOCK_AREA_SCANS = [
+  {
+    id: "area-scan-mock-1",
+    provider_id: 1,
+    destination_type: "recreation_area",
+    destination_name: "Yosemite National Park",
+    campground_id: null,
+    campground_name: null,
+    recreation_area_id: "2991",
+    recreation_area_name: "Yosemite National Park",
+    coverage_mode: "selected",
+    campground_ids: ["232447", "232499"],
+    destination_available: true,
+    eligible_campground_count: 1,
+    unavailable_selection_count: 1,
+    matching_campground_count: 1,
+    checked_campground_count: 1,
+    pending_campground_count: 0,
+    failed_campground_count: 1,
+    coverage_status: "partial",
+    row_version: 2,
+    start_date: "2026-11-15",
+    end_date: "2026-11-19",
+    is_active: true,
+    min_stay_length: 2,
+    preferred_types: ["TENT ONLY"],
+    require_electric: false,
+    last_checked_at: "2026-10-10T11:59:40Z",
+    found_count: 2,
+    created_at: "2026-06-15T08:00:00Z",
+  },
+  {
+    id: "area-scan-mock-2",
+    provider_id: 1,
+    destination_type: "recreation_area",
+    destination_name: "Sequoia National Park",
+    campground_id: null,
+    campground_name: null,
+    recreation_area_id: "2992",
+    recreation_area_name: "Sequoia National Park",
+    coverage_mode: "all",
+    campground_ids: [],
+    destination_available: true,
+    eligible_campground_count: 6,
+    unavailable_selection_count: 0,
+    matching_campground_count: 2,
+    checked_campground_count: 6,
+    pending_campground_count: 0,
+    failed_campground_count: 0,
+    coverage_status: "complete",
+    row_version: 1,
+    start_date: "2026-12-01",
+    end_date: "2026-12-05",
+    is_active: true,
+    min_stay_length: 1,
+    preferred_types: [],
+    require_electric: false,
+    last_checked_at: "2026-10-10T12:00:00Z",
+    found_count: 4,
+    created_at: "2026-06-20T10:00:00Z",
+  },
+];
+
 const MOCK_CAMPGROUNDS = [
   {
     id: "232447",
@@ -1312,8 +1459,75 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        scans: scenario.emptyScans ? [] : MOCK_SCANS,
-        total: scenario.emptyScans ? 0 : MOCK_SCANS.length,
+        scans: scenario.emptyScans
+          ? []
+          : scenario.areaScans
+            ? MOCK_AREA_SCANS
+            : MOCK_SCANS,
+        total: scenario.emptyScans
+          ? 0
+          : scenario.areaScans
+            ? MOCK_AREA_SCANS.length
+            : MOCK_SCANS.length,
+      }),
+    });
+  });
+
+  await page.route("**/api/scans/area-scan-mock-1", (route) => {
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...MOCK_AREA_SCANS[0],
+        campgrounds: [
+          {
+            provider_id: 1,
+            campground_id: "232447",
+            campground_name: "Upper Pines Campground",
+            eligible: true,
+            outcome: "success",
+            target_id: "target-mock-1",
+          },
+          {
+            provider_id: 1,
+            campground_id: "232499",
+            campground_name: "Closed Basin Campground",
+            eligible: false,
+            outcome: "failed",
+            unavailable_reason:
+              "Campground is no longer eligible in this recreation area",
+          },
+        ],
+        results: [
+          {
+            provider_id: 1,
+            campground_id: "232447",
+            campground_name: "Upper Pines Campground",
+            is_stale: true,
+            campsite_id: "site-401",
+            campsite_name: "Upper Pines Site 042",
+            campsite_type: "TENT ONLY",
+            is_electric: false,
+            is_accessible: true,
+            booking_url:
+              "https://www.recreation.gov/camping/campgrounds/232447",
+            available_dates: ["2026-11-15", "2026-11-16"],
+          },
+          {
+            provider_id: 1,
+            campground_id: "232447",
+            campground_name: "Upper Pines Campground",
+            is_stale: true,
+            campsite_id: "site-402",
+            campsite_name: "Upper Pines Site 048",
+            campsite_type: "TENT ONLY",
+            is_electric: false,
+            is_accessible: false,
+            booking_url:
+              "https://www.recreation.gov/camping/campgrounds/232447",
+            available_dates: ["2026-11-15", "2026-11-16", "2026-11-17"],
+          },
+        ],
       }),
     });
   });
@@ -1553,6 +1767,27 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
     route.fulfill({
       contentType: "application/json",
       body: JSON.stringify(MOCK_CAMPGROUNDS),
+    }),
+  );
+  await page.route("**/api/rec-area/1/2991/monitoring-campgrounds*", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: MOCK_CAMPGROUNDS.map((item) => ({
+          id: item.id,
+          provider_id: item.provider_id,
+          recreation_area_id: item.recreation_area_id,
+          name: item.name,
+          state: item.state,
+          city: "Yosemite Valley",
+        })),
+        total: MOCK_CAMPGROUNDS.length,
+        eligible_total: MOCK_CAMPGROUNDS.length,
+        limit: 50,
+        offset: 0,
+        has_more: false,
+        catalog_revision: 1,
+      }),
     }),
   );
 }

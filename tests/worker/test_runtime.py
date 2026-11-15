@@ -28,6 +28,9 @@ async def test_runner_shutdown_cancels_waiters() -> None:
     """Stop every local task without leaving a blocked queue consumer behind."""
     runner = LocalRunner(DatabaseConfig(HOST=":memory:"), heartbeat=300, cooldown=55)
     with (
+        patch(
+            "camply.worker.runtime.recover_interrupted_attempts", new_callable=AsyncMock
+        ),
         patch("camply.worker.runtime.prune_finished", new_callable=AsyncMock),
         patch("camply.worker.runtime.recover_deliveries", new_callable=AsyncMock),
         patch(
@@ -181,6 +184,9 @@ async def test_storage_fault_stops_notification_readiness() -> None:
         "synthetic missing table", {}, sqlite3.OperationalError()
     )
     with (
+        patch(
+            "camply.worker.runtime.recover_interrupted_attempts", new_callable=AsyncMock
+        ),
         patch("camply.worker.runtime.recover_deliveries", new_callable=AsyncMock),
         patch("camply.worker.runtime.prune_finished", new_callable=AsyncMock),
         patch(
@@ -257,3 +263,73 @@ async def test_local_enrichment_failure_yields_and_preserves_other_providers() -
     assert enrich.await_count == 2
     pause.assert_awaited_once_with(300)
     assert [row["outcome"] for row in runner.recent()] == ["error", "error"]
+
+
+@pytest.mark.anyio
+async def test_local_runner_recovers_attempts_passes_heartbeat_and_polls_notifications() -> (
+    None
+):
+    """LocalRunner recovers interrupted attempts on boot, passes heartbeat, and drains alerts <=1s."""
+    runner = LocalRunner(DatabaseConfig(HOST=":memory:"), heartbeat=180, cooldown=55)
+    with (
+        patch(
+            "camply.worker.runtime.recover_interrupted_attempts", new_callable=AsyncMock
+        ) as rec_attempts,
+        patch("camply.worker.runtime.recover_deliveries", new_callable=AsyncMock),
+        patch("camply.worker.runtime.prune_finished", new_callable=AsyncMock),
+        patch(
+            "camply.worker.runtime.enrich_provider_details",
+            new_callable=AsyncMock,
+            return_value={"status": "skipped", "has_more": False},
+        ),
+        patch(
+            "camply.worker.runtime.due_targets", new_callable=AsyncMock, return_value=[]
+        ) as due,
+        patch(
+            "camply.worker.runtime.deliver_next",
+            new_callable=AsyncMock,
+            side_effect=[
+                {"outcome": "success", "entity_type": "scan", "entity_id": "scan-1"},
+                None,
+            ],
+        ),
+    ):
+        await runner.start()
+        try:
+            await asyncio.sleep(0.01)
+            rec_attempts.assert_awaited_once()
+            due.assert_awaited()
+            assert due.await_args is not None
+            assert due.await_args.kwargs.get("heartbeat") == 180
+        finally:
+            await runner.close()
+
+        # Verify the notification loop sleeps <= 1s when idle and records scan telemetry.
+        runner2 = LocalRunner(
+            DatabaseConfig(HOST=":memory:"), heartbeat=180, cooldown=55
+        )
+        with (
+            patch(
+                "camply.worker.runtime.deliver_next",
+                new_callable=AsyncMock,
+                side_effect=[
+                    {
+                        "outcome": "success",
+                        "entity_type": "scan",
+                        "entity_id": "scan-1",
+                    },
+                    None,
+                ],
+            ),
+            patch(
+                "camply.worker.runtime.asyncio.sleep",
+                new_callable=AsyncMock,
+                side_effect=asyncio.CancelledError,
+            ) as sleep2,
+        ):
+            with pytest.raises(asyncio.CancelledError):
+                await runner2._notifications()
+        assert sleep2.await_args is not None
+        assert sleep2.await_args.args[0] <= 1.0
+        assert runner2.recent()[0]["entity_type"] == "scan"
+        assert runner2.recent()[0]["entity_id"] == "scan-1"

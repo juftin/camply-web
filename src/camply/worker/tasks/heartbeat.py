@@ -52,7 +52,10 @@ async def _discover_targets_async() -> dict:
     Async implementation of target discovery.
     """
     targets = await due_targets(
-        sessions=db.get_session, cooldown=worker_config.target_cooldown
+        sessions=db.get_session,
+        cooldown=worker_config.target_cooldown,
+        heartbeat=worker_config.heartbeat_interval,
+        limit=100,
     )
     enqueued = 0
     for target in targets:

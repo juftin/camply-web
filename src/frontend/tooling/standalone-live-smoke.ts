@@ -46,6 +46,23 @@ try {
       fullPage: true,
     });
   }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(`${origin}/dashboard`);
+  await expect(page.getByText("Synthetic Basin").first()).toBeVisible();
+  const scansResponse = await page.request.get(`${origin}/api/scans`);
+  expect(scansResponse.ok()).toBe(true);
+  const areaScan = (await scansResponse.json()).scans.find(
+    (item: { destination_type: string; coverage_mode: string }) =>
+      item.destination_type === "recreation_area" &&
+      item.coverage_mode === "all",
+  );
+  expect(areaScan).toBeTruthy();
+  await page.goto(`${origin}/dashboard/scans/${areaScan.id}#results`);
+  await expect(
+    page.getByRole("region", { name: "Campground coverage" }),
+  ).toBeVisible();
+  await expect(page.getByText("Synthetic Ridge").first()).toBeVisible();
+  await expect(page.getByText("Synthetic Cove").first()).toBeVisible();
   expect(errors).toEqual([]);
 } finally {
   await browser.close();

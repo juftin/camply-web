@@ -86,6 +86,15 @@ def test_postgres_populated_upgrade() -> None:
             assert connection.execute(
                 "SELECT COUNT(*) FROM notification_outbox"
             ).fetchone() == (0,)
+            assert connection.execute(
+                "SELECT COUNT(*) FROM scan_targets"
+            ).fetchone() == (0,)
+            assert (
+                connection.execute(
+                    "SELECT catalog_revision FROM providers WHERE id = 1"
+                ).fetchone()[0]
+                == 0
+            )
     finally:
         subprocess.run(
             ["docker", "rm", "--force", container], check=False, capture_output=True

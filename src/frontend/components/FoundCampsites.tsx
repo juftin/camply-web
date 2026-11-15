@@ -127,11 +127,17 @@ const CampsiteDateGroup = ({
           const name = site.campsite_name || `Campsite ${site.campsite_id}`;
           return (
             <li
-              key={site.campsite_id}
+              key={`${site.provider_id}:${site.campground_id}:${site.campsite_id}`}
               className="flex items-center justify-between gap-2 py-2"
             >
               <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-6">
                 <h3 className="min-w-20 break-words text-sm font-semibold">
+                  {site.campground_name && (
+                    <span className="block text-xs text-muted-foreground">
+                      {site.campground_name}
+                      {site.is_stale ? " · Stale observation" : ""}
+                    </span>
+                  )}
                   {name}
                 </h3>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
@@ -150,7 +156,7 @@ const CampsiteDateGroup = ({
                   href={site.booking_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`View ${name} on provider website`}
+                  aria-label={`View ${name} on provider website${site.campground_name ? ` (${site.campground_name})` : ""}`}
                   className="inline-flex min-h-11 shrink-0 items-center gap-1 pl-2 text-xs font-medium text-primary hover:underline"
                 >
                   View on provider
@@ -222,7 +228,7 @@ export const FoundCampsites = ({ scan }: { scan: ScanDetailResponse }) => {
     .map((group) => ({
       ...group,
       sites: group.sites.filter((site) =>
-        `${site.campsite_name} ${site.campsite_id} ${site.campsite_type ?? ""}`
+        `${site.campground_name ?? ""} ${site.campsite_name} ${site.campsite_id} ${site.campsite_type ?? ""}`
           .toLowerCase()
           .includes(normalizedQuery),
       ),
@@ -235,7 +241,12 @@ export const FoundCampsites = ({ scan }: { scan: ScanDetailResponse }) => {
         a.end.localeCompare(b.end),
     );
   const siteCount = new Set(
-    visible.flatMap((group) => group.sites.map((site) => site.campsite_id)),
+    visible.flatMap((group) =>
+      group.sites.map(
+        (site) =>
+          `${site.provider_id}:${site.campground_id}:${site.campsite_id}`,
+      ),
+    ),
   ).size;
 
   return (

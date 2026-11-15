@@ -28,6 +28,8 @@ class Provider(Base):
     description: Mapped[str | None] = mapped_column(String(32768))
     url: Mapped[str] = mapped_column(String(255))
     enabled: Mapped[bool] = mapped_column(default=True)
+    catalog_revision: Mapped[int] = mapped_column(default=0, server_default="0")
+    """Monotonic identity of complete catalog publication."""
     created_at: Mapped[datetime.datetime] = mapped_column(
         default=partial(datetime.datetime.now, tz=datetime.timezone.utc),
         server_default=func.CURRENT_TIMESTAMP(),

@@ -7,11 +7,11 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable
 from http import HTTPStatus
-from typing import Any
+from typing import Any, cast
 
 import httpx2
 from pydantic import ValidationError
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, true, update
 from sqlalchemy.exc import OperationalError
 
 from camply.db.config import DatabaseConfig
@@ -19,6 +19,7 @@ from camply.db.models import NotificationOutbox, UniqueTarget, User, UserScan
 from camply.db.notification_config import ntfy_config as ntfy_defaults
 from camply.worker.config import worker_config
 from camply.worker.engine.alerts import matching_opening, summarize_openings
+from camply.worker.engine.area_alerts import current_area_payload
 from camply.worker.notifications.base import NotificationDTO
 from camply.worker.notifications.ntfy import NtfyProvider
 from camply.worker.notifications.pushover import PushoverProvider
@@ -118,6 +119,11 @@ async def recover_deliveries(database: DatabaseConfig) -> None:
             )
         ).all()
         for row in rows:
+            if (
+                row.payload_kind == "area"
+                and row.next_attempt_at.replace(tzinfo=dt.timezone.utc) > now
+            ):
+                continue
             row.status = "failed" if row.attempt_count >= MAX_ATTEMPTS else "retry"
             row.error_category = "interrupted_delivery"
             row.next_attempt_at = now
@@ -132,7 +138,7 @@ async def delivery_outcome(
 ) -> tuple[str, str]:
     """Classify upstream acceptance, permanent rejection, and transient failures."""
     try:
-        accepted = await send(token, payload)
+        accepted = await asyncio.wait_for(send(token, payload), timeout=30)
         outcome, reason = (
             ("success", "accepted")
             if accepted is True
@@ -150,7 +156,7 @@ async def delivery_outcome(
             if transient
             else ("failure", "upstream_rejected")
         )
-    except httpx2.TransportError:
+    except (httpx2.TransportError, TimeoutError):
         outcome, reason = "retry", "transport_error"
     except (ValueError, TypeError):
         outcome, reason = "failure", "invalid_response"
@@ -159,11 +165,12 @@ async def delivery_outcome(
     return outcome, reason
 
 
-async def deliver_next(
+async def deliver_next(  # noqa: C901
     database: DatabaseConfig,
     *,
     invite_only: bool = False,
     send: Callable[[str, NotificationDTO], Awaitable[bool]] = send_accepted,
+    area_only: bool = False,
 ) -> dict[str, Any] | None:
     """Consume one due intent without holding a transaction across network delivery."""
     started = time.monotonic()
@@ -175,6 +182,7 @@ async def deliver_next(
                 .where(
                     NotificationOutbox.status.in_(["pending", "retry"]),
                     NotificationOutbox.next_attempt_at <= now,
+                    NotificationOutbox.payload_kind == "area" if area_only else true(),
                 )
                 .order_by(NotificationOutbox.next_attempt_at, NotificationOutbox.id)
                 .limit(1)
@@ -192,20 +200,32 @@ async def deliver_next(
         if (
             user
             and scan
-            and target
+            and (target or row.payload_kind == "area")
             and scan.user_id == user.id
-            and scan.target_id == target.id
+            and (
+                row.payload_kind == "area"
+                or (target is not None and scan.target_id == target.id)
+            )
             and user.notification_provider == row.channel
             and user.scanning_enabled
             and scan.is_active
             and (not invite_only or user.is_invited)
         ):
             try:
-                payload = current_payload(
-                    NotificationDTO.model_validate(row.payload),
-                    scan,
-                    target,
-                    now.date(),
+                payload = (
+                    await current_area_payload(
+                        session,
+                        row,
+                        today=now.date(),
+                        app_url=str(worker_config.app_url),
+                    )
+                    if row.payload_kind == "area"
+                    else current_payload(
+                        NotificationDTO.model_validate(row.payload),
+                        scan,
+                        cast(UniqueTarget, target),
+                        now.date(),
+                    )
                 )
             except (ValidationError, ValueError, KeyError, TypeError):
                 outcome, reason = "failure", "invalid_payload"
@@ -228,13 +248,36 @@ async def deliver_next(
             payload = None
             reason = "missing_user_credentials"
         if payload is not None:
-            row.status = "sending"
-            row.attempt_count += 1
+            claimed = await session.execute(
+                update(NotificationOutbox)
+                .where(
+                    NotificationOutbox.id == row.id,
+                    NotificationOutbox.status.in_(["pending", "retry"]),
+                    NotificationOutbox.payload_version == row.payload_version,
+                    NotificationOutbox.attempt_count == row.attempt_count,
+                )
+                .values(
+                    status="sending",
+                    attempt_count=row.attempt_count + 1,
+                    next_attempt_at=now + dt.timedelta(seconds=45),
+                )
+                .returning(NotificationOutbox.id)
+                .execution_options(synchronize_session=False)
+            )
+            if claimed.scalar_one_or_none() is None:
+                await session.rollback()
+                return None
+            await session.refresh(row)
         else:
             row.status = "failed" if outcome == "failure" else "skipped"
             row.error_category = reason
             row.finished_at = now
-        job_id, attempt, target_id = row.id, row.attempt_count, row.target_id
+        job_id, attempt, target_id, scan_id = (
+            row.id,
+            row.attempt_count,
+            row.target_id,
+            row.scan_id,
+        )
         await session.commit()
     if payload is not None:
 
@@ -248,12 +291,14 @@ async def deliver_next(
             outcome = "failure"
         if not await finish_delivery(database, job_id, outcome=outcome, reason=reason):
             return None
+    entity_type = "target" if target_id else ("scan" if scan_id else None)
+    entity_id = target_id or scan_id
     return {
         "task_id": str(job_id),
         "attempt": max(1, attempt),
         "outcome": outcome,
         "reason": reason,
         "duration_ms": (time.monotonic() - started) * 1000,
-        "entity_type": "target",
-        "entity_id": str(target_id) if target_id else None,
+        "entity_type": entity_type,
+        "entity_id": str(entity_id) if entity_id else None,
     }

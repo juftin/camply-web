@@ -498,7 +498,12 @@ class GoingToCampProvider(BaseProvider, ABC):
                         )
                     )
                 await session.flush()
-                await self.populate_search_table(session)
+                await self.populate_search_table(session, commit=False)
+                await session.execute(
+                    update(Provider)
+                    .where(Provider.id == self.provider.id)
+                    .values(catalog_revision=Provider.catalog_revision + 1)
+                )
         logger.info(
             "Refreshed GoingToCamp metadata",
             provider=self.provider.name,

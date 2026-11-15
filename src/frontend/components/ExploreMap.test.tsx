@@ -58,11 +58,15 @@ vi.mock("./MapComponent", () => ({
 vi.mock("./ScanForm", () => ({
   ScanForm: ({
     preselectedCampground,
+    preselectedArea,
   }: {
-    preselectedCampground: { id: string; provider_id: number };
+    preselectedCampground?: { id: string; provider_id: number };
+    preselectedArea?: { id: string; name: string; provider_id: number };
   }) => (
     <button>
-      Monitor {preselectedCampground.provider_id}/{preselectedCampground.id}
+      {preselectedArea
+        ? `Monitor area ${preselectedArea.provider_id}/${preselectedArea.id}`
+        : `Monitor ${preselectedCampground?.provider_id}/${preselectedCampground?.id}`}
     </button>
   ),
 }));
@@ -286,7 +290,7 @@ describe("Explore map discovery", () => {
       screen.queryByText("No places match your search."),
     ).not.toBeInTheDocument();
   });
-  it("offers recreation-area details without a campground Monitor", () => {
+  it("offers recreation-area details and area Monitor without a campground Monitor", () => {
     vi.mocked(hooks.useMapFeatures).mockReturnValue({
       data: {
         viewport: world,
@@ -314,7 +318,10 @@ describe("Explore map discovery", () => {
       "/rec-area/2/area",
     );
     expect(
-      screen.queryByRole("button", { name: /Monitor/ }),
+      screen.getByRole("button", { name: "Monitor area 2/area" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^Monitor \d+\// }),
     ).not.toBeInTheDocument();
     expect(screen.getByLabelText("Selected map location")).toHaveFocus();
   });

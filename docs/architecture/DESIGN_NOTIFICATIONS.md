@@ -69,6 +69,12 @@ The **Smart Poller** identifies a match between a `ScanResult` and a `UserScan`.
 
 The worker defaults to **one summary per saved scan per check** containing new matching openings. It enqueues `camply.notifications.send_pushover_notification` with the user ID, serialized DTO and scan ID. The summary counts newly opened matching sites and links to `{CAMPLY_APP_URL}/dashboard/scans/{scan_id}#results`, preserving any frontend path prefix. Separate saved scans receive separate summaries.
 
+For recreation-area and selected-campground scans (`payload_kind="area"`), `area_alerts.py` separates alert timing from round completion:
+
+- **Summary coalescing**: New openings across member campgrounds coalesce under `delivery_key="area-summary"` within a `5`-second window (flushed by the `area-outbox` beat schedule in distributed mode and the outbox loop in standalone mode).
+- **Direct mode**: `CAMPLY_NOTIFICATION_MODE=direct` appends `area-<target_id>-<campsite_id>` outbox entries pointing directly to the campground's provider booking URL while keeping each campground label in the alert message.
+- **Pre-send revalidation**: Both paths stamp `scan_revision` from `UserScan.definition_revision + coverage_revision` and re-evaluate `current_area_payload` right before delivery so edited, paused, suspended, or excluded campgrounds never send stale alerts.
+
 `CAMPLY_NOTIFICATION_MODE=direct` preserves individual site alerts with provider booking links for local deployments. `summary` is the default in every environment. Both modes apply the same site preferences and minimum consecutive stay as the API. Newly available nights outside qualifying stay blocks do not trigger alerts. Unchanged openings remain silent; openings can alert again after disappearing and returning.
 
 Before storing results or detecting new openings, the worker discards nights before the current UTC date and outside the target's check-in/check-out interval. Minimum stays are evaluated on the remaining nights, matching API expiration, so expired nights cannot cause an alert that opens to no qualifying results.

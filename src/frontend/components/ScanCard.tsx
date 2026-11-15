@@ -81,11 +81,21 @@ export function ScanCard({
             <div className="min-w-0 flex-1 pr-2">
               <CardTitle className="text-base truncate">
                 {toTitleCase(
-                  scan.campground_name ||
+                  scan.destination_name ||
+                    scan.campground_name ||
                     scan.recreation_area_name ||
                     "Unknown Campground",
                 )}
               </CardTitle>
+              {scan.destination_type === "recreation_area" && (
+                <p className="text-sm text-muted-foreground">
+                  {scan.coverage_mode === "all"
+                    ? "All campgrounds"
+                    : "Selected campgrounds"}{" "}
+                  · {scan.eligible_campground_count ?? 0} eligible ·{" "}
+                  {scan.unavailable_selection_count ?? 0} unavailable
+                </p>
+              )}
               {scan.recreation_area_name && scan.campground_name && (
                 <p className="text-xs text-muted-foreground truncate mt-0.5">
                   {toTitleCase(scan.recreation_area_name)}

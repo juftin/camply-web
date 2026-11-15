@@ -448,4 +448,75 @@ describe("Found campsites", () => {
       ),
     ).toBeInTheDocument();
   });
+
+  it("renders partial area coverage, unavailable selections, and attributed results", async () => {
+    vi.mocked(getScan).mockResolvedValue({
+      ...scan,
+      destination_type: "recreation_area",
+      destination_name: "Synthetic Basin",
+      campground_id: null,
+      campground_name: null,
+      recreation_area_id: "area-1",
+      recreation_area_name: "Synthetic Basin",
+      coverage_mode: "selected",
+      campground_ids: ["cg-a", "cg-b"],
+      eligible_campground_count: 1,
+      unavailable_selection_count: 1,
+      matching_campground_count: 1,
+      checked_campground_count: 1,
+      pending_campground_count: 0,
+      failed_campground_count: 1,
+      coverage_status: "partial",
+      campgrounds: [
+        {
+          provider_id: 1,
+          campground_id: "cg-a",
+          campground_name: "North Pine",
+          eligible: true,
+          outcome: "success",
+        },
+        {
+          provider_id: 1,
+          campground_id: "cg-b",
+          campground_name: "Closed Creek",
+          eligible: false,
+          outcome: "failed",
+          unavailable_reason:
+            "Campground is no longer eligible in this recreation area",
+        },
+      ],
+      results: [
+        {
+          provider_id: 1,
+          campground_id: "cg-a",
+          campground_name: "North Pine",
+          campsite_id: "001",
+          campsite_name: "Site 001",
+          campsite_type: "TENT",
+          is_electric: false,
+          is_accessible: false,
+          booking_url: "https://book.example/north-pine",
+          available_dates: ["2027-07-01", "2027-07-02"],
+          is_stale: true,
+        },
+      ],
+    });
+    open();
+    const coverage = await screen.findByRole("region", {
+      name: "Campground coverage",
+    });
+    expect(
+      within(coverage).getByText(/Selected campgrounds/),
+    ).toBeInTheDocument();
+    expect(
+      within(coverage).getByText(/1 eligible, 1 unavailable/),
+    ).toBeInTheDocument();
+    expect(
+      within(coverage).getByText(
+        /Results may be incomplete; some campgrounds are unchecked or failed/,
+      ),
+    ).toBeInTheDocument();
+    expect(within(coverage).getByText(/Closed Creek/)).toBeInTheDocument();
+    expect(screen.getAllByText(/North Pine/).length).toBeGreaterThanOrEqual(1);
+  });
 });

@@ -45,6 +45,11 @@ class UniqueTarget(Base):
     end_date: Mapped[datetime.date] = mapped_column(Date)
     hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     last_checked_at: Mapped[datetime.datetime | None] = mapped_column()
+    attempt_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    """Latest shared provider attempt, independent of the successful snapshot."""
+    attempt_started_at: Mapped[datetime.datetime | None] = mapped_column()
+    attempt_finished_at: Mapped[datetime.datetime | None] = mapped_column()
+    attempt_error_category: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime.datetime] = mapped_column(
         default=partial(datetime.datetime.now, tz=datetime.timezone.utc),
         server_default=func.CURRENT_TIMESTAMP(),

@@ -2,6 +2,12 @@
 
 This checklist tracks the granular progress of `camply`. Agents **MUST** update this file by marking tasks as completed (`[x]`) before finalizing any PR.
 
+## Recreation-area monitoring (029)
+
+- [x] Specify one saved scan for all eligible campgrounds or a selected subset within one recreation area, including membership changes, attributed results, notifications, shared polling, lifecycle, and compatibility; validate the [specification](specs/029-recreation-area-monitoring/spec.md) against its [requirements checklist](specs/029-recreation-area-monitoring/checklists/requirements.md).
+- [x] Complete clarification review, [technical planning](specs/029-recreation-area-monitoring/plan.md), research/data/contracts, the reviewer-owned [monitoring checklist](specs/029-recreation-area-monitoring/checklists/monitoring.md), and dependency-ordered [implementation tasks](specs/029-recreation-area-monitoring/tasks.md).
+- [x] Implement recreation-area monitoring and selected-campground coverage, verify local unit/router/worker/frontend/packaging/standalone/snapshot acceptance suites, update architecture docs, and complete convergence (Docker-only PostgreSQL/admin container smokes remain for CI where Docker is available).
+
 ## Legacy CLI parity (026)
 
 - [x] Audit legacy `juftin/camply` v0.34.4 CLI commands, options, YAML/configuration, providers, deployment IDs and notifications; map replacements and gaps in the [baseline inventory](specs/026-cli-parity/legacy-audit.md).

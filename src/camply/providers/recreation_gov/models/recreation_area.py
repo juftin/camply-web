@@ -45,42 +45,41 @@ class RecDotGovRecreationAreaData(AddressPopulator):
         Convert the data to database entries.
         """
         sync_count = 0
-        async with session.begin():
-            logger.info(
-                "%s recreation areas detected",
-                len(self.RECDATA),
-                provider=RecreationDotGov.name,
+        logger.info(
+            "%s recreation areas detected",
+            len(self.RECDATA),
+            provider=RecreationDotGov.name,
+        )
+        for area in self.RECDATA:
+            country = None
+            city = None
+            state = None
+            address = self.ADDRESSES.get(area.RecAreaID)
+            if address:
+                city = address.City
+                # TODO(@juftin): Resolve this once Recreation.gov fixes their API
+                state = address.PostalCode
+                country = address.AddressCountryCode
+            recreation_area = RecreationArea(
+                id=area.RecAreaID,
+                provider_id=RecreationDotGov.id,
+                name=normalize_name(area.RecAreaName),
+                description=area.RecAreaDescription,
+                city=city,
+                state=state,
+                country=country,
+                longitude=area.RecAreaLongitude,
+                latitude=area.RecAreaLatitude,
+                reservable=area.Reservable,
+                enabled=area.Enabled,
             )
-            for area in self.RECDATA:
-                country = None
-                city = None
-                state = None
-                address = self.ADDRESSES.get(area.RecAreaID)
-                if address:
-                    city = address.City
-                    # TODO(@juftin): Resolve this once Recreation.gov fixes their API
-                    state = address.PostalCode
-                    country = address.AddressCountryCode
-                recreation_area = RecreationArea(
-                    id=area.RecAreaID,
-                    provider_id=RecreationDotGov.id,
-                    name=normalize_name(area.RecAreaName),
-                    description=area.RecAreaDescription,
-                    city=city,
-                    state=state,
-                    country=country,
-                    longitude=area.RecAreaLongitude,
-                    latitude=area.RecAreaLatitude,
-                    reservable=area.Reservable,
-                    enabled=area.Enabled,
-                )
-                if not area.RecAreaName:
-                    continue
-                await session.merge(recreation_area)
-                sync_count += 1
-            logger.info(
-                "%s recreation areas synced",
-                sync_count,
-                provider=RecreationDotGov.name,
-            )
-            await session.commit()
+            if not area.RecAreaName:
+                continue
+            await session.merge(recreation_area)
+            sync_count += 1
+        logger.info(
+            "%s recreation areas synced",
+            sync_count,
+            provider=RecreationDotGov.name,
+        )
+        await session.flush()

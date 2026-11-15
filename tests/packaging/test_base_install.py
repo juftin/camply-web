@@ -128,11 +128,19 @@ def test_installed_migrations_preserve_history(
                 command.upgrade(config, '067d9d721253')
                 with sa.create_engine(f'sqlite:///{path}').begin() as connection:
                     connection.execute(sa.text("INSERT INTO providers (id, name, url, enabled) VALUES (9001, 'Synthetic Provider', 'https://example.invalid', 1)"))
+                command.upgrade(config, 'd027a1b2c3d4')
+                with sa.create_engine(f'sqlite:///{path}').begin() as connection:
+                    connection.execute(sa.text("INSERT INTO users (id, email, is_admin, is_early_access_user, scanning_enabled) VALUES ('u1', 'wheel@example.test', 0, 1, 1)"))
+                    connection.execute(sa.text("INSERT INTO campgrounds (id, provider_id, name, reservable, enabled) VALUES ('cg1', 9001, 'Wheel Camp', 1, 1)"))
+                    connection.execute(sa.text("INSERT INTO unique_targets (id, provider_id, campground_id, start_date, end_date, hash) VALUES ('t1', 9001, 'cg1', '2027-07-01', '2027-07-03', 'wheel-hash')"))
+                    connection.execute(sa.text("INSERT INTO user_scans (id, user_id, target_id, is_active, min_stay_length, require_electric) VALUES ('s1', 'u1', 't1', 1, 1, 0)"))
             command.upgrade(config, 'head')
             with sa.create_engine(f'sqlite:///{path}').connect() as connection:
                 assert connection.execute(sa.text('SELECT version_num FROM alembic_version')).scalar_one() == scripts.get_current_head()
                 if scenario == 'earlier':
                     assert connection.execute(sa.text('SELECT name FROM providers WHERE id=9001')).scalar_one() == 'Synthetic Provider'
+                    assert connection.execute(sa.text("SELECT destination_type FROM user_scans WHERE id='s1'")).scalar_one() == 'campground'
+                    assert connection.execute(sa.text('SELECT count(*) FROM scan_targets')).scalar_one() == 1
     """)
 
 

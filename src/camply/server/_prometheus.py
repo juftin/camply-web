@@ -133,6 +133,8 @@ async def refresh_db_gauges() -> None:
         from sqlalchemy import and_, func, select
 
         from camply.db.config import db
+        from camply.db.coverage import subscriber_condition
+        from camply.db.eligibility import eligible_scan_condition
         from camply.db.models import UniqueTarget, User, UserScan
 
         async with db.get_session() as session:
@@ -186,15 +188,11 @@ async def refresh_db_gauges() -> None:
 
             # Eligible unique targets (with at least 1 eligible subscriber)
             eligible_targets_result = await session.execute(
-                select(func.count(func.distinct(UserScan.target_id)))
-                .select_from(UserScan)
-                .join(User, UserScan.user_id == User.id)
-                .where(
-                    and_(
-                        UserScan.is_active.is_(True),
-                        User.scanning_enabled.is_(True),
-                    )
-                )
+                select(func.count(func.distinct(UniqueTarget.id)))
+                .select_from(UniqueTarget)
+                .join(UserScan, subscriber_condition())
+                .join(User, User.id == UserScan.user_id)
+                .where(eligible_scan_condition())
             )
             eligible_targets_count = eligible_targets_result.scalar() or 0
             ELIGIBLE_TARGETS.set(eligible_targets_count)

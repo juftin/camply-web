@@ -10,6 +10,7 @@ from .notification_outbox import NotificationOutbox
 from .providers import Provider
 from .recreation_area import RecreationArea
 from .scan_results import ScanResult
+from .scan_targets import ScanTarget
 from .search import Search
 from .unique_targets import UniqueTarget
 from .user_scans import UserScan
@@ -24,6 +25,7 @@ __all__ = [
     "Provider",
     "RecreationArea",
     "ScanResult",
+    "ScanTarget",
     "Search",
     "UniqueTarget",
     "User",

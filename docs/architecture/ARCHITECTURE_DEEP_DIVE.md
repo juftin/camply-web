@@ -123,3 +123,14 @@ To prevent race conditions (two workers checking the same park simultaneously):
 - We use **Valkey Distributed Locks**.
 - Before a `camply.search.check_campsite_availability` (`check_target_availability`) task starts, it attempts to acquire a lock: `lock:target_id`.
 - If the lock is held, the task exits immediately.
+
+---
+
+## Recreation-area coverage rounds
+
+Recreation-area and selected-campground scans never invoke provider area-search endpoints inside the poller. Instead, `scan_targets` joins one `UserScan` (`destination_type='recreation_area'`) to one shared `UniqueTarget` per eligible member campground:
+
+- **Reconciliation and rounds (`worker/engine/coverage.py`)**: During discovery (`prepare_rounds`), interrupted attempts older than `ATTEMPT_STALE_SECONDS` (`105` seconds) are marked interrupted so retries can proceed cleanly, due area scans reconcile `scan_targets` against the latest published catalog, and `current_round_id` / `round_deadline_at` (`2 * heartbeat + 780` seconds) open a new bounded checking round when all members finish or expire.
+- **Per-attempt recording (`finish_round`)**: When each campground target finishes (`success` or final failure), `ScanTarget.outcome` updates alongside stale-attempt protection (`attempt_id`). Pending/retrying members past `round_deadline_at` transition to `failed` (`round_deadline_exceeded`), ensuring slow or failing campgrounds never hold up round completion or healthy campground results.
+- **Atomic catalog publication**: Providers such as Recreation.gov parse all archive datasets in memory before updating `recreation_areas`, `campgrounds`, and `search` in a single transaction that increments `providers.catalog_revision`; incomplete archives abort without publishing half-updated area membership.
+- **Separated alert delivery**: `area_alerts.py` flushes coalesced area summaries independently on the `area-outbox` cadence (standalone loop and Celery Beat), decoupled from round completion.

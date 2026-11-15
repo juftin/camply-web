@@ -574,3 +574,16 @@ export async function searchMapMembers(
     })
   ).data;
 }
+
+/** Discover a bounded page without tying the selected IDs to the current page. */
+export async function getMonitoringCampgrounds(
+  provider: number,
+  area: string,
+  params: { query?: string; limit?: number; offset?: number } = {},
+): Promise<import("./structs").MonitoringCampgroundsResponse> {
+  const { data } = await api.get(
+    `/rec-area/${provider}/${encodeURIComponent(area)}/monitoring-campgrounds`,
+    { params },
+  );
+  return data;
+}

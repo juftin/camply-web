@@ -19,6 +19,7 @@ from sqlalchemy import (
     and_,
     case,
     cast,
+    exists,
     func,
     or_,
     select,
@@ -27,19 +28,28 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.elements import ColumnElement
 
+from camply.db.coverage import (
+    live_target_condition,
+    scan_load_options,
+    subscriber_condition,
+)
 from camply.db.eligibility import eligible_scan_condition, is_scan_eligible
 from camply.db.models import (
     AdminAuditEvent,
     Campground,
+    Provider,
+    RecreationArea,
     ScanResult,
+    ScanTarget,
     UniqueTarget,
     User,
     UserScan,
 )
-from camply.server.auth import AdminUserDep, hash_password
+from camply.server.auth import AdminUserDep, CurrentUser, hash_password
 from camply.server.config import AuthMode, backend_config
 from camply.server.dependencies import SessionDep
 from camply.server.metrics import USERS_CREATED_TOTAL
+from camply.server.routers.scans import _scan_to_response, get_scan
 from camply.server.schemas import (
     AdminAuditEventItem,
     AdminAuditListResponse,
@@ -85,20 +95,40 @@ def _get_target_grace_period_seconds() -> int:
     return backend_config.target_cooldown + (2 * backend_config.heartbeat_interval)
 
 
+def _linked_target_condition() -> ColumnElement[bool]:
+    """Match any target currently linked directly or by active coverage revision."""
+    return or_(
+        UserScan.target_id == UniqueTarget.id,
+        exists(
+            select(ScanTarget.scan_id)
+            .where(
+                ScanTarget.scan_id == UserScan.id,
+                ScanTarget.target_id == UniqueTarget.id,
+                ScanTarget.coverage_revision == UserScan.coverage_revision,
+            )
+            .correlate(UserScan, UniqueTarget)
+        ),
+    )
+
+
+def _current_user_from_row(user: User) -> CurrentUser:
+    """Build a request user DTO from an ORM User row for shared scan helpers."""
+    return CurrentUser(
+        id=user.id,
+        email=user.email,
+        is_invited=user.is_invited,
+        is_admin=user.is_admin,
+        scanning_enabled=user.scanning_enabled,
+    )
+
+
 def _target_status_condition(
     target_status: Literal["active", "overdue", "dormant"],
 ) -> ColumnElement[bool]:
-    """Filter targets by subscriber eligibility and the same overdue grace period as overview."""
+    """Filter scans by linked target eligibility and the overdue grace period."""
     cutoff = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(
         seconds=_get_target_grace_period_seconds()
     )
-    eligible_target_ids = (
-        select(UserScan.target_id)
-        .join(User)
-        .where(eligible_scan_condition())
-        .correlate(None)
-    )
-    has_subscriber = UniqueTarget.id.in_(eligible_target_ids)
     overdue = or_(
         and_(UniqueTarget.last_checked_at.is_(None), UniqueTarget.created_at < cutoff),
         and_(
@@ -106,9 +136,48 @@ def _target_status_condition(
             UniqueTarget.last_checked_at < cutoff,
         ),
     )
+    eligible_targets = (
+        select(UniqueTarget.id)
+        .select_from(UniqueTarget)
+        .join(Provider, Provider.id == UniqueTarget.provider_id)
+        .join(
+            Campground,
+            and_(
+                Campground.id == UniqueTarget.campground_id,
+                Campground.provider_id == UniqueTarget.provider_id,
+            ),
+        )
+        .outerjoin(
+            RecreationArea,
+            and_(
+                RecreationArea.id == Campground.recreation_area_id,
+                RecreationArea.provider_id == Campground.provider_id,
+            ),
+        )
+        .where(
+            _linked_target_condition(),
+            UserScan.provider_id == UniqueTarget.provider_id,
+            Provider.enabled.is_(True),
+            Campground.enabled.is_(True),
+            Campground.reservable.is_(True),
+            or_(
+                UserScan.destination_type == "campground",
+                and_(
+                    Campground.recreation_area_id == UserScan.recreation_area_id,
+                    RecreationArea.enabled.is_(True),
+                ),
+            ),
+            eligible_scan_condition(),
+        )
+        .correlate(UserScan, User)
+    )
+    has_eligible = exists(eligible_targets)
+    has_overdue = exists(eligible_targets.where(overdue))
     if target_status == "dormant":
-        return ~has_subscriber
-    return and_(has_subscriber, overdue if target_status == "overdue" else ~overdue)
+        return ~has_eligible
+    if target_status == "overdue":
+        return has_overdue
+    return and_(has_eligible, ~has_overdue)
 
 
 async def _lookup_campgrounds_map(
@@ -176,7 +245,7 @@ async def get_overview(
     # Eligible targets (distinct targets with >= 1 eligible subscriber)
     elig_targets_subquery = (
         select(UniqueTarget.id)
-        .join(UserScan, UserScan.target_id == UniqueTarget.id)
+        .join(UserScan, subscriber_condition())
         .join(User, User.id == UserScan.user_id)
         .where(eligible_scan_condition())
         .distinct()
@@ -188,7 +257,7 @@ async def get_overview(
     # Overdue targets: eligible targets whose last_checked_at is older than cutoff (or never checked and created before cutoff)
     overdue_stmt = (
         select(func.count(func.distinct(UniqueTarget.id)))
-        .join(UserScan, UserScan.target_id == UniqueTarget.id)
+        .join(UserScan, subscriber_condition())
         .join(User, User.id == UserScan.user_id)
         .where(
             eligible_scan_condition(),
@@ -568,7 +637,7 @@ async def list_admin_scans(
     if owner_id is not None:
         conditions.append(UserScan.user_id == owner_id)
     if provider_id is not None:
-        conditions.append(UniqueTarget.provider_id == provider_id)
+        conditions.append(UserScan.provider_id == provider_id)
     if is_active is not None:
         conditions.append(UserScan.is_active == is_active)
     if is_eligible is True:
@@ -587,16 +656,16 @@ async def list_admin_scans(
     base_query = (
         select(UserScan)
         .join(User, User.id == UserScan.user_id)
-        .join(UniqueTarget, UniqueTarget.id == UserScan.target_id)
+        .outerjoin(UniqueTarget, UniqueTarget.id == UserScan.target_id)
         .options(
             joinedload(UserScan.user),
-            joinedload(UserScan.target),
+            *scan_load_options(),
         )
     )
     count_query = (
         select(func.count(UserScan.id))
         .join(User, User.id == UserScan.user_id)
-        .join(UniqueTarget, UniqueTarget.id == UserScan.target_id)
+        .outerjoin(UniqueTarget, UniqueTarget.id == UserScan.target_id)
     )
 
     if conditions:
@@ -613,26 +682,47 @@ async def list_admin_scans(
     scans = (await session.execute(scans_stmt)).unique().scalars().all()
 
     # Batch campgrounds
-    cg_keys = {(s.target.provider_id, s.target.campground_id) for s in scans}
+    cg_keys = {(s.provider_id, s.campground_id) for s in scans if s.campground_id}
     cg_map = await _lookup_campgrounds_map(session, cg_keys)
 
-    result_counts: dict[uuid.UUID, int] = {
-        row[0]: row[1]
-        for row in (
-            await session.execute(
-                select(
-                    ScanResult.target_id,
-                    func.count(func.distinct(ScanResult.campsite_id)),
+    target_ids = {s.target_id for s in scans if s.target_id is not None}
+    result_counts: dict[uuid.UUID, int] = (
+        {
+            row[0]: row[1]
+            for row in (
+                await session.execute(
+                    select(
+                        ScanResult.target_id,
+                        func.count(func.distinct(ScanResult.campsite_id)),
+                    )
+                    .where(ScanResult.target_id.in_(target_ids))
+                    .group_by(ScanResult.target_id)
                 )
-                .where(ScanResult.target_id.in_({s.target_id for s in scans}))
-                .group_by(ScanResult.target_id)
-            )
-        ).all()
-    }
+            ).all()
+        }
+        if target_ids
+        else {}
+    )
 
     items: list[AdminScanItem] = []
     for s in scans:
+        if s.destination_type == "recreation_area":
+            response = await _scan_to_response(s)
+            items.append(
+                AdminScanItem(
+                    **response.model_dump(),
+                    user_id=s.user_id,
+                    user_email=s.user.email,
+                    target_id=None,
+                    is_eligible=is_scan_eligible(s.user.scanning_enabled, s.is_active),
+                    user_scanning_enabled=s.user.scanning_enabled,
+                )
+            )
+            continue
         cg_obj = cg_map.get((s.target.provider_id, s.target.campground_id))
+        campground_name = (
+            cg_obj.name if cg_obj is not None else (s.destination_name or "")
+        )
         items.append(
             AdminScanItem(
                 id=s.id,
@@ -640,15 +730,25 @@ async def list_admin_scans(
                 user_email=s.user.email,
                 target_id=s.target_id,
                 provider_id=s.target.provider_id,
+                destination_type="campground",
+                destination_name=campground_name,
+                recreation_area_id=cg_obj.recreation_area_id if cg_obj else None,
+                recreation_area_name=(
+                    cg_obj.recreation_area.name
+                    if cg_obj and cg_obj.recreation_area
+                    else ""
+                ),
                 campground_id=s.target.campground_id,
-                campground_name=cg_obj.name if cg_obj is not None else "",
+                campground_name=campground_name,
                 start_date=s.target.start_date,
                 end_date=s.target.end_date,
                 is_active=s.is_active,
                 is_eligible=is_scan_eligible(s.user.scanning_enabled, s.is_active),
                 user_scanning_enabled=s.user.scanning_enabled,
                 last_checked_at=s.target.last_checked_at,
-                found_count=result_counts.get(s.target_id, 0),
+                found_count=result_counts.get(s.target_id, 0) if s.target_id else 0,
+                min_stay_length=s.min_stay_length,
+                require_electric=s.require_electric,
                 created_at=s.created_at,
             )
         )
@@ -674,7 +774,7 @@ async def get_admin_scan(
         select(UserScan)
         .options(
             joinedload(UserScan.user),
-            joinedload(UserScan.target).joinedload(UniqueTarget.scan_results),
+            *scan_load_options(),
         )
         .where(UserScan.id == scan_id)
     )
@@ -683,6 +783,24 @@ async def get_admin_scan(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Scan not found",
+        )
+
+    if scan.destination_type == "recreation_area":
+        owner = _current_user_from_row(scan.user)
+        owner_email = owner.email
+        owner_scanning_enabled = owner.scanning_enabled
+        detail = await get_scan(
+            scan_id=scan.id,
+            current_user=owner,
+            session=session,
+        )
+        return AdminScanDetailResponse(
+            **detail.model_dump(),
+            user_id=scan.user_id,
+            user_email=owner_email,
+            target_id=None,
+            is_eligible=is_scan_eligible(owner_scanning_enabled, detail.is_active),
+            user_scanning_enabled=owner_scanning_enabled,
         )
 
     cg_map = await _lookup_campgrounds_map(
@@ -748,7 +866,7 @@ async def update_admin_scan(
         select(UserScan)
         .options(
             joinedload(UserScan.user),
-            joinedload(UserScan.target).joinedload(UniqueTarget.scan_results),
+            *scan_load_options(),
         )
         .where(UserScan.id == scan_id)
         .with_for_update()
@@ -772,6 +890,8 @@ async def update_admin_scan(
 
     prev_val = scan.is_active
     scan.is_active = body.is_active
+    scan.definition_revision += 1
+    scan.row_version += 1
 
     audit = AdminAuditEvent(
         actor_id=admin.id,
@@ -784,6 +904,24 @@ async def update_admin_scan(
     session.add(audit)
     await session.commit()
     await session.refresh(scan)
+
+    if scan.destination_type == "recreation_area":
+        owner = _current_user_from_row(scan.user)
+        owner_email = owner.email
+        owner_scanning_enabled = owner.scanning_enabled
+        detail = await get_scan(
+            scan_id=scan.id,
+            current_user=owner,
+            session=session,
+        )
+        return AdminScanDetailResponse(
+            **detail.model_dump(),
+            user_id=scan.user_id,
+            user_email=owner_email,
+            target_id=None,
+            is_eligible=is_scan_eligible(owner_scanning_enabled, detail.is_active),
+            user_scanning_enabled=owner_scanning_enabled,
+        )
 
     cg_map = await _lookup_campgrounds_map(
         session, {(scan.target.provider_id, scan.target.campground_id)}
@@ -857,24 +995,27 @@ async def get_admin_target(
     )
     cg = cg_map.get((target.provider_id, target.campground_id))
 
-    # Count subscribers
+    # Count subscribers (retaining linked scans even when catalog membership is disabled)
     sub_count_stmt = (
         select(
-            func.count(UserScan.id),
+            func.count(func.distinct(UserScan.id)),
             func.count(
-                case(
-                    (
-                        and_(
-                            User.scanning_enabled.is_(True),
-                            UserScan.is_active.is_(True),
-                        ),
-                        1,
+                func.distinct(
+                    case(
+                        (
+                            and_(
+                                eligible_scan_condition(),
+                                live_target_condition(),
+                            ),
+                            UserScan.id,
+                        )
                     )
                 )
             ),
         )
         .join(User, User.id == UserScan.user_id)
-        .where(UserScan.target_id == target.id)
+        .join(UniqueTarget, _linked_target_condition())
+        .where(UniqueTarget.id == target.id)
     )
     total_subs, elig_subs = (await session.execute(sub_count_stmt)).one()
     total_subscribers = total_subs or 0
@@ -898,7 +1039,8 @@ async def get_admin_target(
     subs_stmt = (
         select(UserScan)
         .options(joinedload(UserScan.user))
-        .where(UserScan.target_id == target.id)
+        .join(UniqueTarget, _linked_target_condition())
+        .where(UniqueTarget.id == target.id)
         .order_by(UserScan.created_at.desc(), UserScan.id.desc())
         .offset(offset)
         .limit(limit)

@@ -879,7 +879,9 @@ class BaseProvider(ABC):
         )
         return campgrounds
 
-    async def populate_search_table(self, session: AsyncSession) -> None:
+    async def populate_search_table(
+        self, session: AsyncSession, *, commit: bool = True
+    ) -> None:
         """
         Populate search rows and commit them with any pending metadata updates.
 
@@ -895,7 +897,10 @@ class BaseProvider(ABC):
         )
         await session.execute(self.search_rec_area_statement)
         await session.execute(self.search_campground_statement)
-        await session.commit()
+        if commit:
+            await session.commit()
+        else:
+            await session.flush()
 
     @classmethod
     @abstractmethod

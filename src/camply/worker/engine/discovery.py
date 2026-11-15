@@ -7,14 +7,17 @@ from collections.abc import Callable
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from camply.db.coverage import subscriber_condition
 from camply.db.eligibility import eligible_scan_condition
 from camply.db.models import UniqueTarget, User, UserScan
+from camply.worker.engine.coverage import prepare_rounds
 
 
 async def due_targets(
     *,
     sessions: Callable[[], AsyncSession],
     cooldown: int,
+    heartbeat: int = 300,
     limit: int | None = None,
     today: datetime.date | None = None,
     invite_only: bool = False,
@@ -23,6 +26,7 @@ async def due_targets(
     """Find current eligible shared targets without dispatching transport tasks."""
     from datetime import timezone
 
+    await prepare_rounds(sessions=sessions, cooldown=cooldown, heartbeat=heartbeat)
     now = datetime.datetime.now(tz=timezone.utc)
     cooldown_threshold = now - datetime.timedelta(seconds=cooldown)
 
@@ -30,7 +34,7 @@ async def due_targets(
         # Find targets with eligible user scans that need checking
         stmt = (
             select(UniqueTarget)
-            .join(UserScan, UserScan.target_id == UniqueTarget.id)
+            .join(UserScan, subscriber_condition())
             .join(User, User.id == UserScan.user_id)
             .where(
                 eligible_scan_condition(),
@@ -52,7 +56,7 @@ async def due_targets(
             )
         if limit is not None:
             stmt = stmt.order_by(
-                UniqueTarget.last_checked_at.asc(), UniqueTarget.id
+                UniqueTarget.last_checked_at.asc().nulls_first(), UniqueTarget.id
             ).limit(limit)
         result = await session.execute(stmt)
         targets = result.scalars().all()
