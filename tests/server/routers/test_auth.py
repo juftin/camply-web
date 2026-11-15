@@ -26,6 +26,7 @@ def _fake_auth0_payload() -> dict:
     return {
         "sub": _FAKE_AUTH0_SUB,
         "email": _FAKE_AUTH0_EMAIL,
+        "email_verified": True,
         "iss": "https://camply-test.us.auth0.com/",
         "aud": "https://api.camply.rocks",
     }
@@ -270,7 +271,7 @@ class TestAuth0Mode:
         auth0_mode: None,
         test_client: TestClient,
     ) -> None:
-        """When payload has no email, the sub (auth0_id) should be used as email."""
+        """When payload has no email, provisioning without verified email returns 403."""
         no_email_sub = "auth0|fallback_only"
         payload_without_email = {
             "sub": no_email_sub,
@@ -286,10 +287,8 @@ class TestAuth0Mode:
                 "/api/me",
                 headers={"Authorization": "Bearer no_email_token"},
             )
-        assert response.status_code == 200
-        data = response.json()
-        # Should fall back to sub (lowercased)
-        assert no_email_sub.lower() in data["email"]
+        assert response.status_code == 403
+        assert response.json()["detail"]["error"] == "ERR_VERIFIED_EMAIL_REQUIRED"
 
     def test_auth0_jwks_client_cache_hit(
         self,

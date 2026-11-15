@@ -127,10 +127,10 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ### 2.3 Email & Account Linking
 
-- [ ] T2.3.1 Define trusted email provisioning (verified Auth0 claims or server-side profile retrieval); keep the identity subject separate from the email address.
-- [ ] T2.3.2 Synchronize verified email changes without losing invitation eligibility, scans, or notification preferences.
-- [ ] T2.3.3 Define explicit account-linking rules that require proof of ownership; do not automatically merge identities solely because their emails match.
-- [ ] T2.3.4 Handle duplicate-email conflicts and concurrent provisioning without server errors; test missing/unverified emails, email changes, and multiple identities sharing an email.
+- [x] T2.3.1 Define trusted email provisioning (verified Auth0 claims or server-side profile retrieval); keep the identity subject separate from the email address.
+- [x] T2.3.2 Synchronize verified email changes without losing invitation eligibility, scans, or notification preferences.
+- [x] T2.3.3 Define explicit account-linking rules that require proof of ownership; do not automatically merge identities solely because their emails match.
+- [x] T2.3.4 Handle duplicate-email conflicts and concurrent provisioning without server errors; test missing/unverified emails, email changes, and multiple identities sharing an email.
 
 ### 2.4 Token Expiry & Session Recovery
 

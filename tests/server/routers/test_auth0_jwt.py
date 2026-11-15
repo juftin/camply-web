@@ -24,6 +24,7 @@ from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 from typing import Any
 
+import httpx2
 import jwt
 import pytest
 from cryptography.hazmat.primitives import serialization
@@ -129,6 +130,7 @@ def _claims(**overrides: Any) -> dict[str, Any]:
     claims: dict[str, Any] = {
         "sub": subject,
         "email": f"{subject.split('|')[1]}@example.test",
+        "email_verified": True,
         "iss": ISSUER,
         "aud": AUTH0_AUDIENCE,
         "iat": int(time.time()),
@@ -216,10 +218,69 @@ def key_two() -> SyntheticKey:
     return _make_key(kid="key-two")
 
 
+@dataclass
+class UserinfoTransport:
+    """
+    Mock transport for the Auth0 /userinfo endpoint.
+
+    Attributes
+    ----------
+    responses : dict[str, dict[str, Any]]
+        Bearer token to userinfo payload mapping.
+    default_payload : dict[str, Any] or None
+        Fallback payload when token is not in ``responses``.
+    error : Exception or None
+        When set, raised on the next request.
+    status_code : int
+        HTTP status code to return.
+    requests : list[httpx2.Request]
+        Recorded requests.
+    """
+
+    responses: dict[str, dict[str, Any]] = field(default_factory=dict)
+    default_payload: dict[str, Any] | None = None
+    error: Exception | None = None
+    status_code: int = 200
+    requests: list[httpx2.Request] = field(default_factory=list)
+
+    @property
+    def fetches(self) -> int:
+        """Return how many requests reached userinfo."""
+        return len(self.requests)
+
+    def set_userinfo(self, token: str, payload: dict[str, Any]) -> None:
+        """Set the mock response payload for ``token``."""
+        self.responses[token] = payload
+
+    def handle_request(self, request: httpx2.Request) -> httpx2.Response:
+        """Process the HTTP request and return the mock response."""
+        self.requests.append(request)
+        if self.error is not None:
+            raise self.error
+        if self.status_code != 200:
+            return httpx2.Response(
+                status_code=self.status_code,
+                request=request,
+            )
+        auth_header = request.headers.get("Authorization", "")
+        token = auth_header.removeprefix("Bearer ").strip()
+        data = self.responses.get(token, self.default_payload)
+        if data is None:
+            return httpx2.Response(
+                status_code=401,
+                request=request,
+            )
+        return httpx2.Response(
+            status_code=200,
+            json=data,
+            request=request,
+        )
+
+
 @pytest.fixture(autouse=True)
 def auth0_jwt_env(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
     """
-    Configure Auth0 mode for a synthetic tenant with a clean JWKS client cache.
+    Configure Auth0 mode for a synthetic tenant with clean caches.
 
     Parameters
     ----------
@@ -229,14 +290,44 @@ def auth0_jwt_env(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None
     Yields
     ------
     None
-        Control to the test; the JWKS client cache is cleared afterward.
+        Control to the test; client caches are cleared afterward.
     """
     monkeypatch.setattr(backend_config, "auth_mode", AuthMode.AUTH0)
     monkeypatch.setattr(backend_config, "auth0_domain", AUTH0_DOMAIN)
     monkeypatch.setattr(backend_config, "auth0_audience", AUTH0_AUDIENCE)
+    default_userinfo = UserinfoTransport()
+    monkeypatch.setattr(
+        auth,
+        "_userinfo_transport",
+        httpx2.MockTransport(default_userinfo.handle_request),
+    )
     auth._jwks_client_cache.clear()
+    auth._userinfo_cache.clear()
     yield
     auth._jwks_client_cache.clear()
+    auth._userinfo_cache.clear()
+
+
+@pytest.fixture
+def userinfo(monkeypatch: pytest.MonkeyPatch) -> UserinfoTransport:
+    """
+    Replace the userinfo HTTP transport, reset cache, and return the transport.
+
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Pytest monkeypatch fixture.
+
+    Returns
+    -------
+    UserinfoTransport
+        Configurable userinfo mock transport.
+    """
+    transport = UserinfoTransport()
+    mock_transport = httpx2.MockTransport(transport.handle_request)
+    monkeypatch.setattr(auth, "_userinfo_transport", mock_transport)
+    auth._userinfo_cache.clear()
+    return transport
 
 
 @pytest.fixture
@@ -588,6 +679,16 @@ class TestJwksBehavior:
         # Known keys still verify from cache during the same outage.
         assert _verify(_sign(key_one))["iss"] == ISSUER
 
+    def test_key_removed_from_jwks_stops_verifying(
+        self, jwks: JwksTransport, key_one: SyntheticKey, key_two: SyntheticKey
+    ) -> None:
+        """A key dropped from the published JWKS is rejected once cache refreshes."""
+        _verify(_sign(key_one))
+        jwks.publish(key_two)
+        auth._get_jwks_client().jwk_set_cache.put(None)
+        auth._get_jwks_client().cooldown_duration = 0
+        assert _reject(_sign(key_one)).status_code == 401
+
 
 # ---------------------------------------------------------------------------
 # T2.6.4 — signed-token API requests
@@ -705,18 +806,516 @@ class TestSignedTokenApi:
         assert user.is_admin is False
         assert first.json()["is_invited"] is False
 
-    def test_subject_is_email_when_claim_absent(
+    def test_email_less_token_never_populates_user_email_with_sub(
+        self,
+        test_client: TestClient,
+        userinfo: UserinfoTransport,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+    ) -> None:
+        """
+        Ensure tokens without email claims or userinfo email never provision with sub as email.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        userinfo : UserinfoTransport
+            Mock transport for Auth0 userinfo.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        """
+        subject, headers = signed_token(
+            email=None,
+            email_verified=None,
+            sub=f"auth0|NoEmail{uuid.uuid4().hex}",
+        )
+        userinfo.default_payload = {}
+        response = test_client.get(API_ME, headers=headers)
+        assert response.status_code == 403
+        assert response.json()["detail"]["error"] == "ERR_VERIFIED_EMAIL_REQUIRED"
+        assert _fetch_user(auth0_id=subject) is None
+
+    def test_unverified_email_in_jwt_is_rejected_for_new_user(
+        self,
+        test_client: TestClient,
+        userinfo: UserinfoTransport,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+    ) -> None:
+        """
+        Ensure an unverified email claim rejects new user provisioning with HTTP 403.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        userinfo : UserinfoTransport
+            Mock transport for Auth0 userinfo.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        """
+        subject, headers = signed_token(
+            email="unverified@example.test",
+            email_verified=False,
+        )
+        userinfo.default_payload = {
+            "email": "unverified@example.test",
+            "email_verified": False,
+        }
+        response = test_client.get(API_ME, headers=headers)
+        assert response.status_code == 403
+        assert response.json()["detail"]["error"] == "ERR_VERIFIED_EMAIL_REQUIRED"
+        assert _fetch_user(auth0_id=subject) is None
+
+    def test_userinfo_fallback_provisions_user(
+        self,
+        test_client: TestClient,
+        userinfo: UserinfoTransport,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+    ) -> None:
+        """
+        Verify userinfo fallback provisions the account when the JWT lacks email.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        userinfo : UserinfoTransport
+            Mock transport for Auth0 userinfo.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        """
+        subject, headers = signed_token(email=None, email_verified=None)
+        token = headers["Authorization"].removeprefix("Bearer ").strip()
+        userinfo.set_userinfo(
+            token=token,
+            payload={"email": "Fallback.User@Example.Test", "email_verified": True},
+        )
+        response = test_client.get(API_ME, headers=headers)
+        assert response.status_code == 200
+        assert response.json()["email"] == "fallback.user@example.test"
+        user = _fetch_user(auth0_id=subject)
+        assert user is not None
+        assert user.email == "fallback.user@example.test"
+
+    def test_userinfo_cache_hit_avoids_repeated_requests(
+        self,
+        test_client: TestClient,
+        userinfo: UserinfoTransport,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+    ) -> None:
+        """
+        Ensure cached userinfo resolves subsequent requests without extra network calls.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        userinfo : UserinfoTransport
+            Mock transport for Auth0 userinfo.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        """
+        subject, headers = signed_token(email=None, email_verified=None)
+        token = headers["Authorization"].removeprefix("Bearer ").strip()
+        userinfo.set_userinfo(
+            token=token,
+            payload={"email": "cached@example.test", "email_verified": True},
+        )
+        resp1 = test_client.get(API_ME, headers=headers)
+        resp2 = test_client.get(API_ME, headers=headers)
+        assert resp1.status_code == resp2.status_code == 200
+        assert userinfo.fetches == 1
+
+    def test_userinfo_outage_returns_503(
+        self,
+        test_client: TestClient,
+        userinfo: UserinfoTransport,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+    ) -> None:
+        """
+        Verify that identity provider userinfo outages yield 503 so clients can retry.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        userinfo : UserinfoTransport
+            Mock transport for Auth0 userinfo.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        """
+        _, headers = signed_token(email=None, email_verified=None)
+        userinfo.error = httpx2.ConnectError("Connection refused")
+        response = test_client.get(API_ME, headers=headers)
+        assert response.status_code == 503
+        assert "retry" in response.json()["detail"].lower()
+
+    def test_userinfo_token_rejected_returns_401(
+        self,
+        test_client: TestClient,
+        userinfo: UserinfoTransport,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+    ) -> None:
+        """
+        Verify that token rejection by userinfo yields 401 Unauthorized.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        userinfo : UserinfoTransport
+            Mock transport for Auth0 userinfo.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        """
+        _, headers = signed_token(email=None, email_verified=None)
+        userinfo.status_code = 401
+        response = test_client.get(API_ME, headers=headers)
+        assert response.status_code == 401
+
+    def test_namespaced_claims_are_recognized(
         self,
         test_client: TestClient,
         signed_token: Callable[..., tuple[str, dict[str, str]]],
     ) -> None:
-        """Without an ``email`` claim the lowercased ``sub`` is used."""
+        """
+        Verify that namespaced https://camply/ claims are accepted for verified email.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        """
         subject, headers = signed_token(
-            email=None, sub=f"auth0|NoEmail{uuid.uuid4().hex}"
+            email=None,
+            email_verified=None,
+            **{
+                "https://camply/email": "Namespaced@Example.Test",
+                "https://camply/email_verified": True,
+            },
         )
         response = test_client.get(API_ME, headers=headers)
         assert response.status_code == 200
-        assert response.json()["email"] == subject.lower()
+        assert response.json()["email"] == "namespaced@example.test"
+
+    def test_duplicate_email_conflict_returns_409_not_500(
+        self,
+        test_client: TestClient,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+    ) -> None:
+        """
+        Verify that sign-in colliding with an existing user's email returns 409 ERR_EMAIL_CONFLICT.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        """
+        shared_email = "shared.identity@example.test"
+        sub_one, headers_one = signed_token(email=shared_email)
+        assert test_client.get(API_ME, headers=headers_one).status_code == 200
+        user_one = _fetch_user(auth0_id=sub_one)
+        assert user_one is not None
+
+        sub_two, headers_two = signed_token(email=shared_email)
+        res = test_client.get(API_ME, headers=headers_two)
+        assert res.status_code == 409
+        assert res.json()["detail"] == {
+            "error": "ERR_EMAIL_CONFLICT",
+            "message": "An account with this email address already exists.",
+        }
+        assert _fetch_user(auth0_id=sub_two) is None
+        user_one_check = _fetch_user(auth0_id=sub_one)
+        assert user_one_check is not None
+        assert user_one_check.id == user_one.id
+
+    def test_concurrent_first_login_race_on_same_auth0_id_returns_winner(
+        self,
+        test_client: TestClient,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """
+        Ensure concurrent first-login on the same auth0_id resolves to the winner without 500.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        monkeypatch : pytest.MonkeyPatch
+            Pytest monkeypatch fixture.
+        """
+        from sqlalchemy.exc import IntegrityError
+
+        from camply.server.services.users import flush_new_user as real_flush
+
+        subject, headers = signed_token(email="concurrent.winner@example.test")
+
+        async def race_flush(session: Any, user: User) -> None:
+            async with maker() as other_session:
+                other_user = User(
+                    auth0_id=user.auth0_id,
+                    email=user.email,
+                    is_invited=False,
+                    is_admin=False,
+                    scanning_enabled=True,
+                )
+                await real_flush(other_session, other_user)
+                await other_session.commit()
+            raise IntegrityError(
+                "duplicate key",
+                params={},
+                orig=Exception("duplicate key"),
+            )
+
+        monkeypatch.setattr(auth, "flush_new_user", race_flush)
+        res = test_client.get(API_ME, headers=headers)
+        assert res.status_code == 200
+        assert res.json()["email"] == "concurrent.winner@example.test"
+        persisted = _fetch_user(auth0_id=subject)
+        assert persisted is not None
+
+    def test_concurrent_first_login_race_with_different_auth0_id_returns_409(
+        self,
+        test_client: TestClient,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """
+        Ensure concurrent first-login with duplicate email returns 409 without 500.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        monkeypatch : pytest.MonkeyPatch
+            Pytest monkeypatch fixture.
+        """
+        from sqlalchemy.exc import IntegrityError
+
+        from camply.server.services.users import flush_new_user as real_flush
+
+        subject, headers = signed_token(email="concurrent.conflict@example.test")
+
+        async def race_flush(session: Any, user: User) -> None:
+            async with maker() as other_session:
+                other_user = User(
+                    auth0_id=f"auth0|other_{uuid.uuid4().hex}",
+                    email=user.email,
+                    is_invited=False,
+                    is_admin=False,
+                    scanning_enabled=True,
+                )
+                await real_flush(other_session, other_user)
+                await other_session.commit()
+            raise IntegrityError(
+                "duplicate key",
+                params={},
+                orig=Exception("duplicate key"),
+            )
+
+        monkeypatch.setattr(auth, "flush_new_user", race_flush)
+        res = test_client.get(API_ME, headers=headers)
+        assert res.status_code == 409
+        assert res.json()["detail"] == {
+            "error": "ERR_EMAIL_CONFLICT",
+            "message": "An account with this email address already exists.",
+        }
+
+    def test_existing_user_email_change_sync_preserves_associations(
+        self,
+        test_client: TestClient,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+        key_one: SyntheticKey,
+    ) -> None:
+        """
+        Verify that a verified email change updates User.email and preserves user data.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        key_one : SyntheticKey
+            Primary synthetic RSA key.
+        """
+        subject, headers_old = signed_token(email="old.address@example.test")
+        assert test_client.get(API_ME, headers=headers_old).status_code == 200
+        _invite(auth0_id=subject)
+
+        patch_res = test_client.patch(
+            API_ME,
+            json={"pushover_token": "token_xyz123"},
+            headers=headers_old,
+        )
+        assert patch_res.status_code == 200
+
+        scan_res = test_client.post(
+            API_SCANS, json=_scan_payload(), headers=headers_old
+        )
+        assert scan_res.status_code == 201
+        scan_id = scan_res.json()["id"]
+
+        user_before = _fetch_user(auth0_id=subject)
+        assert user_before is not None
+
+        claims_new = _claims(
+            sub=subject,
+            email="NEW.ADDRESS@EXAMPLE.TEST",
+            email_verified=True,
+        )
+        headers_new = _bearer(_sign(key_one, claims_new))
+
+        me_res = test_client.get(API_ME, headers=headers_new)
+        assert me_res.status_code == 200
+        assert me_res.json()["email"] == "new.address@example.test"
+        assert me_res.json()["id"] == str(user_before.id)
+        assert me_res.json()["pushover_token"] == "token_xyz123"
+        assert me_res.json()["is_invited"] is True
+
+        user_after = _fetch_user(auth0_id=subject)
+        assert user_after is not None
+        assert user_after.id == user_before.id
+        assert user_after.email == "new.address@example.test"
+        assert user_after.pushover_token == "token_xyz123"
+        assert user_after.is_invited is True
+
+        scans_res = test_client.get(API_SCANS, headers=headers_new)
+        assert scans_res.status_code == 200
+        assert [s["id"] for s in scans_res.json()["scans"]] == [scan_id]
+
+    def test_existing_user_email_change_conflict_returns_409(
+        self,
+        test_client: TestClient,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+        key_one: SyntheticKey,
+    ) -> None:
+        """
+        Verify that changing an email to one claimed by another returns 409 without altering the user.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        key_one : SyntheticKey
+            Primary synthetic RSA key.
+        """
+        sub_a, headers_a = signed_token(email="user.alpha@example.test")
+        sub_b, headers_b = signed_token(email="user.beta@example.test")
+        assert test_client.get(API_ME, headers=headers_a).status_code == 200
+        assert test_client.get(API_ME, headers=headers_b).status_code == 200
+
+        claims_conflict = _claims(
+            sub=sub_a,
+            email="user.beta@example.test",
+            email_verified=True,
+        )
+        headers_conflict = _bearer(_sign(key_one, claims_conflict))
+        res = test_client.get(API_ME, headers=headers_conflict)
+        assert res.status_code == 409
+        assert res.json()["detail"] == {
+            "error": "ERR_EMAIL_CONFLICT",
+            "message": "An account with this email address already exists.",
+        }
+
+        user_a = _fetch_user(auth0_id=sub_a)
+        assert user_a is not None
+        assert user_a.email == "user.alpha@example.test"
+
+    def test_existing_user_unverified_email_does_not_sync(
+        self,
+        test_client: TestClient,
+        userinfo: UserinfoTransport,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+        key_one: SyntheticKey,
+    ) -> None:
+        """
+        Verify that an unverified email for an existing user does not overwrite stored email.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        userinfo : UserinfoTransport
+            Mock transport for Auth0 userinfo.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        key_one : SyntheticKey
+            Primary synthetic RSA key.
+        """
+        subject, headers_valid = signed_token(email="verified.original@example.test")
+        assert test_client.get(API_ME, headers=headers_valid).status_code == 200
+
+        claims_unverified = _claims(
+            sub=subject,
+            email="unverified.candidate@example.test",
+            email_verified=False,
+        )
+        token_unverified = _sign(key_one, claims_unverified)
+        userinfo.set_userinfo(
+            token=token_unverified,
+            payload={
+                "email": "unverified.candidate@example.test",
+                "email_verified": False,
+            },
+        )
+        headers = _bearer(token_unverified)
+
+        res = test_client.get(API_ME, headers=headers)
+        assert res.status_code == 200
+        assert res.json()["email"] == "verified.original@example.test"
+
+        user = _fetch_user(auth0_id=subject)
+        assert user is not None
+        assert user.email == "verified.original@example.test"
+
+    def test_existing_user_missing_email_does_not_alter_user(
+        self,
+        test_client: TestClient,
+        userinfo: UserinfoTransport,
+        signed_token: Callable[..., tuple[str, dict[str, str]]],
+        key_one: SyntheticKey,
+    ) -> None:
+        """
+        Verify that an existing user presenting a token lacking email claims keeps their stored email.
+
+        Parameters
+        ----------
+        test_client : TestClient
+            FastAPI test client.
+        userinfo : UserinfoTransport
+            Mock transport for Auth0 userinfo.
+        signed_token : Callable[..., tuple[str, dict[str, str]]]
+            Signed token factory.
+        key_one : SyntheticKey
+            Primary synthetic RSA key.
+        """
+        subject, headers_valid = signed_token(email="stable@example.test")
+        assert test_client.get(API_ME, headers=headers_valid).status_code == 200
+
+        claims_no_email = _claims(sub=subject, email=None, email_verified=None)
+        token_no_email = _sign(key_one, claims_no_email)
+        userinfo.set_userinfo(token=token_no_email, payload={})
+        headers = _bearer(token_no_email)
+
+        res = test_client.get(API_ME, headers=headers)
+        assert res.status_code == 200
+        assert res.json()["email"] == "stable@example.test"
+
+        user = _fetch_user(auth0_id=subject)
+        assert user is not None
+        assert user.email == "stable@example.test"
 
     def test_distinct_subjects_get_distinct_users(
         self,

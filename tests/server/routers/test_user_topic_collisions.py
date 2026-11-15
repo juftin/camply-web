@@ -64,7 +64,13 @@ def test_account_creation_recovers_from_topic_collision(
         else:
             with patch(
                 "camply.server.auth._verify_auth0_token",
-                new=AsyncMock(return_value={"sub": f"auth0|{new_id}", "email": email}),
+                new=AsyncMock(
+                    return_value={
+                        "sub": f"auth0|{new_id}",
+                        "email": email,
+                        "email_verified": True,
+                    }
+                ),
             ):
                 response = test_client.get(
                     "/api/me", headers={"Authorization": "Bearer synthetic"}

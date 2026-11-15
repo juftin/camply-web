@@ -7,13 +7,17 @@ Auth0 bearer tokens. The environment does not override this choice.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
 import secrets
+import time
 import uuid
-from typing import Annotated, Literal, Optional
+from dataclasses import dataclass
+from typing import Annotated, Any, Literal, Optional
 
+import httpx2
 import jwt
 import structlog
 from fastapi import Depends, HTTPException, Request, status
@@ -55,7 +59,7 @@ def _get_jwks_client() -> PyJWKClient:
     assert domain is not None, "auth0_domain must be configured in auth0 mode"
     if domain not in _jwks_client_cache:
         jwks_url = f"https://{domain}/.well-known/jwks.json"
-        _jwks_client_cache[domain] = PyJWKClient(jwks_url, cache_keys=True)
+        _jwks_client_cache[domain] = PyJWKClient(jwks_url, timeout=10.0)
     return _jwks_client_cache[domain]
 
 
@@ -81,7 +85,10 @@ async def _verify_auth0_token(token: str) -> dict:
         clients can retry instead of treating a valid session as rejected.
     """
     try:
-        signing_key = _get_jwks_client().get_signing_key_from_jwt(token)
+        jwks_client = _get_jwks_client()
+        signing_key = await asyncio.to_thread(
+            jwks_client.get_signing_key_from_jwt, token
+        )
     except (jwt.PyJWKClientConnectionError, jwt.PyJWKSetError, json.JSONDecodeError):
         logger.warning("auth0_jwks_unavailable", exc_info=True)
         raise HTTPException(
@@ -120,6 +127,190 @@ async def _verify_auth0_token(token: str) -> dict:
             detail="Invalid token: missing subject",
         )
     return payload
+
+
+# ---------------------------------------------------------------------------
+# Auth0 userinfo fetching & caching
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _UserInfoCacheEntry:
+    """In-memory cache entry for Auth0 /userinfo claims."""
+
+    claims: dict[str, Any]
+    expires_at: float
+
+
+_userinfo_cache: dict[str, _UserInfoCacheEntry] = {}
+_USERINFO_CACHE_TTL: float = 600.0  # 10 minutes
+_USERINFO_MAX_ENTRIES: int = 1000
+_userinfo_transport: httpx2.AsyncBaseTransport | None = None
+
+
+def _cache_userinfo(token_hash: str, claims: dict[str, Any]) -> None:
+    """
+    Store claims in the in-memory userinfo cache with bounded size and TTL.
+
+    Parameters
+    ----------
+    token_hash : str
+        SHA-256 digest of the bearer token.
+    claims : dict[str, Any]
+        User profile claims from /userinfo.
+    """
+    now = time.monotonic()
+    if len(_userinfo_cache) >= _USERINFO_MAX_ENTRIES:
+        expired = [k for k, v in _userinfo_cache.items() if v.expires_at <= now]
+        for k in expired:
+            del _userinfo_cache[k]
+        while len(_userinfo_cache) >= _USERINFO_MAX_ENTRIES:
+            del _userinfo_cache[next(iter(_userinfo_cache))]
+    _userinfo_cache[token_hash] = _UserInfoCacheEntry(
+        claims=claims, expires_at=now + _USERINFO_CACHE_TTL
+    )
+
+
+def _get_cached_userinfo(token_hash: str) -> dict[str, Any] | None:
+    """
+    Retrieve claims from userinfo cache if present and unexpired.
+
+    Parameters
+    ----------
+    token_hash : str
+        SHA-256 digest of the bearer token.
+
+    Returns
+    -------
+    dict[str, Any] | None
+        Cached claims if available and valid, otherwise None.
+    """
+    entry = _userinfo_cache.get(token_hash)
+    if entry is None:
+        return None
+    if time.monotonic() > entry.expires_at:
+        del _userinfo_cache[token_hash]
+        return None
+    return entry.claims
+
+
+async def _fetch_userinfo(token: str) -> dict[str, Any]:
+    """
+    Fetch user claims from the Auth0 /userinfo endpoint.
+
+    Parameters
+    ----------
+    token : str
+        Bearer access token presented by the client.
+
+    Returns
+    -------
+    dict[str, Any]
+        Userinfo claims dictionary.
+
+    Raises
+    ------
+    HTTPException
+        401 when the token is rejected by userinfo; 503 when the endpoint
+        experiences a network or server error.
+    """
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    cached = _get_cached_userinfo(token_hash)
+    if cached is not None:
+        return cached
+
+    domain = backend_config.auth0_domain
+    if not domain:
+        return {}
+    url = f"https://{domain}/userinfo"
+    headers = {"Authorization": f"Bearer {token}"}
+
+    try:
+        async with httpx2.AsyncClient(
+            timeout=10.0, transport=_userinfo_transport
+        ) as client:
+            resp = await client.get(url, headers=headers)
+    except (httpx2.RequestError, TimeoutError):
+        logger.warning("auth0_userinfo_unavailable", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to verify user profile right now. Please retry shortly.",
+        ) from None
+
+    if resp.status_code in {status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN}:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token for userinfo",
+        )
+    if resp.status_code != status.HTTP_200_OK:
+        logger.warning(
+            "auth0_userinfo_http_error",
+            status_code=resp.status_code,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to verify user profile right now. Please retry shortly.",
+        )
+
+    try:
+        data = resp.json()
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to verify user profile right now. Please retry shortly.",
+        ) from None
+
+    if not isinstance(data, dict):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to verify user profile right now. Please retry shortly.",
+        )
+
+    _cache_userinfo(token_hash=token_hash, claims=data)
+    return data
+
+
+async def _resolve_verified_email(payload: dict[str, Any], token: str) -> str | None:
+    """
+    Extract and verify the user's email from JWT claims or Auth0 /userinfo.
+
+    Parameters
+    ----------
+    payload : dict[str, Any]
+        Decoded JWT claims.
+    token : str
+        Raw bearer token presented by the client.
+
+    Returns
+    -------
+    str | None
+        Normalized lowercased email address if verified, or None.
+
+    Raises
+    ------
+    HTTPException
+        503 if /userinfo cannot be reached during fallback.
+    """
+    email_claim = payload.get("email") or payload.get("https://camply/email")
+    verified_claim = payload.get("email_verified")
+    if verified_claim is None:
+        verified_claim = payload.get("https://camply/email_verified")
+
+    # If the token directly contains a verified email, trust it without userinfo call.
+    if isinstance(email_claim, str) and email_claim.strip() and verified_claim is True:
+        return email_claim.strip().lower()
+
+    # Otherwise, fall back to /userinfo.
+    userinfo = await _fetch_userinfo(token=token)
+    u_email = userinfo.get("email") or userinfo.get("https://camply/email")
+    u_verified = userinfo.get("email_verified")
+    if u_verified is None:
+        u_verified = userinfo.get("https://camply/email_verified")
+
+    if isinstance(u_email, str) and u_email.strip() and u_verified is True:
+        return u_email.strip().lower()
+
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -279,6 +470,208 @@ def verify_session(request: Request) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Auth0 user resolver
+# ---------------------------------------------------------------------------
+
+
+async def _sync_existing_auth0_user_email(
+    session: AsyncSession,
+    auth0_user: User,
+    verified_email: str | None,
+) -> User:
+    """
+    Synchronize verified email changes for an existing Auth0 user.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        Active database session.
+    auth0_user : User
+        Existing user model instance.
+    verified_email : str or None
+        Normalized verified email from token or userinfo.
+
+    Returns
+    -------
+    User
+        Updated user instance.
+
+    Raises
+    ------
+    HTTPException
+        409 if the updated email is claimed by another user account.
+    """
+    if verified_email is None or verified_email == auth0_user.email.lower():
+        return auth0_user
+
+    conflict = await session.execute(
+        select(User).where(
+            func.lower(User.email) == verified_email,
+            User.id != auth0_user.id,
+        )
+    )
+    if conflict.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": "ERR_EMAIL_CONFLICT",
+                "message": "An account with this email address already exists.",
+            },
+        )
+    auth0_user.email = verified_email
+    try:
+        await session.commit()
+        await session.refresh(auth0_user)
+    except IntegrityError:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": "ERR_EMAIL_CONFLICT",
+                "message": "An account with this email address already exists.",
+            },
+        ) from None
+    return auth0_user
+
+
+async def _provision_auth0_user(
+    session: AsyncSession,
+    auth0_id: str,
+    verified_email: str | None,
+) -> User:
+    """
+    Provision a new user record for a first-time Auth0 login.
+
+    Parameters
+    ----------
+    session : AsyncSession
+        Active database session.
+    auth0_id : str
+        Auth0 identity subject identifier.
+    verified_email : str or None
+        Normalized verified email from token or userinfo.
+
+    Returns
+    -------
+    User
+        Newly provisioned user instance.
+
+    Raises
+    ------
+    HTTPException
+        403 if a verified email is missing;
+        409 if the verified email is claimed by an existing account.
+    """
+    if verified_email is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "ERR_VERIFIED_EMAIL_REQUIRED",
+                "message": "A verified email address is required to access camply.",
+            },
+        )
+
+    conflict = await session.execute(
+        select(User).where(func.lower(User.email) == verified_email)
+    )
+    if conflict.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": "ERR_EMAIL_CONFLICT",
+                "message": "An account with this email address already exists.",
+            },
+        )
+
+    auth0_user = User(
+        auth0_id=auth0_id,
+        email=verified_email,
+        is_invited=False,
+        is_admin=False,
+        scanning_enabled=True,
+    )
+    try:
+        await flush_new_user(session, auth0_user)
+        await session.commit()
+    except IntegrityError:
+        await session.rollback()
+        result = await session.execute(select(User).where(User.auth0_id == auth0_id))
+        winner = result.scalar_one_or_none()
+        if winner is not None:
+            return winner
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": "ERR_EMAIL_CONFLICT",
+                "message": "An account with this email address already exists.",
+            },
+        ) from None
+    else:
+        await session.refresh(auth0_user)
+        try:
+            USERS_CREATED_TOTAL.inc()
+        except Exception:
+            pass
+        return auth0_user
+
+
+async def _resolve_auth0_user(
+    credentials: Optional[HTTPAuthorizationCredentials],
+    session: AsyncSession,
+) -> User:
+    """
+    Validate bearer token, synchronize email changes, or provision a new user.
+
+    Parameters
+    ----------
+    credentials : HTTPAuthorizationCredentials or None
+        Bearer authorization credentials.
+    session : AsyncSession
+        Active database session.
+
+    Returns
+    -------
+    User
+        Persisted user record corresponding to the Auth0 identity.
+
+    Raises
+    ------
+    HTTPException
+        401 if missing credentials or invalid token;
+        403 if verified email is required for provisioning;
+        409 on duplicate email conflict;
+        503 if identity provider services are unreachable.
+    """
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing Authorization header",
+        )
+    payload = await _verify_auth0_token(credentials.credentials)
+    auth0_id = payload.get("sub", "")
+    token = credentials.credentials
+
+    # Look up existing user by auth0_id
+    result = await session.execute(select(User).where(User.auth0_id == auth0_id))
+    auth0_user: User | None = result.scalar_one_or_none()
+
+    verified_email = await _resolve_verified_email(payload=payload, token=token)
+
+    if auth0_user is not None:
+        return await _sync_existing_auth0_user_email(
+            session=session,
+            auth0_user=auth0_user,
+            verified_email=verified_email,
+        )
+
+    return await _provision_auth0_user(
+        session=session,
+        auth0_id=auth0_id,
+        verified_email=verified_email,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Main dependency
 # ---------------------------------------------------------------------------
 
@@ -341,42 +734,7 @@ async def resolve_current_user(
         )
 
     # --- Auth0 mode ---
-    if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing Authorization header",
-        )
-    payload = await _verify_auth0_token(credentials.credentials)
-    auth0_id = payload.get("sub", "")
-    email = (payload.get("email") or payload.get("sub") or "").lower()
-
-    # Upsert user by auth0_id — handle concurrent insert race
-    result = await session.execute(select(User).where(User.auth0_id == auth0_id))
-    auth0_user: User | None = result.scalar_one_or_none()
-    if auth0_user is None:
-        auth0_user = User(
-            auth0_id=auth0_id,
-            email=email,
-            is_invited=False,
-            is_admin=False,
-            scanning_enabled=True,
-        )
-        try:
-            await flush_new_user(session, auth0_user)
-            await session.commit()
-        except IntegrityError:
-            await session.rollback()
-            result = await session.execute(
-                select(User).where(User.auth0_id == auth0_id)
-            )
-            auth0_user = result.scalar_one()
-        else:
-            await session.refresh(auth0_user)
-            try:
-                USERS_CREATED_TOTAL.inc()
-            except Exception:
-                pass
-
+    auth0_user = await _resolve_auth0_user(credentials=credentials, session=session)
     return CurrentUser(
         id=auth0_user.id,
         email=auth0_user.email,

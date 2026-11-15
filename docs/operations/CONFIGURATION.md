@@ -170,6 +170,8 @@ Sessions expire after `CAMPLY_SESSION_MAX_AGE` seconds. A scan query returning 4
 
 Set `CAMPLY_AUTH_MODE=auth0`. All three of `CAMPLY_AUTH0_DOMAIN`, `CAMPLY_AUTH0_AUDIENCE`, and `CAMPLY_AUTH0_CLIENT_ID` are required, including when the environment is local. The frontend obtains these public settings from `/api/auth-config` and requests access tokens for the configured API audience. Configure Auth0 callback/logout URLs for the frontend origin and base path. Signup is available only in Auth0 mode.
 
+Auth0 should be configured (via custom Actions or standard scopes) to emit `email` and `email_verified` claims (or namespaced `https://camply/email` and `https://camply/email_verified`). If omitted from access tokens, the backend automatically calls Auth0's `GET /userinfo` endpoint with the bearer token to retrieve the verified email, caching the result in memory for 10 minutes. Only verified emails are trusted for provisioning and synchronization.
+
 ### Cloudflare Pages frontend
 
 `src/frontend/wrangler.jsonc` defines Pages project `camply-81r`, compatibility date `2024-11-11`, and output `dist` relative to that configuration. Functions remain at `src/frontend/functions/api/[[path]].ts`. Root `task frontend:pages:check` validates an isolated local build/Function without credentials, and `task frontend:pages:dev` serves the built UI through Wrangler with `--cwd src/frontend`. The Vite development server retains its own `/api` proxy.
