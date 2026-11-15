@@ -118,7 +118,7 @@ export interface paths {
         put?: never;
         /**
          * Change Password
-         * @description Change user password and clear must_change_password flag.
+         * @description Change user password, revoke prior sessions, and refresh this browser's session.
          */
         post: operations["change_password_api_change_password_post"];
         delete?: never;
@@ -138,10 +138,50 @@ export interface paths {
         put?: never;
         /**
          * Logout
-         * @description Clear the session and CSRF cookies after an authenticated logout.
+         * @description Revoke the current session and clear session and CSRF cookies.
          */
         post: operations["logout_api_logout_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List My Sessions
+         * @description List active password sessions belonging to the authenticated user.
+         */
+        get: operations["list_my_sessions_api_me_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke My Session
+         * @description Revoke a specific password session owned by the authenticated user.
+         */
+        delete: operations["revoke_my_session_api_me_sessions__session_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2393,6 +2433,41 @@ export interface components {
             /** Points */
             points?: components["schemas"]["TrendPoint"][];
         };
+        /**
+         * UserSessionItem
+         * @description Active server-side password session belonging to the current user.
+         */
+        UserSessionItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** User Agent */
+            user_agent?: string | null;
+            /** Ip Address */
+            ip_address?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Is Current */
+            is_current: boolean;
+        };
+        /**
+         * UserSessionListResponse
+         * @description List of active password sessions for the current user.
+         */
+        UserSessionListResponse: {
+            /** Items */
+            items: components["schemas"]["UserSessionItem"][];
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -2576,6 +2651,55 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_my_sessions_api_me_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSessionListResponse"];
+                };
+            };
+        };
+    };
+    revoke_my_session_api_me_sessions__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

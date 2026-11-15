@@ -10,7 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from camply.db.models import AdminAuditEvent, User
+from camply.db.models import AdminAuditEvent, User, UserSession
 from camply.server.app import app
 from camply.server.auth import CurrentUser, resolve_current_user, session_signing_key
 from camply.server.config import AuthMode, backend_config
@@ -179,7 +179,15 @@ def test_user_login_and_forced_password_change_workflow(
     assert me_resp.status_code == 200
     assert me_resp.json()["must_change_password"] is True
 
-    # 4. Mutations on /api/me and scan operations are blocked by require_password_not_expired
+    # 4. Mutations on /api/me, session management, and scan operations are blocked by require_password_not_expired
+    sessions_resp = test_client.get("/api/me/sessions")
+    assert sessions_resp.status_code == 403
+    assert sessions_resp.json()["detail"]["error"] == "ERR_PASSWORD_CHANGE_REQUIRED"
+
+    del_session_resp = test_client.delete(f"/api/me/sessions/{uuid.uuid4()}")
+    assert del_session_resp.status_code == 403
+    assert del_session_resp.json()["detail"]["error"] == "ERR_PASSWORD_CHANGE_REQUIRED"
+
     patch_me = test_client.patch("/api/me", json={"pushover_token": "token123"})
     assert patch_me.status_code == 403
     assert patch_me.json()["detail"]["error"] == "ERR_PASSWORD_CHANGE_REQUIRED"
@@ -408,19 +416,28 @@ async def test_admin_cannot_demote_self(
         app.dependency_overrides.pop(resolve_current_user, None)
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize("force_change", [True, False])
-def test_password_reset_revokes_existing_sessions(
+async def test_password_reset_revokes_existing_sessions(
     session_mode: None, test_client: TestClient, force_change: bool
 ) -> None:
-    """A reset revokes old cookies permanently, including after forced rotation."""
+    """A reset revokes old cookies and DB sessions permanently, including after forced rotation."""
     _login(test_client, username="test-admin", password="synthetic-test-password")
     email = f"reset_sessions_{uuid.uuid4().hex}@example.com"
     created = test_client.post(
         "/api/admin/users", json={"email": email, "password": "InitialPassword123!"}
     )
     assert created.status_code == 201
+    target_user_id = uuid.UUID(created.json()["id"])
     old_client = TestClient(app)
     _login(old_client, username=email, password="InitialPassword123!")
+    old_jti = uuid.UUID(
+        jwt.decode(
+            old_client.cookies["camply_session"],
+            session_signing_key(),
+            algorithms=["HS256"],
+        )["jti"]
+    )
 
     reset = test_client.patch(
         f"/api/admin/users/{created.json()['id']}",
@@ -433,6 +450,11 @@ def test_password_reset_revokes_existing_sessions(
     assert test_client.get("/api/admin/users").status_code == 200
     assert old_client.get("/api/me").status_code == 401
     assert old_client.get("/api/scans").status_code == 401
+
+    async with maker() as db_session:
+        revoked_row = await db_session.get(UserSession, old_jti)
+        assert revoked_row is not None
+        assert revoked_row.revoked_at is not None
 
     new_client = TestClient(app)
     _login(new_client, username=email, password="TemporaryPassword456!")
@@ -447,22 +469,50 @@ def test_password_reset_revokes_existing_sessions(
     assert new_client.get("/api/scans").status_code == 200
     assert old_client.get("/api/scans").status_code == 401
 
+    async with maker() as db_session:
+        active_rows = (
+            (
+                await db_session.execute(
+                    select(UserSession).where(
+                        UserSession.user_id == target_user_id,
+                        UserSession.revoked_at.is_(None),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert len(active_rows) == 1
+        new_jti = uuid.UUID(
+            jwt.decode(
+                new_client.cookies["camply_session"],
+                session_signing_key(),
+                algorithms=["HS256"],
+            )["jti"]
+        )
+        assert active_rows[0].id == new_jti
 
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("new_password", ["InitialPassword123!", "NewPassword456!"])
-def test_password_change_revokes_other_sessions(
+async def test_password_change_revokes_other_sessions(
     session_mode: None, test_client: TestClient, new_password: str
 ) -> None:
-    """Changing even to the same password revokes other cookies and refreshes this browser."""
+    """Changing even to the same password revokes other cookies/DB rows and refreshes this browser."""
     _login(test_client, username="test-admin", password="synthetic-test-password")
     email = f"change_sessions_{uuid.uuid4().hex}@example.com"
     created = test_client.post(
         "/api/admin/users", json={"email": email, "password": "InitialPassword123!"}
     )
     assert created.status_code == 201
+    target_user_id = uuid.UUID(created.json()["id"])
     old_client = TestClient(app)
     _login(old_client, username=email, password="InitialPassword123!")
     _login(test_client, username=email, password="InitialPassword123!")
     previous_cookie = test_client.cookies["camply_session"]
+    previous_jti = uuid.UUID(
+        jwt.decode(previous_cookie, session_signing_key(), algorithms=["HS256"])["jti"]
+    )
 
     changed = test_client.post(
         "/api/change-password",
@@ -470,6 +520,14 @@ def test_password_change_revokes_other_sessions(
     )
     assert changed.status_code == 200
     assert test_client.cookies["camply_session"] != previous_cookie
+    new_jti = uuid.UUID(
+        jwt.decode(
+            test_client.cookies["camply_session"],
+            session_signing_key(),
+            algorithms=["HS256"],
+        )["jti"]
+    )
+    assert new_jti != previous_jti
     assert test_client.get("/api/scans").status_code == 200
     assert (
         test_client.patch(
@@ -478,6 +536,23 @@ def test_password_change_revokes_other_sessions(
         == 200
     )
     assert old_client.get("/api/me").status_code == 401
+
+    async with maker() as db_session:
+        prev_row = await db_session.get(UserSession, previous_jti)
+        assert prev_row is not None and prev_row.revoked_at is not None
+        active_rows = (
+            (
+                await db_session.execute(
+                    select(UserSession).where(
+                        UserSession.user_id == target_user_id,
+                        UserSession.revoked_at.is_(None),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert [row.id for row in active_rows] == [new_jti]
 
 
 @pytest.mark.parametrize("operation", ["reset", "change"])

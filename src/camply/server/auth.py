@@ -8,6 +8,7 @@ Auth0 bearer tokens. The environment does not override this choice.
 from __future__ import annotations
 
 import asyncio
+import datetime
 import hashlib
 import hmac
 import json
@@ -31,7 +32,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from camply.db.models import AccessRequest, User
+from camply.db.models import AccessRequest, User, UserSession
 from camply.db.models.access_request import AccessRequestStatus
 from camply.server.config import AuthMode, backend_config
 from camply.server.dependencies import SessionDep
@@ -396,6 +397,7 @@ class CurrentUser(BaseModel):
     ntfy_server_url: str | None = None
     ntfy_access_token: str | None = Field(default=None, repr=False)
     must_change_password: bool = False
+    session_id: uuid.UUID | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -447,6 +449,13 @@ def session_credential_version(user: User) -> str:
     ).hexdigest()
 
 
+def _as_utc(value: datetime.datetime) -> datetime.datetime:
+    """Normalize naive SQLite timestamps to UTC-aware datetimes."""
+    if value.tzinfo is None:
+        return value.replace(tzinfo=datetime.timezone.utc)
+    return value.astimezone(datetime.timezone.utc)
+
+
 def verify_session(request: Request) -> dict:
     """Validate the signed session and require CSRF proof for state changes."""
     cookie = request.cookies.get("camply_session")
@@ -457,9 +466,18 @@ def verify_session(request: Request) -> dict:
             cookie,
             session_signing_key(),
             algorithms=["HS256"],
-            options={"require": ["exp", "sub", "csrf", "credentials"]},
+            options={"require": ["exp", "sub", "csrf", "credentials", "jti"]},
         )
     except jwt.InvalidTokenError as exc:
+        raise HTTPException(
+            status_code=401, detail="Session expired or invalid"
+        ) from exc
+    jti = payload.get("jti")
+    if not isinstance(jti, str):
+        raise HTTPException(status_code=401, detail="Session expired or invalid")
+    try:
+        uuid.UUID(jti)
+    except ValueError as exc:
         raise HTTPException(
             status_code=401, detail="Session expired or invalid"
         ) from exc
@@ -801,9 +819,11 @@ async def resolve_current_user(
         database, and returns the DB record.
     """
     if backend_config.auto_login or backend_config.auth_mode == AuthMode.SESSION:
+        session_id: uuid.UUID | None = None
         if backend_config.auth_mode == AuthMode.SESSION:
             payload = verify_session(request)
             sub = str(payload.get("sub", ""))
+            jti_uuid = uuid.UUID(str(payload["jti"]))
             stmt = select(User).where(func.lower(User.email) == sub.lower())
             result = await session.execute(stmt)
             db_user = result.scalar_one_or_none()
@@ -818,6 +838,21 @@ async def resolve_current_user(
                 raise HTTPException(
                     status_code=401, detail="Session expired or invalid"
                 )
+            session_stmt = select(UserSession).where(
+                UserSession.id == jti_uuid,
+                UserSession.user_id == user.id,
+            )
+            db_session = (await session.execute(session_stmt)).scalar_one_or_none()
+            now = datetime.datetime.now(tz=datetime.timezone.utc)
+            if (
+                db_session is None
+                or db_session.revoked_at is not None
+                or _as_utc(db_session.expires_at) <= now
+            ):
+                raise HTTPException(
+                    status_code=401, detail="Session expired or invalid"
+                )
+            session_id = db_session.id
         else:
             user = await _get_or_create_admin_user(session)
         return CurrentUser(
@@ -835,6 +870,7 @@ async def resolve_current_user(
                 backend_config.auth_mode == AuthMode.SESSION
                 and user.must_change_password
             ),
+            session_id=session_id,
         )
 
     # --- Auth0 mode ---

@@ -22,6 +22,7 @@ from sqlalchemy import (
     func,
     or_,
     select,
+    update,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -36,6 +37,7 @@ from camply.db.models import (
     UniqueTarget,
     User,
     UserScan,
+    UserSession,
 )
 from camply.db.models.access_request import AccessRequestStatus
 from camply.server.auth import AdminUserDep, CurrentUser, hash_password
@@ -492,7 +494,7 @@ def _apply_user_access_updates(
         )
 
 
-def _apply_user_credential_updates(
+async def _apply_user_credential_updates(
     session: AsyncSession,
     *,
     admin: CurrentUser,
@@ -531,6 +533,14 @@ def _apply_user_credential_updates(
         user.password_hash = hash_password(body.password)
         user.must_change_password = (
             body.must_change_password if body.must_change_password is not None else True
+        )
+        await session.execute(
+            update(UserSession)
+            .where(
+                UserSession.user_id == user.id,
+                UserSession.revoked_at.is_(None),
+            )
+            .values(revoked_at=datetime.datetime.now(tz=datetime.timezone.utc))
         )
         session.add(
             AdminAuditEvent(
@@ -571,7 +581,7 @@ async def update_user(
         )
 
     _apply_user_access_updates(session, admin=admin, user=user, body=body)
-    _apply_user_credential_updates(session, admin=admin, user=user, body=body)
+    await _apply_user_credential_updates(session, admin=admin, user=user, body=body)
 
     await session.commit()
     await session.refresh(user)

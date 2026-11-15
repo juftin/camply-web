@@ -138,6 +138,18 @@ Stores public invitation requests and administrator review metadata.
 - `reviewed_by_id`: `UUID | null` (Foreign Key -> `users.id`, `ON DELETE SET NULL`)
 - `user_id`: `UUID | null` (Foreign Key -> `users.id`, `ON DELETE SET NULL`; matched account once one exists)
 
+### 11. `user_sessions` Table
+
+Stores server-side state for issued password-session cookies so individual sessions can be listed and revoked before cookie expiration.
+
+- `id`: `UUID` (Primary Key, stored as the JWT `jti` claim)
+- `user_id`: `UUID` (Foreign Key -> `users.id`, `ON DELETE CASCADE`, Indexed)
+- `user_agent`: `String(512) | null` (Truncated `User-Agent` header captured on login)
+- `ip_address`: `String(64) | null` (Client IP address or first `X-Forwarded-For` hop)
+- `created_at`: `Timestamp` (UTC creation timestamp)
+- `expires_at`: `Timestamp` (Indexed UTC expiration timestamp matching cookie lifetime)
+- `revoked_at`: `Timestamp | null` (UTC revocation timestamp; `null` while active)
+
 ---
 
 ## 🔄 Reconciled Implementation Details

@@ -137,6 +137,23 @@ class SessionLoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=1024, repr=False)
 
 
+class UserSessionItem(BaseModel):
+    """Active server-side password session belonging to the current user."""
+
+    id: uuid.UUID
+    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None
+    created_at: UtcDateTime
+    expires_at: UtcDateTime
+    is_current: bool
+
+
+class UserSessionListResponse(BaseModel):
+    """List of active password sessions for the current user."""
+
+    items: list[UserSessionItem]
+
+
 # ===========================================================================
 # Access Requests
 # ===========================================================================
