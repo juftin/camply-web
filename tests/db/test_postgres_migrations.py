@@ -79,6 +79,19 @@ def test_postgres_populated_upgrade() -> None:
                 *before,
                 (12, "Washington State Parks"),
                 (13, "ReserveAmerica"),
+                (14, "Wisconsin State Parks"),
+                (15, "Michigan State Parks"),
+                (16, "Tacoma Power Parks"),
+                (17, "Parks Canada"),
+                (18, "BC Parks"),
+                (19, "Ontario Parks"),
+                (20, "Nova Scotia Parks"),
+                (21, "Manitoba Parks"),
+                (22, "Newfoundland & Labrador Provincial Parks"),
+                (23, "Gatineau Park"),
+                (24, "Long Point Region"),
+                (25, "Maitland Valley"),
+                (26, "St. Clair Region"),
             ]
             assert connection.execute(
                 "SELECT url FROM providers WHERE id = 13"

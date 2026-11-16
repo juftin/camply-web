@@ -33,7 +33,7 @@ const providers: Provider[] = [
     name: "Recreation.gov",
     description:
       "The official federal recreation portal for reserving campsites at National Parks, National Forests, and other federal recreation areas.",
-    website: "https://recreation.gov",
+    website: "https://www.recreation.gov",
     logo: `${import.meta.env.BASE_URL}branding/recreation-gov.png`,
     features: [
       "National Parks",
@@ -47,10 +47,10 @@ const providers: Provider[] = [
     popular: true,
   },
   {
-    name: "Reserve California",
+    name: "ReserveCalifornia",
     description:
       "Official reservation system for California State Parks offering diverse camping from beaches to deserts to mountains.",
-    website: "https://reservecalifornia.com",
+    website: "https://www.reservecalifornia.com",
     features: [
       "Beach Camping",
       "Desert Camping",
@@ -72,23 +72,10 @@ const providers: Provider[] = [
     popular: true,
   },
   {
-    name: "Alabama State Parks",
-    description:
-      "Reservation system for Alabama's state parks and outdoor recreation areas.",
-    website: "https://reservealpark.com",
-    features: [
-      "State Park Camping",
-      "Cabins",
-      "Group Facilities",
-      "Beach Access",
-    ],
-    coverage: ["Alabama State Parks"],
-  },
-  {
     name: "Arizona State Parks",
     description:
       "Official booking platform for Arizona's desert state parks and recreation areas.",
-    website: "https://azstateparks.com",
+    website: "https://azstateparks.com/reserve",
     features: [
       "Desert Camping",
       "Hiking Trails",
@@ -101,7 +88,7 @@ const providers: Provider[] = [
     name: "Florida State Parks",
     description:
       "Reservation system for Florida's diverse state parks from beaches to springs to wetlands.",
-    website: "https://floridastateparks.org",
+    website: "https://reserve.floridastateparks.org/Web",
     features: [
       "Beach Camping",
       "Spring Sites",
@@ -114,7 +101,7 @@ const providers: Provider[] = [
     name: "Minnesota State Parks",
     description:
       "Booking platform for Minnesota's state parks and recreation areas with lakes and forests.",
-    website: "https://reservemn.usedirect.com",
+    website: "https://reservemn.usedirect.com/MinnesotaWeb",
     features: ["Lake Camping", "Forest Sites", "Cabins", "Group Camps"],
     coverage: ["Minnesota State Parks"],
   },
@@ -122,7 +109,7 @@ const providers: Provider[] = [
     name: "Missouri State Parks",
     description:
       "Reservation system for Missouri's state parks and historic sites.",
-    website: "https://icampmo1.usedirect.com",
+    website: "https://icampmo.usedirect.com/MSPWeb",
     features: ["Ozark Camping", "Lake Sites", "Historic Parks", "Cabins"],
     coverage: ["Missouri State Parks"],
   },
@@ -130,7 +117,7 @@ const providers: Provider[] = [
     name: "Ohio State Parks",
     description:
       "Official booking system for Ohio's state parks and recreation facilities.",
-    website: "https://reserveohio.com",
+    website: "https://reserveohio.com/OhioCampWeb",
     features: [
       "Lake Camping",
       "Forest Sites",
@@ -143,7 +130,7 @@ const providers: Provider[] = [
     name: "Virginia State Parks",
     description:
       "Reservation platform for Virginia's state parks from mountains to coast.",
-    website: "https://reservevaparks.com",
+    website: "https://reservevaparks.com/Web",
     features: ["Mountain Camping", "Coastal Sites", "Historic Parks", "Cabins"],
     coverage: ["Virginia State Parks"],
   },
@@ -151,7 +138,7 @@ const providers: Provider[] = [
     name: "Fairfax County Parks",
     description:
       "Local parks and recreation booking system for Fairfax County, Virginia.",
-    website: "https://fairfaxcounty.gov/parks",
+    website: "https://fairfax.usedirect.com/FairfaxFCPAWeb",
     features: [
       "Local Parks",
       "Recreation Centers",
@@ -161,36 +148,23 @@ const providers: Provider[] = [
     coverage: ["Fairfax County, VA"],
   },
   {
-    name: "Maricopa County Parks",
-    description:
-      "Arizona county parks system offering desert recreation and camping opportunities.",
-    website: "https://maricopa.gov/parks",
-    features: [
-      "Desert Camping",
-      "Regional Parks",
-      "Hiking Trails",
-      "Group Areas",
-    ],
-    coverage: ["Maricopa County, AZ"],
-  },
-  {
-    name: "Oregon Metro Parks",
+    name: "Oregon Metro",
     description:
       "Regional parks and natural areas in the Portland metropolitan region.",
-    website: "https://oregonmetro.gov/parks",
+    website: "https://reservemetro.usedirect.com/MetroWeb",
     features: [
       "Regional Parks",
       "Natural Areas",
       "Trail Access",
       "Environmental Programs",
     ],
-    coverage: ["Portland Metro Area"],
+    coverage: ["Portland Metro Area, OR"],
   },
   {
-    name: "Northern Territory Parks",
+    name: "Northern Territory",
     description:
       "Australian park booking system for Northern Territory's unique landscapes and wildlife areas.",
-    website: "https://nt.gov.au/leisure/parks-reserves",
+    website: "https://parkbookings.nt.gov.au/Web",
     features: [
       "Outback Camping",
       "Wildlife Parks",
@@ -198,6 +172,118 @@ const providers: Provider[] = [
       "Adventure Tourism",
     ],
     coverage: ["Northern Territory, Australia"],
+  },
+  {
+    name: "Washington State Parks",
+    description:
+      "Reservation system for Washington State Parks campgrounds, cabins, and yurts.",
+    website: "https://washington.goingtocamp.com",
+    features: ["Coastal Camping", "Mountain Sites", "Cabins & Yurts"],
+    coverage: ["Washington State Parks"],
+  },
+  {
+    name: "Wisconsin State Parks",
+    description:
+      "Reservation portal for Wisconsin State Parks, forests, and trails.",
+    website: "https://wisconsin.goingtocamp.com",
+    features: ["Lake Camping", "Forest Sites", "Group Camps"],
+    coverage: ["Wisconsin State Parks"],
+  },
+  {
+    name: "Michigan State Parks",
+    description:
+      "Michigan Department of Natural Resources reservation portal for state parks and campgrounds.",
+    website: "https://midnrreservations.com",
+    features: ["Great Lakes Camping", "State Forests", "Cabins & Lodges"],
+    coverage: ["Michigan State Parks"],
+  },
+  {
+    name: "Tacoma Power Parks",
+    description:
+      "Camping and recreation reservations along Tacoma Power hydroelectric reservoirs.",
+    website: "https://tacomapower.goingtocamp.com",
+    features: ["Lake Camping", "RV Sites", "Tent Sites"],
+    coverage: ["Washington"],
+  },
+  {
+    name: "Parks Canada",
+    description:
+      "Federal reservation portal for Canadian National Parks, National Marine Conservation Areas, and historic sites.",
+    website: "https://reservation.pc.gc.ca",
+    features: ["National Parks", "Backcountry", "oTENTiks & Cabins"],
+    coverage: ["Canada"],
+  },
+  {
+    name: "BC Parks",
+    description:
+      "British Columbia provincial parks reservation portal for frontcountry and backcountry camping.",
+    website: "https://camping.bcparks.ca",
+    features: ["Mountain Camping", "Coastal Sites", "Backcountry"],
+    coverage: ["British Columbia, Canada"],
+  },
+  {
+    name: "Ontario Parks",
+    description:
+      "Ontario provincial parks reservation system for campsites, backcountry, and roofed accommodations.",
+    website: "https://reservations.ontarioparks.ca",
+    features: ["Lake Camping", "Backcountry", "Cabins & Yurts"],
+    coverage: ["Ontario, Canada"],
+  },
+  {
+    name: "Nova Scotia Parks",
+    description:
+      "Provincial park campground and yurt reservations across Nova Scotia.",
+    website: "https://novascotia.goingtocamp.com",
+    features: ["Coastal Camping", "Yurts", "Tent & RV Sites"],
+    coverage: ["Nova Scotia, Canada"],
+  },
+  {
+    name: "Manitoba Parks",
+    description:
+      "Manitoba provincial park campground, yurt, and cabin reservations.",
+    website: "https://manitoba.goingtocamp.com",
+    features: ["Lake Camping", "Yurts & Cabins", "Group Sites"],
+    coverage: ["Manitoba, Canada"],
+  },
+  {
+    name: "Newfoundland & Labrador Provincial Parks",
+    description:
+      "Camping reservations for Newfoundland and Labrador provincial parks.",
+    website: "https://www.nlcamping.ca",
+    features: ["Coastal Camping", "RV & Tent Sites", "Group Camping"],
+    coverage: ["Newfoundland & Labrador, Canada"],
+  },
+  {
+    name: "Gatineau Park",
+    description:
+      "National Capital Commission campsite and cabin reservations in Gatineau Park.",
+    website: "https://reservations.ncc-ccn.gc.ca",
+    features: ["Forest Camping", "Cabins & Yurts", "Backcountry"],
+    coverage: ["Quebec, Canada"],
+  },
+  {
+    name: "Long Point Region",
+    description:
+      "Long Point Region Conservation Authority campground reservations along Lake Erie.",
+    website: "https://longpoint.goingtocamp.com",
+    features: ["Lake Erie Camping", "Conservation Areas", "RV & Tent Sites"],
+    coverage: ["Ontario, Canada"],
+  },
+  {
+    name: "Maitland Valley",
+    description:
+      "Maitland Valley Conservation Authority campground reservations at Falls Reserve.",
+    website: "https://maitlandvalley.goingtocamp.com",
+    features: ["Conservation Areas", "Family Camping", "RV & Tent Sites"],
+    coverage: ["Ontario, Canada"],
+  },
+  {
+    name: "St. Clair Region",
+    description:
+      "St. Clair Region Conservation Authority campground reservations in southwestern Ontario.",
+    website: "https://stclair.goingtocamp.com",
+    features: ["Conservation Areas", "Riverfront Camping", "RV & Tent Sites"],
+    coverage: ["Ontario, Canada"],
   },
 ];
 
@@ -221,11 +307,11 @@ export function Providers() {
         <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
           <span className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            15+ Booking Platforms
+            26 Booking Platforms
           </span>
           <span className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Federal & State Parks
+            Federal, State & Provincial Parks
           </span>
           <span className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />

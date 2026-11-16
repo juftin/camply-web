@@ -70,15 +70,16 @@ class GoingToCampProvider(BaseProvider, ABC):
         Complete GoingToCamp API root without a trailing slash.
     booking_url : str
         Public reservation web root without a trailing slash.
-    state_code : str
-        Two-letter state or province fallback for catalog rows.
+    state_code : str | None
+        Two-letter state or province fallback for catalog rows, or ``None`` for
+        national multi-province deployments such as Parks Canada.
     country_code : str
         Two-letter ISO country code fallback (``"US"`` by default).
     """
 
     api_url: ClassVar[str]
     booking_url: ClassVar[str]
-    state_code: ClassVar[str]
+    state_code: ClassVar[str | None]
     country_code: ClassVar[str] = "US"
 
     def __init__(self) -> None:
@@ -380,7 +381,7 @@ class GoingToCampProvider(BaseProvider, ABC):
             name=normalize_name(park.display_name),
             description=park.description,
             city=park.city,
-            state=normalize_state_code(park.regionCode, self.state_code),
+            state=normalize_state_code(park.regionCode, self.state_code or "") or None,
             country=self.country_code,
             latitude=lat,
             longitude=lon,
@@ -410,8 +411,9 @@ class GoingToCampProvider(BaseProvider, ABC):
             description=facility.description,
             city=facility.city or parent_park.city,
             state=normalize_state_code(
-                facility.region or parent_park.regionCode, self.state_code
-            ),
+                facility.region or parent_park.regionCode, self.state_code or ""
+            )
+            or None,
             country=normalize_country_code(facility.country, self.country_code),
             latitude=lat,
             longitude=lon,

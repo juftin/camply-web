@@ -25,7 +25,7 @@ camply --provider ReserveCalifornia campgrounds --search redwood
 
 ![Campground discovery output with Rich logging](assets/camply-cli-discovery.png)
 
-`providers` lists the current 13 camping providers. Provider names and registered
+`providers` lists the current 26 camping providers. Provider names and registered
 class aliases are case-insensitive. The default is `RecreationDotGov`. Set
 `CAMPLY_PROVIDER` to change it, or supply `--provider` before or after the discovery
 or availability command. A command option overrides a root option, which overrides

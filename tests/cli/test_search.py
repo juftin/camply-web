@@ -174,8 +174,8 @@ def test_provider_capabilities_are_truthful(transcript: Transcript) -> None:
     result = CliRunner().invoke(cli, ["providers"])
     assert result.exit_code == 0
     assert "camply, the campsite finder ⛺️" in result.stdout
-    assert "camply currently supports 13 providers:" in result.stdout
-    assert sum('":    ' in line for line in result.stdout.splitlines()) == 13
+    assert "camply currently supports 26 providers:" in result.stdout
+    assert sum('":    ' in line for line in result.stdout.splitlines()) == 26
     assert '"RecreationDotGov":    Recreation.gov' in result.stdout
     assert (
         '"ReserveAmerica":    ReserveAmerica (no recreation-area catalog'
