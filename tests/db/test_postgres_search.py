@@ -253,3 +253,31 @@ async def test_indexes_support_candidates(postgres_session: AsyncSession) -> Non
     assert "ix_search_campground_trgm" in plan
     assert "ix_search_rec_area_trgm" in plan
     assert "ix_search_city_trgm" in plan
+
+
+@pytest.mark.asyncio
+async def test_search_campsite_types_accepts_campground_arrays(
+    postgres_session: AsyncSession,
+) -> None:
+    """Campground ``VARCHAR[]`` site types copy into the search table unchanged."""
+    await postgres_session.execute(
+        text("""
+        INSERT INTO campgrounds (id, provider_id, name, reservable, enabled, campsite_types)
+        VALUES ('array-cg', 1, 'Array Camp', true, true, ARRAY['tent', 'rv'])
+        """)
+    )
+    await postgres_session.execute(
+        text("""
+        INSERT INTO search (id, entity_type, provider_id, provider_name, campground_id,
+            campsite_types)
+        SELECT 'Campground/1//' || id, 'Campground', provider_id, 'synthetic_provider',
+            id, campsite_types
+        FROM campgrounds WHERE id = 'array-cg'
+        """)
+    )
+    stored = (
+        await postgres_session.execute(
+            text("SELECT campsite_types FROM search WHERE campground_id = 'array-cg'")
+        )
+    ).scalar_one()
+    assert stored == ["tent", "rv"]

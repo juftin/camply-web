@@ -101,7 +101,7 @@ def test_previous_pr_database_preserves_pending_delivery(tmp_path: Path) -> None
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
         assert connection.execute(
             "SELECT version_num FROM alembic_version"
-        ).fetchall() == [("f373bee1b42b",)]
+        ).fetchall() == [("a1c3e5f7b9d2",)]
 
 
 async def _seed_historical_scan(database: DatabaseConfig) -> tuple[str, str]:
