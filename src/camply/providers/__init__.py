@@ -3,7 +3,7 @@ Providers
 """
 
 from camply.db.data import providers as identities
-from camply.providers.base import BaseProvider
+from camply.providers.base import BaseProvider, ProviderFilterCapabilities
 from camply.providers.going_to_camp.variations import (
     BCParksProvider,
     GatineauParkProvider,
@@ -64,4 +64,13 @@ PROVIDERS: dict[int, type[BaseProvider]] = {
     identities.StClairRegion.id: StClairRegionProvider,
 }
 
-__all__ = ["PROVIDERS"]
+
+def get_provider_filter_capabilities(provider_id: int) -> ProviderFilterCapabilities:
+    """Return declared monitor filter capabilities for ``provider_id``."""
+    provider_cls = PROVIDERS.get(provider_id)
+    if provider_cls is None:
+        return ProviderFilterCapabilities()
+    return provider_cls.filter_capabilities
+
+
+__all__ = ["PROVIDERS", "get_provider_filter_capabilities"]

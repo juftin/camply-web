@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Info, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,10 +20,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { AreaCoveragePicker } from "./AreaCoveragePicker";
+import {
+  DEFAULT_PROVIDER_FILTER_CAPABILITIES,
+  useProviders,
+} from "@/hooks/useProviders";
 import { useCreateScan, useUpdateScan } from "@/hooks/useScans";
 import { useAuth } from "@/hooks/useAuth";
 import { getApiErrorMessage, searchCampgrounds } from "@/lib/api";
-import type { Campground, ScanResponse, SearchResult } from "@/lib/structs";
+import type {
+  Campground,
+  ProviderFilterCapabilities,
+  ScanResponse,
+  SearchResult,
+} from "@/lib/structs";
 import { ALL_WEEKDAYS, WEEKDAY_NAMES, hasQualifyingStay } from "@/lib/weekdays";
 import {
   addDays,
@@ -124,6 +133,20 @@ const CAMPSITE_TYPES = [
   { value: "OTHER", label: "Other" },
 ];
 
+const PROVIDER_FILTER_METADATA: ReadonlyArray<{
+  key: keyof ProviderFilterCapabilities;
+  label: string;
+}> = [
+  { key: "preferred_types", label: "Preferred Campsite Types" },
+  { key: "require_electric", label: "Electric Hookup" },
+  { key: "require_accessible", label: "ADA Accessible" },
+  { key: "min_rv_length", label: "Minimum RV / Trailer Length" },
+];
+
+const FILTER_LABEL_BY_KEY = Object.fromEntries(
+  PROVIDER_FILTER_METADATA.map(({ key, label }) => [key, label]),
+) as Record<keyof ProviderFilterCapabilities, string>;
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -197,8 +220,10 @@ export function ScanForm({
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [clearedFilters, setClearedFilters] = useState<string[]>([]);
 
   const { user } = useAuth();
+  const { data: providers = [] } = useProviders(open);
   const createScan = useCreateScan();
   const updateScan = useUpdateScan();
   const isPending = createScan.isPending || updateScan.isPending;
@@ -216,6 +241,7 @@ export function ScanForm({
     register,
     handleSubmit,
     watch,
+    getValues,
     setValue,
     reset,
     formState: { errors },
@@ -223,6 +249,62 @@ export function ScanForm({
     resolver: zodResolver(scanFormSchema) as never,
     defaultValues,
   });
+
+  const hasCampground = campground !== null;
+  const selectedProvider = useMemo(
+    () => providers.find((p) => p.id === providerId),
+    [providers, providerId],
+  );
+  const filterCaps = useMemo(
+    () =>
+      hasCampground
+        ? (selectedProvider?.filter_capabilities ??
+          DEFAULT_PROVIDER_FILTER_CAPABILITIES)
+        : DEFAULT_PROVIDER_FILTER_CAPABILITIES,
+    [hasCampground, selectedProvider],
+  );
+  const unsupportedFilterLabels = useMemo(
+    () =>
+      hasCampground
+        ? PROVIDER_FILTER_METADATA.filter(({ key }) => !filterCaps[key]).map(
+            ({ label }) => label,
+          )
+        : [],
+    [hasCampground, filterCaps],
+  );
+
+  useEffect(() => {
+    if (!open || !hasCampground || !selectedProvider?.filter_capabilities) {
+      return;
+    }
+    const caps = selectedProvider.filter_capabilities;
+    const cleared: string[] = [];
+    if (
+      !caps.preferred_types &&
+      (getValues("preferred_types")?.length ?? 0) > 0
+    ) {
+      setValue("preferred_types", []);
+      cleared.push(FILTER_LABEL_BY_KEY.preferred_types);
+    }
+    if (!caps.require_electric && getValues("require_electric")) {
+      setValue("require_electric", false);
+      cleared.push(FILTER_LABEL_BY_KEY.require_electric);
+    }
+    if (!caps.require_accessible && getValues("require_accessible")) {
+      setValue("require_accessible", false);
+      cleared.push(FILTER_LABEL_BY_KEY.require_accessible);
+    }
+    const rvVal = getValues("min_rv_length");
+    if (!caps.min_rv_length && rvVal != null && String(rvVal).trim() !== "") {
+      setValue("min_rv_length", "" as unknown as number | null, {
+        shouldValidate: true,
+      });
+      cleared.push(FILTER_LABEL_BY_KEY.min_rv_length);
+    }
+    if (cleared.length > 0) {
+      setClearedFilters(cleared);
+    }
+  }, [open, hasCampground, selectedProvider, getValues, setValue]);
 
   useEffect(() => {
     register("start_date");
@@ -285,6 +367,7 @@ export function ScanForm({
   };
 
   const selectCampground = (result: SearchResult) => {
+    setClearedFilters([]);
     setDestinationType(
       result.entity_type === "Campground" ? "campground" : "recreation_area",
     );
@@ -365,11 +448,17 @@ export function ScanForm({
         start_date: data.start_date,
         end_date: data.end_date,
         min_stay_length: Number(data.min_stay_length),
-        preferred_types: data.preferred_types,
-        require_electric: data.require_electric,
-        require_accessible: data.require_accessible,
+        preferred_types: filterCaps.preferred_types ? data.preferred_types : [],
+        require_electric: filterCaps.require_electric
+          ? data.require_electric
+          : false,
+        require_accessible: filterCaps.require_accessible
+          ? data.require_accessible
+          : false,
         min_rv_length:
-          data.min_rv_length == null ? null : Number(data.min_rv_length),
+          !filterCaps.min_rv_length || data.min_rv_length == null
+            ? null
+            : Number(data.min_rv_length),
         allowed_weekdays: data.allowed_weekdays,
       };
       if (scan) {
@@ -385,6 +474,7 @@ export function ScanForm({
       }
       reset();
       setCampground(null);
+      setClearedFilters([]);
       setSearchTerm("");
       setOpen(false);
       onSuccess?.();
@@ -407,18 +497,17 @@ export function ScanForm({
           preselectedProviderId ??
           0,
       );
+      setClearedFilters([]);
       setSearchTerm("");
       setSearchResults([]);
     }
     setOpen(newOpen);
     if (!newOpen) {
+      setClearedFilters([]);
       setError(null);
       setSearchError(null);
     }
   };
-
-  // ---- Derived ----
-  const hasCampground = campground !== null;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -448,7 +537,8 @@ export function ScanForm({
                 <div>
                   <p className="font-medium">{campground.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    ID: {campground.id} &middot; Provider: {providerId}
+                    ID: {campground.id} &middot; Provider:{" "}
+                    {selectedProvider?.name ?? providerId}
                   </p>
                 </div>
                 <Button
@@ -457,6 +547,7 @@ export function ScanForm({
                   size="sm"
                   onClick={() => {
                     setCampground(null);
+                    setClearedFilters([]);
                     setSearchTerm("");
                   }}
                 >
@@ -702,76 +793,112 @@ export function ScanForm({
           </div>
 
           {/* ---- Preferred types ---- */}
-          <div className="space-y-2">
-            <Label>Preferred Campsite Types</Label>
-            <div className="flex flex-wrap gap-2">
-              {CAMPSITE_TYPES.map((t) => (
-                <Badge
-                  key={t.value}
-                  variant={
-                    preferredTypes?.includes(t.value) ? "default" : "outline"
-                  }
-                  className="cursor-pointer"
-                  onClick={() => toggleType(t.value)}
-                >
-                  {t.label}
-                </Badge>
-              ))}
+          {filterCaps.preferred_types && (
+            <div className="space-y-2">
+              <Label>Preferred Campsite Types</Label>
+              <div className="flex flex-wrap gap-2">
+                {CAMPSITE_TYPES.map((t) => (
+                  <Badge
+                    key={t.value}
+                    variant={
+                      preferredTypes?.includes(t.value) ? "default" : "outline"
+                    }
+                    className="cursor-pointer"
+                    onClick={() => toggleType(t.value)}
+                  >
+                    {t.label}
+                  </Badge>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ---- Electric hookup ---- */}
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div>
-              <Label htmlFor="require_electric">Electric Hookup Required</Label>
-              <p className="text-xs text-muted-foreground">
-                Only alert if the site has electric hookup
-              </p>
+          {filterCaps.require_electric && (
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <Label htmlFor="require_electric">
+                  Electric Hookup Required
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Only alert if the site has electric hookup
+                </p>
+              </div>
+              <Switch
+                id="require_electric"
+                checked={requireElectric}
+                onCheckedChange={(v) => setValue("require_electric", v)}
+              />
             </div>
-            <Switch
-              id="require_electric"
-              checked={requireElectric}
-              onCheckedChange={(v) => setValue("require_electric", v)}
-            />
-          </div>
+          )}
 
           {/* ---- ADA Accessible ---- */}
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div>
-              <Label htmlFor="require_accessible">
-                ADA Accessible Required
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Only alert on ADA-accessible campsites
-              </p>
+          {filterCaps.require_accessible && (
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <Label htmlFor="require_accessible">
+                  ADA Accessible Required
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Only alert on ADA-accessible campsites
+                </p>
+              </div>
+              <Switch
+                id="require_accessible"
+                checked={requireAccessible}
+                onCheckedChange={(v) => setValue("require_accessible", v)}
+              />
             </div>
-            <Switch
-              id="require_accessible"
-              checked={requireAccessible}
-              onCheckedChange={(v) => setValue("require_accessible", v)}
-            />
-          </div>
+          )}
 
           {/* ---- Minimum RV / Trailer length ---- */}
-          <div className="space-y-2">
-            <Label htmlFor="min_rv_length">
-              Minimum RV / Trailer Length (ft)
-            </Label>
-            <Input
-              id="min_rv_length"
-              type="number"
-              min={1}
-              max={200}
-              step={1}
-              placeholder="Any length"
-              {...register("min_rv_length")}
-            />
-            {errors.min_rv_length?.message && (
-              <p className="text-xs text-destructive">
-                {String(errors.min_rv_length.message)}
-              </p>
-            )}
-          </div>
+          {filterCaps.min_rv_length && (
+            <div className="space-y-2">
+              <Label htmlFor="min_rv_length">
+                Minimum RV / Trailer Length (ft)
+              </Label>
+              <Input
+                id="min_rv_length"
+                type="number"
+                min={1}
+                max={200}
+                step={1}
+                placeholder="Any length"
+                {...register("min_rv_length")}
+              />
+              {errors.min_rv_length?.message && (
+                <p className="text-xs text-destructive">
+                  {String(errors.min_rv_length.message)}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* ---- Unsupported provider filters notice ---- */}
+          {unsupportedFilterLabels.length > 0 && (
+            <div
+              role="status"
+              className="flex items-start gap-2 rounded-md border bg-muted/50 p-3 text-xs text-muted-foreground"
+            >
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="space-y-1">
+                <p className="font-medium text-foreground">
+                  Some filters aren&apos;t available for{" "}
+                  {selectedProvider?.name ?? "this provider"}
+                </p>
+                <p>
+                  Hidden because this provider doesn&apos;t report that site
+                  metadata: {unsupportedFilterLabels.join(", ")}.
+                </p>
+                {clearedFilters.length > 0 && (
+                  <p>
+                    Cleared unsupported selection(s):{" "}
+                    {clearedFilters.join(", ")}.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* ---- Error ---- */}
           {error && (

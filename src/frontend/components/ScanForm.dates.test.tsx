@@ -15,6 +15,16 @@ vi.mock("@/hooks/useScans", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useProviders", () => ({
+  DEFAULT_PROVIDER_FILTER_CAPABILITIES: {
+    preferred_types: true,
+    require_electric: true,
+    require_accessible: true,
+    min_rv_length: true,
+  },
+  useProviders: () => ({ data: [] }),
+}));
+
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({
     user: {
