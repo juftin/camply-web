@@ -4,7 +4,7 @@ camply separates target polling from user notifications so multiple campers watc
 
 ## Package boundaries
 
-The Python codebase ships as one `camply` distribution with strict internal layering (`cli | server | worker -> core -> providers -> db -> __about__`):
+The Python codebase ships as one `camply` distribution with strict internal layering (`cli | server | worker -> core -> notifications | providers -> db -> __about__`):
 
 - **Base package (`core`, `providers`, `db`, `cli`):** Provides upstream discovery, availability matching, SQLite persistence, and the foreground CLI with no server or broker dependencies.
 - **Server (`camply.server`):** FastAPI app, auth, and standalone lifespan runtime (`server` extra).

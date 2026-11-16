@@ -6,13 +6,13 @@
 
 ## Summary
 
-Reorganize and rewrite the `camply` documentation around four perspectives—**User Documentation**, **Self-Hosting**, **Technical and Architectural Documentation**, and **Technical Reference**—while defaulting the site landing page, navbar, and sidebar to **User Documentation** and **Self-Hosting**. Place the two smaller-audience technical perspectives behind a secondary `Technical` navbar dropdown with path-scoped VitePress sidebars, exclude internal engineering artifacts (`docs/specs/`, `PLAN.md`, `CHECKLIST.md`, agent guides) from local search while keeping them published under Technical Reference, consolidate duplicate guides, and rewrite active prose to a crisp "more is less" human editorial standard.
+Reorganize and rewrite the `camply` documentation around four perspectives—**User Documentation**, **Self-Hosting**, **Technical and Architectural Documentation**, and **Technical Reference**—while defaulting the site landing page, navbar, and expanded sidebar groups to **User Documentation** and **Self-Hosting**. Keep all four perspectives visible in a unified collapsible VitePress sidebar (with the technical groups collapsed by default) alongside a secondary `Technical` navbar dropdown, exclude internal engineering artifacts (`docs/specs/`, `PLAN.md`, `CHECKLIST.md`, agent guides) from local search while keeping them published under Technical Reference, add client-side Mermaid diagram rendering, move licensing to a dedicated `docs/license.md` page, consolidate duplicate guides, and rewrite active prose to a crisp "more is less" human editorial standard.
 
 ## Technical Context
 
 **Language/Version**: Markdown, TypeScript/Vue 3 (VitePress `^1.6.4`), Node.js >=24 (`pnpm@12.15.0`), Python 3.14 (verification tests)
 
-**Primary Dependencies**: `vitepress` (devDependency in `package.json`), `pyyaml` (Python test suite)
+**Primary Dependencies**: `vitepress`, `mermaid` (devDependencies in `package.json`), `pyyaml` (Python test suite)
 
 **Storage**: Static Markdown and VitePress configuration under `docs/` plus root `README.md`; static build output in `build/docs/`
 
@@ -64,8 +64,11 @@ docs/specs/030-docs-rework/
 README.md                               # Concise front door aligned to User + Self-Hosting default
 AGENTS.md                               # Update any consolidated doc pointer if needed
 docs/
-├── .vitepress/config.ts                # 4-item navbar, path-scoped sidebars, search filtering/boosting
-├── index.md                            # Default landing page (User + Self-Hosting primary; secondary Tech/Ref links)
+├── .vitepress/
+│   ├── config.ts                       # 4-item navbar, unified collapsible sidebar, Mermaid fence rule, search filter/boostDocument
+│   └── theme/                          # MermaidDiagram.vue, style.css, and theme registration
+├── index.md                            # Default landing page (tagline + User & Self-Hosting primary; secondary Tech/Ref links)
+├── license.md                          # Dedicated AGPL-3.0 license explanation page
 ├── using-camply.md                     # Rewritten Web App user guide (preserved URL)
 ├── cli.md                              # Rewritten CLI user guide (concise, non-spec prose)
 ├── self-hosting/
@@ -100,12 +103,12 @@ docs/
 tests/docs/test_docs.py                 # Extended checks for nav scoping, search hygiene, and editorial rules
 ```
 
-**Structure Decision**: Keep existing repo-governed directories (`docs/architecture/`, `docs/development/`, `docs/operations/`, `docs/specs/`, `docs/PLAN.md`, `docs/CHECKLIST.md`) and preserved entrypoint files (`docs/index.md`, `docs/using-camply.md`) in place, retire only the two redundant root files (`docs/configuration.md` and `docs/development.md`), add `docs/self-hosting/index.md`, `docs/self-hosting/configuration.md`, `docs/self-hosting/maintenance.md`, and `docs/technical/index.md`, and use VitePress path-scoped sidebars + search filtering to separate the four perspectives cleanly.
+**Structure Decision**: Keep existing repo-governed directories (`docs/architecture/`, `docs/development/`, `docs/operations/`, `docs/specs/`, `docs/PLAN.md`, `docs/CHECKLIST.md`) and preserved entrypoint files (`docs/index.md`, `docs/using-camply.md`) in place, retire only the two redundant root files (`docs/configuration.md` and `docs/development.md`), add `docs/license.md`, `docs/self-hosting/index.md`, `docs/self-hosting/configuration.md`, `docs/self-hosting/maintenance.md`, and `docs/technical/index.md`, and use a unified collapsible VitePress sidebar + search filtering/boosting to organize the four perspectives clearly.
 
 ## Implementation Phases
 
 1. **Navigation, Search & Verification Guardrails**
-   - Update `docs/.vitepress/config.ts` with the 4-entry top navbar (`User Guide`, `CLI`, `Self-Hosting`, `Technical` dropdown), path-keyed scoped sidebars (default User + Self-Hosting vs. Technical & Architectural vs. Technical Reference), and local search `_render` / MiniSearch options excluding `specs/`, `PLAN.md`, `CHECKLIST.md`, `DESIGN_AGENTIC.md`, and `AGENT_TROUBLESHOOTING.md` while boosting User and Self-Hosting pages.
+   - Update `docs/.vitepress/config.ts` with the 4-entry top navbar (`User Guide`, `CLI`, `Self-Hosting`, `Technical` dropdown), unified collapsible sidebar (`User Documentation` & `Self-Hosting` expanded; `Technical & Architectural` & `Technical Reference` collapsed), client-side Mermaid fence rendering via `MermaidDiagram.vue`, and local search `_render` exclusions (`specs/`, `PLAN.md`, `CHECKLIST.md`, `DESIGN_AGENTIC.md`, `AGENT_TROUBLESHOOTING.md`) plus `boostDocument` prioritizing User and Self-Hosting pages.
    - Extend `tests/docs/test_docs.py` to assert navigation scoping, search exclusion config, absence of retired-file links, and editorial-rule compliance (no emoji-prefixed headings or banned boilerplate openers in active tracks).
 2. **Perspective 1 & 2 Rewrite (Default View: User Documentation + Self-Hosting + README)**
    - Rewrite `README.md`, `docs/index.md`, `docs/using-camply.md`, and `docs/cli.md` against current CLI/web behavior and the editorial standard.

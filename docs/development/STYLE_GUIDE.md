@@ -9,7 +9,7 @@ All code and documentation in `camply` must follow these engineering standards.
 - **Async I/O:** Keep database queries and upstream HTTP calls `async`.
 - **Logging:** Use `structlog` for structured logging; never leave `print()` calls in application code.
 - **Docstrings:** Use NumPy-style docstrings for public modules, classes, and functions.
-- **Layer boundaries:** Keep imports respecting `cli | server | worker -> core -> providers -> db -> __about__` (`task backend:imports`).
+- **Layer boundaries:** Keep imports respecting `cli | server | worker -> core -> notifications | providers -> db -> __about__` (`task backend:imports`).
 
 ## React and TypeScript (frontend)
 

@@ -201,4 +201,5 @@ Task: "Create docs/self-hosting/maintenance.md"
 
 ## Phase 9: Convergence
 
-- [x] T043 Update stale environment variable and path references (`REDIS_URL` → `CAMPLY_VALKEY_URL`, `DATABASE_URL` → `CAMPLY_DB_*`, `task frontend:codegen` → `task api:generate`, `frontend` → `src/frontend`, `backend-api`/`redis`/`postgres` → `backend`/`valkey`/`db`, `scripts/run-snapshots.ts` → `src/frontend/tooling/run-snapshots.ts`) in `docs/development/AGENT_TROUBLESHOOTING.md` and `docs/development/DESIGN_AGENTIC.md` per FR-008 (`partial`)
+- [x] T043 Update stale environment variable and path references (`REDIS_URL` → `CAMPLY_VALKEY_URL`, `DATABASE_URL` → `CAMPLY_DB_*`, `task frontend:codegen` → `task api:generate`, `frontend` → `src/frontend`, `backend-api`/`redis`/`postgres` → `backend`/`valkey`/`db`, `scripts/run-snapshots.ts` → `src/frontend/tooling/run-snapshots.ts`) in `docs/development/AGENT_TROUBLESHOOTING.md` and `docs/development/DESIGN_AGENTIC.md` per FR-008
+- [x] T044 Switch VitePress sidebar to the unified collapsible 4-section layout, add client-side Mermaid rendering (`MermaidDiagram.vue`, `mermaid`, CSS overflow & race fixes), move licensing to `docs/license.md`, configure `boostDocument` search ranking, and align editorial/technical accuracy fixes per follow-up review

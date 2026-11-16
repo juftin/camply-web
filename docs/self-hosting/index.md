@@ -15,3 +15,4 @@ Run your own camply instance on a single machine, a Docker host, or a Kubernetes
 1. **Secure login before sharing:** New instances default to automatic admin login (`CAMPLY_AUTH_MODE=none`). Set up session or Auth0 login in [Configuration](configuration.md#authentication) before exposing your instance to others.
 2. **Load campgrounds:** Open **Admin Operations** in the web app and run **Sync Providers** (Docker Compose runs this automatically on first boot).
 3. **Configure notifications:** Set a Pushover application token or ntfy defaults in [Configuration](configuration.md#notifications) so users can receive alerts.
+4. **Plan backups and upgrades:** See [Maintenance](maintenance.md) for database backups, schema migrations, and health checks.

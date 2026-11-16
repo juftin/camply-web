@@ -87,10 +87,17 @@ function isExcludedFromSearch(relativePath: string): boolean {
   );
 }
 
+function normalizeBase(rawBase: string | undefined): string {
+  const value = rawBase || "/docs/";
+  return value.endsWith("/") ? value : `${value}/`;
+}
+
+const base = normalizeBase(process.env.VITEPRESS_BASE);
+
 export default defineConfig({
   title: "camply docs",
   description: "Find a campsite. Get notified when a stay opens up.",
-  base: process.env.VITEPRESS_BASE || "/docs/",
+  base,
   outDir: "../build/docs",
   ignoreDeadLinks: true,
   vite: {
@@ -103,7 +110,8 @@ export default defineConfig({
       const defaultFence = md.renderer.rules.fence?.bind(md.renderer.rules);
       md.renderer.rules.fence = (tokens, idx, options, env, self) => {
         const token = tokens[idx];
-        if (token.info.trim() === "mermaid") {
+        const lang = token.info.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+        if (lang === "mermaid") {
           return `<MermaidDiagram code="${encodeURIComponent(token.content)}" />`;
         }
         return defaultFence
@@ -113,8 +121,11 @@ export default defineConfig({
     },
   },
   head: [
-    ["link", { rel: "shortcut icon", href: "/docs/favicon.ico" }],
-    ["link", { rel: "icon", type: "image/svg+xml", href: "/docs/favicon.svg" }],
+    ["link", { rel: "shortcut icon", href: `${base}favicon.ico` }],
+    [
+      "link",
+      { rel: "icon", type: "image/svg+xml", href: `${base}favicon.svg` },
+    ],
   ],
   themeConfig: {
     logo: {
@@ -145,6 +156,28 @@ export default defineConfig({
               title: 4,
               titles: 2,
               text: 1,
+            },
+            boostDocument: (documentId: string): number => {
+              const route = (documentId.split("#")[0] ?? "").toLowerCase();
+              if (route.includes("/self-hosting/")) {
+                return 2;
+              }
+              if (
+                route.includes("/operations/") ||
+                route.includes("/architecture/")
+              ) {
+                return 0.5;
+              }
+              if (
+                route.includes("/technical/") ||
+                route.includes("/development/") ||
+                route.includes("/contributing") ||
+                route.includes("/reference") ||
+                route.includes("/license")
+              ) {
+                return 1;
+              }
+              return 2;
             },
           },
         },

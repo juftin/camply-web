@@ -4,8 +4,8 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ## Documentation rework (030)
 
-- [x] Specify, clarify, plan, and task out the four-perspective documentation rework (`User Documentation`, `Self-Hosting`, `Technical and Architectural Documentation`, `Technical Reference`) with a two-perspective default view and human-readable editorial standard in [spec 030](specs/030-docs-rework/spec.md).
-- [x] Reorganize `docs/.vitepress/config.ts` with a 4-item navbar, path-scoped sidebars, and search exclusion for internal specs/checklists/agent docs; consolidate and rewrite User Documentation, Self-Hosting, Technical & Architectural Documentation, Technical Reference, and `README.md`; verify link/editorial/search hygiene and bundled `/docs/` packaging checks.
+- [x] Specify, clarify, plan, and task out the four-perspective documentation rework (`User Documentation`, `Self-Hosting`, `Technical and Architectural Documentation`, `Technical Reference`) with a collapsible sidebar (User and Self-Hosting expanded by default) and human-readable editorial standard in [spec 030](specs/030-docs-rework/spec.md).
+- [x] Reorganize `docs/.vitepress/config.ts` with a 4-item navbar, unified collapsible sidebar, client-side Mermaid diagram rendering, dedicated [license](license.md) page, and search exclusion/ranking for internal specs/checklists/agent docs; consolidate and rewrite User Documentation, Self-Hosting, Technical & Architectural Documentation, Technical Reference, and `README.md`; verify link/editorial/search hygiene and bundled `/docs/` packaging checks.
 
 ## Recreation-area monitoring (029)
 

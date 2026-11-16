@@ -206,12 +206,14 @@
 }
 
 .camply-mermaid-svg {
+  width: max-content;
+  min-width: 100%;
   display: flex;
   justify-content: center;
 }
 
 .camply-mermaid-svg svg {
-  max-width: 100%;
+  max-width: none;
   height: auto;
 }
 

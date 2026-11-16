@@ -24,20 +24,33 @@ async function renderDiagram(): Promise<void> {
   if (typeof window === "undefined") {
     return;
   }
+  const currentRender = ++renderCount.value;
+  const id = `camply-mermaid-${instanceId}-${currentRender}`;
   try {
     const { default: mermaid } = await import("mermaid");
+    if (currentRender !== renderCount.value) {
+      return;
+    }
     mermaid.initialize({
       startOnLoad: false,
       securityLevel: "strict",
       theme: isDark.value ? "dark" : "default",
     });
-    renderCount.value += 1;
-    const id = `camply-mermaid-${instanceId}-${renderCount.value}`;
     const result = await mermaid.render(id, source.value);
+    if (currentRender !== renderCount.value) {
+      return;
+    }
     svg.value = result.svg;
     error.value = "";
   } catch (err) {
+    if (currentRender !== renderCount.value) {
+      return;
+    }
+    svg.value = "";
     error.value = err instanceof Error ? err.message : String(err);
+  } finally {
+    document.getElementById(`d${id}`)?.remove();
+    document.getElementById(id)?.remove();
   }
 }
 
@@ -45,7 +58,13 @@ onMounted(() => {
   void renderDiagram();
 });
 
-watch([source, isDark], () => {
+watch(source, () => {
+  svg.value = "";
+  error.value = "";
+  void renderDiagram();
+});
+
+watch(isDark, () => {
   void renderDiagram();
 });
 </script>

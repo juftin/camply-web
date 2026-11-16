@@ -114,6 +114,7 @@ class DocumentationTests(unittest.TestCase):
         ):
             self.assertIn(f'"{excluded}"', config_text)
         self.assertIn("boost:", config_text)
+        self.assertIn("boostDocument:", config_text)
 
     def test_active_documentation_editorial_and_link_hygiene(self) -> None:
         """Active guides follow editorial rules and avoid retired/GitHub-blob links."""
@@ -170,12 +171,28 @@ class DocumentationTests(unittest.TestCase):
         ):
             self.assertNotIn(excluded, index_text)
 
+    def _extract_sidebar_sections(self, html: str) -> dict[str, set[str]]:
+        """Map rendered sidebar group titles to their CSS classes."""
+        match = re.search(r'<aside class="VPSidebar".*?</aside>', html, flags=re.DOTALL)
+        self.assertIsNotNone(match, "Missing VPSidebar element")
+        assert match is not None
+        sections: dict[str, set[str]] = {}
+        pattern = re.compile(
+            r'<section class="(VPSidebarItem level-[01][^"]*)".*?<h[23][^>]*>(.*?)</h[23]>',
+            flags=re.DOTALL,
+        )
+        for item_match in pattern.finditer(match.group(0)):
+            title = re.sub(r"<[^>]+>", "", item_match.group(2)).strip()
+            sections[title] = set(item_match.group(1).split())
+        return sections
+
     @unittest.skipUnless(
         (ROOT / "build/docs/index.html").exists(), "Run task docs:build first"
     )
     def test_rendered_sidebar_scoping(self) -> None:
-        """Built pages render all four sidebar groups with technical sections collapsed by default."""
+        """Built pages render all four sidebar groups with technical sections collapsed on home."""
         directory = ROOT / "build/docs"
+        pages: dict[str, dict[str, set[str]]] = {}
         for relative in (
             "index.html",
             "using-camply.html",
@@ -183,29 +200,37 @@ class DocumentationTests(unittest.TestCase):
             "technical/index.html",
             "reference.html",
         ):
-            html = (directory / relative).read_text(encoding="utf-8")
-            match = re.search(
-                r'<aside class="VPSidebar".*?</aside>', html, flags=re.DOTALL
+            sections = self._extract_sidebar_sections(
+                (directory / relative).read_text(encoding="utf-8")
             )
-            self.assertIsNotNone(match, f"Missing VPSidebar in {relative}")
-            assert match is not None
-            sidebar_html = match.group(0)
+            pages[relative] = sections
             with self.subTest(page=relative):
-                for section in (
+                for expected in (
                     "User Documentation",
                     "Self-Hosting",
                     "Technical & Architectural",
+                    "Architecture",
                     "Technical Reference",
+                    "Specs & Planning",
                 ):
-                    self.assertIn(section, sidebar_html)
-        home_sidebar = re.search(
-            r'<aside class="VPSidebar".*?</aside>',
-            (directory / "index.html").read_text(encoding="utf-8"),
-            flags=re.DOTALL,
+                    self.assertIn(expected, sections)
+
+        home = pages["index.html"]
+        self.assertNotIn("collapsed", home["User Documentation"])
+        self.assertNotIn("collapsed", home["Self-Hosting"])
+        self.assertIn("level-0", home["Technical & Architectural"])
+        self.assertIn("collapsed", home["Technical & Architectural"])
+        self.assertIn("level-0", home["Technical Reference"])
+        self.assertIn("collapsed", home["Technical Reference"])
+        self.assertIn("level-1", home["Architecture"])
+        self.assertIn("collapsed", home["Architecture"])
+        self.assertIn("level-1", home["Specs & Planning"])
+        self.assertIn("collapsed", home["Specs & Planning"])
+        self.assertIn("has-active", home["User Documentation"])
+        self.assertIn(
+            "has-active", pages["technical/index.html"]["Technical & Architectural"]
         )
-        assert home_sidebar is not None
-        sidebar_text = home_sidebar.group(0)
-        self.assertEqual(sidebar_text.count("level-0 collapsible collapsed"), 2)
+        self.assertIn("has-active", pages["reference.html"]["Technical Reference"])
 
     @unittest.skipUnless(
         (ROOT / "build/docs/index.html").exists(), "Run task docs:build first"
@@ -235,8 +260,6 @@ class DocumentationTests(unittest.TestCase):
             target = directory / route
             self.assertTrue(target.is_file(), f"Missing built page for {markdown}")
         for path, page in pages.items():
-            if path.name == "404.html":
-                continue
             for link in page.links:
                 url = urlsplit(link)
                 if url.scheme or url.netloc:
@@ -244,13 +267,13 @@ class DocumentationTests(unittest.TestCase):
                 with self.subTest(page=path.relative_to(directory), link=link):
                     if url.path.startswith("/docs/"):
                         rel = url.path.removeprefix("/docs/")
-                        target = directory / unquote(rel)
+                        target = (directory / unquote(rel)).resolve()
                     elif not url.path:
                         target = path
                     else:
                         target = (path.parent / unquote(url.path)).resolve()
                     if target.is_dir():
-                        target /= "index.html"
+                        target = (target / "index.html").resolve()
                     self.assertTrue(target.is_file(), f"Missing target: {target}")
                     if url.fragment and target in pages:
                         self.assertIn(unquote(url.fragment), pages[target].anchors)

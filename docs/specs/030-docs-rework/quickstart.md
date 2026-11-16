@@ -12,9 +12,10 @@ task docs:serve
 
 Open `http://127.0.0.1:8001/docs/` and verify:
 
-- The landing page and default sidebar show only **User Documentation** and **Self-Hosting**.
-- Opening **Technical -> Architecture & Contributing** switches to the scoped Technical & Architectural sidebar.
-- Opening **Technical -> Technical Reference** switches to the scoped Technical Reference sidebar.
+- The landing page and sidebar show **User Documentation** and **Self-Hosting** expanded by default, with **Technical & Architectural** and **Technical Reference** visible in the sidebar and collapsed until opened.
+- Opening **Technical -> Architecture & Contributing** navigates to `/docs/technical/` and auto-expands **Technical & Architectural**.
+- Opening **Technical -> Technical Reference** navigates to `/docs/reference` and auto-expands **Technical Reference**.
+- Visiting `/docs/license` opens the dedicated AGPL-3.0 license page; opening `/docs/architecture/ARCHITECTURE_DEEP_DIVE` or `/docs/operations/RELEASES` renders Mermaid diagrams cleanly without raw code fences.
 - Searching for `"weekends"`, `"notifications"`, `"standalone"`, and `"login"` returns User Documentation and Self-Hosting pages without spec/checklist noise.
 
 ## 2. Automated Docs Build & Link/Hygiene Verification

@@ -26,7 +26,7 @@ camply --provider ReserveCalifornia campgrounds --search redwood
 
 ![Campground discovery output with Rich logging](assets/camply-cli-discovery.png)
 
-`RecreationDotGov` is the default provider. Set `CAMPLY_PROVIDER` or pass `--provider` (case-insensitive) to choose another. Discovery prints up to 50 matches—add `--search`, `--state`, or `--rec-area` to narrow results. When searching `ReserveAmerica`, include `--state` so camply does not scan every state.
+`RecreationDotGov` is the default provider. Pass `--provider` (case-insensitive) to choose another. Discovery prints up to 50 matches—add `--search`, `--state`, or `--rec-area` to narrow results. When searching `ReserveAmerica`, include `--state` so camply does not scan every state.
 
 ## Watch for a stay
 
