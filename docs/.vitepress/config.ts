@@ -1,8 +1,9 @@
 import { defineConfig } from "vitepress";
 
-const defaultSidebar = [
+const sidebar = [
   {
     text: "User Documentation",
+    collapsed: false,
     items: [
       { text: "Overview", link: "/" },
       { text: "Web App", link: "/using-camply" },
@@ -11,6 +12,7 @@ const defaultSidebar = [
   },
   {
     text: "Self-Hosting",
+    collapsed: false,
     items: [
       { text: "Overview", link: "/self-hosting/" },
       { text: "Standalone", link: "/self-hosting/standalone" },
@@ -19,51 +21,52 @@ const defaultSidebar = [
       { text: "Maintenance", link: "/self-hosting/maintenance" },
     ],
   },
-];
-
-const technicalSidebar = [
   {
     text: "Technical & Architectural",
+    collapsed: true,
     items: [
       { text: "Overview", link: "/technical/" },
       { text: "Contributing", link: "/CONTRIBUTING" },
       { text: "Developer Guide", link: "/development/DEVELOPER_GUIDE" },
       { text: "Style Guide", link: "/development/STYLE_GUIDE" },
+      {
+        text: "Architecture",
+        collapsed: true,
+        items: [
+          {
+            text: "Polling Engine",
+            link: "/architecture/ARCHITECTURE_DEEP_DIVE",
+          },
+          { text: "Data Model", link: "/architecture/DESIGN_DATA" },
+          { text: "Providers", link: "/architecture/DESIGN_PROVIDERS" },
+          { text: "Notifications", link: "/architecture/DESIGN_NOTIFICATIONS" },
+          { text: "API & Security", link: "/architecture/DESIGN_API" },
+          { text: "Frontend", link: "/architecture/DESIGN_FRONTEND" },
+        ],
+      },
     ],
   },
-  {
-    text: "Architecture",
-    items: [
-      { text: "Polling Engine", link: "/architecture/ARCHITECTURE_DEEP_DIVE" },
-      { text: "Data Model", link: "/architecture/DESIGN_DATA" },
-      { text: "Providers", link: "/architecture/DESIGN_PROVIDERS" },
-      { text: "Notifications", link: "/architecture/DESIGN_NOTIFICATIONS" },
-      { text: "API & Security", link: "/architecture/DESIGN_API" },
-      { text: "Frontend", link: "/architecture/DESIGN_FRONTEND" },
-    ],
-  },
-];
-
-const referenceSidebar = [
   {
     text: "Technical Reference",
+    collapsed: true,
     items: [
       { text: "Reference Hub", link: "/reference" },
       { text: "Environment Variables", link: "/operations/CONFIGURATION" },
       { text: "Runtime & Packaging", link: "/operations/RUNNING" },
       { text: "Release Operations", link: "/operations/RELEASES" },
-    ],
-  },
-  {
-    text: "Specs & Planning",
-    items: [
-      { text: "Specifications Catalog", link: "/specs/" },
-      { text: "Roadmap & Plan", link: "/PLAN" },
-      { text: "Feature Checklist", link: "/CHECKLIST" },
-      { text: "Agentic Tooling", link: "/development/DESIGN_AGENTIC" },
       {
-        text: "Agent Troubleshooting",
-        link: "/development/AGENT_TROUBLESHOOTING",
+        text: "Specs & Planning",
+        collapsed: true,
+        items: [
+          { text: "Specifications Catalog", link: "/specs/" },
+          { text: "Roadmap & Plan", link: "/PLAN" },
+          { text: "Feature Checklist", link: "/CHECKLIST" },
+          { text: "Agentic Tooling", link: "/development/DESIGN_AGENTIC" },
+          {
+            text: "Agent Troubleshooting",
+            link: "/development/AGENT_TROUBLESHOOTING",
+          },
+        ],
       },
     ],
   },
@@ -131,21 +134,7 @@ export default defineConfig({
         ],
       },
     ],
-    sidebar: {
-      "/technical/": technicalSidebar,
-      "/CONTRIBUTING": technicalSidebar,
-      "/development/DEVELOPER_GUIDE": technicalSidebar,
-      "/development/STYLE_GUIDE": technicalSidebar,
-      "/architecture/": technicalSidebar,
-      "/reference": referenceSidebar,
-      "/operations/": referenceSidebar,
-      "/specs/": referenceSidebar,
-      "/PLAN": referenceSidebar,
-      "/CHECKLIST": referenceSidebar,
-      "/development/DESIGN_AGENTIC": referenceSidebar,
-      "/development/AGENT_TROUBLESHOOTING": referenceSidebar,
-      "/": defaultSidebar,
-    },
+    sidebar,
     search: {
       provider: "local",
       options: {

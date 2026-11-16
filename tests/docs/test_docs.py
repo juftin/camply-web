@@ -97,26 +97,14 @@ class DocumentationTests(unittest.TestCase):
         self.assertNotIn("pages", ci["permissions"])
 
     def test_navigation_scoping_and_search_exclusions(self) -> None:
-        """Default sidebar shows User and Self-Hosting; internal docs are search-excluded."""
+        """Sidebar expands User/Self-Hosting, collapses technical tracks, and filters search."""
         config_text = (DOCS_ROOT / ".vitepress/config.ts").read_text(encoding="utf-8")
-        default_match = re.search(
-            r"const defaultSidebar = \[(.*?)\n\];", config_text, flags=re.DOTALL
+        self.assertIn('text: "User Documentation",\n    collapsed: false,', config_text)
+        self.assertIn('text: "Self-Hosting",\n    collapsed: false,', config_text)
+        self.assertIn(
+            'text: "Technical & Architectural",\n    collapsed: true,', config_text
         )
-        self.assertIsNotNone(default_match, "Missing defaultSidebar in config.ts")
-        assert default_match is not None
-        default_block = default_match.group(1)
-        self.assertIn("User Documentation", default_block)
-        self.assertIn("Self-Hosting", default_block)
-        for forbidden in (
-            "CHECKLIST",
-            "PLAN",
-            "DESIGN_AGENTIC",
-            "AGENT_TROUBLESHOOTING",
-            "specs/",
-            "ARCHITECTURE_DEEP_DIVE",
-            "CONFIGURATION",
-        ):
-            self.assertNotIn(forbidden, default_block)
+        self.assertIn('text: "Technical Reference",\n    collapsed: true,', config_text)
         for excluded in (
             "specs/",
             "PLAN.md",
@@ -125,9 +113,6 @@ class DocumentationTests(unittest.TestCase):
             "development/AGENT_TROUBLESHOOTING.md",
         ):
             self.assertIn(f'"{excluded}"', config_text)
-        self.assertIn('"/": defaultSidebar', config_text)
-        self.assertIn('"/technical/": technicalSidebar', config_text)
-        self.assertIn('"/reference": referenceSidebar', config_text)
         self.assertIn("boost:", config_text)
 
     def test_active_documentation_editorial_and_link_hygiene(self) -> None:
@@ -179,22 +164,15 @@ class DocumentationTests(unittest.TestCase):
         (ROOT / "build/docs/index.html").exists(), "Run task docs:build first"
     )
     def test_rendered_sidebar_scoping(self) -> None:
-        """Built pages render only their perspective's scoped sidebar."""
+        """Built pages render all four sidebar groups with technical sections collapsed by default."""
         directory = ROOT / "build/docs"
-        expectations = {
-            "index.html": ("User Documentation", "Polling Engine"),
-            "using-camply.html": ("User Documentation", "Specifications Catalog"),
-            "self-hosting/index.html": ("Self-Hosting", "Polling Engine"),
-            "technical/index.html": ("Polling Engine", "User Documentation"),
-            "CONTRIBUTING.html": ("Polling Engine", "User Documentation"),
-            "reference.html": ("Specifications Catalog", "User Documentation"),
-            "operations/CONFIGURATION.html": (
-                "Specifications Catalog",
-                "User Documentation",
-            ),
-            "PLAN.html": ("Specifications Catalog", "Self-Hosting"),
-        }
-        for relative, (expected, forbidden) in expectations.items():
+        for relative in (
+            "index.html",
+            "using-camply.html",
+            "self-hosting/index.html",
+            "technical/index.html",
+            "reference.html",
+        ):
             html = (directory / relative).read_text(encoding="utf-8")
             match = re.search(
                 r'<aside class="VPSidebar".*?</aside>', html, flags=re.DOTALL
@@ -203,8 +181,21 @@ class DocumentationTests(unittest.TestCase):
             assert match is not None
             sidebar_html = match.group(0)
             with self.subTest(page=relative):
-                self.assertIn(expected, sidebar_html)
-                self.assertNotIn(forbidden, sidebar_html)
+                for section in (
+                    "User Documentation",
+                    "Self-Hosting",
+                    "Technical & Architectural",
+                    "Technical Reference",
+                ):
+                    self.assertIn(section, sidebar_html)
+        home_sidebar = re.search(
+            r'<aside class="VPSidebar".*?</aside>',
+            (directory / "index.html").read_text(encoding="utf-8"),
+            flags=re.DOTALL,
+        )
+        assert home_sidebar is not None
+        sidebar_text = home_sidebar.group(0)
+        self.assertEqual(sidebar_text.count("level-0 collapsible collapsed"), 2)
 
     @unittest.skipUnless(
         (ROOT / "build/docs/index.html").exists(), "Run task docs:build first"

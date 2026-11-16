@@ -1,4 +1,4 @@
-# Contract: Site Navigation, Scoped Sidebars & Search Hygiene
+# Contract: Site Navigation, Collapsible Sidebar & Search Hygiene
 
 **Feature**: `030-docs-rework` | **Date**: 2026-11-16
 
@@ -13,13 +13,16 @@ Top-level navigation MUST present only four concise entries, keeping the primary
    - `Architecture & Contributing` → `/technical/`
    - `Technical Reference` → `/reference`
 
-## 2. Scoped Sidebars (`themeConfig.sidebar`)
+## 2. Unified Collapsible Sidebar (`themeConfig.sidebar`)
 
-| Route Prefix                                                                                                                        | Active Sidebar Groups                                                                                                                                                                                                                 |
-| ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/` (default: `/`, `/using-camply`, `/cli`, `/self-hosting/*`)                                                                      | **User Documentation** (`Overview`, `Web App`, `Command Line`) and **Self-Hosting** (`Overview`, `Standalone`, `Docker & Kubernetes`, `Configuration`, `Maintenance`)                                                                 |
-| `/technical/`, `/CONTRIBUTING`, `/development/DEVELOPER_GUIDE`, `/development/STYLE_GUIDE`, `/architecture/`                        | **Technical & Architectural Documentation** (`Overview`, `Contributing`, `Development Setup`, `Style & Testing`, plus Architecture group: `Polling Engine`, `Data Model`, `Providers`, `Notifications`, `API & Security`, `Frontend`) |
-| `/reference`, `/operations/`, `/specs/`, `/PLAN`, `/CHECKLIST`, `/development/DESIGN_AGENTIC`, `/development/AGENT_TROUBLESHOOTING` | **Technical Reference** (`Reference Hub`, `Environment Variables`, `Runtime & Packaging`, `Release Operations`, `Specifications Catalog`, `Roadmap & Plan`, `Feature Checklist`, `Agentic Tooling`, `Agent Troubleshooting`)          |
+All four perspectives remain visible in the shared sidebar, with User Documentation and Self-Hosting expanded by default (`collapsed: false`) and the two technical sections collapsed by default (`collapsed: true`) until opened or navigated to:
+
+| Sidebar Group                 | Default State                 | Items                                                                                                                                                                                                                                                                                                                              |
+| ----------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **User Documentation**        | Expanded (`collapsed: false`) | `Overview` (`/`), `Web App` (`/using-camply`), `Command Line` (`/cli`)                                                                                                                                                                                                                                                             |
+| **Self-Hosting**              | Expanded (`collapsed: false`) | `Overview` (`/self-hosting/`), `Standalone` (`/self-hosting/standalone`), `Docker & Kubernetes` (`/self-hosting/containers`), `Configuration` (`/self-hosting/configuration`), `Maintenance` (`/self-hosting/maintenance`)                                                                                                         |
+| **Technical & Architectural** | Collapsed (`collapsed: true`) | `Overview` (`/technical/`), `Contributing` (`/CONTRIBUTING`), `Developer Guide` (`/development/DEVELOPER_GUIDE`), `Style Guide` (`/development/STYLE_GUIDE`), nested `Architecture` group (`Polling Engine`, `Data Model`, `Providers`, `Notifications`, `API & Security`, `Frontend`)                                             |
+| **Technical Reference**       | Collapsed (`collapsed: true`) | `Reference Hub` (`/reference`), `Environment Variables` (`/operations/CONFIGURATION`), `Runtime & Packaging` (`/operations/RUNNING`), `Release Operations` (`/operations/RELEASES`), nested `Specs & Planning` group (`Specifications Catalog`, `Roadmap & Plan`, `Feature Checklist`, `Agentic Tooling`, `Agent Troubleshooting`) |
 
 ## 3. Search Index Rules
 
