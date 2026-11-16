@@ -58,9 +58,10 @@ class DocumentationTests(unittest.TestCase):
     """Exercise rendered navigation and publishing configuration."""
 
     def test_documentation_tooling_and_dependencies(self) -> None:
-        """VitePress is managed through package.json with no Python docs dependencies."""
+        """VitePress and Mermaid are managed through package.json with no Python docs dependencies."""
         package = json.loads((ROOT / "package.json").read_text())
         self.assertIn("vitepress", package["devDependencies"])
+        self.assertIn("mermaid", package["devDependencies"])
         self.assertFalse((ROOT / "src/frontend/requirements.txt").exists())
         self.assertFalse((ROOT / "zensical.toml").exists())
         project = tomllib.loads((ROOT / "pyproject.toml").read_text())
@@ -204,6 +205,21 @@ class DocumentationTests(unittest.TestCase):
             with self.subTest(page=relative):
                 self.assertIn(expected, sidebar_html)
                 self.assertNotIn(forbidden, sidebar_html)
+
+    @unittest.skipUnless(
+        (ROOT / "build/docs/index.html").exists(), "Run task docs:build first"
+    )
+    def test_mermaid_blocks_render_diagram_components(self) -> None:
+        """Mermaid code fences render into diagram wrappers instead of raw code blocks."""
+        directory = ROOT / "build/docs"
+        for relative in (
+            "architecture/ARCHITECTURE_DEEP_DIVE.html",
+            "operations/RELEASES.html",
+        ):
+            html = (directory / relative).read_text(encoding="utf-8")
+            with self.subTest(page=relative):
+                self.assertIn("camply-mermaid", html)
+                self.assertNotIn('class="language-mermaid', html)
 
     @unittest.skipUnless(
         (ROOT / "build/docs/index.html").exists(), "Run task docs:build first"

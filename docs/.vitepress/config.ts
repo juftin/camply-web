@@ -91,7 +91,21 @@ export default defineConfig({
   ignoreDeadLinks: true,
   vite: {
     build: {
-      chunkSizeWarningLimit: 1000,
+      chunkSizeWarningLimit: 2000,
+    },
+  },
+  markdown: {
+    config(md) {
+      const defaultFence = md.renderer.rules.fence?.bind(md.renderer.rules);
+      md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+        const token = tokens[idx];
+        if (token.info.trim() === "mermaid") {
+          return `<MermaidDiagram code="${encodeURIComponent(token.content)}" />`;
+        }
+        return defaultFence
+          ? defaultFence(tokens, idx, options, env, self)
+          : self.renderToken(tokens, idx, options);
+      };
     },
   },
   head: [

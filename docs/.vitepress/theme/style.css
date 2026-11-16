@@ -194,3 +194,34 @@
 .dark .mobile-back-button {
   color: #020817 !important;
 }
+
+/* Mermaid Diagrams */
+.camply-mermaid {
+  margin: 1.25rem 0;
+  padding: 1rem;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 0.5rem;
+  background-color: var(--vp-c-bg-alt);
+  overflow-x: auto;
+}
+
+.camply-mermaid-svg {
+  display: flex;
+  justify-content: center;
+}
+
+.camply-mermaid-svg svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.camply-mermaid-fallback {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.camply-mermaid-error {
+  margin: 0.5rem 0 0;
+  color: var(--vp-c-danger-1);
+  font-size: 0.875rem;
+}
