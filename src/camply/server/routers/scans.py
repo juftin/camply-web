@@ -328,6 +328,7 @@ async def _assign_definition(  # noqa: C901
     body: ScanCreateRequest,
     *,
     retain_unavailable: bool = False,
+    only_filter_fields: set[str] | None = None,
 ) -> None:
     """Validate a complete definition atomically against confirmed catalog membership."""
     provider = await session.scalar(
@@ -342,6 +343,7 @@ async def _assign_definition(  # noqa: C901
         require_electric=body.require_electric,
         require_accessible=body.require_accessible,
         min_rv_length=body.min_rv_length,
+        only_fields=only_filter_fields,
     )
     choices: list[dict[str, str]] = []
     target = None
@@ -705,6 +707,11 @@ async def update_scan(
             definition = ScanCreateRequest.model_validate(values)
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
+        only_filter_fields = (
+            None
+            if body.provider_id is not None and body.provider_id != scan.provider_id
+            else body.model_fields_set & {field for field, _ in _FILTER_LABELS}
+        )
         with session.no_autoflush:
             await _assign_definition(
                 session,
@@ -713,6 +720,7 @@ async def update_scan(
                 retain_unavailable=not replacement
                 and body.coverage_mode is None
                 and body.campground_ids is None,
+                only_filter_fields=only_filter_fields,
             )
     _apply_scan_preference_updates(scan, body)
     await _validate_updated_scan_filters(

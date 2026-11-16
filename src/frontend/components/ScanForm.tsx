@@ -143,6 +143,10 @@ const PROVIDER_FILTER_METADATA: ReadonlyArray<{
   { key: "min_rv_length", label: "Minimum RV / Trailer Length" },
 ];
 
+const FILTER_LABEL_BY_KEY = Object.fromEntries(
+  PROVIDER_FILTER_METADATA.map(({ key, label }) => [key, label]),
+) as Record<keyof ProviderFilterCapabilities, string>;
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -280,22 +284,22 @@ export function ScanForm({
       (getValues("preferred_types")?.length ?? 0) > 0
     ) {
       setValue("preferred_types", []);
-      cleared.push("Preferred Campsite Types");
+      cleared.push(FILTER_LABEL_BY_KEY.preferred_types);
     }
     if (!caps.require_electric && getValues("require_electric")) {
       setValue("require_electric", false);
-      cleared.push("Electric Hookup");
+      cleared.push(FILTER_LABEL_BY_KEY.require_electric);
     }
     if (!caps.require_accessible && getValues("require_accessible")) {
       setValue("require_accessible", false);
-      cleared.push("ADA Accessible");
+      cleared.push(FILTER_LABEL_BY_KEY.require_accessible);
     }
     const rvVal = getValues("min_rv_length");
     if (!caps.min_rv_length && rvVal != null && String(rvVal).trim() !== "") {
       setValue("min_rv_length", "" as unknown as number | null, {
         shouldValidate: true,
       });
-      cleared.push("Minimum RV / Trailer Length");
+      cleared.push(FILTER_LABEL_BY_KEY.min_rv_length);
     }
     if (cleared.length > 0) {
       setClearedFilters(cleared);
@@ -470,6 +474,7 @@ export function ScanForm({
       }
       reset();
       setCampground(null);
+      setClearedFilters([]);
       setSearchTerm("");
       setOpen(false);
       onSuccess?.();

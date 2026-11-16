@@ -805,10 +805,10 @@ describe("ScanForm nights of the week", () => {
     );
     await user.type(
       screen.getByLabelText("Minimum RV / Trailer Length (ft)"),
-      "30",
+      "250",
     );
 
-    // Switch to provider 2 (no electric, no min_rv_length)
+    // Switch to provider 2 (no electric, no min_rv_length) — even with an active Zod error
     await user.click(screen.getByRole("button", { name: "Change" }));
     await user.type(
       screen.getByPlaceholderText("Search for a campground..."),
@@ -895,6 +895,55 @@ describe("ScanForm nights of the week", () => {
         expect.objectContaining({
           require_electric: false,
           min_rv_length: null,
+        }),
+      ),
+    );
+  });
+
+  it("hides preferred_types and require_accessible when unsupported by provider", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listProviders).mockResolvedValue([
+      {
+        id: 1,
+        name: "Recreation.gov",
+        description: null,
+        url: "https://recreation.gov",
+        enabled: true,
+        filter_capabilities: {
+          preferred_types: false,
+          require_electric: true,
+          require_accessible: false,
+          min_rv_length: true,
+        },
+      },
+    ]);
+
+    renderForm({
+      ...savedScan,
+      preferred_types: ["RV"],
+      require_accessible: true,
+    });
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText("Preferred Campsite Types"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("switch", { name: "ADA Accessible Required" }),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /Cleared unsupported selection\(s\): Preferred Campsite Types, ADA Accessible/,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() =>
+      expect(updateScan).toHaveBeenCalledWith(
+        savedScan.id,
+        expect.objectContaining({
+          preferred_types: [],
+          require_accessible: false,
         }),
       ),
     );
