@@ -161,7 +161,7 @@ try {
     .click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("dialog")).toContainText(
-    `Provider: ${destination!.split("/")[2]}`,
+    new RegExp(`Provider: (?:Fixture )?${destination!.split("/")[2]}`),
   );
   await expect(page.getByRole("dialog")).toContainText(
     `ID: ${destination!.split("/")[3]}`,

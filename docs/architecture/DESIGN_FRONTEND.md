@@ -4,9 +4,9 @@ The web client lives in `src/frontend/` and uses React 18, TypeScript, Vite 8, T
 
 ## Key application journeys
 
-- **Explore (`/search`):** Stacks an interactive MapLibre map above a paginated list. Panning or zooming debounces viewport bounds (`west`, `south`, `east`, `north`, `zoom`) to filter results in sync; an optional `Show map` / `Hide map` toggle preserves camera extent during the session. Initial unfiltered visits center roughly via `ipapi.co` (coordinates cached in memory, 2.5s timeout) without prompting for browser location.
+- **Explore (`/search`):** Stacks an interactive MapLibre map above a paginated list with amenity, ADA, and minimum RV-length filters. Panning or zooming debounces viewport bounds (`west`, `south`, `east`, `north`, `zoom`) to filter results in sync; an optional `Show map` / `Hide map` toggle preserves camera extent during the session. Initial unfiltered visits center roughly via `ipapi.co` (coordinates cached in memory, 2.5s timeout) without prompting for browser location.
 - **Destination details:** Campground and recreation-area pages display cached photos in an Embla carousel, an overview map, and "Know before you go" practical details without triggering live upstream enrichment requests.
-- **Dashboard & scan management (`/dashboard`, `/scans/:id`):** Groups scans by destination, supports creation/editing (`ScanForm`) with campground or recreation-area coverage (`all` vs. `selected`), `Weekends` / individual-night selectors, and groups matching stays into maximal consecutive blocks (5 sites per page per date group).
+- **Dashboard & scan management (`/dashboard`, `/scans/:id`):** Groups scans by destination, supports creation/editing (`ScanForm`) with campground or recreation-area coverage (`all` vs. `selected`), site preferences (type, electric, ADA accessibility, minimum RV length `1–200` ft), `Weekends` / individual-night selectors, and groups matching stays into maximal consecutive blocks (5 sites per page per date group) displaying vehicle-length and equipment badges.
 - **Admin (`/admin/*`):** Provides KPI overview, user/scan management, access-request review, worker operations, audit log inspection, and Recharts metric trends (`AdminTrendsPanel`).
 
 ## Key source layout
@@ -15,8 +15,8 @@ The web client lives in `src/frontend/` and uses React 18, TypeScript, Vite 8, T
 | -------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `src/frontend/main.tsx`, `App.tsx`     | Root providers (`QueryClientProvider`, `AuthProvider`, `ThemeProvider`) and React Router routes |
 | `src/frontend/lib/api/`                | Axios API client, helpers, and OpenAPI-generated TypeScript schema (`task api:generate`)        |
-| `src/frontend/hooks/`                  | `useAuth`, `useScans`, `useSearch`, and admin query hooks                                       |
-| `src/frontend/components/ScanForm.tsx` | Scan creation/editing dialog with Zod validation and weekday/coverage pickers                   |
+| `src/frontend/hooks/`                  | `useAuth`, `useScans`, `useSearch`, `useProviders`, and admin query hooks                       |
+| `src/frontend/components/ScanForm.tsx` | Scan creation/editing dialog with Zod validation and weekday/coverage/equipment pickers         |
 | `src/frontend/components/Map*.tsx`     | MapLibre GL JS integration and viewport-driven explore markers                                  |
 | `src/frontend/public/branding/`        | Light/dark outlined SVG brand marks (`CamplyLogo`)                                              |
 

@@ -261,3 +261,114 @@ def test_calendar_feasibility(
     else:
         with pytest.raises(ValueError, match="selected nights"):
             validate_scan_dates(**kwargs)
+
+
+def test_min_rv_length_fail_closed_and_shared_target_isolation() -> None:
+    """Strict min_rv_length rejects shorter, unknown, and tent-only sites without splitting targets."""
+    target = UniqueTarget(
+        start_date=datetime.date(2099, 7, 1), end_date=datetime.date(2099, 7, 5)
+    )
+    target.scan_results = [
+        ScanResult(
+            campsite_id="rv-long",
+            campsite_type="RV",
+            max_vehicle_length=32,
+            permitted_equipment=["RV", "Trailer"],
+            available_dates=["2099-07-01", "2099-07-02"],
+        ),
+        ScanResult(
+            campsite_id="rv-short",
+            campsite_type="RV",
+            max_vehicle_length=25,
+            permitted_equipment=["RV"],
+            available_dates=["2099-07-01", "2099-07-02"],
+        ),
+        ScanResult(
+            campsite_id="tent-only",
+            campsite_type="TENT",
+            max_vehicle_length=None,
+            permitted_equipment=["Tent"],
+            available_dates=["2099-07-01", "2099-07-02"],
+        ),
+        ScanResult(
+            campsite_id="legacy-unknown",
+            campsite_type="RV",
+            max_vehicle_length=None,
+            available_dates=["2099-07-01", "2099-07-02"],
+        ),
+    ]
+    unrestricted = UserScan(target=target, min_stay_length=1, min_rv_length=None)
+    strict = UserScan(target=target, min_stay_length=1, min_rv_length=28)
+
+    assert [s.campsite_id for s, _ in matching_scan_results(unrestricted)] == [
+        "rv-long",
+        "rv-short",
+        "tent-only",
+        "legacy-unknown",
+    ]
+    assert [s.campsite_id for s, _ in matching_scan_results(strict)] == ["rv-long"]
+
+    # Boundary: exact equality passes, 1 ft short fails, None fails closed
+    assert matches_scan_filters(
+        ["2099-07-01"],
+        campsite_type="RV",
+        is_electric=False,
+        max_vehicle_length=28,
+        scan=strict,
+    )
+    assert not matches_scan_filters(
+        ["2099-07-01"],
+        campsite_type="RV",
+        is_electric=False,
+        max_vehicle_length=27,
+        scan=strict,
+    )
+    assert not matches_scan_filters(
+        ["2099-07-01"],
+        campsite_type="RV",
+        is_electric=False,
+        max_vehicle_length=None,
+        scan=strict,
+    )
+
+
+def test_require_accessible_fail_closed() -> None:
+    """require_accessible accepts only explicit True and rejects False and None."""
+    target = UniqueTarget(
+        start_date=datetime.date(2099, 7, 1), end_date=datetime.date(2099, 7, 5)
+    )
+    target.scan_results = [
+        ScanResult(
+            campsite_id="ada-rv",
+            campsite_type="RV",
+            is_accessible=True,
+            max_vehicle_length=30,
+            available_dates=["2099-07-01"],
+        ),
+        ScanResult(
+            campsite_id="non-ada",
+            campsite_type="RV",
+            is_accessible=False,
+            max_vehicle_length=35,
+            available_dates=["2099-07-01"],
+        ),
+        ScanResult(
+            campsite_id="unknown-ada",
+            campsite_type="RV",
+            is_accessible=None,
+            max_vehicle_length=35,
+            available_dates=["2099-07-01"],
+        ),
+    ]
+    ada_scan = UserScan(
+        target=target, min_stay_length=1, min_rv_length=28, require_accessible=True
+    )
+    assert [s.campsite_id for s, _ in matching_scan_results(ada_scan)] == ["ada-rv"]
+    assert not matches_scan_filters(
+        ["2099-07-01"],
+        campsite_type="RV",
+        is_electric=True,
+        is_accessible=None,
+        max_vehicle_length=30,
+        scan=ada_scan,
+    )

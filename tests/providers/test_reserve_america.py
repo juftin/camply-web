@@ -627,3 +627,144 @@ def test_public_provider_urls_use_canonical_website() -> None:
         urlsplit(ReserveAmericaProvider.get_rec_area_url("CO_1")).hostname
         == "www.reserveamerica.com"
     )
+
+
+@pytest.mark.asyncio
+async def test_reserve_america_enrichment_populates_on_site_amenities_only(
+    provider: ReserveAmericaProvider, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Populate on-site amenities (distanceCode == '2000') while ignoring off-site entries and surviving catalog sync."""
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    monkeypatch.setattr(
+        "camply.providers.reserve_america.provider.db",
+        SimpleNamespace(get_session=sessions),
+    )
+    monkeypatch.setattr(
+        "camply.providers.reserve_america.enrichment.db",
+        SimpleNamespace(get_session=sessions),
+    )
+    monkeypatch.setattr(
+        "camply.providers.enrichment.db",
+        SimpleNamespace(get_session=sessions),
+    )
+
+    from tests.providers.test_reserve_america import facility as _ra_facility
+    from tests.providers.test_reserve_america import page as _ra_page
+
+    def handler(req: httpx2.Request) -> httpx2.Response:
+        if req.url.path == "/explore/search-results":
+            return httpx2.Response(200)
+        if req.url.path == "/jaxrs-json/config/brand":
+            return httpx2.Response(
+                200, json={"states": [{"stateCode": "CO", "countryCode": "USA"}]}
+            )
+        if req.url.path == "/jaxrs-json/search":
+            return httpx2.Response(200, json=_ra_page([_ra_facility(1)], 0, 1, 1))
+        if req.url.path == "/jaxrs-json/facilities/CO/1":
+            return httpx2.Response(
+                200,
+                json={
+                    "id": 1,
+                    "contrCode": "CO",
+                    "originalPhotos": [],
+                    "notes": [],
+                    "directions": {"directionsInfo": None},
+                    "amenities": [
+                        {"name": "Drinking Water", "distanceCode": "2000"},
+                        {"name": "Sewer Hookups", "distanceCode": "2000"},
+                        {"name": "Pets Allowed", "distanceCode": "2000"},
+                        {"name": "ADA Accessible", "distanceCode": "2000"},
+                        {
+                            "name": "Electric Hookups",
+                            "distanceCode": "2001",
+                            "distanceName": "2 miles",
+                        },
+                    ],
+                    "relatedLinks": [],
+                    "feesCancellationsDescription": None,
+                    "seasons": [],
+                },
+            )
+        raise AssertionError(f"Unexpected path {req.url.path}")
+
+    def install_http_local() -> None:
+        provider.async_client = httpx2.AsyncClient(
+            transport=httpx2.MockTransport(handler)
+        )
+
+    try:
+        async with sessions.begin() as session:
+            session.add(
+                Provider(id=13, name="ReserveAmerica", url="https://example.com")
+            )
+        install_http_local()
+        await provider.sync_metadata()
+        await provider.enrich_metadata()
+        async with sessions() as session:
+            cg = await session.get(Campground, ("CO_1", 13))
+            assert cg is not None
+            assert cg.has_water is True
+            assert cg.has_sewer is True
+            assert cg.pets_allowed is True
+            assert cg.ada_accessible is True
+            # Off-site electric AND on-site water/sewer must NEVER imply has_electric
+            assert cg.has_electric is False
+            search_row = (
+                await session.scalars(select(Search).where(Search.provider_id == 13))
+            ).one()
+            assert search_row.has_water is True
+            assert search_row.ada_accessible is True
+            assert search_row.has_electric is False
+
+        # Re-running catalog refresh retains enriched amenities
+        await provider.sync_metadata()
+        async with sessions() as session:
+            cg = await session.get(Campground, ("CO_1", 13))
+            assert cg is not None
+            assert cg.has_water is True
+            assert cg.ada_accessible is True
+    finally:
+        await engine.dispose()
+
+
+def test_reserve_america_site_dto_extracts_equipment_and_vehicle_length() -> None:
+    """ReserveAmerica Site.to_dto extracts permitted_equipment and floors positive vehicle lengths."""
+    rv_site = Site.model_validate(
+        site(
+            details={
+                "stayType": "NIGHTLY",
+                "siteIcon": "type_rv_elec",
+                "attributes": [
+                    {"id": 12, "name": "Maximum Number of People", "value": ["6"]},
+                    {"id": 100, "name": "Max Vehicle Length", "value": ["29.8 ft"]},
+                    {"id": 201, "name": "Max Equipment Length", "value": ["32"]},
+                    {
+                        "id": 200,
+                        "name": "Equipment Permitted",
+                        "value": ["RV", "Trailer"],
+                    },
+                ],
+            }
+        )
+    )
+    dto = rv_site.to_dto("CO_1", {date(2030, 1, 1)}, "https://example.com")
+    assert dto.max_vehicle_length == 32
+    assert dto.permitted_equipment == ["RV", "Trailer"]
+
+    zero_site = Site.model_validate(
+        site(
+            details={
+                "stayType": "NIGHTLY",
+                "siteIcon": "type_tent",
+                "attributes": [
+                    {"id": 100, "name": "Max Vehicle Length", "value": ["0"]},
+                ],
+            }
+        )
+    )
+    zero_dto = zero_site.to_dto("CO_1", {date(2030, 1, 1)}, "https://example.com")
+    assert zero_dto.max_vehicle_length is None
+    assert zero_dto.permitted_equipment == ["Tent"]

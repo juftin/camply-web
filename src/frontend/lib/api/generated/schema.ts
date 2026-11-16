@@ -1223,6 +1223,13 @@ export interface components {
             preferred_types?: string[];
             /** Require Electric */
             require_electric: boolean;
+            /**
+             * Require Accessible
+             * @default false
+             */
+            require_accessible: boolean;
+            /** Min Rv Length */
+            min_rv_length?: number | null;
             /** Allowed Weekdays */
             allowed_weekdays?: number[];
             /** Last Checked At */
@@ -1360,6 +1367,13 @@ export interface components {
             preferred_types?: string[];
             /** Require Electric */
             require_electric: boolean;
+            /**
+             * Require Accessible
+             * @default false
+             */
+            require_accessible: boolean;
+            /** Min Rv Length */
+            min_rv_length?: number | null;
             /** Allowed Weekdays */
             allowed_weekdays?: number[];
             /** Last Checked At */
@@ -2090,20 +2104,30 @@ export interface components {
             provider: "pushover" | "ntfy";
         };
         /**
-         * Provider
-         * @description Provider Model
+         * ProviderFilterCapabilitiesResponse
+         * @description Site-attribute monitor filters supported by a provider.
          */
-        Provider: {
-            /** Id */
-            id: number;
-            /** Name */
-            name: string;
-            /** Description */
-            description: string | null;
-            /** Url */
-            url: string;
-            /** Enabled */
-            enabled: boolean;
+        ProviderFilterCapabilitiesResponse: {
+            /**
+             * Preferred Types
+             * @default true
+             */
+            preferred_types: boolean;
+            /**
+             * Require Electric
+             * @default true
+             */
+            require_electric: boolean;
+            /**
+             * Require Accessible
+             * @default true
+             */
+            require_accessible: boolean;
+            /**
+             * Min Rv Length
+             * @default true
+             */
+            min_rv_length: boolean;
         };
         /**
          * ProviderResponse
@@ -2120,6 +2144,7 @@ export interface components {
             url: string;
             /** Enabled */
             enabled: boolean;
+            filter_capabilities?: components["schemas"]["ProviderFilterCapabilitiesResponse"];
         };
         /**
          * RecreationArea
@@ -2270,6 +2295,17 @@ export interface components {
              */
             require_electric: boolean;
             /**
+             * Require Accessible
+             * @description Only alert on ADA-accessible sites
+             * @default false
+             */
+            require_accessible: boolean;
+            /**
+             * Min Rv Length
+             * @description Minimum required RV or trailer length in feet
+             */
+            min_rv_length?: number | null;
+            /**
              * Allowed Weekdays
              * @description Allowed occupied nights, Monday=0 through Sunday=6; all seven means any night
              */
@@ -2383,6 +2419,13 @@ export interface components {
             preferred_types?: string[];
             /** Require Electric */
             require_electric: boolean;
+            /**
+             * Require Accessible
+             * @default false
+             */
+            require_accessible: boolean;
+            /** Min Rv Length */
+            min_rv_length?: number | null;
             /** Allowed Weekdays */
             allowed_weekdays?: number[];
             /** Last Checked At */
@@ -2520,6 +2563,13 @@ export interface components {
             preferred_types?: string[];
             /** Require Electric */
             require_electric: boolean;
+            /**
+             * Require Accessible
+             * @default false
+             */
+            require_accessible: boolean;
+            /** Min Rv Length */
+            min_rv_length?: number | null;
             /** Allowed Weekdays */
             allowed_weekdays?: number[];
             /** Last Checked At */
@@ -2577,6 +2627,10 @@ export interface components {
             is_electric?: boolean | null;
             /** Is Accessible */
             is_accessible?: boolean | null;
+            /** Permitted Equipment */
+            permitted_equipment?: string[];
+            /** Max Vehicle Length */
+            max_vehicle_length?: number | null;
             /**
              * Booking Url
              * @default
@@ -2614,6 +2668,10 @@ export interface components {
             preferred_types?: string[] | null;
             /** Require Electric */
             require_electric?: boolean | null;
+            /** Require Accessible */
+            require_accessible?: boolean | null;
+            /** Min Rv Length */
+            min_rv_length?: number | null;
             /**
              * Allowed Weekdays
              * @description Allowed occupied nights; omitted preserves the saved selection
@@ -3164,6 +3222,7 @@ export interface operations {
                 state?: string | null;
                 has_electric?: boolean | null;
                 pets_allowed?: boolean | null;
+                ada_accessible?: boolean | null;
                 min_rv_length?: number | null;
                 lat?: number | null;
                 lng?: number | null;
@@ -3208,6 +3267,7 @@ export interface operations {
                 state?: string | null;
                 has_electric?: boolean | null;
                 pets_allowed?: boolean | null;
+                ada_accessible?: boolean | null;
                 min_rv_length?: number | null;
                 lat?: number | null;
                 lng?: number | null;
@@ -3253,6 +3313,7 @@ export interface operations {
                 state?: string | null;
                 has_electric?: boolean | null;
                 pets_allowed?: boolean | null;
+                ada_accessible?: boolean | null;
                 min_rv_length?: number | null;
                 lat?: number | null;
                 lng?: number | null;
@@ -3295,6 +3356,7 @@ export interface operations {
                 state?: string | null;
                 has_electric?: boolean | null;
                 pets_allowed?: boolean | null;
+                ada_accessible?: boolean | null;
                 min_rv_length?: number | null;
                 lat?: number | null;
                 lng?: number | null;
@@ -3343,6 +3405,7 @@ export interface operations {
                 state?: string | null;
                 has_electric?: boolean | null;
                 pets_allowed?: boolean | null;
+                ada_accessible?: boolean | null;
                 min_rv_length?: number | null;
                 lat?: number | null;
                 lng?: number | null;
@@ -3527,7 +3590,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Provider"];
+                    "application/json": components["schemas"]["ProviderResponse"];
                 };
             };
             /** @description Validation Error */

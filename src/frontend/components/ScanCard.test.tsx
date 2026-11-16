@@ -138,6 +138,18 @@ describe("ScanCard", () => {
     expect(screen.getByText(/Min 3 nights/)).toBeInTheDocument();
   });
 
+  it("shows RV length and ADA preference badges when enabled", () => {
+    renderWithRouter(
+      <ScanCard
+        scan={{ ...baseScan, min_rv_length: 28, require_accessible: true }}
+        onToggleActive={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Min 28 ft")).toBeInTheDocument();
+    expect(screen.getByText(/ADA/)).toBeInTheDocument();
+  });
+
   it("calls onToggleActive when switch is clicked", async () => {
     const onToggle = vi.fn();
     renderWithRouter(

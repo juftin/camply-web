@@ -98,7 +98,7 @@ PyPI publication remains separate work.
 - [x] **ReserveCalifornia**: Port California State Parks availability and metadata to the current Tyler RDR API; preserve modern booking routes on the shared UseDirect ABC.
 - [x] **Shared UseDirect providers**: Implement independent metadata sync and availability for Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory (all 10 UseDirect providers verified live). Alabama State Parks (`reserve.alapark.com`, Itinio) and Maricopa County Parks (`exploremaricopacountyparks.org`, Cedar) moved off UseDirect; see [provider TODOs](specs/007-usedirect-providers/TODO.md).
 - [x] **GoingToCamp**: Re-engineer `GoingToCampProvider` on async catalog/map endpoints and register all 14 live GoingToCamp deployments (Washington, Wisconsin, Michigan, Tacoma Power, Parks Canada, BC Parks, Ontario Parks, Nova Scotia, Manitoba, Newfoundland & Labrador, Gatineau Park, Long Point, Maitland Valley, and St. Clair). Maryland DNR (ReserveAmerica/Aspira), New Brunswick (custom), Algonquin Highlands (`algonquinhighlands.ca`), and Saugeen Valley (`saugeenconservation.ca`) no longer use GoingToCamp; see [GoingToCamp TODOs](specs/023-going-to-camp/TODO.md).
-- [ ] **Advanced Filters**: Implement RV length, electric, and accessibility filters in the worker.
+- [x] **Advanced Filters**: Implement RV length, electric hookup, and ADA accessibility filters across discovery, saved scans, poller, alerts, and UI.
 - [ ] **Permits**: Add support for scanning wilderness permit and tour availability.
 
 ### Phase 4: Production & Scale

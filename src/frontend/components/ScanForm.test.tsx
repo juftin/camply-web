@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createScan,
   getMonitoringCampgrounds,
+  listProviders,
   listScans,
   searchCampgrounds,
   updateScan,
@@ -25,6 +26,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
   createScan: vi.fn(),
   getMonitoringCampgrounds: vi.fn(),
+  listProviders: vi.fn(),
   listScans: vi.fn(),
   updateScan: vi.fn(),
   searchCampgrounds: vi.fn(),
@@ -81,6 +83,7 @@ beforeEach(() => {
   scanningEnabled = true;
   vi.mocked(updateScan).mockResolvedValue(savedScan);
   vi.mocked(createScan).mockResolvedValue(savedScan);
+  vi.mocked(listProviders).mockResolvedValue([]);
   vi.mocked(listScans).mockResolvedValue({ scans: [savedScan], total: 1 });
 });
 
@@ -161,14 +164,18 @@ describe("ScanForm editing", () => {
       formatDisplayDate(savedScan.end_date),
     );
     expect(screen.getByLabelText("Minimum Stay (nights)")).toHaveValue(2);
-    expect(screen.getByRole("switch")).toBeChecked();
+    expect(
+      screen.getByRole("switch", { name: "Electric Hookup Required" }),
+    ).toBeChecked();
 
     await selectDate(user, "Check-out", "2027-07-10");
     fireEvent.change(screen.getByLabelText("Minimum Stay (nights)"), {
       target: { value: "3" },
     });
     await user.click(screen.getByText("Tent", { selector: "div" }));
-    await user.click(screen.getByRole("switch"));
+    await user.click(
+      screen.getByRole("switch", { name: "Electric Hookup Required" }),
+    );
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() =>
       expect(updateScan).toHaveBeenCalledWith(savedScan.id, {
@@ -179,6 +186,8 @@ describe("ScanForm editing", () => {
         min_stay_length: 3,
         preferred_types: ["RV", "CUSTOM TYPE", "TENT"],
         require_electric: false,
+        require_accessible: false,
+        min_rv_length: null,
         allowed_weekdays: [0, 1, 2, 3, 4, 5, 6],
       }),
     );
@@ -658,6 +667,283 @@ describe("ScanForm nights of the week", () => {
           campground_id: "new-cg",
           provider_id: 1,
           row_version: 2,
+        }),
+      ),
+    );
+  });
+
+  it("supports optional min_rv_length (1..200, clear to null, validation) and require_accessible", async () => {
+    const user = userEvent.setup();
+    renderForm({
+      ...savedScan,
+      min_rv_length: 32,
+      require_accessible: true,
+    });
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+    const lengthInput = screen.getByLabelText(
+      "Minimum RV / Trailer Length (ft)",
+    );
+    const adaSwitch = screen.getByRole("switch", {
+      name: "ADA Accessible Required",
+    });
+    expect(lengthInput).toHaveValue(32);
+    expect(adaSwitch).toBeChecked();
+
+    // Out-of-bounds value fails client validation before calling updateScan
+    await user.clear(lengthInput);
+    await user.type(lengthInput, "201");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(await screen.findByText(/200 ft/i)).toBeInTheDocument();
+    expect(updateScan).not.toHaveBeenCalled();
+
+    // Clearing blank sends min_rv_length: null; toggling ADA switch sets false
+    await user.clear(lengthInput);
+    await user.click(adaSwitch);
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() =>
+      expect(updateScan).toHaveBeenCalledWith(
+        savedScan.id,
+        expect.objectContaining({
+          min_rv_length: null,
+          require_accessible: false,
+        }),
+      ),
+    );
+  });
+
+  it("hides unsupported filters per provider, explains why, and clears stale values on switch", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listProviders).mockResolvedValue([
+      {
+        id: 1,
+        name: "Recreation.gov",
+        description: null,
+        url: "https://recreation.gov",
+        enabled: true,
+        filter_capabilities: {
+          preferred_types: true,
+          require_electric: true,
+          require_accessible: true,
+          min_rv_length: true,
+        },
+      },
+      {
+        id: 2,
+        name: "Limited Parks",
+        description: null,
+        url: "https://limited.example.com",
+        enabled: true,
+        filter_capabilities: {
+          preferred_types: true,
+          require_electric: false,
+          require_accessible: true,
+          min_rv_length: false,
+        },
+      },
+    ]);
+    vi.mocked(searchCampgrounds).mockReset();
+    vi.mocked(searchCampgrounds).mockImplementation(async (term: string) =>
+      term.toLowerCase().includes("limited")
+        ? [
+            {
+              id: "cg-lim",
+              entity_type: "Campground",
+              provider_id: 2,
+              provider_name: "Limited Parks",
+              recreation_area_id: "area-2",
+              recreation_area_name: "Park Two",
+              campground_id: "cg-2",
+              campground_name: "Limited Camp",
+              city: null,
+              state: "OR",
+              country: "US",
+            },
+          ]
+        : [
+            {
+              id: "cg-rec",
+              entity_type: "Campground",
+              provider_id: 1,
+              provider_name: "Recreation.gov",
+              recreation_area_id: "area-1",
+              recreation_area_name: "Park One",
+              campground_id: "cg-1",
+              campground_name: "Full Support Camp",
+              city: null,
+              state: "CA",
+              country: "US",
+            },
+          ],
+    );
+
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({
+            defaultOptions: {
+              queries: { retry: false },
+              mutations: { retry: false },
+            },
+          })
+        }
+      >
+        <ScanForm />
+      </QueryClientProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "New Scan" }));
+
+    // Select provider 1 (supports all filters) and configure RV length + electric
+    await user.type(
+      screen.getByPlaceholderText("Search for a campground..."),
+      "Full",
+    );
+    await user.click(await screen.findByText("Full Support Camp"));
+    expect(screen.getByText(/Provider: Recreation\.gov/)).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("switch", { name: "Electric Hookup Required" }),
+    );
+    await user.type(
+      screen.getByLabelText("Minimum RV / Trailer Length (ft)"),
+      "250",
+    );
+
+    // Switch to provider 2 (no electric, no min_rv_length) — even with an active Zod error
+    await user.click(screen.getByRole("button", { name: "Change" }));
+    await user.type(
+      screen.getByPlaceholderText("Search for a campground..."),
+      "Limited",
+    );
+    await user.click(await screen.findByText("Limited Camp"));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByLabelText("Minimum RV / Trailer Length (ft)"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("switch", { name: "Electric Hookup Required" }),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("switch", { name: "ADA Accessible Required" }),
+    ).toBeInTheDocument();
+
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent(/Limited Parks/);
+    expect(status).toHaveTextContent(
+      /Electric Hookup, Minimum RV \/ Trailer Length/,
+    );
+    expect(status).toHaveTextContent(/Cleared unsupported selection/);
+
+    await selectDate(user, "Check-in", "2027-07-01");
+    await selectDate(user, "Check-out", "2027-07-04");
+    await user.click(screen.getByRole("button", { name: "Create Scan" }));
+
+    await waitFor(() =>
+      expect(createScan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider_id: 2,
+          campground_id: "cg-2",
+          require_electric: false,
+          min_rv_length: null,
+        }),
+      ),
+    );
+  });
+
+  it("clears legacy unsupported filters when editing a scan", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listProviders).mockResolvedValue([
+      {
+        id: 1,
+        name: "Recreation.gov",
+        description: null,
+        url: "https://recreation.gov",
+        enabled: true,
+        filter_capabilities: {
+          preferred_types: true,
+          require_electric: false,
+          require_accessible: true,
+          min_rv_length: false,
+        },
+      },
+    ]);
+
+    renderForm({
+      ...savedScan,
+      require_electric: true,
+      min_rv_length: 26,
+    });
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByLabelText("Minimum RV / Trailer Length (ft)"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("switch", { name: "Electric Hookup Required" }),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /Cleared unsupported selection\(s\): Electric Hookup, Minimum RV \/ Trailer Length/,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() =>
+      expect(updateScan).toHaveBeenCalledWith(
+        savedScan.id,
+        expect.objectContaining({
+          require_electric: false,
+          min_rv_length: null,
+        }),
+      ),
+    );
+  });
+
+  it("hides preferred_types and require_accessible when unsupported by provider", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listProviders).mockResolvedValue([
+      {
+        id: 1,
+        name: "Recreation.gov",
+        description: null,
+        url: "https://recreation.gov",
+        enabled: true,
+        filter_capabilities: {
+          preferred_types: false,
+          require_electric: true,
+          require_accessible: false,
+          min_rv_length: true,
+        },
+      },
+    ]);
+
+    renderForm({
+      ...savedScan,
+      preferred_types: ["RV"],
+      require_accessible: true,
+    });
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText("Preferred Campsite Types"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("switch", { name: "ADA Accessible Required" }),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /Cleared unsupported selection\(s\): Preferred Campsite Types, ADA Accessible/,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() =>
+      expect(updateScan).toHaveBeenCalledWith(
+        savedScan.id,
+        expect.objectContaining({
+          preferred_types: [],
+          require_accessible: false,
         }),
       ),
     );

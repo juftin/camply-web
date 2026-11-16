@@ -234,3 +234,119 @@ async def test_alerts_only_use_remaining_nights(
             row.available_dates == [night.isoformat() for night in current_dates]
             for row in stored
         )
+
+
+@pytest.mark.anyio
+async def test_worker_persists_equipment_and_enforces_min_rv_length(
+    monkeypatch: pytest.MonkeyPatch,
+    scanner_setup: tuple[
+        async_sessionmaker[AsyncSession],
+        str,
+        list[str],
+        list[CampsiteDTO],
+        MagicMock,
+        MagicMock,
+    ],
+) -> None:
+    """Scanner persists permitted_equipment/max_vehicle_length, isolates subscriber alerts, and safely revalidates legacy metadata."""
+    from camply.worker.engine.alerts import matching_opening
+    from camply.worker.notifications.base import NotificationDTO
+
+    maker, target_id, scan_ids, sites, _, dispatch = scanner_setup
+    monkeypatch.setattr(
+        scanner, "worker_config", WorkerConfig(notification_mode="summary")
+    )
+    sites[0] = sites[0].model_copy(
+        update={
+            "campsite_type": CampsiteType.RV,
+            "permitted_equipment": ["RV", "Trailer"],
+            "max_vehicle_length": 34,
+        }
+    )
+    sites[1] = sites[1].model_copy(
+        update={
+            "campsite_type": CampsiteType.RV,
+            "permitted_equipment": ["RV"],
+            "max_vehicle_length": 22,
+        }
+    )
+    sites[2] = sites[2].model_copy(
+        update={
+            "campsite_type": CampsiteType.TENT,
+            "permitted_equipment": ["Tent"],
+            "max_vehicle_length": None,
+        }
+    )
+    async with maker() as session:
+        scan_long = await session.get(UserScan, uuid.UUID(scan_ids[0]))
+        assert scan_long is not None
+        scan_long.min_rv_length = 30
+        scan_long.require_accessible = True
+        await session.commit()
+
+    sites[0] = sites[0].model_copy(update={"is_accessible": True})
+    await scanner._check_target_availability_async(MagicMock(), target_id)
+    async with maker() as session:
+        stored = {
+            row.campsite_id: row
+            for row in (await session.scalars(select(ScanResult))).all()
+        }
+        assert stored["site-0"].max_vehicle_length == 34
+        assert stored["site-0"].permitted_equipment == ["RV", "Trailer"]
+        assert stored["site-1"].max_vehicle_length == 22
+        assert stored["site-2"].max_vehicle_length is None
+
+    alerts = [call.kwargs["kwargs"] for call in dispatch.call_args_list]
+    long_alert = next(a for a in alerts if a["scan_id"] == scan_ids[0])
+    openings = long_alert["notification"]["metadata"]["openings"]
+    assert len(openings) == 1
+    assert openings[0]["metadata"]["max_vehicle_length"] == 34
+    assert openings[0]["metadata"]["permitted_equipment"] == ["RV", "Trailer"]
+
+    # Legacy outbox payload without max_vehicle_length / permitted_equipment / is_accessible keys
+    legacy_payload = NotificationDTO(
+        title="Opening",
+        message="Opening",
+        booking_url="https://book.example",
+        park_name="Camp",
+        campsite_name="Legacy",
+        start_date=datetime.date(2027, 7, 1),
+        end_date=datetime.date(2027, 7, 3),
+        metadata={
+            "target_id": target_id,
+            "campsite_id": "site-legacy",
+            "campsite_type": "RV",
+            "is_electric": True,
+            "available_dates": ["2027-07-01", "2027-07-02"],
+        },
+    )
+    today = datetime.date(2027, 6, 1)
+    target = UniqueTarget(
+        id=uuid.UUID(target_id),
+        start_date=datetime.date(2027, 7, 1),
+        end_date=datetime.date(2027, 7, 6),
+    )
+    assert (
+        matching_opening(
+            legacy_payload, UserScan(min_stay_length=1), target, today=today
+        )
+        is not None
+    )
+    assert (
+        matching_opening(
+            legacy_payload,
+            UserScan(min_stay_length=1, min_rv_length=25),
+            target,
+            today=today,
+        )
+        is None
+    )
+    assert (
+        matching_opening(
+            legacy_payload,
+            UserScan(min_stay_length=1, require_accessible=True),
+            target,
+            today=today,
+        )
+        is None
+    )

@@ -18,13 +18,13 @@ When `CAMPLY_INVITE_ONLY=true`, `/api/scans` routes require `is_invited=true`. U
 
 ## Core endpoint groups
 
-| Prefix                                                                  | Audience                | Purpose                                                                                                      |
-| ----------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `/api/search*`, `/api/providers*`, `/api/campground*`, `/api/rec-area*` | Public                  | Explore search, bounded viewport map queries (`/api/search/map*`), and catalog metadata                      |
-| `/api/me*`, `/api/login`, `/api/logout`, `/api/change-password`         | Authenticated           | Profile, Pushover/ntfy preferences, test alerts (`POST /api/me/notifications/test`), and session management  |
-| `/api/scans*`                                                           | Authenticated + Invited | Campground and recreation-area scan CRUD, optimistic locking (`row_version`), and filtered live results      |
-| `/api/admin/*`                                                          | Admin                   | User/scan management, access-request review, audit logs, Celery/standalone operations, and Prometheus trends |
-| `/api/ping`, `/api/health`                                              | Public                  | Liveness (`/api/ping`) and DB + runtime readiness (`/api/health`, returns `503` when unhealthy)              |
+| Prefix                                                                  | Audience                | Purpose                                                                                                                                                                                                             |
+| ----------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/search*`, `/api/providers*`, `/api/campground*`, `/api/rec-area*` | Public                  | Explore search (`campsite_types`, `has_electric`, `pets_allowed`, `ada_accessible`, `min_rv_length`, proximity, viewport bounds) and catalog metadata                                                               |
+| `/api/me*`, `/api/login`, `/api/logout`, `/api/change-password`         | Authenticated           | Profile, Pushover/ntfy preferences, test alerts (`POST /api/me/notifications/test`), and session management                                                                                                         |
+| `/api/scans*`                                                           | Authenticated + Invited | Campground and recreation-area scan CRUD, filters (`preferred_types`, `require_electric`, `require_accessible`, `min_rv_length`, `allowed_weekdays`), optimistic locking (`row_version`), and filtered live results |
+| `/api/admin/*`                                                          | Admin                   | User/scan management, access-request review, audit logs, Celery/standalone operations, and Prometheus trends                                                                                                        |
+| `/api/ping`, `/api/health`                                              | Public                  | Liveness (`/api/ping`) and DB + runtime readiness (`/api/health`, returns `503` when unhealthy)                                                                                                                     |
 
 ## Standalone static serving
 

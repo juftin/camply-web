@@ -33,6 +33,15 @@ UtcDateTime = Annotated[datetime.datetime, AfterValidator(_ensure_utc)]
 # ===========================================================================
 
 
+class ProviderFilterCapabilitiesResponse(BaseModel):
+    """Site-attribute monitor filters supported by a provider."""
+
+    preferred_types: bool = True
+    require_electric: bool = True
+    require_accessible: bool = True
+    min_rv_length: bool = True
+
+
 class ProviderResponse(BaseModel):
     """Public provider representation."""
 
@@ -41,6 +50,9 @@ class ProviderResponse(BaseModel):
     description: Optional[str] = None
     url: str
     enabled: bool
+    filter_capabilities: ProviderFilterCapabilitiesResponse = Field(
+        default_factory=ProviderFilterCapabilitiesResponse
+    )
 
 
 # ===========================================================================
@@ -258,6 +270,15 @@ class ScanCreateRequest(BaseModel):
     require_electric: bool = Field(
         default=False, description="Only alert on electric hookup sites"
     )
+    require_accessible: bool = Field(
+        default=False, description="Only alert on ADA-accessible sites"
+    )
+    min_rv_length: int | None = Field(
+        default=None,
+        ge=1,
+        le=200,
+        description="Minimum required RV or trailer length in feet",
+    )
     allowed_weekdays: AllowedWeekdays = Field(
         default_factory=lambda: list(range(7)),
         description="Allowed occupied nights, Monday=0 through Sunday=6; all seven means any night",
@@ -307,6 +328,8 @@ class ScanUpdateRequest(BaseModel):
     min_stay_length: Optional[int] = Field(default=None, ge=1)
     preferred_types: Optional[list[str]] = None
     require_electric: Optional[bool] = None
+    require_accessible: Optional[bool] = None
+    min_rv_length: Optional[int] = Field(default=None, ge=1, le=200)
     allowed_weekdays: AllowedWeekdays = Field(
         default_factory=lambda: list(range(7)),
         description="Allowed occupied nights; omitted preserves the saved selection",
@@ -327,6 +350,8 @@ class ScanResultItem(BaseModel):
     campsite_type: str | None = None
     is_electric: bool | None = None
     is_accessible: bool | None = None
+    permitted_equipment: list[str] = Field(default_factory=list)
+    max_vehicle_length: int | None = None
     booking_url: str = ""
 
 
@@ -367,6 +392,8 @@ class ScanResponse(BaseModel):
     min_stay_length: int
     preferred_types: list[str] = Field(default_factory=list)
     require_electric: bool
+    require_accessible: bool = False
+    min_rv_length: int | None = None
     allowed_weekdays: list[int] = Field(default_factory=lambda: list(range(7)))
     last_checked_at: Optional[UtcDateTime] = None
     found_count: int = 0

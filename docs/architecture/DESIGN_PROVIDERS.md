@@ -6,7 +6,7 @@
 
 Every provider subclasses `BaseProvider` and translates upstream API responses into Pydantic models before returning unified `CampsiteDTO` objects:
 
-- **`find_availabilities(park_id, start_date, end_date)`:** Queries availability for one campground (`end_date` is exclusive checkout) and returns `CampsiteDTO` records with `campsite_id`, `campsite_name`, `campsite_type`, `capacity`, `available_dates`, `is_electric`, `is_accessible`, and `metadata`.
+- **`find_availabilities(park_id, start_date, end_date)`:** Queries availability for one campground (`end_date` is exclusive checkout) and returns `CampsiteDTO` records with `campsite_id`, `campsite_name`, `campsite_type`, `capacity`, `available_dates`, `is_electric`, `is_accessible`, `permitted_equipment`, `max_vehicle_length` (floored whole feet, or `None`), and `metadata`.
 - **`populate_database()` / `sync_metadata()`:** Refreshes `recreation_areas`, `campgrounds`, and `search` atomically, incrementing `providers.catalog_revision` so stale references disable cleanly without breaking existing scans.
 - **`enrich_metadata()`:** Optionally caches `DestinationDetails` photos and practical visitor info (up to 100 stale destinations per pass, 7-day freshness, 1-hour retry cooldown) for Recreation.gov, UseDirect providers, and ReserveAmerica.
 

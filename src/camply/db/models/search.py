@@ -91,6 +91,7 @@ def _build_attribute_filters(
     state: str | None = None,
     has_electric: bool | None = None,
     pets_allowed: bool | None = None,
+    ada_accessible: bool | None = None,
     min_rv_length: int | None = None,
     lat: float | None = None,
     lng: float | None = None,
@@ -138,6 +139,8 @@ def _build_attribute_filters(
         filters.append(cls.has_electric.is_(has_electric))
     if pets_allowed is not None:
         filters.append(cls.pets_allowed.is_(pets_allowed))
+    if ada_accessible is not None:
+        filters.append(cls.ada_accessible.is_(ada_accessible))
     if min_rv_length is not None and min_rv_length > 0:
         filters.append(cls.max_rv_length >= min_rv_length)
     if (
@@ -288,6 +291,7 @@ async def build_search_filters(
     state: str | None = None,
     has_electric: bool | None = None,
     pets_allowed: bool | None = None,
+    ada_accessible: bool | None = None,
     min_rv_length: int | None = None,
     lat: float | None = None,
     lng: float | None = None,
@@ -302,6 +306,7 @@ async def build_search_filters(
         state=state,
         has_electric=has_electric,
         pets_allowed=pets_allowed,
+        ada_accessible=ada_accessible,
         min_rv_length=min_rv_length,
         lat=lat,
         lng=lng,
@@ -545,6 +550,7 @@ class Search(Base):
         state: str | None = None,
         has_electric: bool | None = None,
         pets_allowed: bool | None = None,
+        ada_accessible: bool | None = None,
         min_rv_length: int | None = None,
         lat: float | None = None,
         lng: float | None = None,
@@ -611,6 +617,7 @@ class Search(Base):
             state=state,
             has_electric=has_electric,
             pets_allowed=pets_allowed,
+            ada_accessible=ada_accessible,
             min_rv_length=min_rv_length,
             lat=lat,
             lng=lng,
@@ -662,6 +669,7 @@ class Search(Base):
         state: str | None = None,
         has_electric: bool | None = None,
         pets_allowed: bool | None = None,
+        ada_accessible: bool | None = None,
         min_rv_length: int | None = None,
         lat: float | None = None,
         lng: float | None = None,
@@ -680,6 +688,7 @@ class Search(Base):
             state=state,
             has_electric=has_electric,
             pets_allowed=pets_allowed,
+            ada_accessible=ada_accessible,
             min_rv_length=min_rv_length,
             lat=lat,
             lng=lng,

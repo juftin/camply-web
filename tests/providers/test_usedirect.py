@@ -321,3 +321,171 @@ async def test_usedirect_populate_fails_without_provider_record(
     finally:
         await provider.async_client.aclose()
         await engine.dispose()
+
+
+async def _assert_usedirect_max_rv_length(
+    maker: async_sessionmaker[Any], provider_id: int, expected: int | None
+) -> None:
+    """Assert stored Campground and parent Search max_rv_length match expectations."""
+    async with maker() as session:
+        cg = await session.get(Campground, ("10", provider_id))
+        assert cg is not None and cg.max_rv_length == expected
+        area_search = (
+            await session.scalars(
+                select(Search).where(
+                    Search.provider_id == provider_id,
+                    Search.entity_type == "RecreationArea",
+                )
+            )
+        ).one()
+        assert area_search.max_rv_length == expected
+
+
+@pytest.mark.anyio
+async def test_usedirect_enrichment_and_catalog_preserve_capabilities(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """UseDirect park vehicle limits populate Campground & Search and survive catalog refreshes."""
+    from camply.providers.usedirect.variations import ReserveCaliforniaProvider
+
+    monkeypatch.setattr("camply.providers.usedirect.provider._REQUEST_INTERVAL", 0)
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    maker = async_sessionmaker(engine, expire_on_commit=False)
+    monkeypatch.setattr(
+        "camply.providers.usedirect.provider.db", SimpleNamespace(get_session=maker)
+    )
+    monkeypatch.setattr(
+        "camply.providers.usedirect.enrichment.db", SimpleNamespace(get_session=maker)
+    )
+    monkeypatch.setattr(
+        "camply.providers.enrichment.db", SimpleNamespace(get_session=maker)
+    )
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+
+    provider = ReserveCaliforniaProvider()
+    await provider.async_client.aclose()
+
+    display_limit = True
+
+    def respond(request: httpx2.Request) -> httpx2.Response:
+        url = str(request.url)
+        if url.endswith("/fd/places"):
+            return httpx2.Response(
+                200,
+                json=[
+                    {
+                        "PlaceId": 1,
+                        "Name": "California State Park",
+                        "State": "CA",
+                        "AllowWebBooking": True,
+                        "IsWebViewable": True,
+                    }
+                ],
+            )
+        if url.endswith("/fd/facilities"):
+            return httpx2.Response(
+                200,
+                json=[
+                    {
+                        "FacilityId": 10,
+                        "PlaceId": 1,
+                        "Name": "Redwood Loop",
+                        "AllowWebBooking": True,
+                    }
+                ],
+            )
+        if url.endswith("/fd/placeinfo/additional-place-info/1"):
+            return httpx2.Response(
+                200,
+                json={
+                    "PlaceId": 1,
+                    "Website": "https://www.parks.ca.gov/1",
+                    "ParkHeadquartersHours": "8am-5pm",
+                    "DayUseParkHours": None,
+                    "BackCountyTrailCampOfficeHours": None,
+                    "TrailerMaxLength": "32 ft" if display_limit else "0",
+                    "CamperMotorHomeMaxLength": "28" if display_limit else "0",
+                    "DisplayMaxTrailerLengthOnWeb": display_limit,
+                },
+            )
+        if url.endswith("/Place/1.jpg") or url.endswith("/Facility/10.jpg"):
+            return httpx2.Response(404)
+        raise AssertionError(f"Unexpected request: {request.method} {url}")
+
+    provider.async_client = httpx2.AsyncClient(transport=httpx2.MockTransport(respond))
+    try:
+        async with maker.begin() as session:
+            session.add(
+                Provider(
+                    id=provider.provider.id,
+                    name=provider.provider.name,
+                    url=provider.provider.url,
+                    enabled=True,
+                )
+            )
+        await provider.sync_metadata()
+        await provider.enrich_metadata()
+        await _assert_usedirect_max_rv_length(maker, provider.provider.id, 32)
+
+        # A subsequent catalog refresh without re-enrichment retains max_rv_length
+        await provider.sync_metadata()
+        await _assert_usedirect_max_rv_length(maker, provider.provider.id, 32)
+
+        # When park enrichment hides or removes vehicle limits, stale max_rv_length is cleared
+        display_limit = False
+        async with maker.begin() as session:
+            park = await session.get(RecreationArea, ("1", provider.provider.id))
+            assert park is not None
+            park.details = None
+            park.details_attempted_at = None
+        await provider.enrich_metadata()
+        await _assert_usedirect_max_rv_length(maker, provider.provider.id, None)
+    finally:
+        await provider.async_client.aclose()
+        await engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("vehicle_length", "sleeping_ids", "expected_len", "expected_eq"),
+    [
+        (30, [1, 2], 30, ["RV", "Trailer"]),
+        (0, [1], None, ["RV"]),
+        (-10, [1], None, ["RV"]),
+        (None, [3], None, ["Tent"]),
+    ],
+)
+def test_usedirect_site_dto_extracts_equipment_and_vehicle_length(
+    vehicle_length: int | None,
+    sleeping_ids: list[int],
+    expected_len: int | None,
+    expected_eq: list[str],
+) -> None:
+    """UseDirect AvailabilityUnit normalizes permitted_equipment and positive max_vehicle_length."""
+    unit = AvailabilityUnit.model_validate(
+        {
+            "UnitId": 101,
+            "UseType": 4,
+            "AllowWebBooking": True,
+            "UnitTypeGroupId": 1,
+            "SleepingUnitIds": sleeping_ids,
+            "VehicleLength": vehicle_length,
+            "Slices": {"a": {"Date": "2030-01-01", "IsFree": True}},
+        }
+    )
+    filters = SearchFilters.model_validate(
+        {
+            "UnitTypesGroups": [{"UnitTypesGroupId": 1, "UnitTypesGroupName": "RV"}],
+            "NightlySleepingUnits": [
+                {"SleepingUnitId": 1, "SleepingUnitName": "RV"},
+                {"SleepingUnitId": 2, "SleepingUnitName": "Trailer"},
+                {"SleepingUnitId": 3, "SleepingUnitName": "Tent"},
+            ],
+        }
+    )
+    dto = unit.to_dto(
+        filters=filters, start_date=date(2030, 1, 1), end_date=date(2030, 1, 2)
+    )
+    assert dto is not None
+    assert dto.permitted_equipment == expected_eq
+    assert dto.max_vehicle_length == expected_len

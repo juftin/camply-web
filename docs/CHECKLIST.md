@@ -205,8 +205,8 @@ Implementation specification and tasks: [Admin UI plan](specs/002-admin-ui/plan.
 
 - [x] T3.2.1 Implement electric hookup and ADA accessibility filters, multi-criteria search, facets, and pagination (`/api/search/explore`, `SearchPage`).
 - [x] T3.2.1a Keep discovery in PostgreSQL with indexed weighted full-text and per-token typo matching, exact-name ranking, deterministic pagination, lightweight autocomplete, and live Explore typing/filtering with URL navigation and cancellation. Verify migrations and real PostgreSQL query plans in CI; see [search plan](specs/009-live-search/plan.md).
-- [ ] T3.2.1b Populate discovery amenity and RV metadata from provider catalogs; existing imports omit these fields, limiting amenity/RV Explore results.
-- [ ] T3.2.2 Implement equipment length (RV/Trailer) validation in poller.
+- [x] T3.2.1b Populate discovery amenity and RV metadata from provider catalogs (`campgrounds` -> `search`, including Explore ADA filter parity); see [equipment filtering spec](specs/030-equipment-metadata-filtering/spec.md) and [plan](specs/030-equipment-metadata-filtering/plan.md).
+- [x] T3.2.2 Implement equipment length (RV/Trailer) and ADA accessibility validation across providers, saved scans, worker/alerts, API, and UI; see [equipment filtering tasks](specs/030-equipment-metadata-filtering/tasks.md).
 - [ ] T3.2.3 Implement minimum stay requirement (X nights) in poller logic.
 - [x] T3.2.4 Specify recurring nights-of-the-week selection for saved web scans with existing CLI day/weekend parity, stay-length semantics, validation, and consistent results/alerts; see the [night-selection specification](specs/029-weekday-night-filter/spec.md).
 - [x] T3.2.5 Plan, implement and verify saved night preferences, accessible web selection/editing, consistent results and notification delivery in both runtimes, and CLI parity; see the [night-selection plan](specs/029-weekday-night-filter/plan.md) and [completed tasks](specs/029-weekday-night-filter/tasks.md).

@@ -346,3 +346,82 @@ async def test_matching_defaults_survive_predicate_extraction(
     """Preserve explicit false, nonpositive and incomplete-radius semantics."""
     _, total, _ = await Search.search(async_session, **options)
     assert total == expected
+
+
+@pytest.mark.asyncio
+async def test_populate_search_table_copies_and_aggregates_capabilities(
+    async_session: AsyncSession,
+) -> None:
+    """Copy campground amenities to Search and aggregate enabled reservable children onto areas."""
+    from camply.db.models import Campground, Provider, RecreationArea
+    from camply.providers.usedirect.variations import ReserveCaliforniaProvider
+
+    async_session.add(
+        Provider(
+            id=2, name="ReserveCalifornia", url="https://www.reservecalifornia.com"
+        )
+    )
+    await async_session.flush()
+    async_session.add(
+        RecreationArea(
+            id="area-cap", provider_id=2, name="Cap Park", enabled=True, reservable=True
+        )
+    )
+    await async_session.flush()
+    async_session.add_all(
+        [
+            Campground(
+                id="cg-a",
+                provider_id=2,
+                recreation_area_id="area-cap",
+                name="Camp A",
+                enabled=True,
+                reservable=True,
+                campsite_types=["RV"],
+                has_electric=True,
+                pets_allowed=True,
+                max_rv_length=35,
+            ),
+            Campground(
+                id="cg-b",
+                provider_id=2,
+                recreation_area_id="area-cap",
+                name="Camp B",
+                enabled=True,
+                reservable=True,
+                campsite_types=["TENT"],
+                ada_accessible=True,
+                max_rv_length=20,
+            ),
+            Campground(
+                id="cg-disabled",
+                provider_id=2,
+                recreation_area_id="area-cap",
+                name="Camp Disabled",
+                enabled=False,
+                reservable=False,
+                campsite_types=["CABIN"],
+                has_sewer=True,
+                max_rv_length=60,
+            ),
+        ]
+    )
+    await async_session.flush()
+
+    provider = ReserveCaliforniaProvider()
+    try:
+        await provider.populate_search_table(async_session, commit=False)
+        rows, total, _ = await Search.search(
+            async_session, ada_accessible=True, has_electric=True, min_rv_length=35
+        )
+        assert total == 1
+        assert rows[0].entity_type == "RecreationArea"
+        assert rows[0].recreation_area_id == "area-cap"
+        assert rows[0].has_electric is True
+        assert rows[0].pets_allowed is True
+        assert rows[0].ada_accessible is True
+        assert rows[0].has_sewer is False
+        assert rows[0].max_rv_length == 35
+        assert sorted(rows[0].campsite_types or []) == ["RV", "TENT"]
+    finally:
+        await provider.async_client.aclose()

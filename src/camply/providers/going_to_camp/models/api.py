@@ -37,6 +37,11 @@ from camply.providers.going_to_camp.models.metadata import (
     preferred_localized,
     resolve_overnight_categories,
 )
+from camply.providers.utils import (
+    is_rv_equipment_name,
+    normalize_equipment_labels,
+    parse_vehicle_length_feet,
+)
 
 AVAILABLE_STATUS = 0
 MAP_LINK_OPEN_STATUSES = frozenset({0, 7})
@@ -420,20 +425,48 @@ class Resource(BaseModel):
             self.resourceCategoryId
         ].display_name
         booking_names = sorted(set(booking_category_names or []))
-        equipment = self._decode_equipment(filters)
+        equipment = normalize_equipment_labels(self._decode_equipment(filters))
         decoded_attributes = self._decode_attributes(filters)
+        campsite_type = _classify_campsite_type(
+            category_names=[category_name, *booking_names],
+            equipment_names=equipment,
+            decoded_attributes=decoded_attributes,
+        )
+        length_candidates: list[int] = []
+        if campsite_type != CampsiteType.TENT or any(
+            is_rv_equipment_name(eq) for eq in equipment
+        ):
+            for eq in equipment:
+                if is_rv_equipment_name(eq) and (
+                    parsed := parse_vehicle_length_feet(eq)
+                ):
+                    length_candidates.append(parsed)
+            for attr_name, raw_val in decoded_attributes.items():
+                low_attr = attr_name.strip().lower()
+                if "length" in low_attr and any(
+                    kw in low_attr
+                    for kw in (
+                        "equipment",
+                        "vehicle",
+                        "trailer",
+                        "rv",
+                        "driveway",
+                        "pad",
+                    )
+                ):
+                    for text in _flatten_strings(raw_val) or [str(raw_val)]:
+                        if parsed := parse_vehicle_length_feet(text):
+                            length_candidates.append(parsed)
         return CampsiteDTO(
             campsite_id=str(self.resourceId),
             campsite_name=self.display_name,
-            campsite_type=_classify_campsite_type(
-                category_names=[category_name, *booking_names],
-                equipment_names=equipment,
-                decoded_attributes=decoded_attributes,
-            ),
+            campsite_type=campsite_type,
             capacity=self.maxCapacity or 0,
             available_dates=sorted(available_dates),
             is_electric=_is_electric_from_attributes(decoded_attributes),
             is_accessible=_is_accessible_from_attributes(decoded_attributes),
+            permitted_equipment=equipment,
+            max_vehicle_length=max(length_candidates) if length_candidates else None,
             metadata={
                 "resource_category_id": self.resourceCategoryId,
                 "resource_category": category_name,

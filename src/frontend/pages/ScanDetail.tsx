@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Accessibility,
   Calendar,
   Activity,
   Zap,
@@ -143,6 +144,10 @@ export function ScanDetail() {
             <span>· {scan.preferred_types.join(", ")}</span>
           )}
           {scan.require_electric && <span>· Electric required</span>}
+          {scan.require_accessible && <span>· ADA accessible</span>}
+          {scan.min_rv_length != null && (
+            <span>· Min {scan.min_rv_length} ft</span>
+          )}
         </div>
       </div>
 
@@ -262,6 +267,16 @@ export function ScanDetail() {
               {scan.require_electric && (
                 <Badge variant="secondary" className="gap-1">
                   <Zap className="h-3 w-3" /> Electric Required
+                </Badge>
+              )}
+              {scan.require_accessible && (
+                <Badge variant="secondary" className="gap-1">
+                  <Accessibility className="h-3 w-3" /> ADA Accessible
+                </Badge>
+              )}
+              {scan.min_rv_length != null && (
+                <Badge variant="secondary">
+                  Min RV: {scan.min_rv_length} ft
                 </Badge>
               )}
               {scan.min_stay_length > 1 && (

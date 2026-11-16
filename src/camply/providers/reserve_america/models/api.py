@@ -7,6 +7,11 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel, Field, field_validator
 
 from camply.providers.dto import CampsiteDTO, CampsiteType
+from camply.providers.utils import (
+    is_rv_equipment_name,
+    normalize_equipment_labels,
+    parse_vehicle_length_feet,
+)
 
 T = TypeVar("T")
 
@@ -156,6 +161,35 @@ class Site(BaseModel):
             is not None
             for v in attrs.get(218, [])
         )
+        raw_equipment: list[str] = []
+        for attr in self.details.attributes:
+            low_name = attr.name.lower()
+            if "equipment" in low_name and "length" not in low_name:
+                raw_equipment.extend(attr.value)
+        permitted_equipment = normalize_equipment_labels(raw_equipment)
+        if not permitted_equipment:
+            fallback_label = {
+                CampsiteType.RV: "RV",
+                CampsiteType.TENT: "Tent",
+                CampsiteType.CABIN: "Cabin",
+            }.get(kind)
+            if fallback_label is not None:
+                permitted_equipment = [fallback_label]
+        rv_allowed = kind != CampsiteType.TENT or any(
+            is_rv_equipment_name(eq) for eq in permitted_equipment
+        )
+        length_values = [
+            parsed
+            for attr in self.details.attributes
+            if rv_allowed
+            and "length" in attr.name.lower()
+            and any(
+                kw in attr.name.lower()
+                for kw in ("vehicle", "rv", "trailer", "equipment", "driveway", "pad")
+            )
+            for raw_val in attr.value
+            if (parsed := parse_vehicle_length_feet(raw_val)) is not None
+        ]
         return CampsiteDTO(
             campsite_id=f"{facility_id}_{self.id}",
             campsite_name=self.name,
@@ -166,6 +200,8 @@ class Site(BaseModel):
             is_accessible=any(
                 v.lower() in {"y", "yes", "true", "1"} for v in attrs.get(104, [])
             ),
+            permitted_equipment=permitted_equipment,
+            max_vehicle_length=max(length_values) if length_values else None,
             metadata={
                 "booking_url": booking_url,
                 "loop": self.details.loopName,

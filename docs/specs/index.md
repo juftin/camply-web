@@ -70,5 +70,7 @@ This catalog indexes all feature specifications, technical implementation plans,
   - [Plan](029-recreation-area-monitoring/plan.md) | [Tasks](029-recreation-area-monitoring/tasks.md) | [Data Model](029-recreation-area-monitoring/data-model.md)
 - **[029: Nights of the Week](029-weekday-night-filter/spec.md)**
   - [Plan](029-weekday-night-filter/plan.md) | [Tasks](029-weekday-night-filter/tasks.md) | [Data Model](029-weekday-night-filter/data-model.md)
+- **[030: Equipment Metadata & Filtering](030-equipment-metadata-filtering/spec.md)**
+  - [Plan](030-equipment-metadata-filtering/plan.md) | [Tasks](030-equipment-metadata-filtering/tasks.md) | [Data Model](030-equipment-metadata-filtering/data-model.md)
 - **[030: Documentation Rework](030-docs-rework/spec.md)**
   - [Plan](030-docs-rework/plan.md) | [Tasks](030-docs-rework/tasks.md) | [Data Model](030-docs-rework/data-model.md)

@@ -564,6 +564,8 @@ def test_resource_classification_and_attribute_decoding() -> None:
         "50 Amps",
     ]
     assert rv_dto.metadata["permitted_equipment"] == ["RV/Trailer up to 35ft"]
+    assert rv_dto.permitted_equipment == ["RV/Trailer up to 35ft"]
+    assert rv_dto.max_vehicle_length == 35
 
     # 2. Tent site with explicit non-electric ("Standard - No Hook-ups" + "Not Available") and ADA Yes
     tent_site = Resource.model_validate(
@@ -595,6 +597,8 @@ def test_resource_classification_and_attribute_decoding() -> None:
     assert tent_dto.is_accessible is True
     assert tent_dto.capacity == 50
     assert tent_dto.metadata["permitted_equipment"] == ["Group Tent"]
+    assert tent_dto.permitted_equipment == ["Group Tent"]
+    assert tent_dto.max_vehicle_length is None
 
     # 3. Cabin with Electrical Outlets > 0 and unknown capacity (maxCapacity=None -> 0)
     cabin_site = Resource.model_validate(
@@ -1066,6 +1070,11 @@ async def test_metadata_ingestion_atomicity_and_provider_isolation(
         facilities.clear()
         await provider.sync_metadata()
         async with maker() as session:
+            wa_parks = (
+                await session.scalars(
+                    select(RecreationArea).where(RecreationArea.provider_id == 12)
+                )
+            ).all()
             retired = await session.get(Campground, ("-2147483631", 12))
             assert retired is not None
             assert retired.enabled is False and retired.reservable is False
@@ -1076,6 +1085,91 @@ async def test_metadata_ingestion_atomicity_and_provider_isolation(
                     )
                 )
             ).all()
+            assert len(wa_parks) == 2
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.anyio
+async def test_going_to_camp_catalog_derives_campsite_types_and_preserves_capabilities(
+    provider: WashingtonStateParksProvider, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Derive standardized campsite_types from resource categories and preserve verified capabilities."""
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    maker = async_sessionmaker(engine, expire_on_commit=False)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+
+    async with maker.begin() as session:
+        session.add(
+            Provider(
+                id=12,
+                name="Washington State Parks",
+                url="https://washington.goingtocamp.com",
+            )
+        )
+        await session.flush()
+        session.add(
+            RecreationArea(
+                id="-2147483640", provider_id=12, name="Deception Pass State Park"
+            )
+        )
+        session.add(
+            Campground(
+                id="-2147483631",
+                provider_id=12,
+                recreation_area_id="-2147483640",
+                name="Cranberry Lake Campground",
+                has_electric=True,
+                max_rv_length=35,
+            )
+        )
+
+    monkeypatch.setattr(
+        "camply.providers.going_to_camp.provider.db",
+        SimpleNamespace(get_session=maker),
+    )
+    parks, facilities, catalogs = _synthetic_metadata_catalogs()
+    facilities[0]["resourceCategoryIds"] = [-2147483648, -2147483647]
+    catalogs["/api/bookingcategories"][0]["allowedResourceCategoryIds"] = [
+        -2147483648,
+        -2147483647,
+    ]
+    catalogs["/api/resourcecategory"] = [
+        {
+            "resourceCategoryId": -2147483648,
+            "resourceType": 0,
+            "localizedValues": [{"cultureName": "en-US", "name": "RV / Trailer Site"}],
+        },
+        {
+            "resourceCategoryId": -2147483647,
+            "resourceType": 0,
+            "localizedValues": [{"cultureName": "en-US", "name": "Camping Cabin"}],
+        },
+    ]
+
+    def respond(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json=catalogs[request.url.path])
+
+    provider.async_client = httpx2.AsyncClient(transport=httpx2.MockTransport(respond))
+    try:
+        await provider.sync_metadata()
+        async with maker() as session:
+            cg = await session.get(Campground, ("-2147483631", 12))
+            assert cg is not None
+            assert sorted(cg.campsite_types or []) == ["CABIN", "RV"]
+            assert cg.has_electric is True
+            assert cg.max_rv_length == 35
+            row = (
+                await session.scalars(
+                    select(Search).where(
+                        Search.provider_id == 12, Search.entity_type == "Campground"
+                    )
+                )
+            ).one()
+            assert sorted(row.campsite_types or []) == ["CABIN", "RV"]
+            assert row.has_electric is True
+            assert row.max_rv_length == 35
     finally:
         await engine.dispose()
 

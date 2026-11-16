@@ -135,6 +135,8 @@ async def refresh_destinations(
     fetch: Callable[[Destination], Awaitable[DestinationDetails | None]],
     *,
     limit: int = 100,
+    on_details: Callable[[Destination, DestinationDetails], Awaitable[None]]
+    | None = None,
 ) -> None:
     """Refresh a stale batch, preserving each last-good snapshot on source failure."""
     for destination in await stale_destinations(provider_id, limit=limit):
@@ -144,6 +146,8 @@ async def refresh_destinations(
             details = await fetch(destination)
             if details is not None:
                 await save_details(provider_id, destination, details)
+                if on_details is not None:
+                    await on_details(destination, details)
         except Exception as exc:
             logger.warning(
                 "Destination enrichment failed; cached details retained",

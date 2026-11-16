@@ -38,6 +38,8 @@ def _matches_scan_filters(campsite: CampsiteDTO, scan: UserScan) -> bool:
         [night.isoformat() for night in campsite.available_dates],
         campsite_type=campsite.campsite_type.value,
         is_electric=campsite.is_electric,
+        is_accessible=campsite.is_accessible,
+        max_vehicle_length=campsite.max_vehicle_length,
         scan=scan,
     )
 
@@ -227,6 +229,8 @@ async def check_target(
                             "campsite_type": campsite.campsite_type.value,
                             "is_electric": campsite.is_electric,
                             "is_accessible": campsite.is_accessible,
+                            "permitted_equipment": campsite.permitted_equipment,
+                            "max_vehicle_length": campsite.max_vehicle_length,
                             "available_dates": [
                                 d.isoformat() for d in campsite.available_dates
                             ],
@@ -242,6 +246,8 @@ async def check_target(
                     campsite_type=campsite.campsite_type.value,
                     is_electric=campsite.is_electric,
                     is_accessible=campsite.is_accessible,
+                    permitted_equipment=campsite.permitted_equipment or None,
+                    max_vehicle_length=campsite.max_vehicle_length,
                     available_dates=[d.isoformat() for d in campsite.available_dates],
                 )
             )

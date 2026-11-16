@@ -23,7 +23,7 @@ from sqlalchemy import update
 
 from camply.db.config import db
 from camply.db.models import Campground, Provider, RecreationArea
-from camply.providers.base import BaseProvider
+from camply.providers.base import BaseProvider, CampgroundCapabilities
 from camply.providers.dto import (
     CampgroundSearchResult,
     CampsiteDTO,
@@ -267,6 +267,7 @@ class UseDirectProvider(BaseProvider, ABC):
                         )
                     )
                 await session.flush()
+                existing_caps = await self._existing_campground_capabilities(session)
                 for facility in facilities:
                     parent_place = places_by_id.get(facility.PlaceId)
                     if (
@@ -275,6 +276,9 @@ class UseDirectProvider(BaseProvider, ABC):
                         or not facility.Name.strip()
                     ):
                         continue
+                    caps = existing_caps.get(
+                        str(facility.FacilityId), CampgroundCapabilities()
+                    )
                     await session.merge(
                         Campground(
                             id=str(facility.FacilityId),
@@ -291,6 +295,7 @@ class UseDirectProvider(BaseProvider, ABC):
                             and parent_place.AllowWebBooking is True
                             and parent_place.IsWebViewable is not False,
                             enabled=parent_place.IsWebViewable is not False,
+                            **caps.as_columns(),
                         )
                     )
                 await session.flush()

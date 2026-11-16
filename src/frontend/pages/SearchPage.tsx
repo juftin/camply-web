@@ -46,6 +46,7 @@ export function SearchPage() {
   const state = searchParams.get("state") || "";
   const hasElectric = searchParams.get("electric") === "true";
   const petsAllowed = searchParams.get("pets") === "true";
+  const adaAccessible = searchParams.get("ada") === "true";
   const minRvLength = searchParams.get("rv")
     ? parseInt(searchParams.get("rv")!, 10)
     : 0;
@@ -69,12 +70,22 @@ export function SearchPage() {
       state: state || undefined,
       hasElectric: hasElectric || undefined,
       petsAllowed: petsAllowed || undefined,
+      adaAccessible: adaAccessible || undefined,
       minRvLength: minRvLength > 0 ? minRvLength : undefined,
       sortBy,
       page,
       pageSize: 20,
     }),
-    [query, state, hasElectric, petsAllowed, minRvLength, sortBy, page],
+    [
+      query,
+      state,
+      hasElectric,
+      petsAllowed,
+      adaAccessible,
+      minRvLength,
+      sortBy,
+      page,
+    ],
   );
 
   const context = JSON.stringify(mapQueryParams(exploreParams));
@@ -200,6 +211,7 @@ export function SearchPage() {
     (state ? 1 : 0) +
     (hasElectric ? 1 : 0) +
     (petsAllowed ? 1 : 0) +
+    (adaAccessible ? 1 : 0) +
     (minRvLength > 0 ? 1 : 0) +
     (sortBy !== "relevance" ? 1 : 0);
 
@@ -351,6 +363,22 @@ export function SearchPage() {
                   checked={petsAllowed}
                   onCheckedChange={(checked) =>
                     updateParams({ pets: checked ? "true" : null })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor="ada-toggle"
+                  className="cursor-pointer text-sm font-normal"
+                >
+                  ADA Accessible
+                </Label>
+                <Switch
+                  id="ada-toggle"
+                  checked={adaAccessible}
+                  onCheckedChange={(checked) =>
+                    updateParams({ ada: checked ? "true" : null })
                   }
                 />
               </div>

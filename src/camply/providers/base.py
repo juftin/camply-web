@@ -3,6 +3,7 @@ Base Provider Configuration
 """
 
 import asyncio
+import inspect
 import random
 import time
 from abc import ABC, abstractmethod
@@ -14,7 +15,18 @@ from typing import Any, ClassVar
 import httpx2
 import structlog
 from pydantic import BaseModel, field_validator
-from sqlalchemy import Insert, and_, delete, func, insert, literal, null, select
+from sqlalchemy import (
+    Insert,
+    and_,
+    case,
+    delete,
+    func,
+    insert,
+    literal,
+    null,
+    select,
+    update,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from camply.db.models import Campground, Provider, RecreationArea, Search
@@ -29,6 +41,46 @@ from camply.providers.dto import (
 from camply.providers.errors import CircuitBreakerOpenError, ProviderRateLimitedError
 
 logger = structlog.getLogger()
+
+
+@dataclass(frozen=True)
+class CampgroundCapabilities:
+    """Normalized discovery capability columns for a persisted campground."""
+
+    campsite_types: list[str] | None = None
+    has_electric: bool = False
+    has_water: bool = False
+    has_sewer: bool = False
+    pets_allowed: bool = False
+    ada_accessible: bool = False
+    max_rv_length: int | None = None
+
+    def as_columns(self) -> dict[str, Any]:
+        """Return keyword arguments matching ``Campground`` capability columns."""
+        return {
+            "campsite_types": self.campsite_types,
+            "has_electric": self.has_electric,
+            "has_water": self.has_water,
+            "has_sewer": self.has_sewer,
+            "pets_allowed": self.pets_allowed,
+            "ada_accessible": self.ada_accessible,
+            "max_rv_length": self.max_rv_length,
+        }
+
+
+@dataclass(frozen=True)
+class ProviderFilterCapabilities:
+    """Monitor filter controls supported by a provider's availability feed."""
+
+    preferred_types: bool = True
+    """Whether the provider reports campsite types (Tent, RV, Cabin, Other)."""
+    require_electric: bool = True
+    """Whether the provider reports electric hookup availability per site."""
+    require_accessible: bool = True
+    """Whether the provider reports ADA accessibility per site."""
+    min_rv_length: bool = True
+    """Whether the provider reports maximum vehicle/RV length per site."""
+
 
 # ── HTTP status code constants ─────────────────────────────────────────
 _HTTP_TOO_MANY_REQUESTS = 429
@@ -499,6 +551,10 @@ class BaseProvider(ABC):
 
     # ── class-level circuit breaker registry ───────────────────────────
     _circuit_breakers: ClassVar[dict[str, ProviderCircuitBreaker]] = {}
+    filter_capabilities: ClassVar[ProviderFilterCapabilities] = (
+        ProviderFilterCapabilities()
+    )
+    """Site-attribute monitor filters supported by this provider."""
 
     def __init__(self) -> None:
         """
@@ -774,8 +830,38 @@ class BaseProvider(ABC):
     @property
     def search_rec_area_statement(self) -> Insert:
         """
-        SQL statement to search recreation areas.
+        SQL statement to search recreation areas with aggregated child capabilities.
         """
+        agg_electric = (
+            func.coalesce(
+                func.max(case((Campground.has_electric.is_(True), 1), else_=0)), 0
+            )
+            == 1
+        )
+        agg_water = (
+            func.coalesce(
+                func.max(case((Campground.has_water.is_(True), 1), else_=0)), 0
+            )
+            == 1
+        )
+        agg_sewer = (
+            func.coalesce(
+                func.max(case((Campground.has_sewer.is_(True), 1), else_=0)), 0
+            )
+            == 1
+        )
+        agg_pets = (
+            func.coalesce(
+                func.max(case((Campground.pets_allowed.is_(True), 1), else_=0)), 0
+            )
+            == 1
+        )
+        agg_ada = (
+            func.coalesce(
+                func.max(case((Campground.ada_accessible.is_(True), 1), else_=0)), 0
+            )
+            == 1
+        )
         rec_areas = insert(Search).from_select(
             names=[
                 Search.id,
@@ -792,6 +878,12 @@ class BaseProvider(ABC):
                 Search.latitude,
                 Search.longitude,
                 Search.reservable,
+                Search.has_electric,
+                Search.has_water,
+                Search.has_sewer,
+                Search.pets_allowed,
+                Search.ada_accessible,
+                Search.max_rv_length,
             ],
             select=select(
                 (
@@ -812,9 +904,37 @@ class BaseProvider(ABC):
                 RecreationArea.latitude.label("latitude"),
                 RecreationArea.longitude.label("longitude"),
                 RecreationArea.reservable.label("reservable"),
-            ).where(
+                agg_electric.label("has_electric"),
+                agg_water.label("has_water"),
+                agg_sewer.label("has_sewer"),
+                agg_pets.label("pets_allowed"),
+                agg_ada.label("ada_accessible"),
+                func.max(Campground.max_rv_length).label("max_rv_length"),
+            )
+            .select_from(
+                RecreationArea.__table__.outerjoin(
+                    Campground,
+                    and_(
+                        Campground.recreation_area_id == RecreationArea.id,
+                        Campground.provider_id == RecreationArea.provider_id,
+                        Campground.enabled.is_(True),
+                        Campground.reservable.is_(True),
+                    ),
+                )
+            )
+            .where(
                 RecreationArea.provider_id == self.provider.id,
                 RecreationArea.enabled.is_(True),
+            )
+            .group_by(
+                RecreationArea.id,
+                RecreationArea.name,
+                RecreationArea.city,
+                RecreationArea.state,
+                RecreationArea.country,
+                RecreationArea.latitude,
+                RecreationArea.longitude,
+                RecreationArea.reservable,
             ),
         )
         return rec_areas
@@ -840,6 +960,13 @@ class BaseProvider(ABC):
                 Search.latitude,
                 Search.longitude,
                 Search.reservable,
+                Search.campsite_types,
+                Search.has_electric,
+                Search.has_water,
+                Search.has_sewer,
+                Search.pets_allowed,
+                Search.ada_accessible,
+                Search.max_rv_length,
             ],
             select=select(
                 (
@@ -861,6 +988,13 @@ class BaseProvider(ABC):
                 Campground.latitude.label("latitude"),
                 Campground.longitude.label("longitude"),
                 Campground.reservable.label("reservable"),
+                Campground.campsite_types.label("campsite_types"),
+                Campground.has_electric.label("has_electric"),
+                Campground.has_water.label("has_water"),
+                Campground.has_sewer.label("has_sewer"),
+                Campground.pets_allowed.label("pets_allowed"),
+                Campground.ada_accessible.label("ada_accessible"),
+                Campground.max_rv_length.label("max_rv_length"),
             )
             .select_from(
                 Campground.__table__.outerjoin(
@@ -897,10 +1031,66 @@ class BaseProvider(ABC):
         )
         await session.execute(self.search_rec_area_statement)
         await session.execute(self.search_campground_statement)
+        type_rows = await session.execute(
+            select(Campground.recreation_area_id, Campground.campsite_types).where(
+                Campground.provider_id == self.provider.id,
+                Campground.enabled.is_(True),
+                Campground.reservable.is_(True),
+                Campground.recreation_area_id.is_not(None),
+                Campground.campsite_types.is_not(None),
+            )
+        )
+        raw_rows = type_rows.all()
+        if inspect.iscoroutine(raw_rows):
+            raw_rows.close()
+            raw_rows = ()
+        area_types: dict[str, set[str]] = {}
+        for area_id, site_types in raw_rows:
+            if area_id and site_types:
+                area_types.setdefault(str(area_id), set()).update(site_types)
+        for area_id, combined_types in area_types.items():
+            await session.execute(
+                update(Search)
+                .where(
+                    Search.id == f"RecreationArea/{self.provider.id}/{area_id}/",
+                )
+                .values(campsite_types=sorted(combined_types))
+            )
         if commit:
             await session.commit()
         else:
             await session.flush()
+
+    async def _existing_campground_capabilities(
+        self, session: AsyncSession
+    ) -> dict[str, CampgroundCapabilities]:
+        """Load verified discovery capabilities keyed by campground ID before catalog upsert."""
+        rows = (
+            await session.execute(
+                select(
+                    Campground.id,
+                    Campground.campsite_types,
+                    Campground.has_electric,
+                    Campground.has_water,
+                    Campground.has_sewer,
+                    Campground.pets_allowed,
+                    Campground.ada_accessible,
+                    Campground.max_rv_length,
+                ).where(Campground.provider_id == self.provider.id)
+            )
+        ).all()
+        return {
+            row.id: CampgroundCapabilities(
+                campsite_types=list(row.campsite_types) if row.campsite_types else None,
+                has_electric=bool(row.has_electric),
+                has_water=bool(row.has_water),
+                has_sewer=bool(row.has_sewer),
+                pets_allowed=bool(row.pets_allowed),
+                ada_accessible=bool(row.ada_accessible),
+                max_rv_length=row.max_rv_length,
+            )
+            for row in rows
+        }
 
     @classmethod
     @abstractmethod
