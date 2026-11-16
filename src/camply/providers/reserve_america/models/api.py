@@ -163,7 +163,8 @@ class Site(BaseModel):
         )
         raw_equipment: list[str] = []
         for attr in self.details.attributes:
-            if "equipment" in attr.name.lower():
+            low_name = attr.name.lower()
+            if "equipment" in low_name and "length" not in low_name:
                 raw_equipment.extend(attr.value)
         permitted_equipment = normalize_equipment_labels(raw_equipment)
         if not permitted_equipment:

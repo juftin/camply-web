@@ -174,16 +174,14 @@ async def enrich_metadata(provider: "UseDirectProvider") -> None:
         destination: Destination, details: DestinationDetails
     ) -> None:
         nonlocal updated
-        if destination.entity_type != "recreation_area" or not details.vehicle_limits:
+        if destination.entity_type != "recreation_area":
             return
         parsed = [
             length
             for fact in details.vehicle_limits
             if (length := parse_vehicle_length_feet(fact.value)) is not None
         ]
-        if not parsed:
-            return
-        max_len = max(parsed)
+        max_len = max(parsed) if parsed else None
         async with db.get_session() as session:
             async with session.begin():
                 await session.execute(

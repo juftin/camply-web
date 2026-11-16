@@ -168,9 +168,11 @@ def normalize_country_code(raw: str | None, fallback: str) -> str:
 
 _METERS_TO_FEET = 3.28084
 _METRIC_LENGTH_RE = re.compile(
-    r"(\d+(?:\.\d+)?)\s*(?:meters?|metres?|m)\b", re.IGNORECASE
+    r"(?<![\w.])([+-]?\d+(?:\.\d+)?)\s*(?:meters?|metres?|m)\b", re.IGNORECASE
 )
-_FEET_LENGTH_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:feet|foot|ft|')\b", re.IGNORECASE)
+_FEET_LENGTH_RE = re.compile(
+    r"(?<![\w.])([+-]?\d+(?:\.\d+)?)\s*(?:(?:feet|foot|ft)\b|')", re.IGNORECASE
+)
 _PLAIN_NUMBER_RE = re.compile(r"^\s*([+-]?\d+(?:\.\d+)?)\s*$")
 _RV_EQUIPMENT_KEYWORDS: tuple[str, ...] = (
     "rv",

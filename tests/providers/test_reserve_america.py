@@ -740,6 +740,7 @@ def test_reserve_america_site_dto_extracts_equipment_and_vehicle_length() -> Non
                 "attributes": [
                     {"id": 12, "name": "Maximum Number of People", "value": ["6"]},
                     {"id": 100, "name": "Max Vehicle Length", "value": ["29.8 ft"]},
+                    {"id": 201, "name": "Max Equipment Length", "value": ["32"]},
                     {
                         "id": 200,
                         "name": "Equipment Permitted",
@@ -750,7 +751,7 @@ def test_reserve_america_site_dto_extracts_equipment_and_vehicle_length() -> Non
         )
     )
     dto = rv_site.to_dto("CO_1", {date(2030, 1, 1)}, "https://example.com")
-    assert dto.max_vehicle_length == 29
+    assert dto.max_vehicle_length == 32
     assert dto.permitted_equipment == ["RV", "Trailer"]
 
     zero_site = Site.model_validate(

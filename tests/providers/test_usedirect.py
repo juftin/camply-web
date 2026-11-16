@@ -323,6 +323,24 @@ async def test_usedirect_populate_fails_without_provider_record(
         await engine.dispose()
 
 
+async def _assert_usedirect_max_rv_length(
+    maker: async_sessionmaker[Any], provider_id: int, expected: int | None
+) -> None:
+    """Assert stored Campground and parent Search max_rv_length match expectations."""
+    async with maker() as session:
+        cg = await session.get(Campground, ("10", provider_id))
+        assert cg is not None and cg.max_rv_length == expected
+        area_search = (
+            await session.scalars(
+                select(Search).where(
+                    Search.provider_id == provider_id,
+                    Search.entity_type == "RecreationArea",
+                )
+            )
+        ).one()
+        assert area_search.max_rv_length == expected
+
+
 @pytest.mark.anyio
 async def test_usedirect_enrichment_and_catalog_preserve_capabilities(
     monkeypatch: pytest.MonkeyPatch,
@@ -347,6 +365,8 @@ async def test_usedirect_enrichment_and_catalog_preserve_capabilities(
 
     provider = ReserveCaliforniaProvider()
     await provider.async_client.aclose()
+
+    display_limit = True
 
     def respond(request: httpx2.Request) -> httpx2.Response:
         url = str(request.url)
@@ -384,9 +404,9 @@ async def test_usedirect_enrichment_and_catalog_preserve_capabilities(
                     "ParkHeadquartersHours": "8am-5pm",
                     "DayUseParkHours": None,
                     "BackCountyTrailCampOfficeHours": None,
-                    "TrailerMaxLength": "32 ft",
-                    "CamperMotorHomeMaxLength": "28",
-                    "DisplayMaxTrailerLengthOnWeb": True,
+                    "TrailerMaxLength": "32 ft" if display_limit else "0",
+                    "CamperMotorHomeMaxLength": "28" if display_limit else "0",
+                    "DisplayMaxTrailerLengthOnWeb": display_limit,
                 },
             )
         if url.endswith("/Place/1.jpg") or url.endswith("/Facility/10.jpg"):
@@ -406,26 +426,21 @@ async def test_usedirect_enrichment_and_catalog_preserve_capabilities(
             )
         await provider.sync_metadata()
         await provider.enrich_metadata()
-        async with maker() as session:
-            cg = await session.get(Campground, ("10", provider.provider.id))
-            assert cg is not None
-            assert cg.max_rv_length == 32
-            area_search = (
-                await session.scalars(
-                    select(Search).where(
-                        Search.provider_id == provider.provider.id,
-                        Search.entity_type == "RecreationArea",
-                    )
-                )
-            ).one()
-            assert area_search.max_rv_length == 32
+        await _assert_usedirect_max_rv_length(maker, provider.provider.id, 32)
 
         # A subsequent catalog refresh without re-enrichment retains max_rv_length
         await provider.sync_metadata()
-        async with maker() as session:
-            cg = await session.get(Campground, ("10", provider.provider.id))
-            assert cg is not None
-            assert cg.max_rv_length == 32
+        await _assert_usedirect_max_rv_length(maker, provider.provider.id, 32)
+
+        # When park enrichment hides or removes vehicle limits, stale max_rv_length is cleared
+        display_limit = False
+        async with maker.begin() as session:
+            park = await session.get(RecreationArea, ("1", provider.provider.id))
+            assert park is not None
+            park.details = None
+            park.details_attempted_at = None
+        await provider.enrich_metadata()
+        await _assert_usedirect_max_rv_length(maker, provider.provider.id, None)
     finally:
         await provider.async_client.aclose()
         await engine.dispose()

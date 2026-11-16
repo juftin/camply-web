@@ -247,11 +247,11 @@ def _stream_ridb_equipment(
 
 def _extract_ridb_facility_capabilities(
     zipped: zipfile.ZipFile,
-) -> dict[str, CampgroundCapabilities]:
+) -> dict[str, CampgroundCapabilities] | None:
     """Stream optional RIDB campsite, attribute, and equipment files with bounded memory."""
     namelist = set(zipped.namelist())
     if "Campsites_API_v1.json" not in namelist:
-        return {}
+        return None
     accumulators, campsite_to_facility = _stream_ridb_campsites(zipped)
     if campsite_to_facility and "CampsiteAttributes_API_v1.json" in namelist:
         _stream_ridb_attributes(zipped, accumulators, campsite_to_facility)

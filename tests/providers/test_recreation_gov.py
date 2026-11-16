@@ -320,13 +320,23 @@ async def test_recreation_gov_atomic_catalog_sync_and_enrichment_isolation(
         await engine.dispose()
 
 
+def _write_ridb_zip(archive: object, payloads: dict[str, object]) -> None:
+    """Write synthetic RIDB JSON members into a zip archive."""
+    import json
+    import zipfile
+    from pathlib import Path
+
+    assert isinstance(archive, Path)
+    with zipfile.ZipFile(archive, "w") as zf:
+        for name, data in payloads.items():
+            zf.writestr(name, json.dumps(data))
+
+
 @pytest.mark.anyio
 async def test_recreation_gov_ridb_zip_populates_discovery_capabilities(
     monkeypatch: pytest.MonkeyPatch, tmp_path: datetime.date | object
 ) -> None:
     """Stream RIDB campsite, attribute, and permitted-equipment files into Campground & Search."""
-    import json
-    import zipfile
     from pathlib import Path
 
     from sqlalchemy import select
@@ -336,7 +346,7 @@ async def test_recreation_gov_ridb_zip_populates_discovery_capabilities(
     assert isinstance(tmp_path, Path)
     engine, maker = await _setup_atomic_catalog_db(monkeypatch)
     archive = tmp_path / "ridb.zip"
-    payloads = {
+    payloads: dict[str, object] = {
         "RecAreas_API_v1.json": {
             "RECDATA": [
                 {
@@ -452,9 +462,7 @@ async def test_recreation_gov_ridb_zip_populates_discovery_capabilities(
             ]
         },
     }
-    with zipfile.ZipFile(archive, "w") as zf:
-        for name, data in payloads.items():
-            zf.writestr(name, json.dumps(data))
+    _write_ridb_zip(archive, payloads)
 
     provider = RecreationGovProvider()
     monkeypatch.setattr(
@@ -466,21 +474,24 @@ async def test_recreation_gov_ridb_zip_populates_discovery_capabilities(
             water_only = await session.get(Campground, ("cg-water-only", 1))
             full = await session.get(Campground, ("cg-full", 1))
             assert water_only is not None
-            assert water_only.has_water is True
-            assert water_only.has_sewer is True
-            assert water_only.has_electric is False
-            assert water_only.pets_allowed is True
-            assert water_only.ada_accessible is False
-            assert water_only.max_rv_length is None
-            assert water_only.campsite_types == ["TENT"]
-
+            assert (
+                water_only.has_water,
+                water_only.has_sewer,
+                water_only.has_electric,
+                water_only.pets_allowed,
+                water_only.ada_accessible,
+                water_only.max_rv_length,
+                water_only.campsite_types,
+            ) == (True, True, False, True, False, None, ["TENT"])
             assert full is not None
-            assert full.has_electric is True
-            assert full.has_water is True
-            assert full.has_sewer is False
-            assert full.ada_accessible is True
-            assert full.max_rv_length == 38
-            assert sorted(full.campsite_types or []) == ["RV", "TENT"]
+            assert (
+                full.has_electric,
+                full.has_water,
+                full.has_sewer,
+                full.ada_accessible,
+                full.max_rv_length,
+                sorted(full.campsite_types or []),
+            ) == (True, True, False, True, 38, ["RV", "TENT"])
 
             area_search = (
                 await session.scalars(
@@ -491,13 +502,32 @@ async def test_recreation_gov_ridb_zip_populates_discovery_capabilities(
                     )
                 )
             ).one()
-            assert area_search.has_electric is True
-            assert area_search.has_water is True
-            assert area_search.has_sewer is True
-            assert area_search.pets_allowed is True
-            assert area_search.ada_accessible is True
-            assert area_search.max_rv_length == 38
-            assert sorted(area_search.campsite_types or []) == ["RV", "TENT"]
+            assert (
+                area_search.has_electric,
+                area_search.has_water,
+                area_search.has_sewer,
+                area_search.pets_allowed,
+                area_search.ada_accessible,
+                area_search.max_rv_length,
+                sorted(area_search.campsite_types or []),
+            ) == (True, True, True, True, True, 38, ["RV", "TENT"])
+
+        # Re-sync with cg-full losing overnight sites clears stale capabilities
+        campsites_data = payloads["Campsites_API_v1.json"]
+        assert isinstance(campsites_data, dict)
+        campsites_data["RECDATA"] = campsites_data["RECDATA"][:2]
+        _write_ridb_zip(archive, payloads)
+        await provider.populate_database()
+        async with maker() as session:
+            cleared_full = await session.get(Campground, ("cg-full", 1))
+            assert cleared_full is not None
+            assert (
+                cleared_full.has_electric,
+                cleared_full.has_water,
+                cleared_full.ada_accessible,
+                cleared_full.max_rv_length,
+                cleared_full.campsite_types,
+            ) == (False, False, False, None, None)
     finally:
         await provider.async_client.aclose()
         await engine.dispose()

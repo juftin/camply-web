@@ -38,8 +38,8 @@ class RecDotGovCampgroundData(AddressPopulator):
     """
 
     RECDATA: list[RecDotGovCampground]
-    FACILITY_CAPABILITIES: dict[str, CampgroundCapabilities] = Field(
-        default_factory=dict, exclude=True
+    FACILITY_CAPABILITIES: dict[str, CampgroundCapabilities] | None = Field(
+        default=None, exclude=True
     )
 
     async def to_database(self, session: AsyncSession) -> None:
@@ -68,7 +68,13 @@ class RecDotGovCampgroundData(AddressPopulator):
                 city = address.City
                 state = address.AddressStateCode
                 country = address.AddressCountryCode
-            caps = self.FACILITY_CAPABILITIES.get(str(camp.FacilityID))
+            if self.FACILITY_CAPABILITIES is None:
+                caps_kwargs = {}
+            else:
+                caps = self.FACILITY_CAPABILITIES.get(
+                    str(camp.FacilityID), CampgroundCapabilities()
+                )
+                caps_kwargs = caps.as_columns()
             campground = Campground(
                 id=camp.FacilityID,
                 recreation_area_id=camp.ParentRecAreaID,
@@ -82,7 +88,7 @@ class RecDotGovCampgroundData(AddressPopulator):
                 latitude=camp.FacilityLatitude,
                 reservable=camp.Reservable,
                 enabled=camp.Enabled,
-                **(caps.as_columns() if caps is not None else {}),
+                **caps_kwargs,
             )
             if not camp.FacilityName:
                 continue

@@ -257,7 +257,7 @@ def _verify_current_features(
     cleared = client.patch(f"/api/scans/{scans[0]['id']}", json={"min_rv_length": None})
     assert cleared.is_success and cleared.json()["min_rv_length"] is None
     assert detail["results"][0]["campsite_name"] == "Synthetic Site"
-    assert detail["results"][0]["campsite_type"] == "TENT"
+    assert detail["results"][0]["campsite_type"] == "RV"
     for sent in deliveries:
         payload = json.loads(sent)
         assert payload["url_title"] == "View campsites"
