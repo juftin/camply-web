@@ -297,6 +297,7 @@ describe("AdminScans", () => {
       min_stay_length: 1,
       preferred_types: [],
       require_electric: false,
+      require_accessible: false,
       last_checked_at: null,
       found_count: 1,
       created_at: new Date().toISOString(),

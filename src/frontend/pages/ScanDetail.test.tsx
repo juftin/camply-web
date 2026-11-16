@@ -548,4 +548,26 @@ describe("Found campsites", () => {
     expect(within(coverage).getByText(/Closed Creek/)).toBeInTheDocument();
     expect(screen.getAllByText(/North Pine/).length).toBeGreaterThanOrEqual(1);
   });
+
+  it("displays min_rv_length, require_accessible badges, and site vehicle length", async () => {
+    vi.mocked(getScan).mockResolvedValue({
+      ...scan,
+      min_rv_length: 28,
+      require_accessible: true,
+      results: [
+        {
+          ...scan.results[0],
+          max_vehicle_length: 36,
+          permitted_equipment: ["RV", "Trailer"],
+        },
+      ],
+    });
+    open();
+    expect(await screen.findByText("· Min 28 ft")).toBeInTheDocument();
+    expect(screen.getByText("· ADA accessible")).toBeInTheDocument();
+    expect(screen.getByText("Min RV: 28 ft")).toBeInTheDocument();
+    expect(screen.getByText("ADA Accessible")).toBeInTheDocument();
+    expect(screen.getAllByText("Up to 36 ft").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("RV, Trailer").length).toBeGreaterThanOrEqual(1);
+  });
 });

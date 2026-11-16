@@ -69,7 +69,7 @@ Administrators review requests via `GET /api/admin/access-requests` (paginated, 
 ### 1. Search & Metadata (Public/Auth-Light)
 
 - **`GET /api/search?query=<term>`**: Full-text search for campgrounds and recreation areas (uses the `Search` FTS table).
-- **`GET /api/search/explore`**: Paginated search with totals and facets. Optional `west`, `south`, `east`, and `north` filter the full matching set before pagination and aggregation. Supply all four finite bounds or none; longitude is within [-180, 180], latitude within [-90, 90], south < north, and west ≠ east. West > east crosses the antimeridian. Viewport filtering excludes missing/invalid coordinates and lat/lon of 0/0; unbounded search retains unmappable places.
+- **`GET /api/search/explore`**: Paginated search with totals and facets. Supports `q`, `state`, `provider_id`, `entity_type`, `campsite_types`, `has_electric`, `pets_allowed`, `ada_accessible`, `min_rv_length`, proximity bounds (`lat`/`lng`/`radius_miles`), and optional viewport (`west`, `south`, `east`, `north`) filtering the full matching set before pagination and aggregation. Supply all four finite bounds or none; longitude is within [-180, 180], latitude within [-90, 90], south < north, and west ≠ east. West > east crosses the antimeridian. Viewport filtering excludes missing/invalid coordinates and lat/lon of 0/0; unbounded search retains unmappable places.
 - **`GET /api/providers`**: List supported providers and their scanning capabilities.
 - **`GET /api/provider/{id}`**: Get a single provider by ID.
 - **`GET /api/campground/{provider}/{id}`**: Get a single campground.
@@ -136,6 +136,8 @@ class ScanCreateRequest(BaseModel):
     min_stay_length: int = Field(default=1, ge=1)
     preferred_types: list[str] = Field(default_factory=list)
     require_electric: bool = Field(default=False)
+    require_accessible: bool = Field(default=False)
+    min_rv_length: int | None = Field(default=None, ge=1, le=200)
 ```
 
 `ScanUpdateRequest` accepts the same fields as optional plus `is_active: bool | None` and `row_version: int | None` for optimistic concurrency control.
@@ -170,6 +172,8 @@ class ScanResponse(BaseModel):
     min_stay_length: int
     preferred_types: list[str]
     require_electric: bool
+    require_accessible: bool = False
+    min_rv_length: int | None = None
     last_checked_at: datetime | None
     found_count: int
     created_at: datetime
@@ -199,10 +203,12 @@ class ScanResultItem(BaseModel):
     campsite_type: str | None
     is_electric: bool | None
     is_accessible: bool | None
+    permitted_equipment: list[str] = Field(default_factory=list)
+    max_vehicle_length: int | None = None
     booking_url: str
 ```
 
-User scan results and `found_count` apply the saved site preferences and minimum consecutive stay. Dates represent available nights in qualifying blocks; check-out is the day after the last night. Booking links are derived from the provider's campground URL without making a provider request. Legacy snapshots have an empty name and unknown attributes until refreshed. Admin shared-target views remain unfiltered.
+User scan results and `found_count` apply the saved site preferences (`preferred_types`, `require_electric`, `require_accessible`, fail-closed `min_rv_length`, and `allowed_weekdays`) and minimum consecutive stay. Dates represent available nights in qualifying blocks; check-out is the day after the last night. Booking links are derived from the provider's campground URL without making a provider request. Legacy snapshots have an empty name and unknown attributes until refreshed. Admin shared-target views remain unfiltered.
 
 Scan create/PATCH accept `allowed_weekdays`, a nonempty list of strict integers from 0 (Monday) to 6 (Sunday), normalized by sorting and removing duplicates. Omitted creation values allow all seven; omitted PATCH values preserve the saved preference. Explicit all-seven selection resets to unrestricted, while null, empty lists, booleans, strings, fractions and out-of-range values are invalid. List/detail/create/update responses expose all seven for unrestricted scans, including existing rows. The field belongs to each subscription; shared target identity and duplicate subscription rules stay unchanged.
 

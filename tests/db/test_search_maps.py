@@ -237,3 +237,50 @@ async def test_lat_lon_zero_filtering(map_session: AsyncSession) -> None:
     assert co_summary.total == 6
     assert co_summary.mappable_total == 3
     assert co_summary.unmappable_total == 3
+
+
+@pytest.mark.asyncio
+async def test_map_ada_accessible_filter(map_session: AsyncSession) -> None:
+    """Map summary, features, and members enforce ada_accessible parity."""
+    map_session.add_all(
+        [
+            Search(
+                id="ada_camp",
+                entity_type="Campground",
+                provider_id=1,
+                provider_name="Fixture",
+                campground_id="ada-1",
+                campground_name="Accessible Pines",
+                recreation_area_id="area",
+                recreation_area_name="Fixture Park",
+                latitude=10.0,
+                longitude=10.0,
+                ada_accessible=True,
+            ),
+            Search(
+                id="non_ada_camp",
+                entity_type="Campground",
+                provider_id=1,
+                provider_name="Fixture",
+                campground_id="non-ada-1",
+                campground_name="Standard Pines",
+                recreation_area_id="area",
+                recreation_area_name="Fixture Park",
+                latitude=10.0,
+                longitude=10.0,
+                ada_accessible=False,
+            ),
+        ]
+    )
+    await map_session.commit()
+    summary = await map_summary(map_session, filters={"ada_accessible": True})
+    assert summary.total == 1
+    assert summary.mappable_total == 1
+    bounds = Bounds(west=9, south=9, east=11, north=11)
+    features = await map_features(
+        map_session, bounds=bounds, zoom=19, filters={"ada_accessible": True}
+    )
+    assert len(features.cells) == 1
+    assert features.cells[0].count == 1
+    assert features.cells[0].item is not None
+    assert features.cells[0].item.id == "ada_camp"

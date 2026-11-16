@@ -116,10 +116,46 @@ class TestCreateScan:
         assert data["min_stay_length"] == 2
         assert data["preferred_types"] == ["TENT"]
         assert data["require_electric"] is True
+        assert data["min_rv_length"] is None
         assert data["is_active"] is True
         assert data["found_count"] == 0
         assert "id" in data
         assert "created_at" in data
+
+    @pytest.mark.parametrize("bad_length", [0, -5, 201])
+    def test_create_scan_rejects_out_of_range_rv_length(
+        self, test_client: TestClient, bad_length: int
+    ) -> None:
+        cg_id = _next()
+        _seed_campground(cg_id)
+        resp = test_client.post(
+            API_SCANS,
+            json={
+                "provider_id": 1,
+                "campground_id": cg_id,
+                "start_date": "2027-07-01",
+                "end_date": "2027-07-05",
+                "min_rv_length": bad_length,
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_create_scan_with_valid_min_rv_length(
+        self, test_client: TestClient
+    ) -> None:
+        cg_id = _next()
+        _seed_campground(cg_id)
+        data = _create_scan(
+            test_client, cg_id, min_rv_length=28, require_accessible=True
+        )
+        assert data["min_rv_length"] == 28
+        assert data["require_accessible"] is True
+        patched = test_client.patch(
+            f"{API_SCANS}/{data['id']}", json={"require_accessible": False}
+        )
+        assert patched.status_code == 200
+        assert patched.json()["require_accessible"] is False
+        assert patched.json()["min_rv_length"] == 28
 
     def test_create_scan_duplicate(self, test_client: TestClient) -> None:
         cg_id = _next()

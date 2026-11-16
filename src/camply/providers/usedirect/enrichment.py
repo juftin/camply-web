@@ -14,7 +14,10 @@ from functools import partial
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
+from sqlalchemy import update
 
+from camply.db.config import db
+from camply.db.models import Campground
 from camply.providers.details import (
     DestinationDetails,
     DestinationFact,
@@ -23,6 +26,7 @@ from camply.providers.details import (
     public_url,
 )
 from camply.providers.enrichment import Destination, refresh_destinations
+from camply.providers.utils import parse_vehicle_length_feet
 
 if TYPE_CHECKING:
     from camply.providers.usedirect.provider import UseDirectProvider
@@ -164,6 +168,40 @@ async def fetch_details(
 
 async def enrich_metadata(provider: "UseDirectProvider") -> None:
     """Refresh a bounded stale destination batch independently of catalog ingestion."""
+    updated = False
+
+    async def apply_park_limits(
+        destination: Destination, details: DestinationDetails
+    ) -> None:
+        nonlocal updated
+        if destination.entity_type != "recreation_area":
+            return
+        parsed = [
+            length
+            for fact in details.vehicle_limits
+            if (length := parse_vehicle_length_feet(fact.value)) is not None
+        ]
+        max_len = max(parsed) if parsed else None
+        async with db.get_session() as session:
+            async with session.begin():
+                await session.execute(
+                    update(Campground)
+                    .where(
+                        Campground.provider_id == provider.provider.id,
+                        Campground.recreation_area_id == destination.id,
+                        Campground.enabled.is_(True),
+                        Campground.reservable.is_(True),
+                    )
+                    .values(max_rv_length=max_len)
+                )
+        updated = True
+
     await refresh_destinations(
-        provider_id=provider.provider.id, fetch=partial(fetch_details, provider)
+        provider_id=provider.provider.id,
+        fetch=partial(fetch_details, provider),
+        on_details=apply_park_limits,
     )
+    if updated:
+        async with db.get_session() as session:
+            async with session.begin():
+                await provider.populate_search_table(session, commit=False)

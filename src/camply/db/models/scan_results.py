@@ -7,7 +7,7 @@ import uuid
 from functools import partial
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, ForeignKey, String, func
+from sqlalchemy import JSON, CheckConstraint, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -41,6 +41,12 @@ class ScanResult(Base):
     """Electric hookup availability, or unknown for legacy snapshots."""
     is_accessible: Mapped[bool | None] = mapped_column()
     """Provider-reported accessibility, or unknown for legacy snapshots."""
+    permitted_equipment: Mapped[list[str] | None] = mapped_column(
+        JSONB().with_variant(JSON(), "sqlite"), nullable=True
+    )
+    """Normalized permitted equipment labels, or unknown for legacy snapshots."""
+    max_vehicle_length: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    """Maximum compatible RV/trailer length in whole feet when explicitly known."""
     available_dates: Mapped[list[str]] = mapped_column(
         JSONB().with_variant(JSON(), "sqlite")
     )
@@ -48,6 +54,13 @@ class ScanResult(Base):
         default=partial(datetime.datetime.now, tz=datetime.timezone.utc),
         server_default=func.CURRENT_TIMESTAMP(),
         index=True,
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "max_vehicle_length IS NULL OR max_vehicle_length > 0",
+            name="ck_scan_result_max_vehicle_length",
+        ),
     )
 
     target: Mapped["UniqueTarget"] = relationship(

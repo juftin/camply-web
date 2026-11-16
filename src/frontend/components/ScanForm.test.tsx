@@ -161,14 +161,18 @@ describe("ScanForm editing", () => {
       formatDisplayDate(savedScan.end_date),
     );
     expect(screen.getByLabelText("Minimum Stay (nights)")).toHaveValue(2);
-    expect(screen.getByRole("switch")).toBeChecked();
+    expect(
+      screen.getByRole("switch", { name: "Electric Hookup Required" }),
+    ).toBeChecked();
 
     await selectDate(user, "Check-out", "2027-07-10");
     fireEvent.change(screen.getByLabelText("Minimum Stay (nights)"), {
       target: { value: "3" },
     });
     await user.click(screen.getByText("Tent", { selector: "div" }));
-    await user.click(screen.getByRole("switch"));
+    await user.click(
+      screen.getByRole("switch", { name: "Electric Hookup Required" }),
+    );
     await user.click(screen.getByRole("button", { name: "Save Changes" }));
     await waitFor(() =>
       expect(updateScan).toHaveBeenCalledWith(savedScan.id, {
@@ -179,6 +183,8 @@ describe("ScanForm editing", () => {
         min_stay_length: 3,
         preferred_types: ["RV", "CUSTOM TYPE", "TENT"],
         require_electric: false,
+        require_accessible: false,
+        min_rv_length: null,
         allowed_weekdays: [0, 1, 2, 3, 4, 5, 6],
       }),
     );
@@ -658,6 +664,45 @@ describe("ScanForm nights of the week", () => {
           campground_id: "new-cg",
           provider_id: 1,
           row_version: 2,
+        }),
+      ),
+    );
+  });
+
+  it("supports optional min_rv_length (1..200, clear to null, validation) and require_accessible", async () => {
+    const user = userEvent.setup();
+    renderForm({
+      ...savedScan,
+      min_rv_length: 32,
+      require_accessible: true,
+    });
+    await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+    const lengthInput = screen.getByLabelText(
+      "Minimum RV / Trailer Length (ft)",
+    );
+    const adaSwitch = screen.getByRole("switch", {
+      name: "ADA Accessible Required",
+    });
+    expect(lengthInput).toHaveValue(32);
+    expect(adaSwitch).toBeChecked();
+
+    // Out-of-bounds value fails client validation before calling updateScan
+    await user.clear(lengthInput);
+    await user.type(lengthInput, "201");
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    expect(await screen.findByText(/200 ft/i)).toBeInTheDocument();
+    expect(updateScan).not.toHaveBeenCalled();
+
+    // Clearing blank sends min_rv_length: null; toggling ADA switch sets false
+    await user.clear(lengthInput);
+    await user.click(adaSwitch);
+    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await waitFor(() =>
+      expect(updateScan).toHaveBeenCalledWith(
+        savedScan.id,
+        expect.objectContaining({
+          min_rv_length: null,
+          require_accessible: false,
         }),
       ),
     );

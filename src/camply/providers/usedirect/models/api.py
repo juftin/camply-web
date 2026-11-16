@@ -12,6 +12,11 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from camply.providers.dto import CampsiteDTO, CampsiteType
+from camply.providers.utils import (
+    is_rv_equipment_name,
+    normalize_equipment_labels,
+    parse_vehicle_length_feet,
+)
 
 _OVERNIGHT_USE_TYPE = 4
 
@@ -112,12 +117,10 @@ class AvailabilityUnit(BaseModel):
             ),
             "",
         )
-        equipment = sorted(
-            {
-                s.SleepingUnitName
-                for s in filters.NightlySleepingUnits
-                if s.SleepingUnitId in (self.SleepingUnitIds or [])
-            }
+        equipment = normalize_equipment_labels(
+            s.SleepingUnitName
+            for s in filters.NightlySleepingUnits
+            if s.SleepingUnitId in (self.SleepingUnitIds or [])
         )
         group_lower = group.lower()
         compact_group = group_lower.replace("-", "").replace(" ", "")
@@ -135,6 +138,12 @@ class AvailabilityUnit(BaseModel):
             campsite_type = CampsiteType.TENT
         else:
             campsite_type = CampsiteType.OTHER
+        max_vehicle_length = (
+            None
+            if campsite_type == CampsiteType.TENT
+            and not any(is_rv_equipment_name(name) for name in equipment)
+            else parse_vehicle_length_feet(self.VehicleLength)
+        )
         return CampsiteDTO(
             campsite_id=str(self.UnitId),
             campsite_name=self.Name or self.ShortName or str(self.UnitId),
@@ -153,6 +162,8 @@ class AvailabilityUnit(BaseModel):
                 )
             ),
             is_accessible=self.IsAda is True,
+            permitted_equipment=equipment,
+            max_vehicle_length=max_vehicle_length,
             metadata={
                 "unit_category_id": self.UnitCategoryId,
                 "unit_type_group_id": self.UnitTypeGroupId,

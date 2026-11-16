@@ -372,3 +372,48 @@ def test_area_scan_weekday_filtering_and_single_row_version_increment(
     assert edited.json()["allowed_weekdays"] == [4, 5, 6]
     assert edited.json()["eligible_campground_count"] == len(members)
     assert test_client.delete(f"/api/scans/{scan['id']}").status_code == 204
+
+
+def test_area_scan_supports_require_accessible_and_min_rv_length(
+    test_client: TestClient,
+) -> None:
+    """Area scans persist and edit require_accessible + min_rv_length independently."""
+    import uuid
+
+    from camply.db.models import RecreationArea
+
+    uid = uuid.uuid4().hex[:8]
+    area = RecreationArea(id=f"area-ada-{uid}", provider_id=1, name="Accessible Park")
+    member = Campground(
+        id=f"ada-cg-{uid}",
+        provider_id=1,
+        recreation_area_id=area.id,
+        name="Accessible Loop",
+        enabled=True,
+        reservable=True,
+    )
+    seed_data([area, member])
+    created = test_client.post(
+        "/api/scans",
+        json={
+            "provider_id": 1,
+            "destination_type": "recreation_area",
+            "recreation_area_id": area.id,
+            "coverage_mode": "all",
+            "start_date": "2099-07-01",
+            "end_date": "2099-07-05",
+            "min_rv_length": 26,
+            "require_accessible": True,
+        },
+    )
+    assert created.status_code == 201, created.text
+    scan = created.json()
+    assert scan["min_rv_length"] == 26
+    assert scan["require_accessible"] is True
+    updated = test_client.patch(
+        f"/api/scans/{scan['id']}", json={"require_accessible": False}
+    )
+    assert updated.status_code == 200
+    assert updated.json()["require_accessible"] is False
+    assert updated.json()["min_rv_length"] == 26
+    assert test_client.delete(f"/api/scans/{scan['id']}").status_code == 204

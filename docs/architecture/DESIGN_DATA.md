@@ -56,6 +56,7 @@ Defines the supported booking services.
 - `recreation_area_id`: `String` (Foreign Key -> `recreation_areas.id`)
 - `name`: `String`
 - `location`: `Point`
+- **Discovery Capabilities**: `campsite_types` (`Array[String] | null`), `has_electric`, `has_water`, `has_sewer`, `pets_allowed`, `ada_accessible` (`Boolean`), `max_rv_length` (`Integer | null`, `> 0`) — copied into `search` and aggregated onto `RecreationArea` search rows.
 
 ### 4. `search` Table (Existing - Flattened Search View)
 
@@ -118,6 +119,8 @@ Stores individual site metadata. Populated during scans or full metadata syncs.
   - `min_stay_length`: `Integer`
   - `preferred_types`: `Array[String]`
   - `require_electric`: `Boolean`
+  - `require_accessible`: `Boolean` (`False` by default; fail-closed against `ScanResult.is_accessible`)
+  - `min_rv_length`: `Integer | null` (`1..200` feet; fail-closed against `ScanResult.max_vehicle_length`)
   - `allowed_weekdays`: Nullable `JSON` integer array, Monday=0 through Sunday=6. Null permits all nights; restricted values are sorted and unique. Existing rows remain unrestricted. This is a subscription preference and does not participate in shared target identity or alter cached provider observations.
 
 ### 8a. `scan_targets` Table (Area Coverage & Round Outcomes)
@@ -149,6 +152,8 @@ Links a `user_scans` subscription to shared `unique_targets` rows (many-to-one p
 - `campsite_type`: `String | null` (Standardized type)
 - `is_electric`: `Boolean | null` (Unknown for legacy snapshots)
 - `is_accessible`: `Boolean | null` (Unknown for legacy snapshots)
+- `permitted_equipment`: `JSONB / JSON | null` (Normalized equipment labels)
+- `max_vehicle_length`: `Integer | null` (Conservatively floored positive feet for RV/trailer-capable sites)
 - `available_dates`: `Array[Date]`
 - `found_at`: `Timestamp`
 

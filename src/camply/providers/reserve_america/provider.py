@@ -22,7 +22,7 @@ from sqlalchemy import update
 from camply.db.config import db
 from camply.db.data.providers import ReserveAmerica
 from camply.db.models import Campground, Provider
-from camply.providers.base import BaseProvider
+from camply.providers.base import BaseProvider, CampgroundCapabilities
 from camply.providers.dto import (
     CampgroundSearchResult,
     CampsiteDTO,
@@ -282,8 +282,10 @@ class ReserveAmericaProvider(BaseProvider):
                     .where(Campground.provider_id == self.provider.id)
                     .values(enabled=False, reservable=False)
                 )
+                existing_caps = await self._existing_campground_capabilities(session)
                 for key, facility in facilities.items():
                     d = facility.details
+                    caps = existing_caps.get(key, CampgroundCapabilities())
                     await session.merge(
                         Campground(
                             id=key,
@@ -298,6 +300,7 @@ class ReserveAmericaProvider(BaseProvider):
                             else None,
                             enabled=True,
                             reservable=True,
+                            **caps.as_columns(),
                         )
                     )
                 await session.flush()

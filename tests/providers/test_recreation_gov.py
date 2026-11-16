@@ -318,3 +318,304 @@ async def test_recreation_gov_atomic_catalog_sync_and_enrichment_isolation(
     finally:
         await provider.async_client.aclose()
         await engine.dispose()
+
+
+def _write_ridb_zip(archive: object, payloads: dict[str, object]) -> None:
+    """Write synthetic RIDB JSON members into a zip archive."""
+    import json
+    import zipfile
+    from pathlib import Path
+
+    assert isinstance(archive, Path)
+    with zipfile.ZipFile(archive, "w") as zf:
+        for name, data in payloads.items():
+            zf.writestr(name, json.dumps(data))
+
+
+@pytest.mark.anyio
+async def test_recreation_gov_ridb_zip_populates_discovery_capabilities(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: datetime.date | object
+) -> None:
+    """Stream RIDB campsite, attribute, and permitted-equipment files into Campground & Search."""
+    from pathlib import Path
+
+    from sqlalchemy import select
+
+    from camply.db.models import Campground, Search
+
+    assert isinstance(tmp_path, Path)
+    engine, maker = await _setup_atomic_catalog_db(monkeypatch)
+    archive = tmp_path / "ridb.zip"
+    payloads: dict[str, object] = {
+        "RecAreas_API_v1.json": {
+            "RECDATA": [
+                {
+                    "RecAreaID": "area-1",
+                    "OrgRecAreaID": None,
+                    "ParentOrgID": None,
+                    "RecAreaName": "Synthetic Alpine Park",
+                    "RecAreaDescription": "Park",
+                    "RecAreaLongitude": -119.5,
+                    "RecAreaLatitude": 37.7,
+                    "Reservable": True,
+                    "Enabled": True,
+                    "LastUpdatedDate": "2027-07-01",
+                }
+            ]
+        },
+        "RecAreaAddresses_API_v1.json": {"RECDATA": []},
+        "Facilities_API_v1.json": {
+            "RECDATA": [
+                {
+                    "FacilityID": "cg-water-only",
+                    "ParentRecAreaID": "area-1",
+                    "FacilityName": "Water Only Tent CG",
+                    "FacilityDescription": "Tent sites with water",
+                    "FacilityTypeDescription": "Campground",
+                    "FacilityLongitude": -119.5,
+                    "FacilityLatitude": 37.7,
+                    "Reservable": True,
+                    "Enabled": True,
+                },
+                {
+                    "FacilityID": "cg-full",
+                    "ParentRecAreaID": "area-1",
+                    "FacilityName": "Full Hookup RV CG",
+                    "FacilityDescription": "RV sites",
+                    "FacilityTypeDescription": "Campground",
+                    "FacilityLongitude": -119.4,
+                    "FacilityLatitude": 37.8,
+                    "Reservable": True,
+                    "Enabled": True,
+                },
+            ]
+        },
+        "FacilityAddresses_API_v1.json": {"RECDATA": []},
+        "Campsites_API_v1.json": {
+            "RECDATA": [
+                {
+                    "CampsiteID": 1001,
+                    "FacilityID": "cg-water-only",
+                    "CampsiteName": "T01",
+                    "CampsiteType": "TENT ONLY NONELECTRIC",
+                    "TypeOfUse": "Overnight",
+                    "CampsiteAccessible": False,
+                },
+                {
+                    "CampsiteID": 1002,
+                    "FacilityID": "cg-water-only",
+                    "CampsiteName": "DAY01",
+                    "CampsiteType": "DAY USE PICNIC",
+                    "TypeOfUse": "Day",
+                    "CampsiteAccessible": True,
+                },
+                {
+                    "CampsiteID": 2001,
+                    "FacilityID": "cg-full",
+                    "CampsiteName": "RV01",
+                    "CampsiteType": "RV ELECTRIC",
+                    "TypeOfUse": "Overnight",
+                    "CampsiteAccessible": True,
+                },
+            ]
+        },
+        "CampsiteAttributes_API_v1.json": {
+            "RECDATA": [
+                {
+                    "EntityID": 1001,
+                    "AttributeName": "Water Hookup",
+                    "AttributeValue": "Yes",
+                },
+                {
+                    "EntityID": 1001,
+                    "AttributeName": "Sewer Hookup",
+                    "AttributeValue": "Yes",
+                },
+                {
+                    "EntityID": 1001,
+                    "AttributeName": "Electricity Hookup",
+                    "AttributeValue": "No",
+                },
+                {
+                    "EntityID": 1001,
+                    "AttributeName": "Pets Allowed",
+                    "AttributeValue": "Domestic",
+                },
+                {
+                    "EntityID": 2001,
+                    "AttributeName": "Water Hookup",
+                    "AttributeValue": "Yes",
+                },
+                {
+                    "EntityID": 2001,
+                    "AttributeName": "Electricity Hookup",
+                    "AttributeValue": "50 Amp",
+                },
+            ]
+        },
+        "PermittedEquipment_API_v1.json": {
+            "RECDATA": [
+                {"CampsiteID": 1001, "EquipmentName": "Tent", "MaxLength": 14.0},
+                {"CampsiteID": 2001, "EquipmentName": "RV", "MaxLength": 38.9},
+                {"CampsiteID": 2001, "EquipmentName": "Trailer", "MaxLength": 32.0},
+                {"CampsiteID": 2001, "EquipmentName": "Tent", "MaxLength": 12.0},
+            ]
+        },
+    }
+    _write_ridb_zip(archive, payloads)
+
+    provider = RecreationGovProvider()
+    monkeypatch.setattr(
+        provider, "download_offline_data", AsyncMock(return_value=archive)
+    )
+    try:
+        await provider.populate_database()
+        async with maker() as session:
+            water_only = await session.get(Campground, ("cg-water-only", 1))
+            full = await session.get(Campground, ("cg-full", 1))
+            assert water_only is not None
+            assert (
+                water_only.has_water,
+                water_only.has_sewer,
+                water_only.has_electric,
+                water_only.pets_allowed,
+                water_only.ada_accessible,
+                water_only.max_rv_length,
+                water_only.campsite_types,
+            ) == (True, True, False, True, False, None, ["TENT"])
+            assert full is not None
+            assert (
+                full.has_electric,
+                full.has_water,
+                full.has_sewer,
+                full.ada_accessible,
+                full.max_rv_length,
+                sorted(full.campsite_types or []),
+            ) == (True, True, False, True, 38, ["RV", "TENT"])
+
+            area_search = (
+                await session.scalars(
+                    select(Search).where(
+                        Search.provider_id == 1,
+                        Search.entity_type == "RecreationArea",
+                        Search.recreation_area_id == "area-1",
+                    )
+                )
+            ).one()
+            assert (
+                area_search.has_electric,
+                area_search.has_water,
+                area_search.has_sewer,
+                area_search.pets_allowed,
+                area_search.ada_accessible,
+                area_search.max_rv_length,
+                sorted(area_search.campsite_types or []),
+            ) == (True, True, True, True, True, 38, ["RV", "TENT"])
+
+        # Re-sync with cg-full losing overnight sites clears stale capabilities
+        campsites_data = payloads["Campsites_API_v1.json"]
+        assert isinstance(campsites_data, dict)
+        campsites_data["RECDATA"] = campsites_data["RECDATA"][:2]
+        _write_ridb_zip(archive, payloads)
+        await provider.populate_database()
+        async with maker() as session:
+            cleared_full = await session.get(Campground, ("cg-full", 1))
+            assert cleared_full is not None
+            assert (
+                cleared_full.has_electric,
+                cleared_full.has_water,
+                cleared_full.ada_accessible,
+                cleared_full.max_rv_length,
+                cleared_full.campsite_types,
+            ) == (False, False, False, None, None)
+    finally:
+        await provider.async_client.aclose()
+        await engine.dispose()
+
+
+def test_recreation_gov_site_dto_extracts_equipment_and_vehicle_length() -> None:
+    """Recreation.gov site DTO normalizes permitted_equipment and floors RV/trailer length only."""
+    from types import SimpleNamespace
+
+    from camply.providers.recreation_gov.models.api import (
+        RecDotGovAttribute,
+        RecDotGovCampsite,
+        RecDotGovEquipment,
+    )
+
+    provider = RecreationGovProvider()
+    rv_meta = RecDotGovCampsite(
+        campsite_id=101,
+        name="Site 101",
+        type="RV ELECTRIC",
+        accessible=True,
+        permitted_equipment=[
+            RecDotGovEquipment(equipment_name="RV", max_length=34.7),
+            RecDotGovEquipment(equipment_name="Trailer", max_length=28.0),
+            RecDotGovEquipment(equipment_name="Tent", max_length=20.0),
+        ],
+    )
+    site_stub = SimpleNamespace(
+        site="Site 101",
+        campsite_type="RV ELECTRIC",
+        max_num_people=6,
+        loop="Loop A",
+        type_of_use="Overnight",
+    )
+    dto = provider._create_campsite_dto(
+        campsite_id=101,
+        site_data=site_stub,
+        meta_site=rv_meta,
+        available_dates=[datetime.date(2030, 7, 1)],
+    )
+    assert dto.permitted_equipment == ["RV", "Tent", "Trailer"]
+    assert dto.max_vehicle_length == 34
+
+    tent_meta = RecDotGovCampsite(
+        campsite_id=102,
+        name="Site 102",
+        type="TENT ONLY NONELECTRIC",
+        permitted_equipment=[
+            RecDotGovEquipment(equipment_name="Tent", max_length=16.0)
+        ],
+        attributes=[
+            RecDotGovAttribute(
+                attribute_id=1, attribute_name="Driveway Length", attribute_value="18"
+            )
+        ],
+    )
+    tent_dto = provider._create_campsite_dto(
+        campsite_id=102,
+        site_data=SimpleNamespace(
+            site="Site 102",
+            campsite_type="TENT ONLY NONELECTRIC",
+            max_num_people=4,
+            loop="Loop B",
+            type_of_use="Overnight",
+        ),
+        meta_site=tent_meta,
+        available_dates=[datetime.date(2030, 7, 1)],
+    )
+    assert tent_dto.permitted_equipment == ["Tent"]
+    assert tent_dto.max_vehicle_length is None
+
+    zero_meta = RecDotGovCampsite(
+        campsite_id=103,
+        name="Site 103",
+        type="RV NONELECTRIC",
+        permitted_equipment=[RecDotGovEquipment(equipment_name="RV", max_length=0.0)],
+    )
+    zero_dto = provider._create_campsite_dto(
+        campsite_id=103,
+        site_data=SimpleNamespace(
+            site="Site 103",
+            campsite_type="RV NONELECTRIC",
+            max_num_people=6,
+            loop="Loop C",
+            type_of_use="Overnight",
+        ),
+        meta_site=zero_meta,
+        available_dates=[datetime.date(2030, 7, 1)],
+    )
+    assert zero_dto.permitted_equipment == ["RV"]
+    assert zero_dto.max_vehicle_length is None

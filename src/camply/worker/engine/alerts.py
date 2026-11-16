@@ -24,8 +24,10 @@ def matching_opening(
     )
     if not matches_scan_filters(
         dates,
-        campsite_type=payload.metadata["campsite_type"],
-        is_electric=payload.metadata["is_electric"],
+        campsite_type=payload.metadata.get("campsite_type"),
+        is_electric=payload.metadata.get("is_electric"),
+        is_accessible=payload.metadata.get("is_accessible"),
+        max_vehicle_length=payload.metadata.get("max_vehicle_length"),
         scan=scan,
     ):
         return None

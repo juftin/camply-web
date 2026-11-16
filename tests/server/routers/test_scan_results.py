@@ -266,3 +266,78 @@ def test_area_scan_attributed_results_and_unavailable_metadata(
     )
     assert disabled_member["campground_name"] == "Beta Basin"
     assert disabled_member["eligible"] is False
+
+
+def test_scan_results_filter_and_serialize_equipment_capabilities(
+    test_client: TestClient,
+) -> None:
+    """Scan results enforce min_rv_length fail-closed and return permitted_equipment + max_vehicle_length."""
+    from tests.server import conftest
+
+    cg_id = f"cg-eq-{uuid.uuid4().hex[:8]}"
+
+    async def seed_scan_and_sites() -> str:
+        async with conftest.maker() as session:
+            session.add(Campground(id=cg_id, provider_id=1, name="Equipment Camp"))
+            await session.commit()
+
+        created = test_client.post(
+            "/api/scans",
+            json={
+                "provider_id": 1,
+                "campground_id": cg_id,
+                "start_date": "2027-07-01",
+                "end_date": "2027-07-05",
+                "min_stay_length": 1,
+                "min_rv_length": 28,
+            },
+        ).json()
+        scan_uuid = uuid.UUID(created["id"])
+        async with conftest.maker() as session:
+            db_scan = await session.get(UserScan, scan_uuid)
+            assert db_scan is not None
+            session.add_all(
+                [
+                    ScanResult(
+                        target_id=db_scan.target_id,
+                        campsite_id="fit",
+                        campsite_name="Site Fit",
+                        campsite_type="RV",
+                        is_electric=True,
+                        permitted_equipment=["RV", "Trailer"],
+                        max_vehicle_length=35,
+                        available_dates=["2027-07-01", "2027-07-02"],
+                    ),
+                    ScanResult(
+                        target_id=db_scan.target_id,
+                        campsite_id="short",
+                        campsite_name="Site Short",
+                        campsite_type="RV",
+                        permitted_equipment=["RV"],
+                        max_vehicle_length=24,
+                        available_dates=["2027-07-01", "2027-07-02"],
+                    ),
+                    ScanResult(
+                        target_id=db_scan.target_id,
+                        campsite_id="unknown",
+                        campsite_name="Site Unknown",
+                        campsite_type="TENT",
+                        available_dates=["2027-07-01", "2027-07-02"],
+                    ),
+                ]
+            )
+            await session.commit()
+        return str(created["id"])
+
+    scan_id = asyncio.run(seed_scan_and_sites())
+    detail = test_client.get(f"/api/scans/{scan_id}").json()
+    assert detail["found_count"] == 1
+    assert detail["results"][0]["campsite_id"] == "fit"
+    assert detail["results"][0]["permitted_equipment"] == ["RV", "Trailer"]
+    assert detail["results"][0]["max_vehicle_length"] == 35
+
+    cleared = test_client.patch(
+        f"/api/scans/{scan_id}", json={"min_rv_length": None}
+    ).json()
+    assert cleared["min_rv_length"] is None
+    assert cleared["found_count"] == 3

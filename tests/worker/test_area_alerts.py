@@ -366,6 +366,78 @@ async def test_area_outbox_pre_send_revalidation_filters_and_skips(
 
 
 @pytest.mark.anyio
+async def test_area_outbox_revalidation_enforces_min_rv_length(
+    local_data: tuple,
+) -> None:
+    """Revalidating area outbox candidates respects updated min_rv_length and tolerates pre-migration payloads."""
+    database, _, _ = local_data
+    user, scan, targets = await _seed_area_scan(database)
+    base_long = _opening(
+        "Long Park",
+        target_id=str(targets[0].id),
+        campground_id=targets[0].campground_id,
+    )
+    long_opening = base_long.model_copy(
+        update={
+            "metadata": {
+                **base_long.metadata,
+                "campsite_id": "long-rv",
+                "campsite_type": "RV",
+                "max_vehicle_length": 36,
+                "permitted_equipment": ["RV"],
+                "is_accessible": True,
+            }
+        }
+    )
+    legacy_opening = _opening(
+        "Legacy Park",
+        target_id=str(targets[1].id),
+        campground_id=targets[1].campground_id,
+    )
+    past = dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=10)
+    row_id = uuid.uuid4()
+    async with database.get_session() as session:
+        db_scan = await session.get(UserScan, scan.id)
+        assert db_scan is not None
+        db_scan.min_rv_length = 30
+        db_scan.require_accessible = True
+        session.add(
+            NotificationOutbox(
+                id=row_id,
+                detection_id=uuid.uuid4(),
+                user_id=user.id,
+                scan_id=scan.id,
+                target_id=None,
+                delivery_key="area-rv",
+                channel="ntfy",
+                payload_kind="area",
+                scan_revision=scan.definition_revision,
+                payload_version=1,
+                payload={
+                    "candidates": [
+                        long_opening.model_dump(mode="json"),
+                        legacy_opening.model_dump(mode="json"),
+                    ],
+                    "direct": False,
+                },
+                status="pending",
+                attempt_count=0,
+                created_at=past,
+                next_attempt_at=past,
+            )
+        )
+        await session.commit()
+        row = await session.get(NotificationOutbox, row_id)
+        assert row is not None
+        filtered = await current_area_payload(
+            session, row, today=dt.date(2027, 7, 1), app_url="https://camply.test"
+        )
+        assert filtered is not None
+        assert filtered.metadata["new_campsite_count"] == 1
+        assert filtered.metadata["openings"][0]["metadata"]["campsite_id"] == "long-rv"
+
+
+@pytest.mark.anyio
 async def test_deliver_next_retries_on_claim_contention(
     local_data: tuple, monkeypatch: pytest.MonkeyPatch
 ) -> None:

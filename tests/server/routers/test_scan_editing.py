@@ -238,3 +238,67 @@ async def test_suspended_user_can_edit_without_resuming(
     )
     assert response.status_code == 403
     assert test_client.get(path).json()["end_date"] == "2027-07-12"
+
+
+@pytest.mark.asyncio
+async def test_edit_min_rv_length_omission_vs_null_clear_and_outbox_invalidation(
+    test_client: TestClient, scan: dict[str, Any]
+) -> None:
+    """PATCH preserves min_rv_length when omitted, clears it on null, validates bounds, and skips pending outbox rows."""
+    import datetime as dt
+
+    from camply.db.models import NotificationOutbox
+
+    path = f"/api/scans/{scan['id']}"
+    set_resp = test_client.patch(path, json={"min_rv_length": 32})
+    assert set_resp.status_code == 200
+    assert set_resp.json()["min_rv_length"] == 32
+
+    # Omission keeps 32
+    omit_resp = test_client.patch(path, json={"require_electric": True})
+    assert omit_resp.status_code == 200
+    assert omit_resp.json()["min_rv_length"] == 32
+
+    # Out-of-bounds values fail atomically
+    for bad in (0, -1, 201):
+        bad_resp = test_client.patch(
+            path, json={"min_rv_length": bad, "require_electric": False}
+        )
+        assert bad_resp.status_code == 422
+    assert test_client.get(path).json()["min_rv_length"] == 32
+
+    # Seed pending outbox row and verify editing min_rv_length to None clears it & invalidates outbox
+    outbox_id = uuid.uuid4()
+    past = dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=5)
+    async with maker() as session:
+        sub = await session.get(UserScan, uuid.UUID(scan["id"]))
+        assert sub is not None
+        session.add(
+            NotificationOutbox(
+                id=outbox_id,
+                detection_id=uuid.uuid4(),
+                user_id=sub.user_id,
+                scan_id=sub.id,
+                target_id=sub.target_id,
+                delivery_key="summary",
+                channel="pushover",
+                payload_kind="target",
+                scan_revision=sub.definition_revision,
+                payload_version=1,
+                payload={},
+                status="pending",
+                attempt_count=0,
+                created_at=past,
+                next_attempt_at=past,
+            )
+        )
+        await session.commit()
+
+    clear_resp = test_client.patch(path, json={"min_rv_length": None})
+    assert clear_resp.status_code == 200
+    assert clear_resp.json()["min_rv_length"] is None
+    async with maker() as session:
+        row = await session.get(NotificationOutbox, outbox_id)
+        assert row is not None
+        assert row.status == "skipped"
+        assert row.error_category == "scan_edited"

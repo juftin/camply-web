@@ -76,6 +76,8 @@ This is the only object the **Worker** ever sees.
 - `available_dates`: `List[Date]`
 - `is_electric`: `Boolean`
 - `is_accessible`: `Boolean`
+- `permitted_equipment`: `List[String]` (Normalized sorted equipment labels supported on the site)
+- `max_vehicle_length`: `Integer | None` (Conservatively floored whole feet for RV/trailer-compatible sites; `None` when unrestricted, zero, or unknown)
 - `metadata`: `Dict[String, Any]` (Provider-specific raw attributes)
 
 ---

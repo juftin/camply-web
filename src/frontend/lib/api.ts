@@ -488,6 +488,7 @@ export interface SearchExploreParams {
   state?: string;
   hasElectric?: boolean;
   petsAllowed?: boolean;
+  adaAccessible?: boolean;
   minRvLength?: number;
   lat?: number;
   lng?: number;
@@ -510,6 +511,8 @@ export function exploreQueryParams(
     queryParams.has_electric = params.hasElectric;
   if (params.petsAllowed !== undefined)
     queryParams.pets_allowed = params.petsAllowed;
+  if (params.adaAccessible !== undefined)
+    queryParams.ada_accessible = params.adaAccessible;
   if (params.minRvLength !== undefined)
     queryParams.min_rv_length = params.minRvLength;
   if (params.lat !== undefined) queryParams.lat = params.lat;

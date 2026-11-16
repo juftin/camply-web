@@ -21,8 +21,8 @@ def test_migration_config_uses_packaged_history() -> None:
     """Runtime configuration finds the unchanged graph without developer hooks."""
     config = get_alembic_config()
     scripts = ScriptDirectory.from_config(config)
-    assert scripts.get_heads() == ["2d7ab29d3a46"]
-    assert len(list(scripts.walk_revisions())) == 30
+    assert scripts.get_heads() == ["f373bee1b42b"]
+    assert len(list(scripts.walk_revisions())) == 31
     assert config.config_file_name is None
     assert config.get_section("post_write_hooks") is None
     assert (Path(scripts.dir) / "env.py").is_file()
@@ -55,7 +55,7 @@ def test_migration_upgrade_is_cwd_independent(
     with sqlite3.connect(database_file) as connection:
         assert connection.execute(
             "SELECT version_num FROM alembic_version"
-        ).fetchone() == ("2d7ab29d3a46",)
+        ).fetchone() == ("f373bee1b42b",)
         if earlier_revision:
             assert connection.execute(
                 "SELECT name FROM providers WHERE id = 999"

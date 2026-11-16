@@ -110,3 +110,24 @@ def test_unknown_enrichment_provider_is_not_requeued(
     monkeypatch.setattr(ingestion.celery_app, "send_task", send)
     assert ingestion.enrich_provider_details.run(999)["status"] == "error"
     send.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_populate_provider_with_missing_optional_enrichment_retains_catalog() -> (
+    None
+):
+    """Unavailable optional detail endpoints during catalog sync still succeed without blocking scans."""
+    provider = MagicMock()
+    provider.populate_database = AsyncMock(return_value=None)
+    provider.enrich_metadata = AsyncMock(
+        side_effect=RuntimeError("Optional detail endpoint 404")
+    )
+    provider.async_client.aclose = AsyncMock()
+    factory = MagicMock(return_value=provider)
+    factory.__name__ = "SyntheticPartialProvider"
+
+    result = await ingestion._populate_provider_async(12, factory)
+    assert result["status"] == "success"
+    provider.populate_database.assert_awaited_once()
+    provider.enrich_metadata.assert_awaited_once()
+    provider.async_client.aclose.assert_awaited_once()
