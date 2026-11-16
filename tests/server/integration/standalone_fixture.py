@@ -38,6 +38,11 @@ class SyntheticProvider(RecreationGovProvider):
                             name="Synthetic Pines",
                             enabled=True,
                             reservable=True,
+                            campsite_types=["RV"],
+                            has_electric=True,
+                            pets_allowed=True,
+                            ada_accessible=True,
+                            max_rv_length=35,
                         ),
                         Campground(
                             id="synthetic-cg-1",
@@ -46,6 +51,10 @@ class SyntheticProvider(RecreationGovProvider):
                             name="Synthetic Ridge",
                             enabled=True,
                             reservable=True,
+                            campsite_types=["RV"],
+                            has_electric=True,
+                            ada_accessible=True,
+                            max_rv_length=35,
                         ),
                         Campground(
                             id="synthetic-cg-2",
@@ -54,6 +63,10 @@ class SyntheticProvider(RecreationGovProvider):
                             name="Synthetic Cove",
                             enabled=True,
                             reservable=True,
+                            campsite_types=["RV"],
+                            has_electric=True,
+                            ada_accessible=True,
+                            max_rv_length=35,
                         ),
                     ]
                 )
@@ -68,6 +81,11 @@ class SyntheticProvider(RecreationGovProvider):
                             campground_name="Synthetic Pines",
                             latitude=37.7,
                             longitude=-119.6,
+                            campsite_types=["RV"],
+                            has_electric=True,
+                            pets_allowed=True,
+                            ada_accessible=True,
+                            max_rv_length=35,
                         ),
                         Search(
                             id="synthetic-area-search",
@@ -78,6 +96,10 @@ class SyntheticProvider(RecreationGovProvider):
                             recreation_area_name="Synthetic Basin",
                             latitude=37.7,
                             longitude=-119.6,
+                            campsite_types=["RV"],
+                            has_electric=True,
+                            ada_accessible=True,
+                            max_rv_length=35,
                         ),
                         Search(
                             id="synthetic-search-1",
@@ -90,6 +112,10 @@ class SyntheticProvider(RecreationGovProvider):
                             campground_name="Synthetic Ridge",
                             latitude=37.7,
                             longitude=-119.6,
+                            campsite_types=["RV"],
+                            has_electric=True,
+                            ada_accessible=True,
+                            max_rv_length=35,
                         ),
                         Search(
                             id="synthetic-search-2",
@@ -102,6 +128,10 @@ class SyntheticProvider(RecreationGovProvider):
                             campground_name="Synthetic Cove",
                             latitude=37.7,
                             longitude=-119.6,
+                            campsite_types=["RV"],
+                            has_electric=True,
+                            ada_accessible=True,
+                            max_rv_length=35,
                         ),
                     ]
                 )
@@ -147,11 +177,13 @@ class SyntheticProvider(RecreationGovProvider):
             CampsiteDTO(
                 campsite_id=site_id,
                 campsite_name=site_name,
-                campsite_type=CampsiteType.TENT,
+                campsite_type=CampsiteType.RV,
                 capacity=4,
                 available_dates=nights,
-                is_electric=False,
-                is_accessible=False,
+                is_electric=True,
+                is_accessible=True,
+                permitted_equipment=["RV", "Trailer"],
+                max_vehicle_length=35,
             )
         ]
 

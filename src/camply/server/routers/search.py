@@ -74,6 +74,7 @@ async def search(
     state: str | None = None,
     has_electric: bool | None = None,
     pets_allowed: bool | None = None,
+    ada_accessible: bool | None = None,
     min_rv_length: int | None = None,
     lat: float | None = None,
     lng: float | None = None,
@@ -91,6 +92,7 @@ async def search(
         and not state
         and has_electric is None
         and pets_allowed is None
+        and ada_accessible is None
         and min_rv_length is None
         and lat is None
     ):
@@ -111,6 +113,7 @@ async def search(
         state=state,
         has_electric=has_electric,
         pets_allowed=pets_allowed,
+        ada_accessible=ada_accessible,
         min_rv_length=min_rv_length,
         lat=lat,
         lng=lng,
@@ -151,6 +154,7 @@ async def search_explore(
     state: str | None = None,
     has_electric: bool | None = None,
     pets_allowed: bool | None = None,
+    ada_accessible: bool | None = None,
     min_rv_length: int | None = None,
     lat: float | None = None,
     lng: float | None = None,
@@ -175,6 +179,7 @@ async def search_explore(
         state=state,
         has_electric=has_electric,
         pets_allowed=pets_allowed,
+        ada_accessible=ada_accessible,
         min_rv_length=min_rv_length,
         lat=lat,
         lng=lng,
@@ -210,6 +215,7 @@ def _map_filters(
     state: str | None = None,
     has_electric: bool | None = None,
     pets_allowed: bool | None = None,
+    ada_accessible: bool | None = None,
     min_rv_length: int | None = None,
     lat: float | None = None,
     lng: float | None = None,
@@ -223,6 +229,7 @@ def _map_filters(
         "state": state,
         "has_electric": has_electric,
         "pets_allowed": pets_allowed,
+        "ada_accessible": ada_accessible,
         "min_rv_length": min_rv_length,
         "lat": lat,
         "lng": lng,

@@ -73,12 +73,22 @@ def matches_scan_filters(
     *,
     campsite_type: str | None,
     is_electric: bool | None,
+    is_accessible: bool | None = None,
+    max_vehicle_length: int | None = None,
     scan: UserScan,
 ) -> bool:
     """Check site preferences; unknown legacy attributes cannot prove a match."""
     return (
         (not scan.preferred_types or campsite_type in scan.preferred_types)
         and (not scan.require_electric or is_electric is True)
+        and (not scan.require_accessible or is_accessible is True)
+        and (
+            scan.min_rv_length is None
+            or (
+                max_vehicle_length is not None
+                and max_vehicle_length >= scan.min_rv_length
+            )
+        )
         and bool(
             matching_available_dates(
                 available_dates,
@@ -125,6 +135,8 @@ def matching_scan_results(scan: UserScan) -> list[tuple[ScanResult, list[str]]]:
             nights,
             campsite_type=result.campsite_type,
             is_electric=result.is_electric,
+            is_accessible=result.is_accessible,
+            max_vehicle_length=result.max_vehicle_length,
             scan=scan,
         )
     ]

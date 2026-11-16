@@ -6,7 +6,10 @@ from typing import TYPE_CHECKING
 from urllib.parse import quote, unquote, urljoin, urlsplit
 
 from pydantic import BaseModel
+from sqlalchemy import update
 
+from camply.db.config import db
+from camply.db.models import Campground
 from camply.providers.details import (
     DestinationDetails,
     DestinationFact,
@@ -16,6 +19,9 @@ from camply.providers.details import (
 )
 from camply.providers.enrichment import Destination, refresh_destinations
 from camply.providers.reserve_america.models.api import split_facility_id
+
+_ELECTRIC_NEGATIVE = ("non-electric", "non electric", "no electric", "unelectrified")
+_ONSITE_DISTANCE_CODE = "2000"
 
 if TYPE_CHECKING:
     from camply.providers.reserve_america.provider import ReserveAmericaProvider
@@ -122,8 +128,42 @@ def _season_facts(seasons: list[Season]) -> list[DestinationFact]:
     return facts
 
 
+def _extract_onsite_capabilities(amenities: list[Amenity]) -> dict[str, bool]:
+    """Derive verified campground amenity booleans strictly from on-site entries."""
+    flags = {
+        "has_electric": False,
+        "has_water": False,
+        "has_sewer": False,
+        "pets_allowed": False,
+        "ada_accessible": False,
+    }
+    for amenity in amenities:
+        if amenity.distanceCode != _ONSITE_DISTANCE_CODE:
+            continue
+        low = amenity.name.strip().lower()
+        if not low:
+            continue
+        if "electric" in low and not any(neg in low for neg in _ELECTRIC_NEGATIVE):
+            flags["has_electric"] = True
+        if (
+            any(kw in low for kw in ("water hookup", "drinking water", "potable water"))
+            or low == "water"
+        ):
+            flags["has_water"] = True
+        if "sewer" in low:
+            flags["has_sewer"] = True
+        if "pet" in low and "no pet" not in low:
+            flags["pets_allowed"] = True
+        if "ada" in low or "accessible" in low:
+            flags["ada_accessible"] = True
+    return flags
+
+
 async def fetch_details(
-    provider: "ReserveAmericaProvider", destination: Destination
+    provider: "ReserveAmericaProvider",
+    destination: Destination,
+    *,
+    capabilities_out: dict[str, dict[str, bool]] | None = None,
 ) -> DestinationDetails | None:
     """Translate one complete native facility response into cached destination details."""
     if destination.entity_type != "campground":
@@ -136,6 +176,10 @@ async def fetch_details(
     )
     if information.id != int(facility) or information.contrCode != contract:
         raise ValueError("ReserveAmerica returned another facility's information")
+    if capabilities_out is not None:
+        capabilities_out[destination.id] = _extract_onsite_capabilities(
+            information.amenities
+        )
     source_url = provider.get_campground_url(destination.id)
     api = urlsplit(provider.api_url)
     origin = f"{api.scheme}://{api.netloc}"
@@ -194,6 +238,34 @@ async def fetch_details(
 
 async def enrich_metadata(provider: "ReserveAmericaProvider") -> None:
     """Use the shared bounded refresh while retaining existing anonymous sessions."""
+    extracted: dict[str, dict[str, bool]] = {}
+    updated = False
+
+    async def apply_amenities(
+        destination: Destination, _details: DestinationDetails
+    ) -> None:
+        nonlocal updated
+        flags = extracted.get(destination.id)
+        if destination.entity_type != "campground" or not flags:
+            return
+        async with db.get_session() as session:
+            async with session.begin():
+                await session.execute(
+                    update(Campground)
+                    .where(
+                        Campground.provider_id == provider.provider.id,
+                        Campground.id == destination.id,
+                    )
+                    .values(**flags)
+                )
+        updated = True
+
     await refresh_destinations(
-        provider_id=provider.provider.id, fetch=partial(fetch_details, provider)
+        provider_id=provider.provider.id,
+        fetch=partial(fetch_details, provider, capabilities_out=extracted),
+        on_details=apply_amenities,
     )
+    if updated:
+        async with db.get_session() as session:
+            async with session.begin():
+                await provider.populate_search_table(session, commit=False)

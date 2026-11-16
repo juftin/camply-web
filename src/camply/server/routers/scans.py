@@ -193,6 +193,8 @@ async def _scan_to_response(scan: UserScanDB, **unused: object) -> ScanResponse:
         min_stay_length=scan.min_stay_length,
         preferred_types=scan.preferred_types or [],
         require_electric=scan.require_electric,
+        require_accessible=scan.require_accessible,
+        min_rv_length=scan.min_rv_length,
         allowed_weekdays=scan.allowed_weekdays or list(range(7)),
         last_checked_at=last,
         found_count=len(matches),
@@ -213,6 +215,38 @@ async def _load(
     if scan is None:
         raise HTTPException(status_code=404, detail="Scan not found")
     return scan
+
+
+def _assign_scan_preferences(scan: UserScanDB, body: ScanCreateRequest) -> None:
+    """Copy site preferences from a validated create payload onto ``scan``."""
+    scan.min_stay_length = body.min_stay_length
+    scan.preferred_types = body.preferred_types
+    scan.require_electric = body.require_electric
+    scan.require_accessible = body.require_accessible
+    scan.min_rv_length = body.min_rv_length
+    scan.allowed_weekdays = (
+        body.allowed_weekdays if body.allowed_weekdays != list(range(7)) else None
+    )
+
+
+def _apply_scan_preference_updates(scan: UserScanDB, body: ScanUpdateRequest) -> None:
+    """Apply partial PATCH preference updates, distinguishing omission from ``None``."""
+    for field in (
+        "is_active",
+        "min_stay_length",
+        "preferred_types",
+        "require_electric",
+        "require_accessible",
+    ):
+        value = getattr(body, field)
+        if value is not None:
+            setattr(scan, field, value)
+    if "min_rv_length" in body.model_fields_set:
+        scan.min_rv_length = body.min_rv_length
+    if "allowed_weekdays" in body.model_fields_set:
+        scan.allowed_weekdays = (
+            body.allowed_weekdays if body.allowed_weekdays != list(range(7)) else None
+        )
 
 
 async def _assign_definition(  # noqa: C901
@@ -294,12 +328,7 @@ async def _assign_definition(  # noqa: C901
     scan.selected_campgrounds = choices
     scan.start_date, scan.end_date = body.start_date, body.end_date
     scan.target_id = target.id if target else None
-    scan.min_stay_length = body.min_stay_length
-    scan.preferred_types = body.preferred_types
-    scan.require_electric = body.require_electric
-    scan.allowed_weekdays = (
-        body.allowed_weekdays if body.allowed_weekdays != list(range(7)) else None
-    )
+    _assign_scan_preferences(scan, body)
     scan.definition_hash = definition_hash(
         provider_id=scan.provider_id,
         destination_type=scan.destination_type,
@@ -445,6 +474,8 @@ async def get_scan(
                 campsite_type=result.campsite_type,
                 is_electric=result.is_electric,
                 is_accessible=result.is_accessible,
+                permitted_equipment=result.permitted_equipment or [],
+                max_vehicle_length=result.max_vehicle_length,
                 available_dates=dates,
                 booking_url=provider.get_campground_url(
                     campground_id=target.campground_id,
@@ -470,7 +501,7 @@ async def get_scan(
 
 
 @scan_router.patch("/{scan_id}")
-async def update_scan(  # noqa: C901
+async def update_scan(
     scan_id: uuid.UUID,
     body: ScanUpdateRequest,
     current_user: CurrentUserDep,
@@ -579,6 +610,12 @@ async def update_scan(  # noqa: C901
             "require_electric": body.require_electric
             if body.require_electric is not None
             else scan.require_electric,
+            "require_accessible": body.require_accessible
+            if body.require_accessible is not None
+            else scan.require_accessible,
+            "min_rv_length": body.min_rv_length
+            if "min_rv_length" in body.model_fields_set
+            else scan.min_rv_length,
             "allowed_weekdays": body.allowed_weekdays
             if "allowed_weekdays" in body.model_fields_set
             else (scan.allowed_weekdays or list(range(7))),
@@ -596,19 +633,7 @@ async def update_scan(  # noqa: C901
                 and body.coverage_mode is None
                 and body.campground_ids is None,
             )
-    for field in (
-        "is_active",
-        "min_stay_length",
-        "preferred_types",
-        "require_electric",
-    ):
-        value = getattr(body, field)
-        if value is not None:
-            setattr(scan, field, value)
-    if "allowed_weekdays" in body.model_fields_set:
-        scan.allowed_weekdays = (
-            body.allowed_weekdays if body.allowed_weekdays != list(range(7)) else None
-        )
+    _apply_scan_preference_updates(scan, body)
     if scan.min_stay_length > (scan.end_date - scan.start_date).days:
         raise HTTPException(status_code=422, detail="Minimum stay exceeds date window")
     scan.definition_revision += 1

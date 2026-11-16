@@ -238,6 +238,24 @@ def _verify_current_features(
     scans = client.get("/api/scans").json()["scans"]
     detail = client.get(f"/api/scans/{scans[0]['id']}").json()
     assert detail["found_count"] == 1
+    assert detail["results"][0]["max_vehicle_length"] == 35
+    assert detail["results"][0]["permitted_equipment"] == ["RV", "Trailer"]
+
+    explore = client.get(
+        "/api/search/explore",
+        params={"ada_accessible": "true", "min_rv_length": 30, "has_electric": "true"},
+    )
+    assert explore.is_success, explore.text
+    assert explore.json()["total"] == 4
+
+    patched = client.patch(
+        f"/api/scans/{scans[0]['id']}",
+        json={"min_rv_length": 30, "require_accessible": True},
+    )
+    assert patched.is_success, patched.text
+    assert patched.json()["found_count"] == 1
+    cleared = client.patch(f"/api/scans/{scans[0]['id']}", json={"min_rv_length": None})
+    assert cleared.is_success and cleared.json()["min_rv_length"] is None
     assert detail["results"][0]["campsite_name"] == "Synthetic Site"
     assert detail["results"][0]["campsite_type"] == "TENT"
     for sent in deliveries:

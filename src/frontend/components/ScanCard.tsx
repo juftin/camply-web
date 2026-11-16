@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Clock, Calendar, Activity, Zap, Trash2, Pencil } from "lucide-react";
+import {
+  Accessibility,
+  Clock,
+  Calendar,
+  Activity,
+  Zap,
+  Trash2,
+  Pencil,
+} from "lucide-react";
 import { ScanForm } from "@/components/ScanForm";
 import { getApiErrorMessage } from "@/lib/api";
 import {
@@ -153,6 +161,16 @@ export function ScanCard({
             {scan.require_electric && (
               <Badge variant="secondary" className="text-[10px] gap-0.5">
                 <Zap className="h-3 w-3" /> Electric
+              </Badge>
+            )}
+            {scan.require_accessible && (
+              <Badge variant="secondary" className="text-[10px] gap-0.5">
+                <Accessibility className="h-3 w-3" /> ADA
+              </Badge>
+            )}
+            {scan.min_rv_length != null && (
+              <Badge variant="secondary" className="text-[10px]">
+                Min {scan.min_rv_length} ft
               </Badge>
             )}
             {scan.min_stay_length > 1 && (

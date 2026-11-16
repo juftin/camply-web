@@ -149,6 +149,12 @@ const CampsiteDateGroup = ({
                     </span>
                   )}
                   {site.is_accessible && <span>Accessible</span>}
+                  {site.max_vehicle_length != null && (
+                    <span>Up to {site.max_vehicle_length} ft</span>
+                  )}
+                  {(site.permitted_equipment ?? []).length > 0 && (
+                    <span>{site.permitted_equipment!.join(", ")}</span>
+                  )}
                 </div>
               </div>
               {site.booking_url && (

@@ -3,12 +3,13 @@ Data Models for Upstream Recreation.gov Provider
 """
 
 import structlog
+from pydantic import Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from camply.db.data.providers import RecreationDotGov
 from camply.db.models import Campground, RecreationArea
-from camply.providers.base import NullHandler
+from camply.providers.base import CampgroundCapabilities, NullHandler
 from camply.providers.recreation_gov.models.address import AddressPopulator
 from camply.providers.utils import normalize_name
 
@@ -37,6 +38,9 @@ class RecDotGovCampgroundData(AddressPopulator):
     """
 
     RECDATA: list[RecDotGovCampground]
+    FACILITY_CAPABILITIES: dict[str, CampgroundCapabilities] = Field(
+        default_factory=dict, exclude=True
+    )
 
     async def to_database(self, session: AsyncSession) -> None:
         """
@@ -64,6 +68,7 @@ class RecDotGovCampgroundData(AddressPopulator):
                 city = address.City
                 state = address.AddressStateCode
                 country = address.AddressCountryCode
+            caps = self.FACILITY_CAPABILITIES.get(str(camp.FacilityID))
             campground = Campground(
                 id=camp.FacilityID,
                 recreation_area_id=camp.ParentRecAreaID,
@@ -77,6 +82,7 @@ class RecDotGovCampgroundData(AddressPopulator):
                 latitude=camp.FacilityLatitude,
                 reservable=camp.Reservable,
                 enabled=camp.Enabled,
+                **(caps.as_columns() if caps is not None else {}),
             )
             if not camp.FacilityName:
                 continue

@@ -145,6 +145,8 @@ export interface ScanCreateRequest {
   min_stay_length?: number;
   preferred_types?: string[];
   require_electric?: boolean;
+  require_accessible?: boolean;
+  min_rv_length?: number | null;
   allowed_weekdays?: number[];
 }
 
@@ -162,6 +164,8 @@ export interface ScanResultItem {
   campsite_type?: string | null;
   is_electric?: boolean | null;
   is_accessible?: boolean | null;
+  permitted_equipment?: string[];
+  max_vehicle_length?: number | null;
   booking_url?: string;
 }
 
@@ -193,6 +197,8 @@ export interface ScanResponse {
   min_stay_length: number;
   preferred_types: string[];
   require_electric: boolean;
+  require_accessible?: boolean;
+  min_rv_length?: number | null;
   allowed_weekdays?: number[];
   last_checked_at: string | null;
   found_count: number;

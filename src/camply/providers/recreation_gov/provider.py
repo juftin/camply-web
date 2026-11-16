@@ -1,12 +1,13 @@
 import asyncio
 import time
 import zipfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, ClassVar, cast
 from urllib.parse import urljoin
 
+import ijson
 import platformdirs
 import rich.progress
 import structlog
@@ -15,7 +16,7 @@ from sqlalchemy import select, update
 from camply.db.config import db
 from camply.db.data.providers import RecreationDotGov
 from camply.db.models import Campground, Provider, RecreationArea
-from camply.providers.base import BaseProvider
+from camply.providers.base import BaseProvider, CampgroundCapabilities
 from camply.providers.dto import (
     CampgroundSearchResult,
     CampsiteDTO,
@@ -48,9 +49,25 @@ from camply.providers.recreation_gov.models.enums import (
 from camply.providers.recreation_gov.models.recreation_area import (
     RecDotGovRecreationAreaData,
 )
-from camply.providers.utils import normalize_country_code, normalize_state_code
+from camply.providers.utils import (
+    is_rv_equipment_name,
+    normalize_country_code,
+    normalize_equipment_labels,
+    normalize_state_code,
+    parse_vehicle_length_feet,
+)
 
 _MAX_SEARCH_RECORDS = 500000
+_NEGATIVE_ATTR_VALUES = frozenset(
+    {"", "no", "none", "0", "false", "n/a", "not allowed"}
+)
+_NON_ELECTRIC_KEYWORDS = (
+    "nonelectric",
+    "non-electric",
+    "non electric",
+    "no electric",
+    "unelectrified",
+)
 
 logger = structlog.getLogger()
 
@@ -99,6 +116,150 @@ class ZippedDataContents:
     addresses: str
 
 
+@dataclass
+class _FacilityCapabilityAccumulator:
+    """Mutable per-facility capability accumulator populated while streaming RIDB JSON."""
+
+    campsite_types: set[str] = field(default_factory=set)
+    has_electric: bool = False
+    has_water: bool = False
+    has_sewer: bool = False
+    pets_allowed: bool = False
+    ada_accessible: bool = False
+    max_rv_length: int | None = None
+
+    def freeze(self) -> CampgroundCapabilities:
+        """Return immutable ``CampgroundCapabilities`` snapshot."""
+        return CampgroundCapabilities(
+            campsite_types=sorted(self.campsite_types) if self.campsite_types else None,
+            has_electric=self.has_electric,
+            has_water=self.has_water,
+            has_sewer=self.has_sewer,
+            pets_allowed=self.pets_allowed,
+            ada_accessible=self.ada_accessible,
+            max_rv_length=self.max_rv_length,
+        )
+
+
+def _apply_ridb_attribute(
+    caps: _FacilityCapabilityAccumulator, *, attr_name: str, attr_val: str
+) -> None:
+    """Apply a verified RIDB campsite attribute onto a facility capability accumulator."""
+    low_name = attr_name.strip().lower()
+    low_val = attr_val.strip().lower()
+    if low_val in _NEGATIVE_ATTR_VALUES:
+        return
+    if "electric" in low_name or "electricity" in low_name:
+        caps.has_electric = True
+    elif (
+        "water hookup" in low_name
+        or "drinking water" in low_name
+        or "potable water" in low_name
+        or low_name == "water"
+    ):
+        caps.has_water = True
+    elif "sewer" in low_name:
+        caps.has_sewer = True
+    elif "pet" in low_name and "no pet" not in low_name:
+        caps.pets_allowed = True
+    elif "ada" in low_name or "accessible" in low_name:
+        caps.ada_accessible = True
+    elif "max vehicle length" in low_name or "rv max length" in low_name:
+        if parsed_len := parse_vehicle_length_feet(attr_val):
+            caps.max_rv_length = max(caps.max_rv_length or 0, parsed_len)
+
+
+def _stream_ridb_campsites(
+    zipped: zipfile.ZipFile,
+) -> tuple[dict[str, _FacilityCapabilityAccumulator], dict[str, str]]:
+    """Stream overnight campsite records into facility capability accumulators."""
+    accumulators: dict[str, _FacilityCapabilityAccumulator] = {}
+    campsite_to_facility: dict[str, str] = {}
+    with zipped.open("Campsites_API_v1.json") as stream:
+        for rec in ijson.items(stream, "RECDATA.item"):
+            if str(rec.get("TypeOfUse") or "").strip().lower() == "day":
+                continue
+            facility_id = str(rec.get("FacilityID") or "").strip()
+            campsite_id = str(rec.get("CampsiteID") or "").strip()
+            if not facility_id or not campsite_id:
+                continue
+            campsite_to_facility[campsite_id] = facility_id
+            caps = accumulators.setdefault(
+                facility_id, _FacilityCapabilityAccumulator()
+            )
+            if raw_type := rec.get("CampsiteType"):
+                low_type = str(raw_type).lower()
+                caps.campsite_types.add(map_campsite_type(str(raw_type)).value)
+                if "electric" in low_type and not any(
+                    neg in low_type for neg in _NON_ELECTRIC_KEYWORDS
+                ):
+                    caps.has_electric = True
+            accessible = rec.get("CampsiteAccessible")
+            if accessible is True or str(accessible).strip().lower() in {
+                "true",
+                "1",
+                "yes",
+            }:
+                caps.ada_accessible = True
+    return accumulators, campsite_to_facility
+
+
+def _stream_ridb_attributes(
+    zipped: zipfile.ZipFile,
+    accumulators: dict[str, _FacilityCapabilityAccumulator],
+    campsite_to_facility: dict[str, str],
+) -> None:
+    """Apply streamed ``CampsiteAttributes_API_v1.json`` entries per overnight facility."""
+    with zipped.open("CampsiteAttributes_API_v1.json") as stream:
+        for rec in ijson.items(stream, "RECDATA.item"):
+            entity_id = str(rec.get("EntityID") or rec.get("CampsiteID") or "").strip()
+            if (facility_id := campsite_to_facility.get(entity_id)) is None:
+                continue
+            _apply_ridb_attribute(
+                accumulators[facility_id],
+                attr_name=str(rec.get("AttributeName") or ""),
+                attr_val=str(rec.get("AttributeValue") or ""),
+            )
+
+
+def _stream_ridb_equipment(
+    zipped: zipfile.ZipFile,
+    accumulators: dict[str, _FacilityCapabilityAccumulator],
+    campsite_to_facility: dict[str, str],
+) -> None:
+    """Apply streamed ``PermittedEquipment_API_v1.json`` entries per overnight facility."""
+    with zipped.open("PermittedEquipment_API_v1.json") as stream:
+        for rec in ijson.items(stream, "RECDATA.item"):
+            campsite_id = str(
+                rec.get("CampsiteID") or rec.get("EntityID") or ""
+            ).strip()
+            if (facility_id := campsite_to_facility.get(campsite_id)) is None:
+                continue
+            caps = accumulators[facility_id]
+            eq_name = str(rec.get("EquipmentName") or "").strip()
+            if is_rv_equipment_name(eq_name):
+                caps.campsite_types.add(CampsiteType.RV.value)
+                if eq_len := parse_vehicle_length_feet(rec.get("MaxLength")):
+                    caps.max_rv_length = max(caps.max_rv_length or 0, eq_len)
+            elif "tent" in eq_name.lower():
+                caps.campsite_types.add(CampsiteType.TENT.value)
+
+
+def _extract_ridb_facility_capabilities(
+    zipped: zipfile.ZipFile,
+) -> dict[str, CampgroundCapabilities]:
+    """Stream optional RIDB campsite, attribute, and equipment files with bounded memory."""
+    namelist = set(zipped.namelist())
+    if "Campsites_API_v1.json" not in namelist:
+        return {}
+    accumulators, campsite_to_facility = _stream_ridb_campsites(zipped)
+    if campsite_to_facility and "CampsiteAttributes_API_v1.json" in namelist:
+        _stream_ridb_attributes(zipped, accumulators, campsite_to_facility)
+    if campsite_to_facility and "PermittedEquipment_API_v1.json" in namelist:
+        _stream_ridb_equipment(zipped, accumulators, campsite_to_facility)
+    return {facility_id: acc.freeze() for facility_id, acc in accumulators.items()}
+
+
 def _read_catalog(data_file: Path, contents: ZippedDataContents) -> AddressPopulator:
     """Parse large offline JSON/archive data off the application's event loop."""
     with zipfile.ZipFile(data_file, "r") as zipped:
@@ -109,6 +270,8 @@ def _read_catalog(data_file: Path, contents: ZippedDataContents) -> AddressPopul
             zipped.read(contents.json_file)
         )
         parsed.ADDRESSES = addresses
+        if isinstance(parsed, RecDotGovCampgroundData):
+            parsed.FACILITY_CAPABILITIES = _extract_ridb_facility_capabilities(zipped)
         return parsed
 
 
@@ -552,6 +715,35 @@ class RecreationGovProvider(BaseProvider):
             longitude=lon,
         )
 
+        equipment_labels = normalize_equipment_labels(
+            eq.equipment_name for eq in permitted_eq
+        )
+        rv_lengths = [
+            parsed
+            for eq in permitted_eq
+            if is_rv_equipment_name(eq.equipment_name)
+            and (parsed := parse_vehicle_length_feet(eq.max_length)) is not None
+        ]
+        max_vehicle_length = max(rv_lengths) if rv_lengths else None
+        if (
+            max_vehicle_length is None
+            and campsite_type != CampsiteType.TENT
+            and (
+                not permitted_eq
+                or any(is_rv_equipment_name(eq.equipment_name) for eq in permitted_eq)
+            )
+        ):
+            attr_lengths = [
+                parsed
+                for attr in attrs
+                if attr.attribute_name.strip().lower()
+                in {"max vehicle length", "rv max length", "driveway length"}
+                and (parsed := parse_vehicle_length_feet(str(attr.attribute_value)))
+                is not None
+            ]
+            if attr_lengths:
+                max_vehicle_length = max(attr_lengths)
+
         return CampsiteDTO(
             campsite_id=str(campsite_id),
             campsite_name=campsite_name,
@@ -560,6 +752,8 @@ class RecreationGovProvider(BaseProvider):
             available_dates=sorted(available_dates),
             is_electric=is_electric,
             is_accessible=is_accessible,
+            permitted_equipment=equipment_labels,
+            max_vehicle_length=max_vehicle_length,
             metadata=metadata_model.model_dump(),
         )
 

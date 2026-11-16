@@ -408,3 +408,58 @@ def test_area_scan_outbox_and_attempt_constraints(
     assert outbox.scan_revision == area_scan.definition_revision
     assert outbox.payload_version == 1
     assert link.outcome == "pending"
+
+
+def test_equipment_model_defaults_and_constraints(
+    session: Session, provider: Provider, user: User, target: UniqueTarget
+) -> None:
+    """Validate campground, scan result, and user scan equipment bounds and defaults."""
+    cg = Campground(
+        id="equip-cg",
+        provider_id=provider.id,
+        name="Equip Camp",
+        campsite_types=["RV", "TENT"],
+        has_electric=True,
+        pets_allowed=True,
+        max_rv_length=40,
+    )
+    session.add(cg)
+    session.flush()
+    assert cg.has_water is False
+    assert cg.has_sewer is False
+    assert cg.ada_accessible is False
+
+    scan = UserScan(
+        user_id=user.id,
+        target_id=target.id,
+        min_stay_length=1,
+        require_accessible=True,
+        min_rv_length=30,
+    )
+    session.add(scan)
+    session.flush()
+    assert scan.require_accessible is True
+    assert scan.min_rv_length == 30
+
+    sr = ScanResult(
+        target_id=target.id,
+        campsite_id="equip-site",
+        available_dates=["2027-07-01"],
+        permitted_equipment=["RV", "Trailer"],
+        max_vehicle_length=35,
+    )
+    session.add(sr)
+    session.commit()
+    assert sr.permitted_equipment == ["RV", "Trailer"]
+    assert sr.max_vehicle_length == 35
+
+    bad_scan = UserScan(
+        user_id=user.id,
+        target_id=target.id,
+        definition_hash="bad-rv-length",
+        min_rv_length=201,
+    )
+    session.add(bad_scan)
+    with pytest.raises(IntegrityError):
+        session.commit()
+    session.rollback()

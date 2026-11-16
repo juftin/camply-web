@@ -108,6 +108,11 @@ def test_postgres_populated_upgrade() -> None:
                 ).fetchone()[0]
                 == 0
             )
+            assert connection.execute(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'user_scans' AND column_name IN ('min_rv_length', 'require_accessible') "
+                "ORDER BY column_name"
+            ).fetchall() == [("min_rv_length",), ("require_accessible",)]
     finally:
         subprocess.run(
             ["docker", "rm", "--force", container], check=False, capture_output=True

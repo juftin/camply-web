@@ -22,10 +22,11 @@ from sqlalchemy import update
 
 from camply.db.config import db
 from camply.db.models import Campground, Provider, RecreationArea
-from camply.providers.base import BaseProvider
+from camply.providers.base import BaseProvider, CampgroundCapabilities
 from camply.providers.dto import (
     CampgroundSearchResult,
     CampsiteDTO,
+    CampsiteType,
     ProviderSearchQuery,
     ProviderSearchResult,
     RecreationAreaSearchResult,
@@ -389,12 +390,32 @@ class GoingToCampProvider(BaseProvider, ABC):
             enabled=enabled,
         )
 
+    @staticmethod
+    def _derive_campsite_types(
+        resource_category_ids: list[int], category_names: dict[int, str]
+    ) -> list[str] | None:
+        """Infer standardized ``CampsiteType`` values from explicit resource categories."""
+        types: set[str] = set()
+        for rc_id in resource_category_ids:
+            name = category_names.get(rc_id, "").lower()
+            if not name:
+                continue
+            if "tent" in name:
+                types.add(CampsiteType.TENT.value)
+            if any(kw in name for kw in ("rv", "trailer", "camper", "motorhome")):
+                types.add(CampsiteType.RV.value)
+            if any(kw in name for kw in ("cabin", "yurt", "cottage", "lodge")):
+                types.add(CampsiteType.CABIN.value)
+        return sorted(types) if types else None
+
     def _build_campground_row(
         self,
         facility: ResourceLocation,
         *,
         parent_park: TransactionLocation,
         overnight_resource_ids: set[int],
+        resource_category_names: dict[int, str] | None = None,
+        existing_caps: CampgroundCapabilities | None = None,
     ) -> Campground:
         """Translate a ``ResourceLocation`` into a ``Campground`` ORM row."""
         assert facility.display_name is not None
@@ -403,6 +424,23 @@ class GoingToCampProvider(BaseProvider, ABC):
             lat, lon = parse_gps_coordinates(parent_park.gpsCoordinates)
         enabled = parent_park.isDisabled is not True
         has_overnight = bool(set(facility.resourceCategoryIds) & overnight_resource_ids)
+        derived_types = (
+            self._derive_campsite_types(
+                facility.resourceCategoryIds, resource_category_names
+            )
+            if resource_category_names
+            else None
+        )
+        base_caps = existing_caps or CampgroundCapabilities()
+        effective_caps = CampgroundCapabilities(
+            campsite_types=derived_types or base_caps.campsite_types,
+            has_electric=base_caps.has_electric,
+            has_water=base_caps.has_water,
+            has_sewer=base_caps.has_sewer,
+            pets_allowed=base_caps.pets_allowed,
+            ada_accessible=base_caps.ada_accessible,
+            max_rv_length=base_caps.max_rv_length,
+        )
         return Campground(
             id=str(facility.resourceLocationId),
             provider_id=self.provider.id,
@@ -419,6 +457,7 @@ class GoingToCampProvider(BaseProvider, ABC):
             longitude=lon,
             reservable=enabled and facility.rootMapId is not None and has_overnight,
             enabled=enabled,
+            **effective_caps.as_columns(),
         )
 
     async def populate_database(self) -> None:
@@ -490,6 +529,10 @@ class GoingToCampProvider(BaseProvider, ABC):
                         )
                     )
                 await session.flush()
+                existing_caps = await self._existing_campground_capabilities(session)
+                category_names = {
+                    rc_id: rc.display_name for rc_id, rc in overnight_resources.items()
+                }
                 for fac in valid_facilities:
                     assert fac.transactionLocationId is not None
                     await session.merge(
@@ -497,6 +540,10 @@ class GoingToCampProvider(BaseProvider, ABC):
                             fac,
                             parent_park=parks_by_id[fac.transactionLocationId],
                             overnight_resource_ids=overnight_resource_ids,
+                            resource_category_names=category_names,
+                            existing_caps=existing_caps.get(
+                                str(fac.resourceLocationId)
+                            ),
                         )
                     )
                 await session.flush()

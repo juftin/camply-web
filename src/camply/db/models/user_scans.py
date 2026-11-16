@@ -18,6 +18,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     event,
+    false,
     func,
     insert,
     select,
@@ -82,6 +83,10 @@ class UserScan(Base):
             name="ck_scan_versions",
         ),
         CheckConstraint(
+            "min_rv_length IS NULL OR (min_rv_length >= 1 AND min_rv_length <= 200)",
+            name="ck_scan_min_rv_length",
+        ),
+        CheckConstraint(
             "(destination_type = 'campground' AND campground_id IS NOT NULL AND target_id IS NOT NULL AND recreation_area_id IS NULL AND coverage_mode IS NULL) OR (destination_type = 'recreation_area' AND recreation_area_id IS NOT NULL AND campground_id IS NULL AND target_id IS NULL AND coverage_mode IN ('all', 'selected'))",
             name="ck_scan_destination",
         ),
@@ -99,6 +104,12 @@ class UserScan(Base):
         ARRAY(String).with_variant(JSON(), "sqlite")
     )
     require_electric: Mapped[bool] = mapped_column(Boolean, default=False)
+    require_accessible: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
+    )
+    """Require explicitly ADA-accessible sites when true."""
+    min_rv_length: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    """Minimum required RV/trailer capacity in whole feet; null means unrestricted."""
     allowed_weekdays: Mapped[list[int] | None] = mapped_column(JSON, nullable=True)
     """Allowed booking weekdays (Monday=0); null permits every night."""
     created_at: Mapped[datetime.datetime] = mapped_column(

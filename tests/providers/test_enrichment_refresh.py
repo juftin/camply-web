@@ -356,3 +356,39 @@ def test_cli_metadata_includes_optional_enrichment(
     provider.populate_database.assert_awaited_once()
     provider.enrich_metadata.assert_awaited_once()
     provider.async_client.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_failed_enrichment_preserves_verified_discovery_capabilities(
+    cache_database: async_sessionmaker[AsyncSession],
+) -> None:
+    """Missing optional detail endpoints retain verified Campground capabilities without calling on_details."""
+    on_details = AsyncMock()
+    async with cache_database.begin() as session:
+        session.add(
+            Campground(
+                id="verified-cg",
+                provider_id=1,
+                name="Verified CG",
+                has_electric=True,
+                has_water=True,
+                max_rv_length=32,
+                ada_accessible=True,
+                campsite_types=["RV"],
+            )
+        )
+
+    async def failing_fetch(_dest: Destination) -> DestinationDetails | None:
+        raise RuntimeError("404 detail endpoint unavailable")
+
+    await refresh_destinations(1, fetch=failing_fetch, on_details=on_details)
+    on_details.assert_not_called()
+
+    async with cache_database() as session:
+        cg = await session.get(Campground, ("verified-cg", 1))
+        assert cg is not None
+        assert cg.has_electric is True
+        assert cg.has_water is True
+        assert cg.max_rv_length == 32
+        assert cg.ada_accessible is True
+        assert cg.campsite_types == ["RV"]

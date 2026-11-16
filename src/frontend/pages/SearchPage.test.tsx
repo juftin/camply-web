@@ -413,6 +413,22 @@ describe("live Explore", () => {
     );
   });
 
+  it("wires ada=true URL state and ADA Accessible filter switch", () => {
+    renderSearchPage(["/search?ada=true"]);
+    expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+      expect.objectContaining({ adaAccessible: true, page: 1 }),
+      true,
+    );
+    expect(
+      screen.getByRole("switch", { name: "ADA Accessible" }),
+    ).toBeChecked();
+    fireEvent.click(screen.getByRole("switch", { name: "ADA Accessible" }));
+    expect(searchHook.useSearchExplore).toHaveBeenLastCalledWith(
+      expect.not.objectContaining({ adaAccessible: true }),
+      true,
+    );
+  });
+
   it("reset cancels pending typing and clears filters", async () => {
     vi.useFakeTimers();
     try {

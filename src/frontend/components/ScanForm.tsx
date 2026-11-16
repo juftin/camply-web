@@ -42,6 +42,22 @@ const scanFormSchema = z
     end_date: z.string().min(1, "Check-out date is required"),
     min_stay_length: z.coerce.number().int().min(1).default(1),
     require_electric: z.boolean().default(false),
+    require_accessible: z.boolean().default(false),
+    min_rv_length: z
+      .union([
+        z.literal(""),
+        z.null(),
+        z.undefined(),
+        z.coerce
+          .number()
+          .int("Vehicle length must be a whole number of feet")
+          .min(1, "Minimum RV length is 1 ft")
+          .max(200, "Maximum RV length is 200 ft"),
+      ])
+      .transform((val): number | null =>
+        val === "" || val == null ? null : val,
+      )
+      .default(null),
     preferred_types: z.array(z.string()).default([]),
     allowed_weekdays: z
       .array(z.number().int().min(0).max(6))
@@ -191,6 +207,8 @@ export function ScanForm({
     end_date: scan?.end_date ?? "",
     min_stay_length: scan?.min_stay_length ?? 1,
     require_electric: scan?.require_electric ?? false,
+    require_accessible: scan?.require_accessible ?? false,
+    min_rv_length: scan?.min_rv_length ?? ("" as unknown as number | null),
     preferred_types: scan?.preferred_types ?? [],
     allowed_weekdays: scan?.allowed_weekdays ?? ALL_WEEKDAYS,
   };
@@ -216,6 +234,7 @@ export function ScanForm({
   const minStayLength = watch("min_stay_length") ?? 1;
   const preferredTypes = watch("preferred_types");
   const requireElectric = watch("require_electric");
+  const requireAccessible = watch("require_accessible");
   const allowedWeekdays = watch("allowed_weekdays") ?? ALL_WEEKDAYS;
 
   const todayStr = useMemo(() => getTodayString(), []);
@@ -348,6 +367,9 @@ export function ScanForm({
         min_stay_length: Number(data.min_stay_length),
         preferred_types: data.preferred_types,
         require_electric: data.require_electric,
+        require_accessible: data.require_accessible,
+        min_rv_length:
+          data.min_rv_length == null ? null : Number(data.min_rv_length),
         allowed_weekdays: data.allowed_weekdays,
       };
       if (scan) {
@@ -413,7 +435,11 @@ export function ScanForm({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          noValidate
+          className="space-y-4"
+        >
           {/* ---- Campground selection ---- */}
           <div className="space-y-2">
             <Label htmlFor="campground-search">Destination</Label>
@@ -707,6 +733,44 @@ export function ScanForm({
               checked={requireElectric}
               onCheckedChange={(v) => setValue("require_electric", v)}
             />
+          </div>
+
+          {/* ---- ADA Accessible ---- */}
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label htmlFor="require_accessible">
+                ADA Accessible Required
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Only alert on ADA-accessible campsites
+              </p>
+            </div>
+            <Switch
+              id="require_accessible"
+              checked={requireAccessible}
+              onCheckedChange={(v) => setValue("require_accessible", v)}
+            />
+          </div>
+
+          {/* ---- Minimum RV / Trailer length ---- */}
+          <div className="space-y-2">
+            <Label htmlFor="min_rv_length">
+              Minimum RV / Trailer Length (ft)
+            </Label>
+            <Input
+              id="min_rv_length"
+              type="number"
+              min={1}
+              max={200}
+              step={1}
+              placeholder="Any length"
+              {...register("min_rv_length")}
+            />
+            {errors.min_rv_length?.message && (
+              <p className="text-xs text-destructive">
+                {String(errors.min_rv_length.message)}
+              </p>
+            )}
           </div>
 
           {/* ---- Error ---- */}

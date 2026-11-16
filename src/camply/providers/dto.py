@@ -32,6 +32,8 @@ class CampsiteDTO(BaseModel):
     available_dates: list[date]
     is_electric: bool
     is_accessible: bool
+    permitted_equipment: list[str] = Field(default_factory=list)
+    max_vehicle_length: int | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

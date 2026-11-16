@@ -813,3 +813,63 @@ async def test_client_close_reaps_circuit_breaker_updates() -> None:
         await close
         assert all(task.done() for task in tasks)
         assert not transport._cb_tasks
+
+
+class TestEquipmentLengthNormalization:
+    """Verify conservative vehicle length parsing and CampsiteDTO capability normalization."""
+
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            (35, 35),
+            (28.9, 28),
+            ("24 ft", 24),
+            ("RV/Trailer up to 35ft", 35),
+            ("8m", 26),
+            ("10.2 meters", 33),
+            ("0", None),
+            (0, None),
+            (-5, None),
+            (None, None),
+            ("unlimited", None),
+        ],
+    )
+    def test_parse_vehicle_length_feet(
+        self, raw: int | float | str | None, expected: int | None
+    ) -> None:
+        """Convert feet/meters conservatively downward and treat <=0/unknown as None."""
+        from camply.providers.utils import parse_vehicle_length_feet
+
+        assert parse_vehicle_length_feet(raw) == expected
+
+    def test_campsite_dto_equipment_defaults_and_fields(self) -> None:
+        """CampsiteDTO exposes normalized equipment labels and optional max_vehicle_length."""
+        from datetime import date
+
+        from camply.providers.dto import CampsiteDTO, CampsiteType
+
+        dto = CampsiteDTO(
+            campsite_id="1",
+            campsite_name="Site 1",
+            campsite_type=CampsiteType.RV,
+            capacity=6,
+            available_dates=[date(2027, 7, 1)],
+            is_electric=True,
+            is_accessible=True,
+            permitted_equipment=["RV", "Trailer"],
+            max_vehicle_length=35,
+        )
+        assert dto.permitted_equipment == ["RV", "Trailer"]
+        assert dto.max_vehicle_length == 35
+
+        default_dto = CampsiteDTO(
+            campsite_id="2",
+            campsite_name="Site 2",
+            campsite_type=CampsiteType.TENT,
+            capacity=4,
+            available_dates=[date(2027, 7, 1)],
+            is_electric=False,
+            is_accessible=False,
+        )
+        assert default_dto.permitted_equipment == []
+        assert default_dto.max_vehicle_length is None

@@ -7,11 +7,15 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, Optional
 
 from sqlalchemy import (
+    ARRAY,
     JSON,
+    Boolean,
+    CheckConstraint,
     ForeignKey,
     ForeignKeyConstraint,
     Integer,
     String,
+    false,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -55,6 +59,33 @@ class Campground(Base):
     latitude: Mapped[float | None] = mapped_column()
     reservable: Mapped[bool] = mapped_column(default=True)
     enabled: Mapped[bool] = mapped_column(default=True)
+    campsite_types: Mapped[list[str] | None] = mapped_column(
+        ARRAY(String).with_variant(JSON(), "sqlite"),
+        nullable=True,
+    )
+    """Distinct standardized site types supported at this campground."""
+    has_electric: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
+    )
+    """Whether verified catalog metadata indicates electric hookups."""
+    has_water: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
+    )
+    """Whether verified catalog metadata indicates water hookups."""
+    has_sewer: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
+    )
+    """Whether verified catalog metadata indicates sewer hookups."""
+    pets_allowed: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
+    )
+    """Whether verified catalog metadata indicates pets are permitted."""
+    ada_accessible: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false()
+    )
+    """Whether verified catalog metadata indicates ADA-accessible sites."""
+    max_rv_length: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    """Maximum verified RV or trailer length in whole feet."""
     created_at: Mapped[datetime.datetime] = mapped_column(
         default=partial(datetime.datetime.now, tz=datetime.timezone.utc),
         server_default=func.CURRENT_TIMESTAMP(),
@@ -66,6 +97,10 @@ class Campground(Base):
     )
 
     __table_args__ = (
+        CheckConstraint(
+            "max_rv_length IS NULL OR max_rv_length > 0",
+            name="ck_campground_max_rv_length",
+        ),
         ForeignKeyConstraint(
             ["recreation_area_id", "provider_id"],
             ["recreation_areas.id", "recreation_areas.provider_id"],

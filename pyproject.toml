@@ -137,7 +137,8 @@ module = [
   "celery.*",
   "aiosqlite",
   "fake_useragent",
-  "hatchling.*"
+  "hatchling.*",
+  "ijson"
 ]
 ignore_missing_imports = true
 

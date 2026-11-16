@@ -29,3 +29,27 @@ def area_catalog() -> tuple[RecreationArea, list[Campground]]:
 def monitoring_now() -> datetime.datetime:
     """Provide one stable UTC instant for explicitly clocked coverage operations."""
     return datetime.datetime(2027, 7, 1, tzinfo=datetime.timezone.utc)
+
+
+@pytest.fixture
+def synthetic_equipment_samples() -> dict[str, object]:
+    """Return synthetic vehicle lengths, equipment labels, and amenities without external I/O."""
+    return {
+        "feet_values": [35, 28.9, "24 ft", "up to 30ft", "0", 0, -5, None, "unlimited"],
+        "metric_values": ["8m", "9.5 m", "10.2 meters"],
+        "equipment_sets": [
+            ["Tent"],
+            ["RV", "Trailer"],
+            ["Small Tent", "RV/Trailer up to 35ft"],
+            ["2 Trailers/RVs up to 40ft", "Tent"],
+        ],
+        "campground_capabilities": {
+            "campsite_types": ["RV", "TENT"],
+            "has_electric": True,
+            "has_water": True,
+            "has_sewer": False,
+            "pets_allowed": True,
+            "ada_accessible": True,
+            "max_rv_length": 40,
+        },
+    }

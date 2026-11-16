@@ -169,3 +169,59 @@ class TestExploreViewport:
             assert (
                 test_client.get("/api/search/explore", params=bounds).status_code == 422
             )
+
+
+class TestExploreAdaFilter:
+    """Expose ada_accessible across explore list and map endpoints."""
+
+    def test_explore_and_map_filter_ada_accessible(
+        self, test_client: TestClient
+    ) -> None:
+        """ada_accessible=true restricts both list and map summaries to ADA destinations."""
+        from camply.db.models import Search
+        from tests.server.conftest import seed_data
+
+        seed_data(
+            [
+                Search(
+                    id="Campground/1/area030/ada",
+                    entity_type="Campground",
+                    provider_id=1,
+                    provider_name="Recreation.gov",
+                    campground_id="ada-030",
+                    campground_name="Accessible Pines",
+                    state="CA",
+                    latitude=37.7,
+                    longitude=-119.5,
+                    reservable=True,
+                    ada_accessible=True,
+                ),
+                Search(
+                    id="Campground/1/area030/std",
+                    entity_type="Campground",
+                    provider_id=1,
+                    provider_name="Recreation.gov",
+                    campground_id="std-030",
+                    campground_name="Standard Pines",
+                    state="CA",
+                    latitude=37.8,
+                    longitude=-119.6,
+                    reservable=True,
+                    ada_accessible=False,
+                ),
+            ]
+        )
+
+        explore = test_client.get(
+            "/api/search/explore", params={"q": "Pines", "ada_accessible": "true"}
+        )
+        assert explore.status_code == 200
+        payload = explore.json()
+        assert payload["total"] == 1
+        assert [item["campground_id"] for item in payload["items"]] == ["ada-030"]
+
+        summary = test_client.get(
+            "/api/search/map/summary", params={"q": "Pines", "ada_accessible": "true"}
+        )
+        assert summary.status_code == 200
+        assert summary.json()["total"] == 1
