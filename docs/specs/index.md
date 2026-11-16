@@ -62,3 +62,13 @@ This catalog indexes all feature specifications, technical implementation plans,
   - [Plan](025-provider-search/plan.md) | [Tasks](025-provider-search/tasks.md)
 - **[026: Legacy CLI Parity](026-cli-parity/spec.md)**
   - [Legacy Inventory](026-cli-parity/legacy-audit.md) | [Plan](026-cli-parity/plan.md) | [Tasks](026-cli-parity/tasks.md) | [Readiness](026-cli-parity/checklists/requirements.md)
+- **[027: Campground Enrichment](027-campground-enrichment/spec.md)**
+  - [Plan](027-campground-enrichment/plan.md) | [Tasks](027-campground-enrichment/tasks.md) | [UI/UX](027-campground-enrichment/ui-ux.md)
+- **[028: Enrichment Rollout](028-enrichment-rollout/spec.md)**
+  - [Plan](028-enrichment-rollout/plan.md) | [Tasks](028-enrichment-rollout/tasks.md) | [Validation](028-enrichment-rollout/validation.md)
+- **[029: Recreation Area Monitoring](029-recreation-area-monitoring/spec.md)**
+  - [Plan](029-recreation-area-monitoring/plan.md) | [Tasks](029-recreation-area-monitoring/tasks.md) | [Data Model](029-recreation-area-monitoring/data-model.md)
+- **[029: Nights of the Week](029-weekday-night-filter/spec.md)**
+  - [Plan](029-weekday-night-filter/plan.md) | [Tasks](029-weekday-night-filter/tasks.md) | [Data Model](029-weekday-night-filter/data-model.md)
+- **[030: Documentation Rework](030-docs-rework/spec.md)**
+  - [Plan](030-docs-rework/plan.md) | [Tasks](030-docs-rework/tasks.md) | [Data Model](030-docs-rework/data-model.md)

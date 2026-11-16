@@ -1,22 +1,22 @@
 # Find your next campsite
 
-**camply** watches campground availability and alerts you when a stay matches your plans. Explore campgrounds on a map, save a scan for your dates, and open the provider's booking page when a campsite becomes available.
+camply watches campground availability and notifies you when a stay opens up. You can use the hosted app at [camply.rocks](https://camply.rocks), monitor from your terminal, or run your own instance.
 
-**[Open camply at camply.rocks →](https://camply.rocks)**
+camply only tracks openings and sends alerts. You complete the reservation on the booking provider's site.
 
-## Get started
+## Use camply
 
-- **Use the hosted app:** [find a campground and create a scan](using-camply.md).
-- **Run it on your machine:** [start the standalone app](self-hosting/standalone.md) with Python and SQLite.
-- **Host your own instance:** choose [Docker Compose or Kubernetes](self-hosting/containers.md), then [configure login and alerts](configuration.md).
-- **Contribute:** follow the [contributing guide](CONTRIBUTING.md), the [development guide](development.md), or browse the [technical references](reference.md).
+- **Web app:** [Find campgrounds, save scans, and set up alerts](using-camply.md).
+- **Command line:** [Discover campgrounds and watch availability in your terminal](cli.md).
 
-camply finds availability; reservations are completed with the booking provider. An alert does not hold a campsite for you.
+## Self-host camply
 
-## About these docs
+- **Choose a setup:** [Compare single-machine, Docker Compose, and Kubernetes](self-hosting/index.md).
+- **Run on one machine:** [Start standalone camply with Python and SQLite](self-hosting/standalone.md).
+- **Configure your instance:** [Set up login, alerts, and storage](self-hosting/configuration.md).
 
-These guides cover everyday use and setup. Detailed engineering and operations documents are linked from the [reference directory](reference.md).
+## Technical docs
 
-The site is built with [VitePress](https://vitepress.dev/). See [working on the docs](development.md#working-on-the-docs) to edit, build, or preview the docs.
+If you are contributing code or looking up internal references, see [Technical & Architectural Documentation](technical/index.md) and [Technical Reference](reference.md).
 
 camply is licensed under [GNU Affero General Public License v3.0](https://github.com/juftin/camply-web/blob/main/LICENSE).

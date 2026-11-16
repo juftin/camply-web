@@ -1,59 +1,45 @@
-# Run camply on your machine
+# Standalone hosting
 
-Standalone camply serves the web app, API, and background polling in one Python process. It stores your catalog, scans, and pending alerts in SQLite. This is the simplest setup for a personal instance.
+Standalone mode serves the web app, API, and background polling from one Python process backed by SQLite. It needs no Docker, PostgreSQL, or Valkey.
 
-## Quick start with uvx
+## Run with uv
 
-Run camply directly with [uv](https://docs.astral.sh/uv/):
+Start camply directly with [uv](https://docs.astral.sh/uv/):
 
 ```bash
 uvx --from "camply-web[server]" camply serve
 ```
 
-Open <http://127.0.0.1:8000>. Use **Sync Providers** in Admin Operations to import the campground catalog, then [create a scan](../using-camply.md). Configure [Pushover](../configuration.md#notifications) to receive alerts.
-
-The `server` extra installs the dependencies needed to serve the app.
-
-Docker, PostgreSQL, and Valkey are not required for this workflow. Internet access is needed for catalog imports, availability checks, and notifications.
-
-## Install as a tool
-
-To install camply into a persistent tool environment:
+Or install it as a persistent CLI tool:
 
 ```bash
 uv tool install "camply-web[server]"
 camply serve
 ```
 
-uv exposes the `camply` command on your PATH. If your shell cannot find it, run `uv tool update-shell` and restart your shell.
-
-## Run a prepared wheel
-
-If you have a prepared camply-web wheel, install it with uv from the directory containing the downloaded file:
+If you downloaded a release wheel, install it from the folder containing the file:
 
 ```bash
 uv tool install './camply_web-0.1.0-py3-none-any.whl[server]'
 camply serve
 ```
 
-Replace the wheel filename with your actual artifact. Prepared wheels include the web app, so Node and pnpm are only needed when building from source. See [building and installing distributions](https://github.com/juftin/camply-web/blob/main/docs/operations/RUNNING.md#build-and-install-the-complete-application) for the full artifact workflow.
+Open <http://127.0.0.1:8000>. Run **Sync Providers** in **Admin Operations** to import the campground catalog, then create a scan from [Using the web app](../using-camply.md).
 
-## Storage and backups
+## Expose on your network
 
-By default, SQLite lives in your platform's camply application-data directory, such as `~/.local/share/camply/camply.db` on Linux. Set `CAMPLY_DB_HOST` to an absolute writable file path to choose another location. Keep that file between runs.
+By default, standalone camply listens only on `127.0.0.1:8000` and signs every visitor in as a shared administrator.
 
-Stop camply before copying the database for a backup, or use SQLite's online backup API. To restore, stop the app, replace the database with a consistent backup, and restart. Run only one standalone process against a database.
-
-## Share an instance
-
-The default authentication mode signs everyone in as a shared administrator. [Set up session or Auth0 login](../configuration.md#authentication) before making the app available to others.
-
-To change the listener:
+Before sharing the instance, [enable authentication](configuration.md#authentication) and bind to your network interface:
 
 ```bash
 camply serve --host 0.0.0.0 --port 8000
 ```
 
-For HTTPS hosting, place the listener behind a reverse proxy and set `CAMPLY_APP_URL` to the public URL so notification links point to your instance.
+When serving behind an HTTPS reverse proxy, set `CAMPLY_APP_URL` to your public URL (including any path prefix) so links inside alert messages open the right address.
 
-Standalone supports personal and small-instance workloads. Historical monitoring charts use the [distributed deployment](containers.md). For scheduling, recovery, and health-check details, see the [runtime reference](https://github.com/juftin/camply-web/blob/main/docs/operations/CONFIGURATION.md#runtime-selection).
+## Storage and limits
+
+SQLite stores the catalog, scans, and pending alerts in your platform's user data directory (such as `~/.local/share/camply/camply.db` on Linux). Set `CAMPLY_DB_HOST` to an absolute writable path to store it elsewhere.
+
+Run only one standalone process against a given SQLite file. For multi-worker scaling or historical worker metrics charts, use [Docker Compose or Kubernetes](containers.md). For backups and upgrades, see [Maintenance](maintenance.md).

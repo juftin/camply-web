@@ -4,31 +4,30 @@
 </a>
 </div>
 
-**camply**, the campsite finder ⛺️, watches for openings at sold-out campgrounds and alerts you when a stay matches your plans. Explore campgrounds, save your dates, and follow booking links when availability appears.
+camply watches for openings at sold-out campgrounds and notifies you when a stay matches your dates. Use it online at **[camply.rocks](https://camply.rocks)**, from your terminal, or on your own server.
 
-**[Open camply →](https://camply.rocks)**
+## Quick start
 
-## Run camply yourself
-
-Run camply directly with [uv](https://docs.astral.sh/uv/):
+Run the full web app on your own machine with [uv](https://docs.astral.sh/uv/):
 
 ```bash
 uvx --from "camply-web[server]" camply serve
 ```
 
-Open <http://127.0.0.1:8000> and use **Sync Providers** in Admin Operations to load the campground catalog. Set up Pushover to receive alerts. The default login uses a shared administrator account; [configure authentication](docs/configuration.md) before sharing your instance.
+Open <http://127.0.0.1:8000>, run **Sync Providers** in Admin Operations to load campgrounds, and configure Pushover or ntfy for alerts. Set up authentication before exposing a self-hosted instance to other people.
 
-See the [standalone guide](docs/self-hosting/standalone.md) for installation and storage, or self-host with [Docker Compose](docs/self-hosting/containers.md) or [Kubernetes/Helm](deploy/helm/README.md).
+For terminal-only searches without a database or web server:
 
-For terminal-only discovery and availability monitoring, run
-`uvx --from camply-web camply providers` and follow the [command-line guide](docs/cli.md).
-This workflow needs no web account, database or server extras; results appear in
-your terminal.
+```bash
+uvx --from camply-web camply providers
+```
 
-## Docs
+## Documentation
 
-Start with the [camply docs](https://camply.rocks/docs/) for using the app, configuration, and self-hosting ([browse the source](docs/index.md)). Every installation includes docs at `/docs/`, linked from the app footer. Contributors can follow the [contributing guide](docs/CONTRIBUTING.md) and [developer guide](docs/development/DEVELOPER_GUIDE.md); detailed [runtime and packaging](docs/operations/RUNNING.md) and [architecture](docs/architecture/ARCHITECTURE_DEEP_DIVE.md) references are also available.
+Read the docs at [camply.rocks/docs](https://camply.rocks/docs/) (also served at `/docs/` on every self-hosted instance):
 
-To edit or preview the docs, see [working on the docs](docs/development.md#working-on-the-docs).
+- **User Documentation:** [Web app guide](docs/using-camply.md) and [CLI guide](docs/cli.md).
+- **Self-Hosting:** [Deployment options](docs/self-hosting/index.md), [standalone setup](docs/self-hosting/standalone.md), [Docker & Kubernetes](docs/self-hosting/containers.md), and [configuration](docs/self-hosting/configuration.md).
+- **Contributors:** [Technical & Architectural Documentation](docs/technical/index.md) and [Technical Reference](docs/reference.md).
 
 Licensed under [GNU Affero General Public License v3.0](LICENSE).

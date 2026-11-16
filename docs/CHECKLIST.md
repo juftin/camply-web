@@ -2,6 +2,11 @@
 
 This checklist tracks the granular progress of `camply`. Agents **MUST** update this file by marking tasks as completed (`[x]`) before finalizing any PR.
 
+## Documentation rework (030)
+
+- [x] Specify, clarify, plan, and task out the four-perspective documentation rework (`User Documentation`, `Self-Hosting`, `Technical and Architectural Documentation`, `Technical Reference`) with a two-perspective default view and human-readable editorial standard in [spec 030](specs/030-docs-rework/spec.md).
+- [x] Reorganize `docs/.vitepress/config.ts` with a 4-item navbar, path-scoped sidebars, and search exclusion for internal specs/checklists/agent docs; consolidate and rewrite User Documentation, Self-Hosting, Technical & Architectural Documentation, Technical Reference, and `README.md`; verify link/editorial/search hygiene and bundled `/docs/` packaging checks.
+
 ## Recreation-area monitoring (029)
 
 - [x] Specify one saved scan for all eligible campgrounds or a selected subset within one recreation area, including membership changes, attributed results, notifications, shared polling, lifecycle, and compatibility; validate the [specification](specs/029-recreation-area-monitoring/spec.md) against its [requirements checklist](specs/029-recreation-area-monitoring/checklists/requirements.md).

@@ -1,6 +1,6 @@
-# CONFIGURATION: Environment Variables & Settings
+# Environment Variables and Configuration Reference
 
-This document defines all environment variables used by the `camply` monorepo. Agents and contributors should use this as a reference when setting up local or production environments.
+Complete environment variable and runtime configuration reference for `camply-web`. For everyday hosting setup, see [Self-Hosting Configuration](../self-hosting/configuration.md).
 
 ## Python installation capabilities
 
@@ -16,9 +16,9 @@ API-only installs retain scan management, but scheduled checks need workers,
 beat, and Valkey/Redis. Missing distributed support makes operations reads
 unavailable and task detail/dispatch return authorized HTTP 503 responses.
 A configured Sentry DSN needs the `sentry` extra; PostgreSQL engine creation
-needs `postgres`. See [backend installation](RUNNING.md#build-and-install-the-complete-application).
+needs `postgres`. See [Runtime & Packaging](RUNNING.md#build-and-install-the-complete-application).
 
-## ⚙️ Core Configuration
+## Core configuration
 
 All backend environment variables are prefixed with `CAMPLY_` to avoid conflicts.
 They are defined in `src/camply/server/config.py` via `pydantic-settings`.
@@ -144,7 +144,7 @@ Compose sends `SIGTERM` to backend/worker/beat and `SIGQUIT` to frontend Nginx. 
 
 `SIGKILL` cannot be caught, forwarded, or used for cleanup. Docker forcibly kills a container after its grace period, and in-flight requests/tasks can be interrupted. Outside containers, use a service manager that owns all descendant processes (for example [systemd with `KillMode=mixed`](https://www.freedesktop.org/software/systemd/man/latest/systemd.kill.html)): signal the master first for graceful shutdown, then kill the complete service if the grace period expires. Killing only a master PID does not generally guarantee all descendants stop. Process replacement avoids an extra launcher parent but does not change OS process-group semantics. These behaviors follow [Docker's stop policy](https://docs.docker.com/reference/cli/docker/container/stop/), [Nginx signal handling](https://nginx.org/en/docs/control.html), and [Celery shutdown semantics](https://docs.celeryq.dev/en/stable/userguide/workers.html#stopping-the-worker).
 
-## 🔒 Authentication (Toggleable)
+## Authentication (toggleable)
 
 The instance owner chooses `CAMPLY_AUTH_MODE`. `CAMPLY_ENVIRONMENT` does not select or override authentication. HTTP Basic authentication is never used; `basic` and the old `local` auth mode are rejected.
 
@@ -199,21 +199,19 @@ See the [Pages Functions setup](https://developers.cloudflare.com/pages/function
 
 Set `CAMPLY_INVITE_ONLY=true` to require `is_invited=true` for all scan operations. It defaults to `false`: authenticated users may manage their scans without invitations. Public browsing and authenticated profile access remain available in either case. The shared admin for `none` and `session` is invited when created.
 
-The Python model and API use `is_invited`; its existing database column remains `is_early_access_user` to preserve stored grants without a migration. Invitation requests are collected through `/api/request-access`.
-
-**TODO:** Implement approval/revocation, safe matching of requests to verified user identities, and invitation notifications. Requests currently remain pending; they do not grant access or send email.
+The Python model and API use `is_invited`; its existing database column remains `is_early_access_user` to preserve stored grants without a migration. Uninvited users can submit access requests through `/api/request-access`, which administrators approve or reject via `/api/admin/access-requests`.
 
 ---
 
-## 🔔 Notifications
+## Notifications
 
-### Pushover (MVP)
+### Pushover
 
 | Variable             | Description                                    |
 | -------------------- | ---------------------------------------------- |
 | `PUSHOVER_APP_TOKEN` | The API Token for your Pushover "Application". |
 
-### Apprise (Legacy/Future)
+### Apprise (legacy/future)
 
 | Variable       | Description                                      |
 | -------------- | ------------------------------------------------ |
@@ -221,11 +219,11 @@ The Python model and API use `is_invited`; its existing database column remains 
 
 ---
 
-## 📈 Monitoring & Observability
+## Monitoring and observability
 
-### Native Admin UI Monitoring (Prometheus-backed)
+### Native Admin UI monitoring (Prometheus-backed)
 
-The Admin UI provides native monitoring dashboards for usage trends, API latency/errors, worker throughput/outcomes, and provider performance, querying an internal Prometheus instance via FastAPI proxy (`GET /api/admin/trends`). Grafana is decommissioned and no longer deployed.
+The Admin UI provides native monitoring dashboards for usage trends, API latency/errors, worker throughput/outcomes, and provider performance, querying an internal Prometheus instance via FastAPI proxy (`GET /api/admin/trends`).
 
 | Variable                | Description                | Default                 |
 | ----------------------- | -------------------------- | ----------------------- |
@@ -233,14 +231,14 @@ The Admin UI provides native monitoring dashboards for usage trends, API latency
 
 ### Sentry
 
-| Variable                    | Description                                   |
-| --------------------------- | --------------------------------------------- |
-| `SENTRY_DSN`                | The DSN for error tracking (Optional).        |
-| `SENTRY_TRACES_SAMPLE_RATE` | Percentage of traces to capture (0.0 to 1.0). |
+| Variable                           | Description                                   | Default |
+| ---------------------------------- | --------------------------------------------- | ------- |
+| `CAMPLY_SENTRY_DSN`                | Sentry DSN for error tracking (optional)      | `None`  |
+| `CAMPLY_SENTRY_TRACES_SAMPLE_RATE` | Percentage of traces to capture (`0.0`–`1.0`) | `0.0`   |
 
 ---
 
-## 🏗️ Docker & Infrastructure
+## Docker and infrastructure
 
 These variables are primarily used in `docker-compose.yaml`.
 

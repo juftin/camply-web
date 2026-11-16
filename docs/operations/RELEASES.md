@@ -1,4 +1,6 @@
-# Releases
+# Release Operations
+
+CI, semantic-release, container image, Helm chart, PyPI, and documentation publishing pipeline for `camply-web`.
 
 Releases use the Gitmoji/semantic-release infrastructure from [cookiecutter-python](https://github.com/juftin/cookiecutter-python), with [juftin/actions/semantic-release](https://github.com/juftin/actions/tree/v1.4.0/semantic-release) pinned to v1.4.0. The workflow pins npm 10.9.9 because npm 11 rejects that action's lockfile; its dependency installation and registry signature verification have been verified with npm 10.
 

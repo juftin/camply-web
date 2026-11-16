@@ -1,16 +1,14 @@
-# DESIGN_AGENTIC: Local Development & Agentic Tooling
+# Agentic Tooling Reference
 
-This document outlines the local "Agentic" development environment for `camply`. These Model Context Protocol (MCP) servers allow AI agents (like Gemini CLI) to interact directly with the database, UI, and infrastructure for autonomous implementation and validation.
+Local Model Context Protocol (MCP) server and visual snapshot workflow notes for AI-assisted development on `camply`.
 
-## 🎯 Philosophy
+## Philosophy
 
-1. **Local-First**: All tools run locally to ensure privacy, speed, and reliability.
-2. **Autonomous Validation**: The agent should be able to _prove_ a change works (e.g., query the DB or run a browser test) before finishing a task.
-3. **Task-Driven**: Tools are integrated into the `spec-kit` workflow to automate the boring parts (issue tracking, documentation lookup).
+1. **Local-first:** All tools run locally for speed and reproducibility.
+2. **Autonomous validation:** Agents verify changes against the database, tests, or rendered browser screenshots before finishing.
+3. **Spec-driven:** Work integrates with `spec-kit` (`docs/specs/`) and `Taskfile.yaml`.
 
----
-
-## 🛠️ MCP Configuration (Local Dev)
+## MCP configuration (local dev)
 
 The following MCP servers should be added to the local agent configuration (e.g., `gemini-cli` config or `claude_desktop_config.json`).
 
@@ -38,7 +36,7 @@ The following MCP servers should be added to the local agent configuration (e.g.
 
 **Capability**: Monitor and manage the local container stack.
 
-- **Stack**: `backend-api`, `celery-worker`, `redis`, `postgres`.
+- **Stack**: `backend`, `celery-worker`, `celery-beat`, `valkey`, `db`, `frontend`.
 - **Use Case**:
   - Check Celery logs for scan errors.
   - Restart specific services after a code change.
@@ -65,7 +63,7 @@ The following MCP servers should be added to the local agent configuration (e.g.
 
 ---
 
-## 🚀 Workflow Integration
+## Workflow integration
 
 ### Step 1: Research
 
@@ -89,13 +87,13 @@ Agent uses **GitHub MCP** to update tasks and submit the PR.
 
 ---
 
-## 📸 UI Snapshot & Visual Feedback Loop
+## UI snapshot and visual feedback loop
 
 Camply includes an automated snapshot and visual regression mechanism designed for both human reviewers and AI agents.
 
 ### Architecture
 
-- **Engine**: Headless Playwright Chromium (`scripts/run-snapshots.ts`) running against the local Vite frontend.
+- **Engine**: Headless Playwright Chromium (`src/frontend/tooling/run-snapshots.ts`) running against the local Vite frontend.
 - **Determinism**: Network routes (`/api/auth-config`, `/api/me`, `/api/scans`, etc.) are intercepted with mock data to guarantee zero network drift and immediate rendering. CSS animations/transitions and carets are frozen.
 - **Coverage**:
   - Full pages (Home, Dashboard, Early Access, Auth, Ethos) across desktop (`1280x800`) and mobile (`390x844`) viewports.
@@ -118,7 +116,7 @@ Camply includes an automated snapshot and visual regression mechanism designed f
 
 ---
 
-## 🔒 Security & Local Config
+## Security and local config
 
 - **Secrets**: Never store API keys in this documentation.
 - **Auth0 Testing**: For local dev, we will use a dedicated "Dev" Auth0 Tenant or a mocked local Auth flow to avoid hitting production limits.

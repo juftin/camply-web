@@ -1,6 +1,8 @@
 # Command line
 
-Install the base package in an isolated environment to use the `camply` executable:
+The `camply` CLI discovers campgrounds and watches live availability straight from your terminal. It talks directly to booking providers and needs no web account, database, or server setup.
+
+Install it into an isolated environment with [uv](https://docs.astral.sh/uv/), or run commands one-off with `uvx`:
 
 ```bash
 uv tool install camply-web
@@ -9,12 +11,11 @@ camply --help
 
 ![Help output showing the discovery and monitoring commands](assets/camply-cli-help.png)
 
-Legacy `camply` and `camply-web` both install an executable named `camply`. Use
-separate environments when keeping both generations. No server extra, account,
-database migration or catalog import is needed for these commands. Internet access
-to the booking provider is required for discovery and availability.
+If you also keep legacy `camply` installed, keep `camply-web` in a separate `uv` tool environment because both install a `camply` executable.
 
 ## Discover locations
+
+List the 26 supported providers, search recreation areas, and find exact campground IDs:
 
 ```bash
 camply providers
@@ -25,26 +26,11 @@ camply --provider ReserveCalifornia campgrounds --search redwood
 
 ![Campground discovery output with Rich logging](assets/camply-cli-discovery.png)
 
-`providers` lists the current 26 camping providers. Provider names and registered
-class aliases are case-insensitive. The default is `RecreationDotGov`. Set
-`CAMPLY_PROVIDER` to change it, or supply `--provider` before or after the discovery
-or availability command. A command option overrides a root option, which overrides
-the environment. `--debug` and `--no-debug` work at both positions.
-
-Copy native IDs from discovery. IDs belong to the selected provider and may contain
-letters, punctuation or leading zeroes. `campgrounds --campground ID` resolves the
-exact ID even when it is outside the first discovery page. Multiple `--rec-area`
-values combine their campgrounds. Explicit campground IDs take precedence over
-area IDs; the command reports ignored areas. Unknown or unbookable selections fail
-with an error.
-
-Discovery displays up to 50 results and reports when more exist. Narrow the text,
-state or area filter to find more specific locations. Recreation.gov uses its
-upstream search relevance; other providers match names and cities. ReserveAmerica
-has no separate recreation-area catalog; supply a state to avoid scanning every
-state when searching it.
+`RecreationDotGov` is the default provider. Set `CAMPLY_PROVIDER` or pass `--provider` (case-insensitive) to choose another. Discovery prints up to 50 matches—add `--search`, `--state`, or `--rec-area` to narrow results. When searching `ReserveAmerica`, include `--state` so camply does not scan every state.
 
 ## Watch for a stay
+
+Pass one or more `--campground` or `--rec-area` IDs from discovery along with paired `--start-date` and `--end-date` flags:
 
 ```bash
 camply campsites --campground 232450 \
@@ -53,26 +39,15 @@ camply campsites --campground 232450 \
 
 ![Campsite availability monitoring output with Rich logging](assets/camply-cli-campsites.png)
 
-The command checks immediately, prints qualifying stays and booking links, and
-continues checking after empty or matching results. Stop it with Ctrl-C. It uses
-existing provider request pacing and retry behavior, with an internal one-minute
-wait between successful cycles. Provider failures produce an error. Detailed
-scheduling and run-mode options remain deferred.
+camply checks availability right away, prints matching stays with booking links, and re-checks about once a minute until you press `Ctrl-C`.
 
-Provide at least one campground or recreation area. Area monitoring resolves every
-eligible campground, independently of the discovery display limit. Repeat date
-flags to supply multiple windows; starts and ends pair by occurrence order. Arrival
-is inclusive and checkout is exclusive. Past starts are clamped to UTC today with
-a warning; expired windows are rejected. Overlapping windows and duplicate targets
-do not cause duplicate checks.
+- **Dates:** `--start-date` is check-in (inclusive) and `--end-date` is checkout (exclusive). Repeat both flags in pairs to watch multiple date windows in one command.
+- **Stay length:** `--nights` defaults to `1` and matches exact-length consecutive stays at a single site (for example, a 4-night opening yields two 3-night options when `--nights 3`).
+- **Targets:** Multiple `--rec-area` flags combine their campgrounds. If you pass `--campground` alongside `--rec-area`, explicit campground IDs win.
 
-`--nights` defaults to one and produces exact-length consecutive stays at a single
-site. A four-night opening yields two overlapping three-night stays with
-`--nights 3`. `--day Friday --day Saturday` restricts eligible nights. `--weekends`
-adds Friday and Saturday to explicitly selected days. A requested stay that cannot
-fit the selected dates and days fails before checking availability.
+## Filter by nights of the week
 
-To look for any full weekend during a summer date range, use one search:
+Use `--weekends` (Friday and Saturday nights) or repeat `--day` to watch specific nights across a longer range—such as any summer weekend in one command:
 
 ```bash
 camply campsites --campground 232450 \
@@ -80,36 +55,10 @@ camply campsites --campground 232450 \
   --weekends --nights 2
 ```
 
-In the Web UI, choose the same campground and dates, select **Weekends** under
-**Nights of the week**, and set the minimum stay to two nights. Both searches
-consider Friday and Saturday occupied nights, with Sunday checkout. Selecting
-weekends alone permits a single Friday or Saturday night when the stay length is
-one. Add `--day Sunday` in the CLI, or select Sunday in the web form, to allow
-Sunday night as well. Repeated `--day` options allow any other combination.
+Weekday filters apply to every occupied night, not the checkout date. A `--weekends --nights 2` search matches Friday and Saturday nights with Sunday checkout. Add `--day Sunday` if you also want Saturday–Monday or Sunday nights.
 
-Weekday restrictions apply to every occupied night, not just check-in. Excluded
-nights break consecutive stays; a Friday-only selection cannot combine two
-Fridays a week apart. The checkout weekday does not need to be selected. Calendar
-weekdays follow the booking dates without conversion to your browser's timezone.
-The CLI displays exact-length stays; the web displays available blocks meeting
-the minimum length. Web scans save these preferences and let you edit them later;
-**Any night** restores unrestricted matching. Leaving out CLI day/weekend options
-also allows every night.
+In the [web app](using-camply.md), the same **Weekends** option under **Nights of the week** applies the same occupied-night rules, while showing full available blocks that meet your minimum stay length instead of fixed-length windows.
 
-Results appear on stdout; warnings, errors and debug diagnostics appear on stderr.
-Availability is a live observation and can change before you complete a booking.
+## Current CLI scope
 
-## Initial coverage
-
-This delivery supports current-provider discovery and campground-based monitoring
-with terminal output. It sends no external notifications and reads no notification
-credentials. Existing web Pushover delivery is configured separately.
-
-Site listing, campsite-ID selection, external notifications including Pushover,
-missing legacy campground providers/deployments, YAML files, permits, equipment
-filtering, TUI, Rich-click, configuration wizard, legacy run-mode switches,
-first-try notification controls and offline/persistent history are deferred. Those
-commands and flags are rejected. See the [tracked TODOs](specs/026-cli-parity/tasks.md#deferred-todo-registry).
-
-Existing `camply serve` roles/health checks and `camply db` management commands
-retain their behavior and dependency requirements. See [running and packaging](operations/RUNNING.md).
+The CLI prints live availability to stdout (and diagnostics to stderr when `--debug` is set). It does not send Pushover/ntfy alerts, filter by equipment/permit, or read YAML config files; use the [web app](using-camply.md) when you want persistent scans and background notifications.
