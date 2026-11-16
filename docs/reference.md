@@ -1,29 +1,21 @@
-# Reference Hub
+# Technical Reference
 
-Welcome to the Technical Reference hub. This section contains the complete specifications, blueprints, operations guides, and foundational documentation for `camply-web`.
+Lookup tables, runtime contracts, release operations, and internal project records for `camply-web`.
 
-## Operations
+For everyday usage and self-hosting guides, start from the [documentation overview](index.md). For architecture explanations and contributor onboarding, see [Technical & Architectural Documentation](technical/index.md).
 
-- [Runtime, packaging, and deployment commands](operations/RUNNING.md)
-- [Environment variables, authentication, and health checks](operations/CONFIGURATION.md)
-- [Release operations](operations/RELEASES.md)
-- [Kubernetes and Helm](https://github.com/juftin/camply-web/blob/main/deploy/helm/README.md)
+## Operations and runtime references
 
-## Architecture
+- [Environment Variables](operations/CONFIGURATION.md) — Complete `CAMPLY_*` and frontend build configuration reference.
+- [Runtime & Packaging](operations/RUNNING.md) — Python extras, `camply serve` / `camply db` subcommands, distribution builds, and enrichment tasks.
+- [Release Operations](operations/RELEASES.md) — CI, semantic-release, container images, Helm OCI charts, PyPI, and Pages publishing.
+- [License](license.md) — GNU AGPL-3.0 licensing terms, network copyleft obligations, and why camply uses it.
+- [Kubernetes & Helm](https://github.com/juftin/camply-web/blob/main/deploy/helm/README.md) — Chart installation, values, and probes.
 
-- [Polling engine deep dive](architecture/ARCHITECTURE_DEEP_DIVE.md)
-- [Database and multi-tenant data model](architecture/DESIGN_DATA.md)
-- [Provider integrations](architecture/DESIGN_PROVIDERS.md)
-- [Notifications](architecture/DESIGN_NOTIFICATIONS.md)
-- [API and security](architecture/DESIGN_API.md)
-- [Frontend journeys](architecture/DESIGN_FRONTEND.md)
+## Specifications and project records
 
-## Contributing & Project Planning
-
-- [Developer guide](development/DEVELOPER_GUIDE.md)
-- [Style guide](development/STYLE_GUIDE.md)
-- [Development troubleshooting](development/AGENT_TROUBLESHOOTING.md)
-- [Agent tooling](development/DESIGN_AGENTIC.md)
-- [Roadmap & Plan](PLAN.md)
-- [Feature checklist](CHECKLIST.md)
-- [Specifications Catalog](specs/index.md)
+- [Specifications Catalog](specs/index.md) — Feature specs, plans, and task checklists.
+- [Roadmap & Plan](PLAN.md) — Overall product roadmap and architecture summary.
+- [Feature Checklist](CHECKLIST.md) — Granular delivery checklist.
+- [Agentic Tooling](development/DESIGN_AGENTIC.md) — Local MCP and visual snapshot tooling notes.
+- [Agent Troubleshooting](development/AGENT_TROUBLESHOOTING.md) — Local development and container troubleshooting.

@@ -1,50 +1,34 @@
-# STYLE_GUIDE: Coding & Git Standards
+# Style Guide
 
-This document defines the engineering standards for `camply`. All agents and contributors MUST adhere to these rules to ensure a maintainable and consistent codebase.
+All code and documentation in `camply` must follow these engineering standards.
 
----
+## Python (backend)
 
-## 🐍 Python Standards (Backend)
+- **Type hints:** Annotate every function and method signature, including tests and fixtures. Verify with `task backend:check` (`mypy`).
+- **Validation:** Use Pydantic v2 `BaseModel` schemas and `pydantic-settings` for configuration instead of raw dicts.
+- **Async I/O:** Keep database queries and upstream HTTP calls `async`.
+- **Logging:** Use `structlog` for structured logging; never leave `print()` calls in application code.
+- **Docstrings:** Use NumPy-style docstrings for public modules, classes, and functions.
+- **Layer boundaries:** Keep imports respecting `cli | server | worker -> core -> notifications | providers -> db -> __about__` (`task backend:imports`).
 
-1.  **Strict Typing**: Every function signature MUST have type hints. Use `mypy` to verify.
-2.  **Pydantic v2**: Use Pydantic for all data validation and DTOs. Prefer `BaseModel` and avoid raw dictionaries.
-3.  **Async-First**: All I/O operations (DB queries, API calls) MUST be `async`.
-4.  **Logging**: Use `structlog` for structured, JSON-compatible logging. Never use `print()`.
-5.  **Docstrings**: Follow the **NumPy** docstring convention for all public methods and classes.
+## React and TypeScript (frontend)
 
----
+- **Components:** Write functional arrow-function components with strict TypeScript types (never `any`).
+- **Styling:** Use Tailwind CSS utility classes and Shadcn/UI primitives in `src/frontend/components/ui/` (wrap primitives instead of editing them directly).
+- **Server state:** Use TanStack Query hooks backed by `src/frontend/lib/api.ts` and the OpenAPI-generated schema.
+- **Formatting and linting:** Pass `oxlint` and `oxfmt` (`task frontend:lint`, `task frontend:check`).
 
-## ⚛️ React & TypeScript Standards (Frontend)
+## Testing
 
-1.  **Functional Components**: Use arrow functions for components (`export const MyComponent = () => ...`).
-2.  **TypeScript**: Avoid `any`. Define strict interfaces/types for all component props and state.
-3.  **Tailwind CSS**: Use Tailwind classes for styling. Follow the standard utility order (Layout -> Box Model -> Typography -> Visuals).
-4.  **Shadcn/UI**: Use Shadcn primitives for UI atoms. Do not modify the primitives in `src/components/ui/` directly; wrap them if needed.
-5.  **TanStack Query**: Use React Query for all server-state. Keep API logic inside `src/lib/api.ts` or the generated SDK.
+- **Test with changes:** Add or update unit and integration tests alongside behavior changes.
+- **Mock upstream HTTP:** Record external provider API calls with `pytest-vcr`; never hit live booking APIs in unit tests.
+- **Reproduce bugs first:** Write a failing regression test before fixing a bug.
 
----
+## Documentation
 
-## 🌳 Git & PR Standards
+Keep active documentation concise, direct, and free of filler:
 
-1.  **Gitmoji**: Every commit message MUST start with a relevant [Gitmoji](https://gitmoji.dev/).
-    - ✨ `:sparkles:` for new features.
-    - 🐛 `:bug:` for bug fixes.
-    - 📝 `:memo:` for documentation.
-    - 🧪 `:test_tube:` for tests.
-    - 🎨 `:art:` for UI/style changes.
-2.  **Commit Messages**: Follow the "Why, not what" rule.
-    - _Bad_: `✨ add unique_target model`
-    - _Good_: `✨ Implement UniqueTarget model to support scan de-duplication`
-3.  **Branching**: Work in isolated branches (or worktrees). Never commit directly to `main`.
-4.  **PR Descriptions**: Every PR must include:
-    - A summary of changes.
-    - A link to the relevant `spec-kit` plan.
-    - A screenshot or DB query result proving validation.
-
----
-
-## 🧪 Testing Discipline
-
-1.  **Coverage**: Every new feature MUST have corresponding tests.
-2.  **VCR**: External API interactions MUST be recorded using `pytest-vcr`.
-3.  **Red-Green-Refactor**: For bug fixes, write a failing test first to reproduce the issue.
+- Use plain-text headings with no decorative emoji prefixes.
+- Start pages with what the reader needs to know or do—avoid `"Welcome to..."` or `"This document defines..."` openers.
+- Keep paragraphs short (2–4 sentences); prefer concrete commands and compact tables over walls of text.
+- Use relative Markdown links between pages inside `docs/`.

@@ -1,35 +1,12 @@
-# Running and packaging camply
+# Runtime and Packaging Reference
 
-Detailed runtime, distribution, and deployment reference. For a quick start, see the [camply documentation](../index.md).
+Technical reference for Python package extras, `camply serve` / `camply db` subcommands, distribution builds, and Nginx/Pages integration. For self-hosting setup, see [Self-Hosting](../self-hosting/index.md).
 
-## Run without backing services
+## Standalone runtime contract
 
-The standalone runtime serves the UI, API, and background polling in one Python process. Run directly with uv:
+`camply serve` runs the UI, API, and local background loops in one Python process backed by SQLite. Override the listener with `camply serve --host 0.0.0.0 --port 9000`; explicit `camply serve frontend`, `backend`, `worker`, and `beat` subcommands run individual roles.
 
-```bash
-uvx --from "camply-web[server]" camply serve
-```
-
-Or install it as a persistent tool:
-
-```bash
-uv tool install "camply-web[server]"
-camply serve
-```
-
-For development from a checkout, contributors can use:
-
-```bash
-task standalone:install
-task standalone:build
-task standalone:run
-```
-
-Open <http://127.0.0.1:8000>. Use **Sync Providers** in Admin Operations to load the catalog. Configure the Pushover application token and each user's key to receive alerts. The default authentication mode signs in as a shared administrator; select session or Auth0 authentication before sharing an instance. See [configuration](../operations/CONFIGURATION.md) and the [standalone guide](../development/DEVELOPER_GUIDE.md#standalone-runtime).
-
-An installed `camply-web[server]` package starts the complete standalone application with `camply serve`. Override the listener with `camply serve --host 0.0.0.0 --port 9000`. Explicit `camply serve frontend`, `backend`, `worker`, and `beat` subcommands run individual roles.
-
-Standalone uses one process on one host, with persisted scans and pending alerts. Historical monitoring charts require the distributed deployment. `task standalone:run` uses `build/frontend` as its default development UI; an explicit `CAMPLY_FRONTEND_DIR` selects another absolute asset directory.
+For checkout testing, `task standalone:install`, `task standalone:build`, and `task standalone:run` default `CAMPLY_FRONTEND_DIR` to root `build/frontend`. See [Standalone hosting](../self-hosting/standalone.md) for end-user installation and [Configuration](CONFIGURATION.md) for runtime environment variables.
 
 ## Destination photos and practical details
 

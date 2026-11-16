@@ -1,139 +1,29 @@
-# DESIGN_NOTIFICATIONS: Notification Architecture
+# Notification Architecture
 
-This document defines the architecture for the notification layer in `camply`, focusing on a standardized interface, multiple provider support, and asynchronous delivery.
+camply separates availability detection from alert delivery so provider checks never block on outbound HTTP calls and every pending alert is revalidated right before sending.
 
-## Selected booking nights
+## Interface and payload
 
-Direct and summary detection apply each subscription's `allowed_weekdays` before consecutive minimum-stay matching. The shared provider snapshot remains unrestricted. Changes confined to excluded nights do not trigger an alert, and users sharing a target can receive different matching openings without additional provider polling.
+All notification channels implement `BaseNotificationProvider` under `camply.notifications` and accept a `NotificationDTO` (`title`, `message`, `booking_url`, `url_title`, `park_name`, `campsite_name`, `start_date`, `end_date`, `metadata`).
 
-Both standalone outbox delivery and distributed task delivery revalidate the current night selection, dates, site preferences, ownership, active state and target linkage immediately before sending. Excluded nights are removed from each opening; summaries recalculate their matching site count and skip when none remain. New queued payloads identify their originating target so retargeted scans do not deliver stale alerts. Existing unscoped test notifications retain their delivery contract. Preference edits do not replay previously suppressed observations as new availability.
+`CAMPLY_NOTIFICATION_MODE` controls alert granularity across both runtimes:
 
-## Standalone delivery
+- **`summary` (default):** Sends one alert per saved scan when new matching sites open, linking to `{CAMPLY_APP_URL}/dashboard/scans/{scan_id}#results`.
+- **`direct`:** Sends individual site alerts pointing directly to the provider's booking URL.
 
-Standalone stores delivery intents in the same transaction as successful scan results and uses one asynchronous outbox consumer. It commits `sending` and increments the attempt count before HTTP; it records `sent` only after explicit Pushover acceptance. Missing application/user credentials or current ineligibility produce a skip. Invalid payloads, malformed acceptance responses, and permanent upstream rejection fail. Transport errors, HTTP 429, and server failures retry after 120 seconds, with three retries and four total sends. Interrupted attempts retain their consumed budget and are retried on startup unless exhausted.
+## Supported channels
 
-Standalone honors the shared summary/direct setting. Summaries persist the matching site snapshots, then reapply current filters and dates to each site and recalculate the count before sending. No remaining match produces a skip. Direct alerts use the same filtering helper as the results API, including only qualifying consecutive stay blocks. SQLite lock contention during acknowledgment retries the database write rather than sending a second request; other storage failures make readiness fail.
+Each user chooses either **Pushover** (default) or **ntfy** in account settings:
 
-Before every send, validate current owner/scan/target linkage, active scan, enabled user, optional invitation, current filters, credentials, and dates. The date cutoff is the current UTC calendar day: remove earlier nights and nights outside the current target, then reapply the minimum consecutive stay requirement. Include only eligible dates in the delivered payload. Queued intents contain no credentials; outcomes store allowlisted categories rather than raw errors. Terminal records are pruned after 24 hours; pending/retry rows persist.
+- **Pushover:** Requires a deployment `PUSHOVER_APP_TOKEN` and the user's Pushover user key.
+- **ntfy:** Assigns each user an editable unique topic (`camply-<7-char-id>`), using `CAMPLY_NTFY_SUBSCRIPTION_URL` (default `https://ntfy.sh`) for user subscriptions and optional `CAMPLY_NTFY_PUBLISH_URL` for private server-side publishing. Users can also supply a custom server URL and optional bearer token.
 
-A process failure after upstream acceptance but before recording `sent` can produce a duplicate; exactly-once external delivery is not claimed. Local operational attempt history is separate, in memory, capped at 1,000 entries/24 hours. Distributed mode retains its Celery notification adapter and existing task contract.
+`POST /api/me/notifications/test` validates unsaved settings and sends a single test message directly through the chosen channel without creating a scan or outbox record.
 
-## 🎯 Architecture Goals
+## Pre-send revalidation and delivery paths
 
-1. **Standardization**: All notification channels must implement a unified `BaseNotificationProvider`.
-2. **Asynchronous Delivery**: Notifications are handled by dedicated Celery tasks to avoid blocking the scanning worker.
-3. **User-Centric**: Users can configure their own notification preferences and keys (e.g., Pushover user key, Webhook URL).
-4. **Resilience**: Implement retries and error tracking for failed notifications.
+Before sending any queued alert, both standalone and distributed adapters recheck scan ownership, active status, user eligibility, current UTC date cutoff, `allowed_weekdays`, `min_stay_length`, and target linkage (`scan_revision` for area scans). If no qualifying stay remains, the delivery is skipped cleanly.
 
----
-
-## 🏗️ Core Interface: `BaseNotificationProvider`
-
-Every notification channel must inherit from this ABC.
-
-```python
-class BaseNotificationProvider(ABC):
-    @property
-    @abstractmethod
-    def id(self) -> str:
-        """Unique slug: e.g., 'pushover', 'email', 'webhook'"""
-        pass
-
-    @abstractmethod
-    async def send_alert(self, user_config: Dict[str, Any], payload: NotificationDTO) -> None:
-        """
-        Deliver the notification to the user using their specific configuration.
-        """
-        pass
-```
-
----
-
-## 📦 The Unified DTO: `NotificationDTO`
-
-The data structure sent to the notification providers.
-
-- `title`: `String` (e.g., "Campsite Available: Yosemite")
-- `message`: `String` (Detailed description including dates and site info)
-- `booking_url`: `String` (Camply scan-results link in summary mode; provider booking link in direct mode)
-- `url_title`: `String` (`View campsites` for summaries; defaults to `Book Now` for direct and previously queued payloads)
-- `park_name`: `String`
-- `campsite_name`: `String`
-- `start_date`: `Date`
-- `end_date`: `Date`
-- `metadata`: `Dict[String, Any]` (Provider-specific raw attributes)
-
----
-
-## 🚀 Notification Workflow
-
-### 1. Detection
-
-The **Smart Poller** identifies a match between a `ScanResult` and a `UserScan`.
-
-### 2. Dispatch
-
-The worker defaults to **one summary per saved scan per check** containing new matching openings. It enqueues `camply.notifications.send_pushover_notification` with the user ID, serialized DTO and scan ID. The summary counts newly opened matching sites and links to `{CAMPLY_APP_URL}/dashboard/scans/{scan_id}#results`, preserving any frontend path prefix. Separate saved scans receive separate summaries.
-
-For recreation-area and selected-campground scans (`payload_kind="area"`), `area_alerts.py` separates alert timing from round completion:
-
-- **Summary coalescing**: New openings across member campgrounds coalesce under `delivery_key="area-summary"` within a `5`-second window (flushed by the `area-outbox` beat schedule in distributed mode and the outbox loop in standalone mode).
-- **Direct mode**: `CAMPLY_NOTIFICATION_MODE=direct` appends `area-<target_id>-<campsite_id>` outbox entries pointing directly to the campground's provider booking URL while keeping each campground label in the alert message.
-- **Pre-send revalidation**: Both paths stamp `scan_revision` from `UserScan.definition_revision + coverage_revision` and re-evaluate `current_area_payload` right before delivery so edited, paused, suspended, or excluded campgrounds never send stale alerts.
-
-`CAMPLY_NOTIFICATION_MODE=direct` preserves individual site alerts with provider booking links for local deployments. `summary` is the default in every environment. Both modes apply the same site preferences and minimum consecutive stay as the API. Newly available nights outside qualifying stay blocks do not trigger alerts. Unchanged openings remain silent; openings can alert again after disappearing and returning.
-
-Before storing results or detecting new openings, the worker discards nights before the current UTC date and outside the target's check-in/check-out interval. Minimum stays are evaluated on the remaining nights, matching API expiration, so expired nights cannot cause an alert that opens to no qualifying results.
-
-Snapshots retain campsite names, types and electric/accessibility attributes, so opening a summary requires no live provider request. The list represents the latest successful check, not a permanent history; availability may change before booking.
-
-### 3. Delivery
-
-The `send_notification_task` does the following:
-
-1. Fetches the user's `pushover_token` or other configured provider keys from the DB, revalidates scan ownership and active state, and skips suspended users.
-2. Selects the appropriate `BaseNotificationProvider`.
-3. Calls `provider.send_alert(user_config, notification_dto)`.
-4. Records successful delivery in metrics. A `notification_history` table remains optional/future work.
-
-See the [implementation plan](../specs/014-campsite-alerts/plan.md) and [configuration](../operations/CONFIGURATION.md) for deployment settings and migration requirements.
-
----
-
-## 🛠️ Supported Providers (Roadmap)
-
-1. **Pushover (MVP)**:
-   - _Config_: `user_key`
-   - _Status_: High Priority
-2. **Webhooks**:
-   - _Config_: `webhook_url`
-   - _Status_: High Priority (Discord, Slack, etc.)
-3. **Email (SMTP)**:
-   - _Config_: `email_address`
-   - _Status_: Medium Priority
-4. **Apprise**:
-   - _Config_: `email_address`
-   - _Status_: Medium Priority (Universal wrapper for 50+ services)
-5. **Ntfy**:
-   - _Config_: Per-user generated topic, server URL and optional access token
-   - _Status_: Implemented (user-selected)
-
----
-
-## 🔒 Security & Performance
-
-- **Secrets Management**: User notification tokens must be handled securely in the database.
-- **Rate Limiting**: Implementation of provider-specific rate limiting (e.g., Twilio/SMS limits) to prevent excessive costs or API bans.
-- **Failover**: If a primary notification method fails, we can optionally fall back to a secondary method if configured.
-
-## ntfy delivery
-
-Each user selects exactly one notification provider: Pushover (the default) or ntfy. Users receive editable topics defaulting to `camply-` plus the first seven characters of their user ID. All account-creation paths recover from generated-topic uniqueness collisions by adding a random suffix, while preserving IDs, existing subscriptions and explicit topic choices. Shared deployment settings supply the public `CAMPLY_NTFY_SUBSCRIPTION_URL` (default `https://ntfy.sh`) and private optional `CAMPLY_NTFY_PUBLISH_URL`. An absent publish URL falls back to the subscription URL. Only the subscription default is exposed to users; delivery adapters resolve the private endpoint server-side. Users may configure a custom server, which replaces both defaults for their account, and an optional publish bearer token. A null custom server follows deployment defaults without copying them into the user record. The configured-default choice is retained when subscriptions use ntfy.sh but publishing uses a private override. Changing servers clears inherited access tokens unless a replacement is explicitly supplied. The ntfy provider implements the shared interface, publishes JSON with the title, message and click URL, and verifies the response event, topic and message ID. Redirects are disabled to avoid forwarding credentials.
-
-Standalone stores one outbox row for the selected channel, preserving the existing uniqueness constraint. Existing rows migrate to `pushover`. The queued channel retains its acknowledgment and retry state; delivery is skipped if that channel is no longer selected. Distributed delivery uses `camply.notifications.send_ntfy_notification`; existing Pushover task contracts remain intact. Both adapters recheck the selected provider, user scanning status and scan ownership before publishing.
-
-## Test notifications
-
-Shared implementations live in `camply.notifications` so API-only installations and workers use the same provider contract and acceptance checks. The original `camply.worker.notifications` imports remain compatible.
-
-`POST /api/me/notifications/test` validates current/draft owner settings and sends one fixed test message directly through the selected provider, without saving preferences or creating a scan/outbox record. The endpoint applies authentication, invitation, password-change, suspension and topic-ownership checks. It releases the topic lookup transaction before HTTP, requires explicit provider acceptance, and exposes only allowlisted failures. Save and test UI feedback is tied to the submitted form values so subsequent edits are not presented as already saved or verified. Profile explains subscribing in the ntfy app using the server and topic before testing.
+- **Standalone outbox:** Inserts `notification_outbox` intents atomically in the same transaction as `scan_results`, retries transient failures after 120 seconds (up to 4 total attempts), and prunes terminal rows after 24 hours.
+- **Distributed tasks:** Enqueues Celery tasks (`camply.notifications.send_pushover_notification` or `send_ntfy_notification`).
+- **Area scan coalescing:** `area_alerts.py` batches new recreation-area openings under `delivery_key="area-summary"` across a 5-second window (`area-outbox` loop or Beat schedule) so multi-campground rounds produce one clean summary instead of a flood of messages.

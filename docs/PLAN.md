@@ -1,12 +1,12 @@
-# camply: Path Forward
+# Roadmap and Plan
 
-This document outlines the strategic roadmap for transitioning `camply` from a legacy CLI tool to a modern, full-stack, community-facing web application for campsite availability monitoring.
+Strategic roadmap for transitioning `camply` from a legacy CLI tool into a full-stack campsite availability web application and modern CLI.
 
-## 🎯 Vision
+## Vision
 
-A **free, open-source, and self-hostable** campsite availability scanner. Users can create accounts, set up high-frequency "scans" for specific parks/dates, and receive real-time alerts via **Pushover** (and other channels) when a spot opens up.
+A **free, open-source, and self-hostable** campsite availability scanner. Users can create accounts, set up high-frequency scans for specific parks and dates, and receive real-time alerts via **Pushover** or **ntfy** when a spot opens up.
 
-## 🏗️ Core Architecture & Standards
+## Core architecture and standards
 
 - **Backend**: FastAPI (Python >=3.11, Python 3.14 runtime defaults, one `camply` distribution managed by `uv`) using **Pydantic v2**.
 - **Frontend**: React (TypeScript, Vite, Tailwind CSS + **Shadcn/UI**).
@@ -41,7 +41,7 @@ discovery and foreground campground availability monitoring; see the
 [feature 026's deferred TODOs](specs/026-cli-parity/tasks.md#deferred-todo-registry).
 PyPI publication remains separate work.
 
-## 🚀 Strategic Feature Requirements
+## Strategic feature requirements
 
 ### 1. High-Frequency Scanning
 
@@ -63,7 +63,7 @@ PyPI publication remains separate work.
 
 ---
 
-## 🛤️ Roadmap Phases
+## Roadmap phases
 
 ### Phase 1: Smart Poller & Single-Scan MVP
 
@@ -111,7 +111,7 @@ PyPI publication remains separate work.
 
 ---
 
-## 📝 Interactive Discussion Points
+## Interactive discussion points
 
 1. **Notification Costs**: SMS sending costs money. Should we prioritize free channels (Email, Push, Discord/Telegram) first before implementing SMS?
 2. **Provider API Limits**: Competitive services use extensive proxying to avoid getting banned. How sophisticated do we want to make our request engine initially?
@@ -120,7 +120,7 @@ PyPI publication remains separate work.
 
 ---
 
-## 🏁 Next Immediate Steps
+## Next immediate steps
 
 1. [x] **Database Design**: Create SQLAlchemy models for the Multi-User / De-duplicated architecture in `src/camply/db`.
 2. [x] **Provider Migration**: Extract search logic from `cli/` to `src/camply/providers/`.
@@ -133,4 +133,4 @@ PyPI publication remains separate work.
 
 ## Standalone runtime delivery
 
-Optional standalone now serves built React assets and the API from one Python process with SQLite, local polling/catalog refresh, and durable notification recovery. The distributed runtime remains the default. See the [implementation tasks](specs/011-standalone-runtime/tasks.md), [developer workflow](development/DEVELOPER_GUIDE.md#standalone-runtime), and [runtime constraints](operations/CONFIGURATION.md#runtime-selection).
+Optional standalone now serves built React assets and the API from one Python process with SQLite, local polling/catalog refresh, and durable notification recovery. The distributed runtime remains the default. See the [implementation tasks](specs/011-standalone-runtime/tasks.md), [developer workflow](development/DEVELOPER_GUIDE.md#local-setup), and [runtime constraints](operations/CONFIGURATION.md#runtime-selection).

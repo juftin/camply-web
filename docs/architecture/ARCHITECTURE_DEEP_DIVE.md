@@ -1,136 +1,51 @@
-# ARCHITECTURE_DEEP_DIVE: The Smart De-duplicated Poller
+# Polling Engine Architecture
 
-This document explains the technical implementation and reasoning behind the core scanning engine of `camply`.
+camply separates target polling from user notifications so multiple campers watching the same campground share a single upstream check cycle.
 
-## Python package boundaries
+## Package boundaries
 
-The Python backend is one `camply` distribution with internal
-`camply.core`, `camply.providers`, `camply.db`, `camply.server`, and `camply.worker`
-subpackages. Base includes providers and SQLite; `server`, `distributed`,
-`postgres`, and `sentry` independently add runtime dependencies. Server and
-worker application bootstrap must remain independent. The foreground CLI discovers
-locations and monitors live availability without application state or service
-bootstraps. Existing
-Celery JSON task names, beat schedule names, and database revisions are
-preserved through the module migration.
+The Python codebase ships as one `camply` distribution with strict internal layering (`cli | server | worker -> core -> notifications | providers -> db -> __about__`):
 
-The enforced layer order is `cli | server | worker` → `core` → `providers` →
-`db` → `__about__`. `camply.core.search` normalizes local date windows, constructs
-exact-length stays from provider observations, and runs cancellable foreground
-checks. It reuses `camply.db.availability.matching_available_dates`, the same
-consecutive-night matcher used by saved web scans. Database adapters retain
-subscriber filtering and persistence; the CLI never creates subscribers, targets
-or notification deliveries. The core imports no optional service dependencies.
+- **Base package (`core`, `providers`, `db`, `cli`):** Provides upstream discovery, availability matching, SQLite persistence, and the foreground CLI with no server or broker dependencies.
+- **Server (`camply.server`):** FastAPI app, auth, and standalone lifespan runtime (`server` extra).
+- **Worker (`camply.worker`):** Shared async polling engine (`camply.worker.engine`) plus Celery/Valkey adapters (`distributed` extra).
 
-The CLI owns one provider client across discovery and monitoring, closes it on
-success, failure or cancellation, and awaits checks sequentially so the same
-target cannot overlap. Requests use existing provider pacing, retries and circuit
-breakers. An internal 60-second wait separates successful cycles; this provisional
-implementation default is not the deferred public scheduling/mode contract.
-Provider failures remain errors rather than empty availability. CLI output is
-console-only. See the [CLI guide](../cli.md) and [feature 026](../specs/026-cli-parity/spec.md).
+## Why de-duplication matters
 
-## CLI organization
-
-`camply.cli.main` owns the root command and lazily loads each command module.
-`serve.py`, `db.py`, `providers.py`, `recreation_areas.py`, `campgrounds.py` and
-`campsites.py` own their respective commands; `healthcheck.py` owns the nested
-serving health checks. Serving helpers remain with the serving group.
-
-`options.py` defines reusable Click options, strict calendar-date parsing and debug
-precedence. It imports no providers or application configuration, keeping root
-imports and version reporting lightweight. Shared discovery validation and target
-resolution live in `discovery.py`; terminal rendering lives in `output.py`; async
-execution, diagnostic sanitization and signal cleanup live in `execution.py`.
-`runtime.py` checks optional runtime dependencies before serving side effects.
-
-Command modules compose these helpers without importing the root router. New
-commands should reuse the option decorators rather than duplicate their defaults,
-repeatability or help text. User-visible options and provider precedence remain
-defined by the [initial command contract](../specs/026-cli-parity/spec.md#initial-command-contract).
-
-## Optional local execution
-
-`camply.worker.engine` contains shared asynchronous discovery, scanning/filtering, catalog, and notification functions. Distributed Celery adapters keep locks, retries, and metrics; `camply.worker.runtime` runs the same engine in the API lifespan for standalone. Discovery begins immediately, pages 100 targets, honors subscriber eligibility and cooldown, and excludes queued/running/deferred targets. One scan consumer retries exceptions after 60/120/240 seconds, then records a failure and waits for the next heartbeat cycle. Separate consumers handle catalog work and durable delivery without creating one task per target.
-
-Manual catalog sync coalesces under one job ID; daily refresh runs at midnight UTC. Each provider has an independent outcome, and later providers run after a failure. Recreation.gov archive parsing is offloaded from the event loop. Existing provider commit boundaries are preserved. Shutdown stops discovery, allows up to five seconds to drain scan/catalog queues, then cancels and reaps remaining loops. Any unexpectedly terminated supervised loop makes readiness unhealthy.
-
-Standalone result replacement, successful-check time, and matching notification intents commit in one transaction. The delivery consumer revalidates current subscriptions, credentials, dates, and filters before sending; see [notification recovery](DESIGN_NOTIFICATIONS.md#standalone-delivery). Local queues/history are bounded; only pending delivery and application state persist. This runtime supports one process, one host, and a writable local SQLite file. Distributed scheduling and deployment remain available for larger instances.
-
-## 🎯 The Problem: API Bans & Inefficiency
-
-In a multi-user system, multiple users often want to watch the same popular campgrounds (e.g., Lower Pines in Yosemite) for the same dates.
-
-- **Legacy Approach**: 10 users = 10 API calls every minute. **Result**: IP ban from Recreation.gov.
-- **Smart Approach**: 10 users = 1 API call every minute. **Result**: High performance and API safety.
-
----
-
-## 🏗️ The Data Flow (User to Alert)
+If ten users watch Yosemite's Lower Pines for the same dates, naive polling makes ten identical upstream requests per cycle and risks IP bans. Instead, camply normalizes each `(provider_id, campground_id, start_date, end_date)` tuple into one shared `UniqueTarget` row and links each `UserScan` subscription to it.
 
 ```mermaid
 graph TD
-    A[User in React UI] -->|POST /scans| B(FastAPI Backend)
-    B -->|Calculate Hash| C{Unique Target Exists?}
-    C -->|No| D[Create New UniqueTarget]
-    C -->|Yes| E[Link UserScan to Existing]
+    A[User saves scan] --> B[FastAPI Backend]
+    B --> C{UniqueTarget exists?}
+    C -->|No| D[Create UniqueTarget]
+    C -->|Yes| E[Link UserScan]
 
-    F[Celery Beat Scheduler] -->|Every 5m (default)| G[Identify Targets to Check]
-    G -->|Enqueue| H[camply.search.check_campsite_availability Task]
-
-    H -->|Hit Provider API| I[Raw Results]
-    I -->|Update Cache| J[scan_results Table]
-
-    J -->|New Opening Found| K[Fan-out: Match UserScans]
-    K -->|User A matches| L[Enqueue camply.notifications.send_pushover_notification]
-    K -->|User B matches| M[Enqueue camply.notifications.send_pushover_notification]
-
-    L -->|Pushover API| N[User Mobile Alert]
+    F[Scheduler heartbeat] --> G[Find due targets]
+    G --> H[Acquire target lock & check provider]
+    H --> I[Replace scan_results snapshot]
+    I --> J[Match active UserScans]
+    J --> K[Queue Pushover or ntfy alerts]
 ```
 
----
+## Target lifecycle and concurrency
 
-## 🔄 The `UniqueTarget` State Machine
+A `UniqueTarget` transitions through four states:
 
-A `UniqueTarget` represents a background polling job. Its lifecycle is:
+1. **Initialized:** Created when the first scan references a campground and date range.
+2. **Active:** Eligible for checks while at least one linked `UserScan` is active and enabled.
+3. **Cooldown:** After a check updates `last_checked_at`, the target waits until `CAMPLY_TARGET_COOLDOWN` (default `55` seconds) elapses.
+4. **Dormant:** Marked inactive when no active scans remain; kept for inspection but skipped during discovery.
 
-1.  **Initialized**: Created when the first user subscribes to a park/date range.
-2.  **Active**: `is_active=True`. Polled by the worker as long as at least one linked `UserScan` is active.
-3.  **Cooldown**: After a check, `last_checked_at` is updated. It won't be checked again until the provider's `rate_limit_interval` has passed.
-4.  **Dormant**: If all users delete their scans for this target, `is_active` becomes `False`. The record remains for history but the worker skips it.
+In distributed mode, workers acquire a Valkey lock (`lock:target_id`) before calling a provider so concurrent workers never poll the same target simultaneously. In standalone mode, `camply.worker.runtime` runs bounded in-process async loops inside the FastAPI lifespan—avoiding duplicate checks on a single host.
 
----
+## Fan-out matching and area rounds
 
-## 📣 The "Fan-out" Notification Logic
+- **Blind polling:** The poller asks only what campsites are open for the target's dates, converts responses to `CampsiteDTO`s, and replaces `scan_results` atomically.
+- **Per-subscriber filtering:** Each `UserScan` filters the shared snapshot by its own `min_stay_length`, `allowed_weekdays`, `preferred_types`, and `require_electric` preferences without extra provider calls.
+- **Recreation-area rounds:** Area scans join one `UserScan` to one `UniqueTarget` per eligible member campground via `scan_targets`. `prepare_rounds()` reconciles membership against the latest `providers.catalog_revision`, recovers stale attempts after `105` seconds, and bounds each round with `round_deadline_at` (`2 * CAMPLY_HEARTBEAT_INTERVAL + 780` seconds) so one slow campground cannot stall other results.
+- **Catalog atomicity:** Providers like Recreation.gov parse complete archives in memory before updating `recreation_areas`, `campgrounds`, and `search` in one transaction.
 
-We separate **Checking** from **Notifying** to ensure high throughput.
+## Foreground CLI execution
 
-1.  **The Poller** is "Blind": It just wants to know "What sites are open for Park X between Date A and B?".
-2.  **Standardization**: Raw results are converted into `CampsiteDTO`s.
-3.  **Matching**: The worker queries the `user_scans` table for that `target_id`.
-4.  **Filtering**:
-    - _User A_ only wants **Electric** sites.
-    - _User B_ wants **any** site but for **3+ nights**.
-    - The worker checks the `CampsiteDTO` list against these filters.
-5.  **Individual Alerts**: A user is only alerted if their specific criteria are met, even if other sites are open.
-
----
-
-## 🔒 Concurrency & Locking
-
-To prevent race conditions (two workers checking the same park simultaneously):
-
-- We use **Valkey Distributed Locks**.
-- Before a `camply.search.check_campsite_availability` (`check_target_availability`) task starts, it attempts to acquire a lock: `lock:target_id`.
-- If the lock is held, the task exits immediately.
-
----
-
-## Recreation-area coverage rounds
-
-Recreation-area and selected-campground scans never invoke provider area-search endpoints inside the poller. Instead, `scan_targets` joins one `UserScan` (`destination_type='recreation_area'`) to one shared `UniqueTarget` per eligible member campground:
-
-- **Reconciliation and rounds (`worker/engine/coverage.py`)**: During discovery (`prepare_rounds`), interrupted attempts older than `ATTEMPT_STALE_SECONDS` (`105` seconds) are marked interrupted so retries can proceed cleanly, due area scans reconcile `scan_targets` against the latest published catalog, and `current_round_id` / `round_deadline_at` (`2 * heartbeat + 780` seconds) open a new bounded checking round when all members finish or expire.
-- **Per-attempt recording (`finish_round`)**: When each campground target finishes (`success` or final failure), `ScanTarget.outcome` updates alongside stale-attempt protection (`attempt_id`). Pending/retrying members past `round_deadline_at` transition to `failed` (`round_deadline_exceeded`), ensuring slow or failing campgrounds never hold up round completion or healthy campground results.
-- **Atomic catalog publication**: Providers such as Recreation.gov parse all archive datasets in memory before updating `recreation_areas`, `campgrounds`, and `search` in a single transaction that increments `providers.catalog_revision`; incomplete archives abort without publishing half-updated area membership.
-- **Separated alert delivery**: `area_alerts.py` flushes coalesced area summaries independently on the `area-outbox` cadence (standalone loop and Celery Beat), decoupled from round completion.
+`camply.core.search` reuses the same consecutive-night matcher (`camply.db.availability.matching_available_dates`) as saved web scans, but runs sequentially in the foreground using one shared provider client with no database persistence or notification queues.
