@@ -338,6 +338,68 @@ def test_registry_and_booking_links() -> None:
     )
 
 
+def test_going_to_camp_variations_registry_and_isolation() -> None:
+    """Every verified GoingToCamp deployment is registered with distinct endpoints."""
+    expected_hosts = {
+        12: ("https://washington.goingtocamp.com", "WA", "US"),
+        14: ("https://wisconsin.goingtocamp.com", "WI", "US"),
+        15: ("https://midnrreservations.com", "MI", "US"),
+        16: ("https://tacomapower.goingtocamp.com", "WA", "US"),
+        17: ("https://reservation.pc.gc.ca", None, "CA"),
+        18: ("https://camping.bcparks.ca", "BC", "CA"),
+        19: ("https://reservations.ontarioparks.ca", "ON", "CA"),
+        20: ("https://novascotia.goingtocamp.com", "NS", "CA"),
+        21: ("https://manitoba.goingtocamp.com", "MB", "CA"),
+        22: ("https://www.nlcamping.ca", "NL", "CA"),
+        23: ("https://reservations.ncc-ccn.gc.ca", "QC", "CA"),
+        24: ("https://longpoint.goingtocamp.com", "ON", "CA"),
+        25: ("https://maitlandvalley.goingtocamp.com", "ON", "CA"),
+        26: ("https://stclair.goingtocamp.com", "ON", "CA"),
+    }
+    for provider_id, (booking_url, state_code, country_code) in expected_hosts.items():
+        cls = PROVIDERS[provider_id]
+        assert issubclass(cls, GoingToCampProvider)
+        assert cls.booking_url == booking_url
+        assert cls.api_url == f"{booking_url}/api"
+        assert cls.state_code == state_code
+        assert cls.country_code == country_code
+        assert (
+            cls.get_campground_url("-10", rec_area_id="-1")
+            == f"{booking_url}/create-booking/results?resourceLocationId=-10&transactionLocationId=-1"
+        )
+
+
+def test_parks_canada_omits_unknown_province_code() -> None:
+    """National deployments without a state fallback store None instead of ''."""
+    from camply.providers.going_to_camp.models.metadata import (
+        ResourceLocation,
+        TransactionLocation,
+    )
+    from camply.providers.going_to_camp.variations import ParksCanadaProvider
+
+    provider = ParksCanadaProvider()
+    park = TransactionLocation(
+        transactionLocationId=-1,
+        regionCode="A0G4K0",
+        localizedValues=[{"fullName": "Terra Nova"}],
+    )
+    fac = ResourceLocation(
+        resourceLocationId=-2,
+        transactionLocationId=-1,
+        rootMapId=-3,
+        resourceCategoryIds=[1],
+        localizedValues=[{"fullName": "Newman Sound"}],
+    )
+    park_row = provider._build_park_row(park, has_overnight_campground=True)
+    fac_row = provider._build_campground_row(
+        fac, parent_park=park, overnight_resource_ids={1}
+    )
+    assert park_row.state is None
+    assert park_row.country == "CA"
+    assert fac_row.state is None
+    assert fac_row.country == "CA"
+
+
 def test_api_campground_serialization_url() -> None:
     """Serialized API campgrounds include Washington State Parks booking links."""
     from camply.server.models.campgrounds import Campground as APICampground
@@ -368,6 +430,8 @@ def test_metadata_cli_lists_and_invokes_washington(
     help_result = CliRunner().invoke(metadata_cmd, ["--help"])
     assert help_result.exit_code == 0
     assert "12 = WashingtonStateParks" in help_result.output
+    assert "17 = ParksCanada" in help_result.output
+    assert "26 = StClairRegion" in help_result.output
 
     instance = MagicMock()
     instance.populate_database = AsyncMock(

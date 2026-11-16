@@ -94,10 +94,10 @@ PyPI publication remains separate work.
 
 **Goal**: Full feature parity with the legacy CLI and advanced scanning features.
 
-- [ ] **Providers**: Port `usedirect`, `going_to_camp`, `xanterra`.
+- [x] **Providers**: Port verified `usedirect` and `going_to_camp` deployments (plus `ReserveAmerica`); skip `xanterra` as its campsites are moving to Recreation.gov.
 - [x] **ReserveCalifornia**: Port California State Parks availability and metadata to the current Tyler RDR API; preserve modern booking routes on the shared UseDirect ABC.
-- [x] **Shared UseDirect providers**: Implement independent metadata sync and availability for Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory. Alabama and Maricopa endpoint discovery remain pending; see [provider TODOs](specs/007-usedirect-providers/TODO.md).
-- [x] **GoingToCamp (Washington State Parks)**: Re-engineer `GoingToCampProvider` on async catalog/map endpoints and add `WashingtonStateParksProvider` (`https://washington.goingtocamp.com`, ID 12). Remaining regional GoingToCamp variations are tracked in [GoingToCamp TODOs](specs/023-going-to-camp/TODO.md).
+- [x] **Shared UseDirect providers**: Implement independent metadata sync and availability for Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory (all 10 UseDirect providers verified live). Alabama State Parks (`reserve.alapark.com`, Itinio) and Maricopa County Parks (`exploremaricopacountyparks.org`, Cedar) moved off UseDirect; see [provider TODOs](specs/007-usedirect-providers/TODO.md).
+- [x] **GoingToCamp**: Re-engineer `GoingToCampProvider` on async catalog/map endpoints and register all 14 live GoingToCamp deployments (Washington, Wisconsin, Michigan, Tacoma Power, Parks Canada, BC Parks, Ontario Parks, Nova Scotia, Manitoba, Newfoundland & Labrador, Gatineau Park, Long Point, Maitland Valley, and St. Clair). Maryland DNR (ReserveAmerica/Aspira), New Brunswick (custom), Algonquin Highlands (`algonquinhighlands.ca`), and Saugeen Valley (`saugeenconservation.ca`) no longer use GoingToCamp; see [GoingToCamp TODOs](specs/023-going-to-camp/TODO.md).
 - [ ] **Advanced Filters**: Implement RV length, electric, and accessibility filters in the worker.
 - [ ] **Permits**: Add support for scanning wilderness permit and tour availability.
 
@@ -129,7 +129,7 @@ PyPI publication remains separate work.
 5. [x] **Dashboard UI**: Scan management dashboard with creation, toggling, and deletion.
 6. [x] **Auth0 Integration**: Wire up JWT validation, API audience, and profile pages.
 7. [x] **Invitation Workflow**: Implement approval/revocation, verified identity matching, admin alerts, and in-app status UI.
-8. [ ] **Provider Parity**: Port remaining providers (usedirect, xanterra).
+8. [x] **Provider Parity**: Port verified `usedirect` and `going_to_camp` deployments; skip `xanterra` (moving to Recreation.gov).
 
 ## Standalone runtime delivery
 

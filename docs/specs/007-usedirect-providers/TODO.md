@@ -1,13 +1,11 @@
 # UseDirect provider TODOs
 
-## Providers awaiting working endpoints
+## Legacy candidates no longer on UseDirect
 
-These candidates are intentionally absent from the provider registry and seed migration. Checks on 2026-10-12 used the deployed paths from the legacy CLI and current upstream UseDirect variations.
+Live verification on 2026-11-16 confirmed all 10 registered UseDirect deployments remain active, while both legacy 404 candidates have migrated off UseDirect/Tyler RDR to different reservation platforms (future support would require separate provider adapters rather than `UseDirectProvider`):
 
-- [ ] **Alabama State Parks:** `GET https://alabamardr.usedirect.com/alabamardr/rdr/fd/places` returned **HTTP 404**. Discover the current catalog/grid host from the official booking application, verify parks/facilities/filters/grids and booking routes, then add an identity, concrete provider, migration, and synthetic regressions.
-- [ ] **Maricopa County Parks:** `GET https://maricopardr.usedirect.com/maricopardr/rdr/fd/places` returned **HTTP 404**. Inspect the current county reservation application to determine whether it still uses RDR; verify its catalog/grid endpoints before selecting UseDirectProvider or implementing a separate adapter. Then seed and test the supported integration.
-
-Endpoint failure does not establish that a park system is unavailable; its current reservation system may have changed host or backend.
+- [x] **Alabama State Parks:** Legacy `https://alabamardr.usedirect.com/alabamardr/rdr/fd/places` returns **HTTP 404**. The current portal at `https://reserve.alapark.com` runs on **Itinio**, not UseDirect/RDR.
+- [x] **Maricopa County Parks:** Legacy `https://maricopardr.usedirect.com/maricopardr/rdr/fd/places` returns **HTTP 404**. The current portal at `https://www.exploremaricopacountyparks.org/` runs on a **Cedar** Next.js application, not UseDirect/RDR.
 
 ## Follow-ups for verified providers
 

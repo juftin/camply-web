@@ -186,14 +186,15 @@ Implementation specification and tasks: [Admin UI plan](specs/002-admin-ui/plan.
 ### 3.1 Migration
 
 - [x] Remove the deprecated `cli/` application after migrating provider functionality to `backend/packages/providers`.
-- [ ] T3.1.1 Migrate `usedirect` (California State Parks, etc.).
+- [x] T3.1.1 Migrate `usedirect` (all 10 verified live deployments: California, Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, Northern Territory).
 - [x] T3.1.1a Implement ReserveCalifornia on the current Tyler RDR API: async scans, metadata/search ingestion, seed migration, modern booking links, and synthetic HTTP/database regressions. Source models now share the UseDirect package.
 - [x] T3.1.1b Extract the async UseDirect ABC and implement verified Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory variations with independent metadata sync, stable seeds, booking routes, and provider-isolation regressions.
-- [ ] T3.1.1c Discover Alabama State Parks' current catalog/grid endpoints; the legacy catalog returned HTTP 404. See [provider TODOs](specs/007-usedirect-providers/TODO.md).
-- [ ] T3.1.1d Discover Maricopa County's current reservation backend and catalog/grid endpoints; the legacy catalog returned HTTP 404. See [provider TODOs](specs/007-usedirect-providers/TODO.md).
-- [ ] T3.1.2 Migrate `going_to_camp`.
-- [x] T3.1.2a Re-engineer the async `GoingToCampProvider` ABC (dynamic nightly booking/resource categories, bulk resource metadata, 60-night map availability BFS traversal, multi-category equipment and filterable attribute decoding) and implement `WashingtonStateParksProvider` (`https://washington.goingtocamp.com`, ID 12) with seed migration, deep links, and synthetic HTTP/VCR/database regressions. See [GoingToCamp plan](specs/023-going-to-camp/plan.md) and [remaining deployment TODOs](specs/023-going-to-camp/TODO.md).
-- [ ] T3.1.3 Migrate `xanterra` (Yellowstone, etc.).
+- [x] T3.1.1c Verify Alabama State Parks (`https://reserve.alapark.com`); migrated off UseDirect/RDR to **Itinio** (closed out of UseDirect scope). See [provider TODOs](specs/007-usedirect-providers/TODO.md).
+- [x] T3.1.1d Verify Maricopa County Parks (`https://www.exploremaricopacountyparks.org/`); migrated off UseDirect/RDR to **Cedar** (closed out of UseDirect scope). See [provider TODOs](specs/007-usedirect-providers/TODO.md).
+- [x] T3.1.2 Migrate `going_to_camp` (all 14 verified live deployments registered).
+- [x] T3.1.2a Re-engineer the async `GoingToCampProvider` ABC (dynamic nightly booking/resource categories, bulk resource metadata, 60-night map availability BFS traversal, multi-category equipment and filterable attribute decoding) and implement `WashingtonStateParksProvider` (`https://washington.goingtocamp.com`, ID 12) with seed migration, deep links, and synthetic HTTP/VCR/database regressions. See [GoingToCamp plan](specs/023-going-to-camp/plan.md) and [deployment verification](specs/023-going-to-camp/TODO.md).
+- [x] T3.1.2b Verify all remaining GoingToCamp candidates and register the 13 live deployments (Wisconsin, Michigan, Tacoma Power, Parks Canada, BC Parks, Ontario Parks, Nova Scotia, Manitoba, Newfoundland & Labrador, Gatineau Park, Long Point, Maitland Valley, St. Clair; IDs 14–26) with seed migration and registry/state regressions; close out Maryland DNR (ReserveAmerica/Aspira), New Brunswick (custom), Algonquin Highlands (`algonquinhighlands.ca`), and Saugeen Valley (`saugeenconservation.ca`) as non-GoingToCamp.
+- [x] T3.1.3 Skip `xanterra` (Yellowstone, etc.) as its campsites are moving to Recreation.gov.
 
 ### 3.2 Advanced Search
 

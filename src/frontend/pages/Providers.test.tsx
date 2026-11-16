@@ -6,7 +6,7 @@ import { Providers } from "./Providers";
 vi.mock("@/components/SearchBar.tsx", () => ({ SearchBar: () => null }));
 
 describe("Providers", () => {
-  it("links both ReserveAmerica cards to the public website", () => {
+  it("lists all supported providers with canonical website links and excludes retired systems", () => {
     render(
       <MemoryRouter>
         <Providers />
@@ -21,6 +21,33 @@ describe("Providers", () => {
         "https://www.reserveamerica.com",
       );
     }
-    expect(screen.queryByText("Yellowstone Lodges")).not.toBeInTheDocument();
+
+    for (const retired of [
+      "Yellowstone Lodges",
+      "Alabama State Parks",
+      "Maricopa County Parks",
+    ]) {
+      expect(screen.queryByText(retired)).not.toBeInTheDocument();
+    }
+
+    const sampleGoingToCamp: Array<[string, string]> = [
+      ["Washington State Parks", "https://washington.goingtocamp.com"],
+      ["Wisconsin State Parks", "https://wisconsin.goingtocamp.com"],
+      ["Michigan State Parks", "https://midnrreservations.com"],
+      ["Parks Canada", "https://reservation.pc.gc.ca"],
+      ["BC Parks", "https://camping.bcparks.ca"],
+      ["Ontario Parks", "https://reservations.ontarioparks.ca"],
+      ["Newfoundland & Labrador Provincial Parks", "https://www.nlcamping.ca"],
+      ["St. Clair Region", "https://stclair.goingtocamp.com"],
+    ];
+    for (const [name, url] of sampleGoingToCamp) {
+      const title = screen
+        .getAllByText(name)
+        .find((el) => within(el).queryByRole("link") !== null);
+      expect(title).toBeDefined();
+      expect(within(title!).getByRole("link")).toHaveAttribute("href", url);
+    }
+
+    expect(screen.getByText("26 Booking Platforms")).toBeInTheDocument();
   });
 });
