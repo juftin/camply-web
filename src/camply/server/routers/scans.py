@@ -43,7 +43,7 @@ from camply.db.models import (
 from camply.db.models import (
     UserScan as UserScanDB,
 )
-from camply.providers import PROVIDERS
+from camply.providers import PROVIDERS, get_provider_filter_capabilities
 from camply.server.auth import (
     CurrentUserDep,
     require_invitation,
@@ -217,6 +217,79 @@ async def _load(
     return scan
 
 
+_FILTER_LABELS: tuple[tuple[str, str], ...] = (
+    ("preferred_types", "campsite type"),
+    ("require_electric", "electric hookup"),
+    ("require_accessible", "ADA accessibility"),
+    ("min_rv_length", "minimum RV / trailer length"),
+)
+
+
+def _validate_provider_filter_support(
+    *,
+    provider_id: int,
+    provider_name: str,
+    preferred_types: list[str] | None,
+    require_electric: bool,
+    require_accessible: bool,
+    min_rv_length: int | None,
+    only_fields: set[str] | None = None,
+) -> None:
+    """Reject site-attribute filters unsupported by ``provider_id``."""
+    caps = get_provider_filter_capabilities(provider_id)
+    active_values: dict[str, bool] = {
+        "preferred_types": bool(preferred_types),
+        "require_electric": bool(require_electric),
+        "require_accessible": bool(require_accessible),
+        "min_rv_length": min_rv_length is not None,
+    }
+    unsupported = [
+        label
+        for field, label in _FILTER_LABELS
+        if (only_fields is None or field in only_fields)
+        and active_values[field]
+        and not getattr(caps, field)
+    ]
+    if unsupported:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"{provider_name} does not support {', '.join(unsupported)} filtering."
+            ),
+        )
+
+
+async def _validate_updated_scan_filters(
+    session: AsyncSession,
+    scan: UserScanDB,
+    body: ScanUpdateRequest,
+    definition_changed: bool,
+) -> None:
+    """Validate preference-only PATCH updates against provider filter support."""
+    if definition_changed:
+        return
+    modified_filter_fields = body.model_fields_set & {
+        field for field, _ in _FILTER_LABELS
+    }
+    if not modified_filter_fields:
+        return
+    provider_name = (
+        await session.scalar(
+            select(Provider.name).where(Provider.id == scan.provider_id)
+        )
+        or f"Provider {scan.provider_id}"
+    )
+    _validate_provider_filter_support(
+        provider_id=scan.provider_id,
+        provider_name=provider_name,
+        preferred_types=scan.preferred_types,
+        require_electric=scan.require_electric,
+        require_accessible=scan.require_accessible,
+        min_rv_length=scan.min_rv_length,
+        only_fields=modified_filter_fields,
+    )
+
+
 def _assign_scan_preferences(scan: UserScanDB, body: ScanCreateRequest) -> None:
     """Copy site preferences from a validated create payload onto ``scan``."""
     scan.min_stay_length = body.min_stay_length
@@ -262,6 +335,14 @@ async def _assign_definition(  # noqa: C901
     )
     if provider is None or not provider.enabled:
         raise HTTPException(status_code=422, detail="Provider unavailable")
+    _validate_provider_filter_support(
+        provider_id=provider.id,
+        provider_name=provider.name,
+        preferred_types=body.preferred_types,
+        require_electric=body.require_electric,
+        require_accessible=body.require_accessible,
+        min_rv_length=body.min_rv_length,
+    )
     choices: list[dict[str, str]] = []
     target = None
     if body.destination_type == "campground":
@@ -634,6 +715,12 @@ async def update_scan(
                 and body.campground_ids is None,
             )
     _apply_scan_preference_updates(scan, body)
+    await _validate_updated_scan_filters(
+        session,
+        scan,
+        body,
+        definition_changed=bool(body.model_fields_set & definition_fields),
+    )
     if scan.min_stay_length > (scan.end_date - scan.start_date).days:
         raise HTTPException(status_code=422, detail="Minimum stay exceeds date window")
     scan.definition_revision += 1

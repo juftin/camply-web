@@ -68,6 +68,20 @@ class CampgroundCapabilities:
         }
 
 
+@dataclass(frozen=True)
+class ProviderFilterCapabilities:
+    """Monitor filter controls supported by a provider's availability feed."""
+
+    preferred_types: bool = True
+    """Whether the provider reports campsite types (Tent, RV, Cabin, Other)."""
+    require_electric: bool = True
+    """Whether the provider reports electric hookup availability per site."""
+    require_accessible: bool = True
+    """Whether the provider reports ADA accessibility per site."""
+    min_rv_length: bool = True
+    """Whether the provider reports maximum vehicle/RV length per site."""
+
+
 # ── HTTP status code constants ─────────────────────────────────────────
 _HTTP_TOO_MANY_REQUESTS = 429
 _HTTP_SERVER_ERROR_MIN = 500
@@ -537,6 +551,10 @@ class BaseProvider(ABC):
 
     # ── class-level circuit breaker registry ───────────────────────────
     _circuit_breakers: ClassVar[dict[str, ProviderCircuitBreaker]] = {}
+    filter_capabilities: ClassVar[ProviderFilterCapabilities] = (
+        ProviderFilterCapabilities()
+    )
+    """Site-attribute monitor filters supported by this provider."""
 
     def __init__(self) -> None:
         """

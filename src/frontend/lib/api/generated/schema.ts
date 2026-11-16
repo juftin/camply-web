@@ -2104,20 +2104,30 @@ export interface components {
             provider: "pushover" | "ntfy";
         };
         /**
-         * Provider
-         * @description Provider Model
+         * ProviderFilterCapabilitiesResponse
+         * @description Site-attribute monitor filters supported by a provider.
          */
-        Provider: {
-            /** Id */
-            id: number;
-            /** Name */
-            name: string;
-            /** Description */
-            description: string | null;
-            /** Url */
-            url: string;
-            /** Enabled */
-            enabled: boolean;
+        ProviderFilterCapabilitiesResponse: {
+            /**
+             * Preferred Types
+             * @default true
+             */
+            preferred_types: boolean;
+            /**
+             * Require Electric
+             * @default true
+             */
+            require_electric: boolean;
+            /**
+             * Require Accessible
+             * @default true
+             */
+            require_accessible: boolean;
+            /**
+             * Min Rv Length
+             * @default true
+             */
+            min_rv_length: boolean;
         };
         /**
          * ProviderResponse
@@ -2134,6 +2144,7 @@ export interface components {
             url: string;
             /** Enabled */
             enabled: boolean;
+            filter_capabilities?: components["schemas"]["ProviderFilterCapabilitiesResponse"];
         };
         /**
          * RecreationArea
@@ -3579,7 +3590,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Provider"];
+                    "application/json": components["schemas"]["ProviderResponse"];
                 };
             };
             /** @description Validation Error */

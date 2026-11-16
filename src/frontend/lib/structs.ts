@@ -63,12 +63,20 @@ export interface RecreationArea {
 export type DestinationPhoto = components["schemas"]["DestinationPhoto"];
 export type DestinationDetails = components["schemas"]["DestinationDetails"];
 
+export interface ProviderFilterCapabilities {
+  preferred_types: boolean;
+  require_electric: boolean;
+  require_accessible: boolean;
+  min_rv_length: boolean;
+}
+
 export interface Provider {
   id: number;
   name: string;
   description: string | null;
   url: string;
   enabled: boolean;
+  filter_capabilities?: ProviderFilterCapabilities;
 }
 
 export interface Campground {

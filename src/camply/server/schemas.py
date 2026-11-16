@@ -33,6 +33,15 @@ UtcDateTime = Annotated[datetime.datetime, AfterValidator(_ensure_utc)]
 # ===========================================================================
 
 
+class ProviderFilterCapabilitiesResponse(BaseModel):
+    """Site-attribute monitor filters supported by a provider."""
+
+    preferred_types: bool = True
+    require_electric: bool = True
+    require_accessible: bool = True
+    min_rv_length: bool = True
+
+
 class ProviderResponse(BaseModel):
     """Public provider representation."""
 
@@ -41,6 +50,9 @@ class ProviderResponse(BaseModel):
     description: Optional[str] = None
     url: str
     enabled: bool
+    filter_capabilities: ProviderFilterCapabilitiesResponse = Field(
+        default_factory=ProviderFilterCapabilitiesResponse
+    )
 
 
 # ===========================================================================

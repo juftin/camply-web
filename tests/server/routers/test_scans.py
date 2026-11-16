@@ -11,6 +11,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from camply.db.models import Campground, RecreationArea
+from camply.providers import PROVIDERS
+from camply.providers.base import ProviderFilterCapabilities
 from tests.server import conftest
 
 API_SCANS = "/api/scans"
@@ -349,3 +351,90 @@ class TestMe:
         data = response.json()
         assert data["email"] == "admin@camply.local"
         assert data["is_invited"] is True
+
+
+class TestProviderFilterGating:
+    """Tests for per-provider filter capability validation on /api/scans."""
+
+    def test_create_scan_rejects_unsupported_filter(
+        self, test_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """POST /api/scans returns 422 when a filter is unsupported by the provider."""
+        cg_id = _next()
+        _seed_campground(cg_id)
+        monkeypatch.setattr(
+            PROVIDERS[1],
+            "filter_capabilities",
+            ProviderFilterCapabilities(min_rv_length=False),
+        )
+        rejected = test_client.post(
+            API_SCANS,
+            json={
+                "provider_id": 1,
+                "campground_id": cg_id,
+                "start_date": "2027-07-01",
+                "end_date": "2027-07-05",
+                "min_rv_length": 28,
+            },
+        )
+        assert rejected.status_code == 422
+        assert "minimum RV / trailer length" in rejected.json()["detail"]
+
+        allowed = test_client.post(
+            API_SCANS,
+            json={
+                "provider_id": 1,
+                "campground_id": cg_id,
+                "start_date": "2027-07-01",
+                "end_date": "2027-07-05",
+            },
+        )
+        assert allowed.status_code == 201
+
+    def test_update_scan_rejects_unsupported_filter_but_allows_pause(
+        self, test_client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """PATCH validates modified filters while still allowing pause on legacy scans."""
+        cg_id = _next()
+        _seed_campground(cg_id)
+        created = test_client.post(
+            API_SCANS,
+            json={
+                "provider_id": 1,
+                "campground_id": cg_id,
+                "start_date": "2027-07-01",
+                "end_date": "2027-07-05",
+                "min_rv_length": 30,
+            },
+        )
+        assert created.status_code == 201
+        scan_id = created.json()["id"]
+
+        monkeypatch.setattr(
+            PROVIDERS[1],
+            "filter_capabilities",
+            ProviderFilterCapabilities(min_rv_length=False, require_electric=False),
+        )
+
+        # Pausing a previously created scan does not modify filters and still succeeds
+        paused = test_client.patch(
+            f"{API_SCANS}/{scan_id}",
+            json={"is_active": False},
+        )
+        assert paused.status_code == 200
+
+        # Trying to enable an unsupported filter fails with 422
+        rejected = test_client.patch(
+            f"{API_SCANS}/{scan_id}",
+            json={"require_electric": True},
+        )
+        assert rejected.status_code == 422
+        assert "electric hookup" in rejected.json()["detail"]
+
+        # Clearing the unsupported filter succeeds
+        cleared = test_client.patch(
+            f"{API_SCANS}/{scan_id}",
+            json={"min_rv_length": None, "require_electric": False},
+        )
+        assert cleared.status_code == 200
+        assert cleared.json()["min_rv_length"] is None
