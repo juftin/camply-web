@@ -9,6 +9,7 @@ For everyday usage and self-hosting guides, start from the [documentation overvi
 - [Environment Variables](operations/CONFIGURATION.md) — Complete `CAMPLY_*` and frontend build configuration reference.
 - [Runtime & Packaging](operations/RUNNING.md) — Python extras, `camply serve` / `camply db` subcommands, distribution builds, and enrichment tasks.
 - [Release Operations](operations/RELEASES.md) — CI, semantic-release, container images, Helm OCI charts, PyPI, and Pages publishing.
+- [License](license.md) — GNU AGPL-3.0 licensing terms, network copyleft obligations, and why camply uses it.
 - [Kubernetes & Helm](https://github.com/juftin/camply-web/blob/main/deploy/helm/README.md) — Chart installation, values, and probes.
 
 ## Specifications and project records

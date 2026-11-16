@@ -29,5 +29,3 @@ Read the docs at [camply.rocks/docs](https://camply.rocks/docs/) (also served at
 - **User Documentation:** [Web app guide](docs/using-camply.md) and [CLI guide](docs/cli.md).
 - **Self-Hosting:** [Deployment options](docs/self-hosting/index.md), [standalone setup](docs/self-hosting/standalone.md), [Docker & Kubernetes](docs/self-hosting/containers.md), and [configuration](docs/self-hosting/configuration.md).
 - **Contributors:** [Technical & Architectural Documentation](docs/technical/index.md) and [Technical Reference](docs/reference.md).
-
-Licensed under [GNU Affero General Public License v3.0](LICENSE).

@@ -54,6 +54,7 @@ const sidebar = [
       { text: "Environment Variables", link: "/operations/CONFIGURATION" },
       { text: "Runtime & Packaging", link: "/operations/RUNNING" },
       { text: "Release Operations", link: "/operations/RELEASES" },
+      { text: "License", link: "/license" },
       {
         text: "Specs & Planning",
         collapsed: true,

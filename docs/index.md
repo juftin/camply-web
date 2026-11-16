@@ -18,5 +18,3 @@ camply only tracks openings and sends alerts. You complete the reservation on th
 ## Technical docs
 
 If you are contributing code or looking up internal references, see [Technical & Architectural Documentation](technical/index.md) and [Technical Reference](reference.md).
-
-camply is licensed under [GNU Affero General Public License v3.0](https://github.com/juftin/camply-web/blob/main/LICENSE).

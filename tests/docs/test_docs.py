@@ -125,6 +125,7 @@ class DocumentationTests(unittest.TestCase):
             DOCS_ROOT / "technical/index.md",
             DOCS_ROOT / "CONTRIBUTING.md",
             DOCS_ROOT / "reference.md",
+            DOCS_ROOT / "license.md",
             DOCS_ROOT / "PLAN.md",
             *sorted((DOCS_ROOT / "self-hosting").glob("*.md")),
             *sorted((DOCS_ROOT / "development").glob("*.md")),
@@ -134,6 +135,14 @@ class DocumentationTests(unittest.TestCase):
         self.assert_no_retired_links(rewritten_pages)
         self.assert_no_internal_github_blob_links(rewritten_pages)
         self.assert_editorial_standard(rewritten_pages)
+        self.assertNotIn(
+            "licensed under",
+            (ROOT / "README.md").read_text(encoding="utf-8").casefold(),
+        )
+        self.assertNotIn(
+            "licensed under",
+            (DOCS_ROOT / "index.md").read_text(encoding="utf-8").casefold(),
+        )
 
     @unittest.skipUnless(
         (ROOT / "build/docs/index.html").exists(), "Run task docs:build first"
@@ -149,6 +158,7 @@ class DocumentationTests(unittest.TestCase):
             "/docs/using-camply",
             "/docs/cli",
             "/docs/self-hosting/standalone",
+            "/docs/license",
         ):
             self.assertIn(included, index_text)
         for excluded in (
@@ -252,6 +262,7 @@ class DocumentationTests(unittest.TestCase):
         for relative in (
             "index.html",
             "using-camply.html",
+            "license.html",
             "404.html",
             "assets/camply.svg",
         ):
