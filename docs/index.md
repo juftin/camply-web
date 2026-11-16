@@ -1,8 +1,8 @@
 # Find your next campsite
 
-camply watches campground availability and notifies you when a stay opens up. You can use the hosted app at [camply.rocks](https://camply.rocks), monitor from your terminal, or run your own instance.
+**`camply`**, the campsite finder ⛺️, is a tool to help you book a campsite online. Finding reservations at sold out campgrounds can be tough. That's where camply comes in. It searches thousands of campgrounds across the world via the APIs of booking services like [recreation.gov](https://recreation.gov). It continuously checks for cancellations and availabilities to pop up - once a campsite becomes available, camply sends you a notification to book your spot!
 
-camply only tracks openings and sends alerts. You complete the reservation on the booking provider's site.
+You can use the hosted app at [camply.rocks](https://camply.rocks), monitor from your terminal, or run your own instance. camply only tracks openings and sends alerts—you complete the reservation on the booking provider's site.
 
 ## Use camply
 

@@ -4,7 +4,9 @@
 </a>
 </div>
 
-camply watches for openings at sold-out campgrounds and notifies you when a stay matches your dates. Use it online at **[camply.rocks](https://camply.rocks)**, from your terminal, or on your own server.
+**`camply`**, the campsite finder ⛺️, is a tool to help you book a campsite online. Finding reservations at sold out campgrounds can be tough. That's where camply comes in. It searches thousands of campgrounds across the world via the APIs of booking services like [recreation.gov](https://recreation.gov). It continuously checks for cancellations and availabilities to pop up - once a campsite becomes available, camply sends you a notification to book your spot!
+
+Use it online at **[camply.rocks](https://camply.rocks)**, from your terminal, or on your own server.
 
 ## Quick start
 
