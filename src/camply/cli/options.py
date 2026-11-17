@@ -153,24 +153,6 @@ def notifications(*, required: bool = False) -> Callable[[_F], _F]:
     )
 
 
-def ntfy_topic() -> Callable[[_F], _F]:
-    """Specify the ntfy topic name, overriding NTFY_TOPIC."""
-    return click.option(
-        "--ntfy-topic",
-        default=None,
-        help="ntfy topic name (or set NTFY_TOPIC).",
-    )
-
-
-def ntfy_server() -> Callable[[_F], _F]:
-    """Specify a custom ntfy server URL, overriding NTFY_SERVER_URL."""
-    return click.option(
-        "--ntfy-server",
-        default=None,
-        help="ntfy server URL (default: https://ntfy.sh; NTFY_SERVER_URL fallback).",
-    )
-
-
 def state_file() -> Callable[[_F], _F]:
     """Specify a local JSON file path for seen-opening alert deduplication."""
     return click.option(

@@ -38,7 +38,7 @@ description: "Task list for CLI Full-Stack Parity (031-cli-fullstack-parity)"
 
 **⚠️ CRITICAL**: Complete this phase before beginning user story implementation.
 
-- [x] T002 Add reusable Click option decorators to `src/camply/cli/options.py` for `--campsite` (repeatable string), `--campsite-type` (repeatable case-insensitive `TENT`, `RV`, `CABIN`, `OTHER`), `--electric` (`is_flag=True`, default `False`), `--accessible` (`is_flag=True`, default `False`), `--rv-length` (`type=click.IntRange(min=1, max=200)`, default `None`), `--notifications` (repeatable case-insensitive `pushover`, `ntfy`), `--ntfy-topic` (default `None`), `--ntfy-server` (default `None`), `--state-file` (`type=click.Path(dir_okay=False, path_type=Path)`, default `None`), `--search-once` (`is_flag=True`, default `False`), `--interval` (`type=click.FloatRange(min=5.0)`, default `60.0`), `--limit` (`type=click.IntRange(min=1, max=500)`, default `50`), and `--json` (`is_flag=True`, default `False`)
+- [x] T002 Add reusable Click option decorators to `src/camply/cli/options.py` for `--campsite` (repeatable string), `--campsite-type` (repeatable case-insensitive `TENT`, `RV`, `CABIN`, `OTHER`), `--electric` (`is_flag=True`, default `False`), `--accessible` (`is_flag=True`, default `False`), `--rv-length` (`type=click.IntRange(min=1, max=200)`, default `None`), `--notifications` (repeatable case-insensitive `pushover`, `ntfy`), `--state-file` (`type=click.Path(dir_okay=False, path_type=Path)`, default `None`), `--search-once` (`is_flag=True`, default `False`), `--interval` (`type=click.FloatRange(min=5.0)`, default `60.0`), `--limit` (`type=click.IntRange(min=1, max=500)`, default `50`), and `--json` (`is_flag=True`, default `False`)
 - [x] T003 [P] Update `set_up_logging` and `diagnostic` in `src/camply/cli/output.py` to accept `stderr_only: bool = False` so that when `--json` is active, all log levels (including `INFO` and `CAMPLY_LOG_LEVEL`) route exclusively to `sys.stderr` while keeping `sys.stdout` clean for structured JSON payloads
 
 **Checkpoint**: Shared CLI option decorators and stderr-isolated logging are ready — user stories can now proceed.
@@ -70,7 +70,7 @@ description: "Task list for CLI Full-Stack Parity (031-cli-fullstack-parity)"
 
 ## Phase 4: User Story 2 - Receive Pushover and ntfy alerts with duplicate suppression from the CLI (Priority: P1)
 
-**Goal**: Deliver availability alerts from `camply campsites` via Pushover and ntfy using `--notifications` (`pushover`, `ntfy`), `--ntfy-topic`, `--ntfy-server`, and environment variables (`PUSHOVER_USER_KEY`, `PUSHOVER_APP_TOKEN`, `NTFY_TOPIC`, `NTFY_SERVER_URL`, `NTFY_ACCESS_TOKEN`); provide `camply test-notifications`; and suppress duplicate alerts across continuous cycles and optional `--state-file` single-pass runs.
+**Goal**: Deliver availability alerts from `camply campsites` via Pushover and ntfy using `--notifications` (`pushover`, `ntfy`) and environment variables (`PUSHOVER_USER_KEY`, `PUSHOVER_APP_TOKEN`, `NTFY_TOPIC`, `NTFY_SERVER_URL`, `NTFY_ACCESS_TOKEN`); provide `camply test-notifications`; and suppress duplicate alerts across continuous cycles and optional `--state-file` single-pass runs.
 
 **Independent Test**: Run `uv run pytest tests/cli/test_notifications.py` to verify `camply test-notifications` and `camply campsites --notifications` validate credentials, send alerts on newly opened and reopened stays, suppress unchanged stays across cycles and `--state-file` runs, preserve state on provider poll errors, and redact secrets in logs/errors.
 
@@ -84,7 +84,7 @@ description: "Task list for CLI Full-Stack Parity (031-cli-fullstack-parity)"
 
 - [x] T010 [US2] Create `src/camply/cli/notifications.py` implementing `CLINotificationConfig` (with `repr=False` on `pushover_user_key`, `pushover_app_token`, and `ntfy_access_token`), `StayDeduplicationState` (canonical stay key `"{provider_id}:{campground_id}:{campsite_id}:{arrival.isoformat()}:{checkout.isoformat()}"` and atomic `--state-file` JSON v1 read/write), `send_stay_notifications` (dispatching `NotificationDTO` via `PushoverProvider.send_accepted` and `NtfyProvider.send_accepted` with sanitized error logging), and `test_notifications_cmd`
 - [x] T011 [US2] Register `test-notifications` lazily in `CamplyCLI.list_commands` and `CamplyCLI.get_command` in `src/camply/cli/main.py`
-- [x] T012 [US2] Wire `--notifications`, `--ntfy-topic`, `--ntfy-server`, and `--state-file` into `campsites_cmd` in `src/camply/cli/campsites.py`, validating `CLINotificationConfig` and initializing `StayDeduplicationState` before starting availability checks and dispatching alerts only for newly opened or reopened stays after each successful check cycle
+- [x] T012 [US2] Wire `--notifications` and `--state-file` into `campsites_cmd` in `src/camply/cli/campsites.py`, validating `CLINotificationConfig` and initializing `StayDeduplicationState` before starting availability checks and dispatching alerts only for newly opened or reopened stays after each successful check cycle
 
 **Checkpoint**: User Stories 1 AND 2 are both complete and independently testable (`uv run pytest tests/cli/test_notifications.py tests/cli/test_search.py`).
 

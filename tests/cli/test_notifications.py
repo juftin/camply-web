@@ -51,53 +51,52 @@ def _sample_stay(
 def test_notification_config_resolution_and_secret_redaction(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Resolve channels, validate required credentials, and hide secrets in repr."""
+    """Resolve channels, validate required env credentials, and hide secrets in repr."""
     monkeypatch.setenv("PUSHOVER_USER_KEY", "malformed-user-secret")
     monkeypatch.setenv("PUSHOVER_APP_TOKEN", "")
     # No channels selected: env vars are ignored completely
-    empty = resolve_notification_config((), None, None)
+    empty = resolve_notification_config(())
     assert empty.channels == ()
     assert empty.pushover_user_key is None
 
     # Pushover requires both PUSHOVER_USER_KEY and PUSHOVER_APP_TOKEN
     with pytest.raises(ValueError, match="PUSHOVER_APP_TOKEN"):
-        resolve_notification_config(("pushover",), None, None)
+        resolve_notification_config(("pushover",))
 
     monkeypatch.setenv("PUSHOVER_APP_TOKEN", "super-secret-app-token")
-    pushover_cfg = resolve_notification_config(("Pushover", "pushover"), None, None)
+    pushover_cfg = resolve_notification_config(("Pushover", "pushover"))
     assert pushover_cfg.channels == ("pushover",)
     assert "super-secret-app-token" not in repr(pushover_cfg)
     assert "malformed-user-secret" not in repr(pushover_cfg)
 
-    # ntfy requires valid topic and HTTP(S) server URL
+    # ntfy requires valid NTFY_TOPIC and HTTP(S) NTFY_SERVER_URL
     monkeypatch.delenv("NTFY_TOPIC", raising=False)
-    with pytest.raises(ValueError, match="ntfy topic"):
-        resolve_notification_config(("ntfy",), None, None)
+    monkeypatch.delenv("NTFY_SERVER_URL", raising=False)
+    monkeypatch.delenv("NTFY_ACCESS_TOKEN", raising=False)
+    with pytest.raises(ValueError, match="NTFY_TOPIC"):
+        resolve_notification_config(("ntfy",))
 
-    with pytest.raises(ValueError, match="ntfy topic"):
-        resolve_notification_config(("ntfy",), "invalid topic spaces!", None)
+    monkeypatch.setenv("NTFY_TOPIC", "invalid topic spaces!")
+    with pytest.raises(ValueError, match="NTFY_TOPIC"):
+        resolve_notification_config(("ntfy",))
 
+    monkeypatch.setenv("NTFY_TOPIC", "camply-topic")
+    monkeypatch.setenv("NTFY_SERVER_URL", "ftp://bad.example")
     with pytest.raises(ValueError, match="HTTP"):
-        resolve_notification_config(("ntfy",), "camply-topic", "ftp://bad.example")
+        resolve_notification_config(("ntfy",))
 
+    monkeypatch.setenv("NTFY_SERVER_URL", "")
     monkeypatch.setenv("NTFY_ACCESS_TOKEN", "bad\ncontrol")
     with pytest.raises(ValueError, match="printable ASCII"):
-        resolve_notification_config(("ntfy",), "camply-topic", None)
+        resolve_notification_config(("ntfy",))
 
     monkeypatch.setenv("NTFY_ACCESS_TOKEN", "tk_secret_ntfy_token")
     monkeypatch.setenv("NTFY_TOPIC", "env-topic")
     monkeypatch.setenv("NTFY_SERVER_URL", "https://ntfy.example.com/")
-    ntfy_cfg = resolve_notification_config(("ntfy",), None, None)
+    ntfy_cfg = resolve_notification_config(("ntfy",))
     assert ntfy_cfg.ntfy_topic == "env-topic"
     assert ntfy_cfg.ntfy_server_url == "https://ntfy.example.com"
     assert "tk_secret_ntfy_token" not in repr(ntfy_cfg)
-
-    # Explicit CLI flags override NTFY_TOPIC and NTFY_SERVER_URL
-    override_cfg = resolve_notification_config(
-        ("ntfy",), "flag-topic", "https://custom.ntfy.org"
-    )
-    assert override_cfg.ntfy_topic == "flag-topic"
-    assert override_cfg.ntfy_server_url == "https://custom.ntfy.org"
 
 
 def test_stay_deduplication_in_memory_and_state_file(tmp_path: Path) -> None:
@@ -135,6 +134,7 @@ def test_test_notifications_command_success_and_sanitized_failure(
     """Verify camply test-notifications dispatches to selected channels and redacts secrets."""
     monkeypatch.setenv("PUSHOVER_USER_KEY", "user-secret-123")
     monkeypatch.setenv("PUSHOVER_APP_TOKEN", "app-secret-456")
+    monkeypatch.setenv("NTFY_TOPIC", "camply-test")
     monkeypatch.setenv("NTFY_ACCESS_TOKEN", "ntfy-secret-789")
 
     pushover_calls: list[tuple[str, NotificationDTO]] = []
@@ -163,8 +163,6 @@ def test_test_notifications_command_success_and_sanitized_failure(
             "pushover",
             "--notifications",
             "ntfy",
-            "--ntfy-topic",
-            "camply-test",
         ],
     )
     assert result.exit_code == 0, result.output
@@ -198,6 +196,7 @@ def test_campsites_notifications_deduplicate_and_survive_transient_delivery_erro
 
     monkeypatch.setattr(core, "POLL_INTERVAL_SECONDS", 0.0001)
     monkeypatch.setattr(core, "utc_today", lambda: date(2027, 7, 1))
+    monkeypatch.setenv("NTFY_TOPIC", "camply-alerts")
     monkeypatch.setenv("NTFY_ACCESS_TOKEN", "ntfy-secret-xyz")
 
     provider_cls = PROVIDERS[1]
@@ -265,13 +264,13 @@ def test_campsites_notifications_deduplicate_and_survive_transient_delivery_erro
     monkeypatch.setattr(provider_cls, "get_campground", lookup)
     monkeypatch.setattr(provider_cls, "find_availabilities", find_availabilities)
 
-    sent_Alerts: list[NotificationDTO] = []
+    sent_alerts: list[NotificationDTO] = []
 
     async def fake_ntfy(
         self: NtfyProvider, config: dict[str, object], payload: NotificationDTO
     ) -> bool:
-        sent_Alerts.append(payload)
-        if len(sent_Alerts) == 1:
+        sent_alerts.append(payload)
+        if len(sent_alerts) == 1:
             # Simulate a transient delivery error on the first alert to prove
             # monitoring continues and redacts tokens
             raise RuntimeError("Transient error with token ntfy-secret-xyz")
@@ -294,14 +293,12 @@ def test_campsites_notifications_deduplicate_and_survive_transient_delivery_erro
             "2",
             "--notifications",
             "ntfy",
-            "--ntfy-topic",
-            "camply-alerts",
             "--state-file",
             str(state_file),
         ],
     )
     assert result.exit_code == 1  # Cancelled after 4 cycles
     # Alert attempted on Cycle 1 (newly opened) and Cycle 4 (reopened), skipped on Cycle 2
-    assert len(sent_Alerts) == 2
+    assert len(sent_alerts) == 2
     assert "ntfy-secret-xyz" not in result.output + result.stderr
     assert state_file.is_file()

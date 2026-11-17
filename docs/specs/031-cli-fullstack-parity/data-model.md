@@ -42,14 +42,14 @@ For each observed `CampsiteDTO` in `_stays()`:
 
 Frozen Pydantic v2 model validated before any availability polling or test notification begins:
 
-| Field                | Type                                      | Default             | Source & Validation                                                                                              |
-| -------------------- | ----------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `channels`           | `tuple[Literal["pushover", "ntfy"], ...]` | `()`                | Deduplicated lowercase values from repeatable `--notifications`                                                  |
-| `pushover_user_key`  | `str \| None`                             | `None`              | From `PUSHOVER_USER_KEY` env var; required when `"pushover"` in `channels` (`repr=False`)                        |
-| `pushover_app_token` | `str \| None`                             | `None`              | From `PUSHOVER_APP_TOKEN` env var; required when `"pushover"` in `channels` (`repr=False`)                       |
-| `ntfy_topic`         | `str \| None`                             | `None`              | From `--ntfy-topic` flag or `NTFY_TOPIC` env var; required when `"ntfy"` in `channels` (`^[A-Za-z0-9_-]{1,64}$`) |
-| `ntfy_server_url`    | `str`                                     | `"https://ntfy.sh"` | From `--ntfy-server` flag or `NTFY_SERVER_URL` env var; validated via `validate_ntfy_url`                        |
-| `ntfy_access_token`  | `str \| None`                             | `None`              | From `NTFY_ACCESS_TOKEN` env var; printable ASCII if set (`repr=False`)                                          |
+| Field                | Type                                      | Default             | Source & Validation                                                                        |
+| -------------------- | ----------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------ |
+| `channels`           | `tuple[Literal["pushover", "ntfy"], ...]` | `()`                | Deduplicated lowercase values from repeatable `--notifications`                            |
+| `pushover_user_key`  | `str \| None`                             | `None`              | From `PUSHOVER_USER_KEY` env var; required when `"pushover"` in `channels` (`repr=False`)  |
+| `pushover_app_token` | `str \| None`                             | `None`              | From `PUSHOVER_APP_TOKEN` env var; required when `"pushover"` in `channels` (`repr=False`) |
+| `ntfy_topic`         | `str \| None`                             | `None`              | From `NTFY_TOPIC` env var; required when `"ntfy"` in `channels` (`^[A-Za-z0-9_-]{1,64}$`)  |
+| `ntfy_server_url`    | `str`                                     | `"https://ntfy.sh"` | From `NTFY_SERVER_URL` env var; validated via `validate_ntfy_url`                          |
+| `ntfy_access_token`  | `str \| None`                             | `None`              | From `NTFY_ACCESS_TOKEN` env var; printable ASCII if set (`repr=False`)                    |
 
 ### `StayDeduplicationState`
 

@@ -36,7 +36,7 @@
 
 ### 3. Pushover & ntfy Notifications + Deduplication (`FR-003`, `FR-004`)
 
-- Verify `camply test-notifications` and `camply campsites --notifications` validate credentials from environment variables (`PUSHOVER_USER_KEY`, `PUSHOVER_APP_TOKEN`, `NTFY_ACCESS_TOKEN`) and flags/env (`--ntfy-topic` / `NTFY_TOPIC`, `--ntfy-server` / `NTFY_SERVER_URL`), suppress duplicate alerts across continuous cycles and `--state-file` single-pass runs, and redact secrets on errors:
+- Verify `camply test-notifications` and `camply campsites --notifications` validate credentials and settings from environment variables (`PUSHOVER_USER_KEY`, `PUSHOVER_APP_TOKEN`, `NTFY_TOPIC`, `NTFY_SERVER_URL`, `NTFY_ACCESS_TOKEN`), suppress duplicate alerts across continuous cycles and `--state-file` single-pass runs, and redact secrets on errors:
   ```bash
   uv run pytest tests/cli/test_notifications.py
   ```

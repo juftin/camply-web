@@ -85,19 +85,21 @@ export PUSHOVER_USER_KEY="your-user-key"
 export PUSHOVER_APP_TOKEN="your-app-token"
 camply test-notifications --notifications pushover
 
-camply test-notifications --notifications ntfy --ntfy-topic camply-alerts
+export NTFY_TOPIC="camply-alerts"
+camply test-notifications --notifications ntfy
 ```
 
 During continuous watching, camply tracks seen openings in memory and only sends alerts for newly opened or reopened stays. When running single-pass checks from `cron` or a systemd timer (`--search-once`), pass `--state-file` to persist seen openings across runs:
 
 ```bash
+export NTFY_TOPIC="camply-alerts"
 camply campsites --campground 232450 \
   --start-date 2027-07-10 --end-date 2027-07-14 --nights 2 \
-  --notifications ntfy --ntfy-topic camply-alerts \
+  --notifications ntfy \
   --search-once --state-file ~/.cache/camply-yosemite.json
 ```
 
-Secret tokens (`PUSHOVER_USER_KEY`, `PUSHOVER_APP_TOKEN`, `NTFY_ACCESS_TOKEN`) are read exclusively from environment variables and never logged.
+All notification settings (`PUSHOVER_USER_KEY`, `PUSHOVER_APP_TOKEN`, `NTFY_TOPIC`, optional `NTFY_SERVER_URL` defaulting to `https://ntfy.sh`, and optional `NTFY_ACCESS_TOKEN`) are read from environment variables and secret tokens are never logged.
 
 ## JSON output for scripting
 

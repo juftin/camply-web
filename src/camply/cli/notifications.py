@@ -62,23 +62,14 @@ def _resolve_pushover_credentials() -> tuple[str, str]:
     return user_key, app_token
 
 
-def _resolve_ntfy_settings(
-    ntfy_topic: str | None,
-    ntfy_server: str | None,
-) -> tuple[str, str, str | None]:
-    """Resolve and validate ntfy topic, server URL, and optional access token."""
-    raw_topic = (
-        ntfy_topic if ntfy_topic is not None else os.environ.get("NTFY_TOPIC", "")
-    ).strip()
+def _resolve_ntfy_settings() -> tuple[str, str, str | None]:
+    """Resolve and validate ntfy topic, server URL, and optional access token from env vars."""
+    raw_topic = os.environ.get("NTFY_TOPIC", "").strip()
     if not raw_topic or _NTFY_TOPIC_PATTERN.fullmatch(raw_topic) is None:
         raise ValueError(
-            "ntfy notifications require a valid ntfy topic (1-64 letters, digits, '_' or '-') via --ntfy-topic or NTFY_TOPIC."
+            "ntfy notifications require a valid NTFY_TOPIC environment variable (1-64 letters, digits, '_' or '-')."
         )
-    raw_server = (
-        ntfy_server
-        if ntfy_server is not None
-        else os.environ.get("NTFY_SERVER_URL", "")
-    ).strip()
+    raw_server = os.environ.get("NTFY_SERVER_URL", "").strip()
     server_url = validate_ntfy_url(raw_server) if raw_server else _DEFAULT_NTFY_SERVER
     raw_token = os.environ.get("NTFY_ACCESS_TOKEN", "")
     if raw_token and any(
@@ -90,8 +81,6 @@ def _resolve_ntfy_settings(
 
 def resolve_notification_config(
     channels: Sequence[str],
-    ntfy_topic: str | None,
-    ntfy_server: str | None,
 ) -> CLINotificationConfig:
     """Resolve and validate CLI notification settings without database access.
 
@@ -115,7 +104,7 @@ def resolve_notification_config(
         _resolve_pushover_credentials() if "pushover" in normalized else (None, None)
     )
     topic, server_url, access_token = (
-        _resolve_ntfy_settings(ntfy_topic, ntfy_server)
+        _resolve_ntfy_settings()
         if "ntfy" in normalized
         else (None, _DEFAULT_NTFY_SERVER, None)
     )
@@ -289,19 +278,15 @@ async def send_stay_notifications(
 @click.command(name="test-notifications")
 @options.debug()
 @options.notifications(required=True)
-@options.ntfy_topic()
-@options.ntfy_server()
 @click.pass_context
 def test_notifications_cmd(
     ctx: click.Context,
     debug: bool | None,
     notifications: tuple[str, ...],
-    ntfy_topic: str | None,
-    ntfy_server: str | None,
 ) -> None:
     """Send a test notification to verify Pushover or ntfy configuration."""
     try:
-        config = resolve_notification_config(notifications, ntfy_topic, ntfy_server)
+        config = resolve_notification_config(notifications)
     except ValueError as exc:
         raise click.UsageError(str(exc)) from exc
 

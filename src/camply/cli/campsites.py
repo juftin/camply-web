@@ -174,8 +174,6 @@ async def _execute_watch(
 @options.accessible()
 @options.rv_length()
 @options.notifications()
-@options.ntfy_topic()
-@options.ntfy_server()
 @options.state_file()
 @options.search_once()
 @options.interval()
@@ -198,8 +196,6 @@ def campsites_cmd(
     accessible: bool,
     rv_length: int | None,
     notifications: tuple[str, ...],
-    ntfy_topic: str | None,
-    ntfy_server: str | None,
     state_file: Path | None,
     search_once: bool = False,
     interval: float = 60.0,
@@ -231,9 +227,7 @@ def campsites_cmd(
             require_accessible=accessible,
             min_rv_length=rv_length,
         )
-        notification_config = resolve_notification_config(
-            notifications, ntfy_topic, ntfy_server
-        )
+        notification_config = resolve_notification_config(notifications)
     except ValueError as exc:
         raise click.UsageError(str(exc)) from exc
     _validate_provider_filters(name, provider_class, request)

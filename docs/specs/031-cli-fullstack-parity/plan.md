@@ -8,7 +8,7 @@
 Bring the stateless `camply` CLI to parity with the full-stack application's filtering, notification, discovery-pagination, and scripting capabilities:
 
 1. Add site-attribute and equipment filtering (`--campsite-type`, `--electric`, `--accessible`, `--rv-length`, and parent-scoped `--campsite`) to `camply campsites` and display `ProviderFilterCapabilities` in `camply providers` (`US1`).
-2. Add Pushover and ntfy alerting (`--notifications`, `--ntfy-topic`, `--ntfy-server`, `camply test-notifications`) with in-memory and optional `--state-file` seen-opening deduplication (`US2`).
+2. Add Pushover and ntfy alerting (`--notifications`, `camply test-notifications`, and `PUSHOVER_*` / `NTFY_*` environment variables) with in-memory and optional `--state-file` seen-opening deduplication (`US2`).
 3. Add `--limit` pagination beyond 50 results on live upstream discovery (`camply campgrounds`, `camply recreation-areas`) and canonical provider name support on `camply db metadata` (`US3`).
 4. Add `--search-once`, `--interval`, and `--json` stdout formatting with strict stdout/stderr separation (`US4`).
 

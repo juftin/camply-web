@@ -224,16 +224,13 @@ def test_installed_discovery_and_preflight(
         assert len(json.loads(paged.stdout)) == 55
 
         # Verify test-notifications and single-pass filtered watch with state-file deduplication
-        ntfy_server = f"{endpoint}/ntfy"
+        environment["NTFY_TOPIC"] = "camply-wheel"
+        environment["NTFY_SERVER_URL"] = f"{endpoint}/ntfy"
         test_notif = run(
             [
                 "test-notifications",
                 "--notifications",
                 "ntfy",
-                "--ntfy-topic",
-                "camply-wheel",
-                "--ntfy-server",
-                ntfy_server,
             ]
         )
         assert test_notif.returncode == 0, test_notif.stderr
@@ -260,10 +257,6 @@ def test_installed_discovery_and_preflight(
             "--json",
             "--notifications",
             "ntfy",
-            "--ntfy-topic",
-            "camply-wheel",
-            "--ntfy-server",
-            ntfy_server,
             "--state-file",
             str(state_file),
         ]

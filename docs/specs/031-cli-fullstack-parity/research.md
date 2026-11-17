@@ -54,7 +54,7 @@
 ### Decision 3: Stateless CLI Notification Resolution & Delivery
 
 - **Decision**: Introduce `src/camply/cli/notifications.py` to handle:
-  1. Credential/config resolution from `--notifications` (`pushover`, `ntfy`), `--ntfy-topic`, `--ntfy-server`, and environment variables (`PUSHOVER_USER_KEY`, `PUSHOVER_APP_TOKEN`, `NTFY_TOPIC`, `NTFY_SERVER_URL`, `NTFY_ACCESS_TOKEN`).
+  1. Credential/config resolution from `--notifications` (`pushover`, `ntfy`) and environment variables (`PUSHOVER_USER_KEY`, `PUSHOVER_APP_TOKEN`, `NTFY_TOPIC`, `NTFY_SERVER_URL`, `NTFY_ACCESS_TOKEN`).
   2. Validation before polling:
      - When `--notifications` is omitted, zero notification environment variables are read or validated.
      - When `pushover` is selected, both `PUSHOVER_USER_KEY` and `PUSHOVER_APP_TOKEN` must be non-blank.
