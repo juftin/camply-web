@@ -19,6 +19,7 @@ class CamplyCLI(click.Group):
                 "recreation-areas",
                 "campgrounds",
                 "campsites",
+                "test-notifications",
             }
         )
 
@@ -50,6 +51,10 @@ class CamplyCLI(click.Group):
             from camply.cli.campsites import campsites_cmd
 
             command = campsites_cmd
+        elif cmd_name == "test-notifications":
+            from camply.cli.notifications import test_notifications_cmd
+
+            command = test_notifications_cmd
         return command
 
 

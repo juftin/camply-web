@@ -24,7 +24,9 @@ def normalize_ids(values: Sequence[str], option: str) -> tuple[str, ...]:
     return result
 
 
-def discovery_query(search: str, state: str | None) -> ProviderSearchQuery:
+def discovery_query(
+    search: str, state: str | None, *, limit: int = DISPLAY_LIMIT
+) -> ProviderSearchQuery:
     """Normalize discovery filters and request one extra result to detect truncation."""
     if state is not None:
         state = state.strip().upper()
@@ -36,7 +38,7 @@ def discovery_query(search: str, state: str | None) -> ProviderSearchQuery:
             raise click.BadParameter(
                 "Use a two-letter state code.", param_hint="--state"
             )
-    return ProviderSearchQuery(query=search.strip(), state=state, limit=RESULT_PROBE)
+    return ProviderSearchQuery(query=search.strip(), state=state, limit=limit + 1)
 
 
 def identity_key(result: ProviderSearchResult) -> tuple[int, str, str]:

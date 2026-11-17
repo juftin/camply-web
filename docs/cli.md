@@ -15,18 +15,18 @@ If you also keep legacy `camply` installed, keep `camply-web` in a separate `uv`
 
 ## Discover locations
 
-List the 26 supported providers, search recreation areas, and find exact campground IDs:
+List the 26 supported providers (including their site-attribute filter capabilities), search recreation areas, and find exact campground IDs:
 
 ```bash
 camply providers
 camply recreation-areas --search Yosemite --state CA
-camply campgrounds --rec-area 2991
+camply campgrounds --rec-area 2991 --limit 100
 camply --provider ReserveCalifornia campgrounds --search redwood
 ```
 
 ![Campground discovery output with Rich logging](assets/camply-cli-discovery.png)
 
-`RecreationDotGov` is the default provider. Pass `--provider` (case-insensitive) to choose another. Discovery prints up to 50 matches—add `--search`, `--state`, or `--rec-area` to narrow results. When searching `ReserveAmerica`, include `--state` so camply does not scan every state.
+`RecreationDotGov` is the default provider. Pass `--provider` (case-insensitive) to choose another. Discovery prints up to 50 matches by default—pass `--limit` (`1`–`500`) to show more, or add `--search`, `--state`, or `--rec-area` to narrow results. When searching `ReserveAmerica`, include `--state` so camply does not scan every state.
 
 ## Watch for a stay
 
@@ -39,11 +39,28 @@ camply campsites --campground 232450 \
 
 ![Campsite availability monitoring output with Rich logging](assets/camply-cli-campsites.png)
 
-camply checks availability right away, prints matching stays with booking links, and re-checks about once a minute until you press `Ctrl-C`.
+camply checks availability right away, prints matching stays with booking links, and re-checks every `--interval` seconds (default `60`, minimum `5`) until you press `Ctrl-C`. Pass `--search-once` to run a single check and exit immediately.
 
 - **Dates:** `--start-date` is check-in (inclusive) and `--end-date` is checkout (exclusive). Repeat both flags in pairs to watch multiple date windows in one command.
 - **Stay length:** `--nights` defaults to `1` and matches exact-length consecutive stays at a single site (for example, a 4-night opening yields two 3-night options when `--nights 3`).
 - **Targets:** Multiple `--rec-area` flags combine their campgrounds. If you pass `--campground` alongside `--rec-area`, explicit campground IDs win.
+
+## Filter by site type, equipment, hookups, and specific sites
+
+Narrow availability matches to campsites that fit your setup:
+
+```bash
+camply campsites --campground 232450 \
+  --start-date 2027-07-10 --end-date 2027-07-18 --nights 2 \
+  --campsite-type RV --electric --accessible --rv-length 28 \
+  --campsite 014
+```
+
+- `--campsite-type`: Repeat to allow `TENT`, `RV`, `CABIN`, or `OTHER` sites.
+- `--electric`: Only match sites with electric hookups.
+- `--accessible`: Only match ADA-accessible sites.
+- `--rv-length`: Require a minimum compatible RV or trailer length in feet (`1`–`200`).
+- `--campsite`: Filter by exact campsite ID or case-insensitive site name within your selected `--campground` or `--rec-area` targets.
 
 ## Filter by nights of the week
 
@@ -59,6 +76,36 @@ Weekday filters apply to every occupied night, not the checkout date. A `--weeke
 
 In the [web app](using-camply.md), the same **Weekends** option under **Nights of the week** applies the same occupied-night rules, while showing full available blocks that meet your minimum stay length instead of fixed-length windows.
 
-## Current CLI scope
+## Send Pushover and ntfy notifications
 
-The CLI prints live availability to stdout (and diagnostics to stderr when `--debug` is set). It does not send Pushover/ntfy alerts, filter by equipment/permit, or read YAML config files; use the [web app](using-camply.md) when you want persistent scans and background notifications.
+Pass `--notifications pushover` and/or `--notifications ntfy` to receive push alerts when new qualifying stays open up. Verify your setup first with `camply test-notifications`:
+
+```bash
+export PUSHOVER_USER_KEY="your-user-key"
+export PUSHOVER_APP_TOKEN="your-app-token"
+camply test-notifications --notifications pushover
+
+camply test-notifications --notifications ntfy --ntfy-topic camply-alerts
+```
+
+During continuous watching, camply tracks seen openings in memory and only sends alerts for newly opened or reopened stays. When running single-pass checks from `cron` or a systemd timer (`--search-once`), pass `--state-file` to persist seen openings across runs:
+
+```bash
+camply campsites --campground 232450 \
+  --start-date 2027-07-10 --end-date 2027-07-14 --nights 2 \
+  --notifications ntfy --ntfy-topic camply-alerts \
+  --search-once --state-file ~/.cache/camply-yosemite.json
+```
+
+Secret tokens (`PUSHOVER_USER_KEY`, `PUSHOVER_APP_TOKEN`, `NTFY_ACCESS_TOKEN`) are read exclusively from environment variables and never logged.
+
+## JSON output for scripting
+
+Pass `--json` to `providers`, `recreation-areas`, `campgrounds`, or `campsites --search-once` to emit machine-readable JSON on `stdout` while routing banners and diagnostics to `stderr`:
+
+```bash
+camply campgrounds --search Yosemite --state CA --limit 25 --json
+camply campsites --campground 232450 \
+  --start-date 2027-07-10 --end-date 2027-07-12 \
+  --search-once --json
+```

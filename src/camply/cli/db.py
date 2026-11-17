@@ -80,6 +80,29 @@ def delete_cmd(yes: bool) -> None:
         click.echo("Database tables deleted.")
 
 
+def _resolve_metadata_provider_ids(
+    provider_id: str | None,
+    provider: str | None,
+) -> list[int]:
+    """Resolve a numeric ID, canonical provider name, class alias, or 'all'."""
+    from camply.cli.providers import provider_entries
+
+    selected = provider if provider is not None else (provider_id or "1")
+    hint = "--provider" if provider is not None else "--provider-id"
+    cleaned = selected.strip()
+    if cleaned.casefold() == "all":
+        return list(PROVIDERS.keys())
+    if cleaned.isdigit() and int(cleaned) in PROVIDERS:
+        return [int(cleaned)]
+    for name, (provider_class, identity) in provider_entries().items():
+        if cleaned.casefold() in {name.casefold(), provider_class.__name__.casefold()}:
+            return [int(identity.id)]
+    raise click.BadParameter(
+        f"Unsupported provider {selected!r}. Run 'camply providers' for supported names, or pass a numeric ID or 'all'.",
+        param_hint=hint,
+    )
+
+
 @db_group.command(
     name="metadata",
     help="Populate provider metadata independently of availability scans.\n\n"
@@ -90,34 +113,40 @@ def delete_cmd(yes: bool) -> None:
 )
 @click.option(
     "--provider-id",
-    type=click.Choice([str(provider_id) for provider_id in PROVIDERS] + ["all"]),
-    default="1",
-    show_default=True,
-    help="Provider ID to populate, or 'all' for all providers; use --help to list supported providers.",
+    default=None,
+    help="Provider ID or canonical name to populate, or 'all' (default: 1).",
 )
-def metadata_cmd(provider_id: str) -> None:
+@click.option(
+    "--provider",
+    default=None,
+    help="Canonical provider name, ID, or 'all' to populate.",
+)
+def metadata_cmd(
+    provider_id: str | None = None,
+    provider: str | None = None,
+) -> None:
     """
     Populate the Database with Provider Data.
 
     Parameters
     ----------
-    provider_id : str
-        Specific provider ID to populate, or 'all' to populate all registered providers.
+    provider_id : str or None
+        Specific provider ID or canonical name to populate, or 'all' to populate all registered providers.
+    provider : str or None
+        Specific canonical provider name, ID, or 'all' to populate.
     """
+    target_ids = _resolve_metadata_provider_ids(provider_id, provider)
 
     async def populate() -> None:
         """Populate the selected provider (or all providers) and release HTTP connections."""
-        target_ids = (
-            list(PROVIDERS.keys()) if provider_id == "all" else [int(provider_id)]
-        )
         for pid in target_ids:
-            provider = PROVIDERS[pid]()
+            provider_instance = PROVIDERS[pid]()
             try:
-                await provider.populate_database()
+                await provider_instance.populate_database()
                 from camply.providers.enrichment import enrich_provider
 
-                await enrich_provider(provider)
+                await enrich_provider(provider_instance)
             finally:
-                await provider.async_client.aclose()
+                await provider_instance.async_client.aclose()
 
     asyncio.run(populate())

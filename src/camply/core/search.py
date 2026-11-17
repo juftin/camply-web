@@ -1,6 +1,7 @@
 """Normalize local search windows and match live observations into exact stays."""
 
 import asyncio
+import inspect
 from collections.abc import Awaitable, Callable, Sequence
 from datetime import date, datetime, timedelta, timezone
 
@@ -8,11 +9,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from camply.db.availability import matching_available_dates
 from camply.providers.base import BaseProvider
-from camply.providers.dto import CampgroundSearchResult, CampsiteDTO
+from camply.providers.dto import CampgroundSearchResult, CampsiteDTO, CampsiteType
 
 # Conservative internal wait, deliberately not a public scheduling policy/option.
 # The detailed CLI scheduling contract remains deferred under specification D11.
 POLL_INTERVAL_SECONDS = 60.0
+_MAX_RV_LENGTH_FEET = 200
 
 _DAY_NAMES = (
     ("monday", "mon"),
@@ -43,6 +45,11 @@ class SearchRequest(BaseModel):
     windows: tuple[DateWindow, ...]
     eligible_dates: frozenset[date]
     nights: int = Field(ge=1)
+    campsites: tuple[str, ...] = ()
+    campsite_types: tuple[CampsiteType, ...] = ()
+    require_electric: bool = False
+    require_accessible: bool = False
+    min_rv_length: int | None = Field(default=None, ge=1, le=_MAX_RV_LENGTH_FEET)
     warnings: tuple[str, ...] = ()
 
 
@@ -69,6 +76,11 @@ def normalize_request(
     days: Sequence[str] = (),
     weekends: bool = False,
     nights: int = 1,
+    campsites: Sequence[str] = (),
+    campsite_types: Sequence[str] = (),
+    require_electric: bool = False,
+    require_accessible: bool = False,
+    min_rv_length: int | None = None,
     today: date | None = None,
 ) -> SearchRequest:
     """Validate paired windows and union eligible nights without bridging gaps.
@@ -76,7 +88,7 @@ def normalize_request(
     Raises
     ------
     ValueError
-        Date pairs, weekday names, or requested stay length cannot be satisfied.
+        Date pairs, weekday names, site filters, or requested stay length cannot be satisfied.
     """
     if not start_dates or len(start_dates) != len(end_dates):
         raise ValueError(
@@ -84,6 +96,14 @@ def normalize_request(
         )
     if isinstance(nights, bool) or not isinstance(nights, int) or nights < 1:
         raise ValueError("--nights must be a positive integer.")
+    normalized_campsites = _normalized_campsites(campsites)
+    normalized_types = _normalized_campsite_types(campsite_types)
+    if min_rv_length is not None and (
+        isinstance(min_rv_length, bool)
+        or not isinstance(min_rv_length, int)
+        or not (1 <= min_rv_length <= _MAX_RV_LENGTH_FEET)
+    ):
+        raise ValueError("--rv-length must be an integer between 1 and 200 feet.")
     allowed_days = _allowed_weekdays(days, weekends=weekends)
     current_day = today if today is not None else utc_today()
     requested_dates, warnings = _requested_dates(start_dates, end_dates, current_day)
@@ -102,7 +122,59 @@ def normalize_request(
         windows=_merged_windows(requested_dates),
         eligible_dates=eligible,
         nights=nights,
+        campsites=normalized_campsites,
+        campsite_types=normalized_types,
+        require_electric=bool(require_electric),
+        require_accessible=bool(require_accessible),
+        min_rv_length=min_rv_length,
         warnings=tuple(warnings),
+    )
+
+
+def _normalized_campsites(campsites: Sequence[str]) -> tuple[str, ...]:
+    """Trim and deduplicate campsite selectors, rejecting blank strings."""
+    cleaned = tuple(dict.fromkeys(value.strip() for value in campsites))
+    if any(not value for value in cleaned):
+        raise ValueError("--campsite values must not be blank.")
+    return cleaned
+
+
+def _normalized_campsite_types(
+    campsite_types: Sequence[str],
+) -> tuple[CampsiteType, ...]:
+    """Normalize and deduplicate standardized campsite types."""
+    normalized: list[CampsiteType] = []
+    for raw in campsite_types:
+        try:
+            ctype = CampsiteType(raw.strip().upper())
+        except ValueError as exc:
+            raise ValueError(
+                f"Unknown --campsite-type {raw!r}; choose from TENT, RV, CABIN, OTHER."
+            ) from exc
+        if ctype not in normalized:
+            normalized.append(ctype)
+    return tuple(normalized)
+
+
+def site_matches_request(site: CampsiteDTO, request: SearchRequest) -> bool:
+    """Evaluate site-attribute and campsite-ID/name filters with fail-closed semantics."""
+    if request.campsites:
+        site_id = site.campsite_id.strip()
+        site_name = site.campsite_name.strip().casefold()
+        lowered = {value.casefold() for value in request.campsites}
+        if site_id not in request.campsites and site_name not in lowered:
+            return False
+    return (
+        (not request.campsite_types or site.campsite_type in request.campsite_types)
+        and (not request.require_electric or site.is_electric is True)
+        and (not request.require_accessible or site.is_accessible is True)
+        and (
+            request.min_rv_length is None
+            or (
+                site.max_vehicle_length is not None
+                and site.max_vehicle_length >= request.min_rv_length
+            )
+        )
     )
 
 
@@ -180,6 +252,8 @@ def _stays(
         )
     stays: list[AvailabilityStay] = []
     for site, nights in grouped.values():
+        if not site_matches_request(site, request):
+            continue
         matching = {
             date.fromisoformat(value)
             for value in matching_available_dates(
@@ -257,10 +331,11 @@ async def monitor(
     provider: BaseProvider,
     targets: Sequence[CampgroundSearchResult],
     request: SearchRequest,
-    on_results: Callable[[list[AvailabilityStay]], None],
+    on_results: Callable[[list[AvailabilityStay]], Awaitable[None] | None],
     *,
     wait: Callable[[float], Awaitable[None]] = asyncio.sleep,
     interval: float | None = None,
+    once: bool = False,
 ) -> None:
     """Check immediately and continue after every success until cancellation.
 
@@ -274,5 +349,11 @@ async def monitor(
     if delay <= 0:
         raise ValueError("Internal polling interval must be positive.")
     while True:
-        on_results(await check_availability(provider, targets, request))
+        callback_result = on_results(
+            await check_availability(provider, targets, request)
+        )
+        if inspect.isawaitable(callback_result):
+            await callback_result
+        if once:
+            return
         await wait(delay)

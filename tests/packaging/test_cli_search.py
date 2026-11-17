@@ -53,9 +53,18 @@ def upstream() -> Iterator[tuple[str, list[tuple[str, dict[str, Any]]]]]:
             self.respond(data)
 
         def do_POST(self) -> None:
-            """Return bookable nights for exactly the requested facility and window."""
+            """Return bookable nights or accept synthetic ntfy notifications."""
             payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             transcript.append((self.path, payload))
+            if self.path == "/ntfy/":
+                self.respond(
+                    {
+                        "id": "msg-01",
+                        "event": "message",
+                        "topic": payload.get("topic", ""),
+                    }
+                )
+                return
             if self.path != "/search/grid":
                 self.send_error(404)
                 return
@@ -70,6 +79,8 @@ def upstream() -> Iterator[tuple[str, list[tuple[str, dict[str, Any]]]]]:
                                 "Name": "Synthetic Site",
                                 "UseType": 4,
                                 "AllowWebBooking": True,
+                                "IsAda": True,
+                                "VehicleLength": 35,
                                 "Slices": {
                                     "a": {"Date": "2030-01-01", "IsFree": True},
                                     "b": {"Date": "2030-01-02", "IsFree": True},
@@ -206,6 +217,66 @@ def test_installed_discovery_and_preflight(
             ["campsites", "--notifications", "pushover"],
         ):
             assert run(deferred).returncode != 0
+
+        # Verify --limit and --json on discovery in installed base wheel
+        paged = run(["campgrounds", "--limit", "55", "--json"])
+        assert paged.returncode == 0, paged.stderr
+        assert len(json.loads(paged.stdout)) == 55
+
+        # Verify test-notifications and single-pass filtered watch with state-file deduplication
+        ntfy_server = f"{endpoint}/ntfy"
+        test_notif = run(
+            [
+                "test-notifications",
+                "--notifications",
+                "ntfy",
+                "--ntfy-topic",
+                "camply-wheel",
+                "--ntfy-server",
+                ntfy_server,
+            ]
+        )
+        assert test_notif.returncode == 0, test_notif.stderr
+        assert any(path == "/ntfy/" for path, _ in transcript)
+
+        transcript.clear()
+        state_file = installation.directory / "wheel-seen.json"
+        watch_args = [
+            "campsites",
+            "--campground",
+            "60",
+            "--campsite",
+            "100",
+            "--accessible",
+            "--rv-length",
+            "30",
+            "--start-date",
+            "2030-01-01",
+            "--end-date",
+            "2030-01-03",
+            "--nights",
+            "2",
+            "--search-once",
+            "--json",
+            "--notifications",
+            "ntfy",
+            "--ntfy-topic",
+            "camply-wheel",
+            "--ntfy-server",
+            ntfy_server,
+            "--state-file",
+            str(state_file),
+        ]
+        first_watch = run(watch_args)
+        assert first_watch.returncode == 0, first_watch.stderr
+        assert len(json.loads(first_watch.stdout)) == 1
+        assert sum(path == "/ntfy/" for path, _ in transcript) == 1
+
+        second_watch = run(watch_args)
+        assert second_watch.returncode == 0, second_watch.stderr
+        assert len(json.loads(second_watch.stdout)) == 1
+        # Deduplicated via state_file: no second ntfy POST
+        assert sum(path == "/ntfy/" for path, _ in transcript) == 1
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX console signals")

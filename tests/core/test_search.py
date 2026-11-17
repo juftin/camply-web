@@ -10,8 +10,10 @@ from camply.core.search import (
     check_availability,
     monitor,
     normalize_request,
+    site_matches_request,
 )
-from camply.db.availability import matching_available_dates
+from camply.db.availability import matches_scan_filters, matching_available_dates
+from camply.db.models import UserScan
 from camply.providers.dto import CampgroundSearchResult, CampsiteDTO, CampsiteType
 
 TODAY = date(2030, 1, 1)
@@ -366,3 +368,137 @@ def test_saved_scan_and_cli_weekday_parity(mask: int) -> None:
         ) == matching_available_dates(
             all_dates, min_stay_length=minimum, allowed_weekdays=selected
         )
+
+
+def test_site_and_equipment_filter_validation_and_matching() -> None:
+    """Validate site-attribute and campsite-ID filters with fail-closed semantics."""
+    with pytest.raises(ValueError, match="blank"):
+        request(campsites=["  "])
+    with pytest.raises(ValueError, match="campsite-type"):
+        request(campsite_types=["YURT"])
+    with pytest.raises(ValueError, match="rv-length"):
+        request(min_rv_length=0)
+    with pytest.raises(ValueError, match="rv-length"):
+        request(min_rv_length=201)
+
+    rv_site = CampsiteDTO(
+        campsite_id="rv-35",
+        campsite_name="Upper Loop 12",
+        campsite_type=CampsiteType.RV,
+        capacity=6,
+        available_dates=[date(2030, 1, day) for day in (1, 2, 3)],
+        is_electric=True,
+        is_accessible=True,
+        permitted_equipment=["RV", "Trailer"],
+        max_vehicle_length=35,
+    )
+    short_rv = rv_site.model_copy(
+        update={
+            "campsite_id": "rv-20",
+            "campsite_name": "Upper Loop 14",
+            "max_vehicle_length": 20,
+        }
+    )
+    unknown_len_rv = rv_site.model_copy(
+        update={
+            "campsite_id": "rv-unknown",
+            "campsite_name": "Upper Loop 15",
+            "max_vehicle_length": None,
+        }
+    )
+    tent_site = site("tent-01", nights=(1, 2, 3))
+
+    strict_req = request(
+        campsite_types=["rv", "cabin"],
+        require_electric=True,
+        require_accessible=True,
+        min_rv_length=28,
+    )
+    assert strict_req.campsite_types == (CampsiteType.RV, CampsiteType.CABIN)
+    assert site_matches_request(rv_site, strict_req) is True
+    assert site_matches_request(short_rv, strict_req) is False
+    assert site_matches_request(unknown_len_rv, strict_req) is False
+    assert site_matches_request(tent_site, strict_req) is False
+
+    # Verify parity with web matches_scan_filters across candidate sites
+    scan = UserScan(
+        min_stay_length=1,
+        preferred_types=["RV", "CABIN"],
+        require_electric=True,
+        require_accessible=True,
+        min_rv_length=28,
+    )
+    for candidate in (rv_site, short_rv, unknown_len_rv, tent_site):
+        web_match = matches_scan_filters(
+            [d.isoformat() for d in candidate.available_dates],
+            campsite_type=candidate.campsite_type,
+            is_electric=candidate.is_electric,
+            is_accessible=candidate.is_accessible,
+            max_vehicle_length=candidate.max_vehicle_length,
+            scan=scan,
+        )
+        assert site_matches_request(candidate, strict_req) is web_match
+
+    # Verify campsite ID and case-insensitive campsite name matching
+    by_id = request(campsites=[" rv-20 "])
+    assert site_matches_request(short_rv, by_id) is True
+    assert site_matches_request(rv_site, by_id) is False
+
+    by_name = request(campsites=["upper loop 12"])
+    assert site_matches_request(rv_site, by_name) is True
+    assert site_matches_request(short_rv, by_name) is False
+
+
+@pytest.mark.asyncio
+async def test_check_availability_applies_site_and_equipment_filters() -> None:
+    """Only sites satisfying all requested site/equipment filters produce stays."""
+    provider = AsyncMock()
+    provider.find_availabilities.return_value = [
+        CampsiteDTO(
+            campsite_id="rv-35",
+            campsite_name="Site 35",
+            campsite_type=CampsiteType.RV,
+            capacity=6,
+            available_dates=[date(2030, 1, 1), date(2030, 1, 2)],
+            is_electric=True,
+            is_accessible=True,
+            max_vehicle_length=35,
+        ),
+        CampsiteDTO(
+            campsite_id="rv-20",
+            campsite_name="Site 20",
+            campsite_type=CampsiteType.RV,
+            capacity=6,
+            available_dates=[date(2030, 1, 1), date(2030, 1, 2)],
+            is_electric=True,
+            is_accessible=True,
+            max_vehicle_length=20,
+        ),
+        site("tent-01", nights=(1, 2)),
+    ]
+    stays = await check_availability(
+        provider,
+        [target()],
+        request(
+            nights=2,
+            campsite_types=["RV"],
+            require_electric=True,
+            require_accessible=True,
+            min_rv_length=28,
+        ),
+        today=TODAY,
+    )
+    assert [stay.campsite_id for stay in stays] == ["rv-35"]
+
+
+@pytest.mark.asyncio
+async def test_monitor_once_executes_single_cycle_without_waiting() -> None:
+    """When once=True, monitor runs one check and exits without calling wait."""
+    provider = AsyncMock()
+    provider.find_availabilities.return_value = [site()]
+    wait = AsyncMock()
+    output: list[list[object]] = []
+    await monitor(provider, [target()], request(), output.append, wait=wait, once=True)
+    assert len(output) == 1
+    provider.find_availabilities.assert_awaited_once()
+    wait.assert_not_awaited()
