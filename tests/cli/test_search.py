@@ -445,7 +445,6 @@ def test_invalid_inputs_fail_before_provider_io(
             for flag in (
                 "--continuous",
                 "--search-forever",
-                "--search-once",
                 "--notify-first-try",
                 "--offline-search",
             )
@@ -831,3 +830,283 @@ def test_impossible_weekend_three_nights_avoids_provider_io(
     assert result.exit_code != 0
     assert "cannot contain" in result.stderr
     assert transcript.checks == []
+
+
+def test_providers_command_displays_filter_capabilities(transcript: Transcript) -> None:
+    """Provider listing includes supported site-attribute filter capabilities."""
+    result = CliRunner().invoke(cli, ["providers"])
+    assert result.exit_code == 0, result.output
+    assert (
+        "filters: campsite type, electric hookup, ADA accessibility, RV length"
+        in result.stdout
+    )
+
+
+def test_campsites_filters_sites_and_validates_provider_capabilities(
+    transcript: Transcript, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """CLI campsites command filters observed sites and rejects unsupported provider filters."""
+    from camply.providers.base import ProviderFilterCapabilities
+
+    # 1. --campsite without --campground or --rec-area is rejected before provider IO
+    no_parent = CliRunner().invoke(cli, ["campsites", "--campsite", "site-01", *_DATES])
+    assert no_parent.exit_code == 2
+    assert "--campground" in no_parent.stderr or "--rec-area" in no_parent.stderr
+    assert transcript.constructed == []
+
+    # 2. Blank --campsite is rejected before provider IO
+    blank_site = CliRunner().invoke(
+        cli, ["campsites", "--campground", "001", "--campsite", "   ", *_DATES]
+    )
+    assert blank_site.exit_code == 2
+    assert transcript.constructed == []
+
+    # 3. Out-of-range --rv-length is rejected before provider IO
+    for bad_len in ("0", "-5", "201"):
+        bad_rv = CliRunner().invoke(
+            cli,
+            ["campsites", "--campground", "001", "--rv-length", bad_len, *_DATES],
+        )
+        assert bad_rv.exit_code == 2
+        assert transcript.constructed == []
+
+    # 4. Unsupported provider filter capability fails before resolving targets
+    monkeypatch.setattr(
+        PROVIDERS[1],
+        "filter_capabilities",
+        ProviderFilterCapabilities(min_rv_length=False, require_electric=False),
+    )
+    unsupported = CliRunner().invoke(
+        cli,
+        [
+            "campsites",
+            "--campground",
+            "001",
+            "--electric",
+            "--rv-length",
+            "28",
+            *_DATES,
+        ],
+    )
+    assert unsupported.exit_code == 2
+    assert "does not support" in unsupported.stderr
+    assert "electric hookup" in unsupported.stderr
+    assert "minimum RV / trailer length" in unsupported.stderr
+    assert transcript.constructed == []
+
+    # Restore full capabilities and verify matching filters in campsites_cmd
+    monkeypatch.setattr(
+        PROVIDERS[1],
+        "filter_capabilities",
+        ProviderFilterCapabilities(),
+    )
+
+    async def mixed_availability(
+        _: BaseProvider, identifier: str, start: date, end: date
+    ) -> list[CampsiteDTO]:
+        if len(transcript.checks) >= 1:
+            raise asyncio.CancelledError
+        transcript.checks.append((identifier, start, end))
+        return [
+            CampsiteDTO(
+                campsite_id="rv-35",
+                campsite_name="Big Rig 35",
+                campsite_type=CampsiteType.RV,
+                capacity=6,
+                available_dates=[date(2027, 7, 9), date(2027, 7, 10)],
+                is_electric=True,
+                is_accessible=True,
+                max_vehicle_length=35,
+                metadata={"booking_url": "https://booking.example.invalid/sites/rv-35"},
+            ),
+            CampsiteDTO(
+                campsite_id="rv-20",
+                campsite_name="Small Rig 20",
+                campsite_type=CampsiteType.RV,
+                capacity=4,
+                available_dates=[date(2027, 7, 9), date(2027, 7, 10)],
+                is_electric=True,
+                is_accessible=True,
+                max_vehicle_length=20,
+                metadata={"booking_url": "https://booking.example.invalid/sites/rv-20"},
+            ),
+        ]
+
+    monkeypatch.setattr(PROVIDERS[1], "find_availabilities", mixed_availability)
+    matched = CliRunner().invoke(
+        cli,
+        [
+            "campsites",
+            "--campground",
+            "001",
+            "--campsite",
+            "Big Rig 35",
+            "--campsite-type",
+            "rv",
+            "--electric",
+            "--accessible",
+            "--rv-length",
+            "28",
+            *_DATES,
+            "--nights",
+            "2",
+        ],
+    )
+    assert matched.exit_code == 1
+    assert "1 Reservable Campsites Matching Search Preferences" in matched.stdout
+    assert "https://booking.example.invalid/sites/rv-35" in matched.stdout
+    assert "https://booking.example.invalid/sites/rv-20" not in matched.stdout
+
+
+def test_discovery_limit_option_and_truncation_probe(transcript: Transcript) -> None:
+    """Discovery commands honor --limit (1..500), probe limit + 1, and report custom truncation."""
+    transcript.results = [campground(f"{idx:03}") for idx in range(75)]
+    res = CliRunner().invoke(cli, ["campgrounds", "--limit", "60"])
+    assert res.exit_code == 0, res.output
+    assert transcript.searches[0][2]["limit"] == 61
+    assert res.stdout.count("🏕  Pine Camp (#") == 60
+    assert "Showing 60 results; more results exist." in res.stderr
+
+    # Recreation-areas with custom limit and no truncation
+    transcript.searches.clear()
+    transcript.results = [
+        RecreationAreaSearchResult(
+            provider_id=1,
+            provider_name="Recreation.gov",
+            recreation_area_id=f"area-{idx}",
+            recreation_area_name=f"Area {idx}",
+            booking_url=f"https://booking.example.invalid/area-{idx}",
+        )
+        for idx in range(10)
+    ]
+    area_res = CliRunner().invoke(cli, ["recreation-areas", "--limit", "15"])
+    assert area_res.exit_code == 0, area_res.output
+    assert transcript.searches[0][2]["limit"] == 16
+    assert "10 recreation areas found." in area_res.stdout
+    assert "more results exist" not in area_res.stderr
+
+    # Out-of-bounds limits are rejected before provider IO
+    transcript.constructed.clear()
+    for bad in ("0", "501"):
+        bad_res = CliRunner().invoke(cli, ["campgrounds", "--limit", bad])
+        assert bad_res.exit_code == 2
+        assert transcript.constructed == []
+
+
+def test_interval_minutes_validation_and_conversion(
+    transcript: Transcript, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify --interval requires an integer >= 5 minutes and converts to seconds."""
+    for bad in ("4", "0", "-5", "5.5"):
+        bad_int = CliRunner().invoke(
+            cli, ["campsites", "--campground", "001", *_DATES, "--interval", bad]
+        )
+        assert bad_int.exit_code == 2
+        assert transcript.constructed == []
+
+    seen_intervals: list[float | None] = []
+    real_monitor = core.monitor
+
+    async def capture_monitor(*args: object, **kwargs: object) -> None:
+        seen_intervals.append(kwargs.get("interval"))  # type: ignore[arg-type]
+        await real_monitor(*args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(core, "monitor", capture_monitor)
+    int_res = CliRunner().invoke(
+        cli,
+        [
+            "campsites",
+            "--campground",
+            "001",
+            *_DATES,
+            "--interval",
+            "7",
+            "--search-once",
+        ],
+    )
+    assert int_res.exit_code == 0, int_res.output
+    assert seen_intervals == [420.0]
+
+
+def test_search_once_and_json_output(transcript: Transcript) -> None:
+    """Verify --search-once and --json stdout/stderr stream separation."""
+    import json
+
+    # 1. campsites --json without --search-once is rejected before provider IO
+    json_no_once = CliRunner().invoke(
+        cli, ["campsites", "--campground", "001", *_DATES, "--json"]
+    )
+    assert json_no_once.exit_code == 2
+    assert "--search-once" in json_no_once.stderr
+    assert transcript.constructed == []
+
+    # 3. campsites --search-once runs a single check and exits 0
+    once_res = CliRunner().invoke(
+        cli, ["campsites", "--campground", "001", *_DATES, "--search-once"]
+    )
+    assert once_res.exit_code == 0, once_res.output
+    assert len(transcript.checks) == 1
+    assert "4 Reservable Campsites Matching Search Preferences" in once_res.stdout
+
+    # 4. providers --json emits pure JSON on stdout and routes banners to stderr
+    prov_json = CliRunner().invoke(cli, ["providers", "--json"])
+    assert prov_json.exit_code == 0, prov_json.output
+    providers_data = json.loads(prov_json.stdout)
+    assert isinstance(providers_data, list)
+    assert len(providers_data) == 26
+    assert providers_data[0]["name"] == "RecreationDotGov"
+    assert providers_data[0]["filter_capabilities"] == {
+        "preferred_types": True,
+        "require_electric": True,
+        "require_accessible": True,
+        "min_rv_length": True,
+    }
+    assert "Exiting camply" in prov_json.stderr
+
+    # 5. campgrounds --json and recreation-areas --json emit pure JSON on stdout
+    cg_json = CliRunner().invoke(cli, ["campgrounds", "--json"])
+    assert cg_json.exit_code == 0, cg_json.output
+    cg_data = json.loads(cg_json.stdout)
+    assert len(cg_data) == 1
+    assert cg_data[0]["campground_id"] == "001"
+    assert "camply, the campsite finder" in cg_json.stderr
+
+    transcript.results = [
+        RecreationAreaSearchResult(
+            provider_id=1,
+            provider_name="Recreation.gov",
+            recreation_area_id="park-1",
+            recreation_area_name="Yosemite",
+            booking_url="https://booking.example.invalid/park-1",
+        )
+    ]
+    ra_json = CliRunner().invoke(cli, ["recreation-areas", "--json"])
+    assert ra_json.exit_code == 0, ra_json.output
+    ra_data = json.loads(ra_json.stdout)
+    assert len(ra_data) == 1
+    assert ra_data[0]["recreation_area_id"] == "park-1"
+
+    # 6. campsites --search-once --json emits pure JSON array of stays on stdout
+    transcript.checks.clear()
+    stays_json = CliRunner().invoke(
+        cli,
+        [
+            "campsites",
+            "--campground",
+            "001",
+            *_DATES,
+            "--nights",
+            "3",
+            "--search-once",
+            "--json",
+        ],
+    )
+    assert stays_json.exit_code == 0, stays_json.output
+    stays_data = json.loads(stays_json.stdout)
+    assert len(stays_data) == 2
+    assert stays_data[0]["campground_id"] == "001"
+    assert stays_data[0]["campsite_id"] == "site-01"
+    assert stays_data[0]["arrival"] == "2027-07-09"
+    assert stays_data[0]["checkout"] == "2027-07-12"
+    assert stays_data[0]["nights"] == 3
+    assert "Searching across 1 campgrounds" in stays_json.stderr

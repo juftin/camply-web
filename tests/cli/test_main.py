@@ -452,7 +452,54 @@ def test_db_metadata_subcommand_exposed() -> None:
     result = runner.invoke(cli, ["db", "metadata", "--help"])
     assert result.exit_code == 0, result.output
     assert "--provider-id" in result.output
+    assert "--provider" in result.output
     assert "all" in result.output
+
+
+def test_db_metadata_accepts_canonical_names_and_aliases(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """camply db metadata resolves canonical provider names, class aliases, IDs, and 'all'."""
+    from unittest.mock import AsyncMock
+
+    from camply.providers import PROVIDERS
+
+    populated: list[int] = []
+    enriched: list[int] = []
+
+    for pid, cls in PROVIDERS.items():
+        monkeypatch.setattr(
+            cls,
+            "__init__",
+            lambda self: setattr(self, "async_client", AsyncMock()),
+        )
+
+        async def _fake_populate(self: object, _pid: int = pid) -> None:
+            populated.append(_pid)
+
+        monkeypatch.setattr(cls, "populate_database", _fake_populate)
+
+    async def _fake_enrich(provider: object) -> None:
+        enriched.append(getattr(provider, "provider_id", 0))
+
+    monkeypatch.setattr("camply.providers.enrichment.enrich_provider", _fake_enrich)
+
+    runner = CliRunner()
+    # Canonical name via --provider-id
+    res1 = runner.invoke(cli, ["db", "metadata", "--provider-id", "reservecalifornia"])
+    assert res1.exit_code == 0, res1.output
+    assert populated == [2]
+
+    # Provider class alias via --provider
+    populated.clear()
+    res2 = runner.invoke(cli, ["db", "metadata", "--provider", "RecreationGovProvider"])
+    assert res2.exit_code == 0, res2.output
+    assert populated == [1]
+
+    # Unknown provider name fails with exit code 2
+    bad = runner.invoke(cli, ["db", "metadata", "--provider", "NotAProvider"])
+    assert bad.exit_code == 2
+    assert "camply providers" in bad.stderr
 
 
 def test_db_metadata_fails_without_provider_record(

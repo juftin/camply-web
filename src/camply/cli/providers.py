@@ -6,7 +6,12 @@ import click
 
 from camply.cli import options
 from camply.cli.options import resolve_debug
-from camply.cli.output import diagnostic, log_camply, render_providers
+from camply.cli.output import (
+    diagnostic,
+    log_camply,
+    render_providers,
+    render_providers_json,
+)
 from camply.db.data import providers as identities
 from camply.db.models import Provider
 from camply.providers import PROVIDERS
@@ -42,14 +47,24 @@ def selected_provider(
 
 @click.command(name="providers")
 @options.debug()
+@options.json_output()
 @click.pass_context
-def providers_cmd(ctx: click.Context, debug: bool | None) -> None:
+def providers_cmd(
+    ctx: click.Context,
+    debug: bool | None,
+    json_output: bool = False,
+) -> None:
     """List currently supported camping providers and discovery capabilities."""
     diagnostic(
         "Listing registered providers without network access.",
         resolve_debug(ctx, debug),
+        stderr_only=json_output,
     )
     try:
-        render_providers(provider_entries())
+        entries = provider_entries()
+        if json_output:
+            render_providers_json(entries)
+        else:
+            render_providers(entries)
     finally:
         log_camply("Exiting camply 👋")

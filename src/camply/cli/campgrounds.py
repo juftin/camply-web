@@ -4,14 +4,19 @@ import click
 
 from camply.cli import options
 from camply.cli.discovery import (
-    RESULT_PROBE,
+    DISPLAY_LIMIT,
     discovery_query,
     normalize_ids,
     resolve_targets,
 )
 from camply.cli.execution import run
 from camply.cli.options import resolve_debug
-from camply.cli.output import diagnostic, logger, render_discovery
+from camply.cli.output import (
+    diagnostic,
+    logger,
+    render_discovery,
+    render_discovery_json,
+)
 from camply.cli.providers import selected_provider
 from camply.providers.dto import ProviderSearchResult, SearchEntityType
 
@@ -23,6 +28,8 @@ from camply.providers.dto import ProviderSearchResult, SearchEntityType
 @options.state()
 @options.rec_area()
 @options.campground()
+@options.limit()
+@options.json_output()
 @click.pass_context
 def campgrounds_cmd(
     ctx: click.Context,
@@ -32,10 +39,12 @@ def campgrounds_cmd(
     state: str | None,
     rec_area: tuple[str, ...],
     campground: tuple[str, ...],
+    limit: int = DISPLAY_LIMIT,
+    json_output: bool = False,
 ) -> None:
     """Find campgrounds, or resolve exact campground and recreation-area IDs."""
     name, provider_class = selected_provider(ctx, provider)
-    query = discovery_query(search, state)
+    query = discovery_query(search, state, limit=limit)
     areas, campgrounds = (
         normalize_ids(rec_area, "--rec-area"),
         normalize_ids(campground, "--campground"),
@@ -44,6 +53,7 @@ def campgrounds_cmd(
         f"Discovering campgrounds on {name}.",
         resolve_debug(ctx, debug),
         provider=name,
+        stderr_only=json_output,
     )
     if areas and campgrounds:
         logger.warning(
@@ -70,12 +80,16 @@ def campgrounds_cmd(
                     query.query,
                     state=query.state,
                     entity_type=SearchEntityType.CAMPGROUND,
-                    limit=RESULT_PROBE,
+                    limit=query.limit,
                 )
-            render_discovery(
-                results,
-                empty="No eligible campgrounds found for these selectors and filters.",
-            )
+            if json_output:
+                render_discovery_json(results, limit=limit)
+            else:
+                render_discovery(
+                    results,
+                    empty="No eligible campgrounds found for these selectors and filters.",
+                    limit=limit,
+                )
         finally:
             await instance.async_client.aclose()
 

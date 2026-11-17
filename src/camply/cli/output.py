@@ -1,6 +1,7 @@
 """Configure Rich CLI logging and log discovery and availability in classic camply style."""
 
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -67,7 +68,7 @@ def log_camply(message: str, *args: object) -> None:
     logger.log(CAMPLY_LOG_LEVEL, message, *args)
 
 
-def set_up_logging(*, debug: bool = False) -> logging.Logger:
+def set_up_logging(*, debug: bool = False, stderr_only: bool = False) -> logging.Logger:
     """Configure Rich (or Python) CLI logging with stdout/stderr stream separation."""
     if debug:
         log_level: int = logging.DEBUG
@@ -106,13 +107,16 @@ def set_up_logging(*, debug: bool = False) -> logging.Logger:
         )
     stdout_handler.setFormatter(formatter)
     stderr_handler.setFormatter(formatter)
-    stdout_handler.addFilter(
-        lambda record: record.levelno in (logging.INFO, CAMPLY_LOG_LEVEL)
-    )
-    stderr_handler.addFilter(
-        lambda record: record.levelno not in (logging.INFO, CAMPLY_LOG_LEVEL)
-    )
-    logger.handlers = [stdout_handler, stderr_handler]
+    if stderr_only:
+        logger.handlers = [stderr_handler]
+    else:
+        stdout_handler.addFilter(
+            lambda record: record.levelno in (logging.INFO, CAMPLY_LOG_LEVEL)
+        )
+        stderr_handler.addFilter(
+            lambda record: record.levelno not in (logging.INFO, CAMPLY_LOG_LEVEL)
+        )
+        logger.handlers = [stdout_handler, stderr_handler]
     logger.setLevel(log_level)
     logger.propagate = False
     rich.traceback.install(show_locals=False, suppress=[click, asyncio])
@@ -125,9 +129,15 @@ def set_up_logging(*, debug: bool = False) -> logging.Logger:
     return logger
 
 
-def diagnostic(message: str, debug: bool, *, provider: str | None = None) -> None:
+def diagnostic(
+    message: str,
+    debug: bool,
+    *,
+    provider: str | None = None,
+    stderr_only: bool = False,
+) -> None:
     """Initialize CLI logging, announce the selected provider and emit debug diagnostics."""
-    set_up_logging(debug=debug)
+    set_up_logging(debug=debug, stderr_only=stderr_only)
     if provider is not None:
         logger.info('Using Camply Provider: "%s"', provider)
     logger.debug("Debug: %s", message)
@@ -166,26 +176,48 @@ def format_campground_log(result: ProviderSearchResult) -> str:
     return f"{prefix}🏕  {result.campground_name} (#{result.campground_id})"
 
 
+def _format_filter_capabilities(provider_class: type["BaseProvider"]) -> str:
+    """Describe site-attribute filters supported by a provider."""
+    caps = provider_class.filter_capabilities
+    supported: list[str] = []
+    if caps.preferred_types:
+        supported.append("campsite type")
+    if caps.require_electric:
+        supported.append("electric hookup")
+    if caps.require_accessible:
+        supported.append("ADA accessibility")
+    if caps.min_rv_length:
+        supported.append("RV length")
+    return f"filters: {', '.join(supported)}" if supported else "filters: none"
+
+
 def render_providers(
     entries: Mapping[str, tuple[type["BaseProvider"], "Provider"]],
 ) -> None:
     """Log supported camping providers and capabilities in classic camply style."""
     logger.info("camply currently supports %s providers:", len(entries))
-    for name, (_, identity) in entries.items():
+    for name, (provider_class, identity) in entries.items():
         areas = (
             "no recreation-area catalog"
             if name == "ReserveAmerica"
             else "recreation-area discovery"
         )
+        filters = _format_filter_capabilities(provider_class)
         logger.info(
-            '    "%s":    %s (%s; campground discovery; campground availability)',
+            '    "%s":    %s (%s; campground discovery; campground availability; %s)',
             name,
             identity.name,
             areas,
+            filters,
         )
 
 
-def render_discovery(results: Sequence[ProviderSearchResult], *, empty: str) -> None:
+def render_discovery(
+    results: Sequence[ProviderSearchResult],
+    *,
+    empty: str,
+    limit: int = DISPLAY_LIMIT,
+) -> None:
     """Log unique discovery results in classic camply style and report truncation."""
     ordered = sorted(
         {identity_key(result): result for result in results}.values(),
@@ -194,7 +226,7 @@ def render_discovery(results: Sequence[ProviderSearchResult], *, empty: str) -> 
     if not ordered:
         logger.info(empty)
         return
-    displayed = ordered[:DISPLAY_LIMIT]
+    displayed = ordered[:limit]
     is_rec_area = all(
         result.entity_type == SearchEntityType.RECREATION_AREA for result in displayed
     )
@@ -206,17 +238,21 @@ def render_discovery(results: Sequence[ProviderSearchResult], *, empty: str) -> 
         logger.info("%s Matching Campgrounds Found", len(displayed))
         for result in displayed:
             logger.info(format_campground_log(result))
-    if len(ordered) > DISPLAY_LIMIT:
+    if len(ordered) > limit:
         logger.warning(
-            "Showing 50 results; more results exist. Narrow --search or --state."
+            "Showing %s results; more results exist. Narrow --search or --state.",
+            limit,
         )
 
 
-def _stay_booking_url(stay: "AvailabilityStay") -> str:
+def stay_booking_url(stay: "AvailabilityStay") -> str:
     """Resolve campsite-level booking URL when using Recreation.gov campground URLs."""
     if stay.booking_url.startswith("https://www.recreation.gov/camping/campgrounds/"):
         return f"https://www.recreation.gov/camping/campsites/{stay.campsite_id}"
     return stay.booking_url
+
+
+_stay_booking_url = stay_booking_url
 
 
 def render_stays(stays: list["AvailabilityStay"]) -> None:
@@ -276,3 +312,69 @@ def render_stays(stays: list["AvailabilityStay"]) -> None:
                 suffix = "s" if nights > 1 else ""
                 for url in sorted(urls):
                     logger.info("\t\t🔗 %s (%s night%s)", url, nights, suffix)
+
+
+def render_providers_json(
+    entries: Mapping[str, tuple[type["BaseProvider"], "Provider"]],
+) -> None:
+    """Emit supported camping providers and filter capabilities as JSON on stdout."""
+    payload = [
+        {
+            "name": name,
+            "display_name": identity.name,
+            "provider_id": identity.id,
+            "url": identity.url,
+            "recreation_area_discovery": name != "ReserveAmerica",
+            "filter_capabilities": {
+                "preferred_types": provider_class.filter_capabilities.preferred_types,
+                "require_electric": provider_class.filter_capabilities.require_electric,
+                "require_accessible": provider_class.filter_capabilities.require_accessible,
+                "min_rv_length": provider_class.filter_capabilities.min_rv_length,
+            },
+        }
+        for name, (provider_class, identity) in entries.items()
+    ]
+    click.echo(json.dumps(payload, indent=2))
+
+
+def render_discovery_json(
+    results: Sequence[ProviderSearchResult],
+    *,
+    limit: int = DISPLAY_LIMIT,
+) -> None:
+    """Emit unique discovery results as JSON on stdout and log truncation to stderr."""
+    ordered = sorted(
+        {identity_key(result): result for result in results}.values(),
+        key=identity_key,
+    )
+    displayed = ordered[:limit]
+    if len(ordered) > limit:
+        logger.warning(
+            "Showing %s results; more results exist. Narrow --search or --state.",
+            limit,
+        )
+    click.echo(
+        json.dumps([item.model_dump(mode="json") for item in displayed], indent=2)
+    )
+
+
+def render_stays_json(stays: Sequence["AvailabilityStay"]) -> None:
+    """Emit qualifying stays as a JSON array on stdout."""
+    payload = [
+        {
+            "provider_id": stay.campground.provider_id,
+            "provider_name": stay.campground.provider_name,
+            "recreation_area_id": stay.campground.recreation_area_id,
+            "recreation_area_name": stay.campground.recreation_area_name,
+            "campground_id": stay.campground.campground_id,
+            "campground_name": stay.campground.campground_name,
+            "campsite_id": stay.campsite_id,
+            "campsite_name": stay.campsite_name,
+            "arrival": stay.arrival.isoformat(),
+            "checkout": stay.checkout.isoformat(),
+            "nights": (stay.checkout - stay.arrival).days,
+            "booking_url": stay_booking_url(stay),
+        }
+        for stay in stays
+    ]
+    click.echo(json.dumps(payload, indent=2))

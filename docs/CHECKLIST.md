@@ -2,6 +2,11 @@
 
 This checklist tracks the granular progress of `camply`. Agents **MUST** update this file by marking tasks as completed (`[x]`) before finalizing any PR.
 
+## CLI full-stack parity (031)
+
+- [x] Specify, clarify, plan, and task out stateless CLI full-stack parity in [spec 031](specs/031-cli-fullstack-parity/spec.md), [plan](specs/031-cli-fullstack-parity/plan.md), and [tasks](specs/031-cli-fullstack-parity/tasks.md); add deferred database saved-scan CRUD and multi-provider YAML configuration to [docs/PLAN.md](PLAN.md).
+- [x] Implement site/equipment/campsite-ID filtering (`--campsite-type`, `--electric`, `--accessible`, `--rv-length`, `--campsite`) and provider filter capability reporting, stateless Pushover/ntfy notifications (`--notifications`, `camply test-notifications`, and `PUSHOVER_*` / `NTFY_*` environment variables) with in-memory and `--state-file` deduplication, live discovery `--limit` pagination (`1`–`500`), canonical provider names in `camply db metadata`, and `--search-once`, `--interval`, and `--json` stdout formatting with unit, CLI, and installed base-wheel regression tests.
+
 ## Documentation rework (030)
 
 - [x] Specify, clarify, plan, and task out the four-perspective documentation rework (`User Documentation`, `Self-Hosting`, `Technical and Architectural Documentation`, `Technical Reference`) with a collapsible sidebar (User and Self-Hosting expanded by default) and human-readable editorial standard in [spec 030](specs/030-docs-rework/spec.md).
