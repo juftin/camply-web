@@ -39,7 +39,7 @@ camply campsites --campground 232450 \
 
 ![Campsite availability monitoring output with Rich logging](assets/camply-cli-campsites.png)
 
-camply checks availability right away, prints matching stays with booking links, and re-checks every `--interval` seconds (default `60`, minimum `5`) until you press `Ctrl-C`. Pass `--search-once` to run a single check and exit immediately.
+camply checks availability right away, prints matching stays with booking links, and re-checks every `--interval` minutes (default `10`, minimum `5`) until you press `Ctrl-C`. Pass `--search-once` to run a single check and exit immediately.
 
 - **Dates:** `--start-date` is check-in (inclusive) and `--end-date` is checkout (exclusive). Repeat both flags in pairs to watch multiple date windows in one command.
 - **Stay length:** `--nights` defaults to `1` and matches exact-length consecutive stays at a single site (for example, a 4-night opening yields two 3-night options when `--nights 3`).

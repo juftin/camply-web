@@ -198,7 +198,7 @@ def campsites_cmd(
     notifications: tuple[str, ...],
     state_file: Path | None,
     search_once: bool = False,
-    interval: float = 60.0,
+    interval: int = 10,
     json_output: bool = False,
 ) -> None:
     """Watch campground availability immediately and until cancelled (Ctrl-C)."""
@@ -242,7 +242,7 @@ def campsites_cmd(
 
     dedup_state = StayDeduplicationState.load(state_file)
     effective_interval = (
-        interval
+        interval * 60.0
         if ctx.get_parameter_source("interval")
         == click.core.ParameterSource.COMMANDLINE
         else POLL_INTERVAL_SECONDS

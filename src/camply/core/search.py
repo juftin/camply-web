@@ -11,9 +11,8 @@ from camply.db.availability import matching_available_dates
 from camply.providers.base import BaseProvider
 from camply.providers.dto import CampgroundSearchResult, CampsiteDTO, CampsiteType
 
-# Conservative internal wait, deliberately not a public scheduling policy/option.
-# The detailed CLI scheduling contract remains deferred under specification D11.
-POLL_INTERVAL_SECONDS = 60.0
+# Default polling interval in seconds (10 minutes).
+POLL_INTERVAL_SECONDS = 600.0
 _MAX_RV_LENGTH_FEET = 200
 
 _DAY_NAMES = (

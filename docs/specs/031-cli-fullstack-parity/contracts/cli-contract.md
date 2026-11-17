@@ -20,7 +20,7 @@ camply [--provider PROVIDER] [--debug | --no-debug] [--help] [--version]
 │             [--day DAY]... [--weekends] [--nights N]
 │             [--campsite-type TYPE]... [--electric] [--accessible] [--rv-length FEET]
 │             [--notifications CHANNEL]... [--state-file PATH]
-│             [--search-once] [--interval SECONDS] [--json]
+│             [--search-once] [--interval MINUTES] [--json]
 ├── test-notifications [--debug | --no-debug]
 │                      --notifications CHANNEL ...
 ├── serve                       (unchanged)
@@ -52,7 +52,7 @@ camply [--provider PROVIDER] [--debug | --no-debug] [--help] [--version]
 | `--notifications` | Repeatable case-insensitive (`pushover`, `ntfy`)             | `()`    | When omitted, console-only mode runs with zero credential reads.                                                                     |
 | `--state-file`    | File path                                                    | `None`  | Optional JSON file path storing seen stay keys across runs to suppress duplicate alerts.                                             |
 | `--search-once`   | Flag (`bool`)                                                | `False` | Perform one availability check cycle and exit `0`.                                                                                   |
-| `--interval`      | Float (`>= 5.0`)                                             | `60.0`  | Wait interval in seconds between continuous checks. Rejects values `< 5.0`.                                                          |
+| `--interval`      | Integer (`>= 5`)                                             | `10`    | Wait interval in minutes between continuous checks. Rejects values `< 5`.                                                            |
 | `--json`          | Flag (`bool`)                                                | `False` | Emit JSON array of stays to `stdout` and route all logs to `stderr`. Requires `--search-once`.                                       |
 
 ### `camply test-notifications` Options

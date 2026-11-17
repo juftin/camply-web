@@ -993,18 +993,46 @@ def test_discovery_limit_option_and_truncation_probe(transcript: Transcript) -> 
         assert transcript.constructed == []
 
 
-def test_search_once_interval_and_json_output(transcript: Transcript) -> None:
-    """Verify --search-once, --interval, and --json stdout/stderr stream separation."""
+def test_interval_minutes_validation_and_conversion(
+    transcript: Transcript, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify --interval requires an integer >= 5 minutes and converts to seconds."""
+    for bad in ("4", "0", "-5", "5.5"):
+        bad_int = CliRunner().invoke(
+            cli, ["campsites", "--campground", "001", *_DATES, "--interval", bad]
+        )
+        assert bad_int.exit_code == 2
+        assert transcript.constructed == []
+
+    seen_intervals: list[float | None] = []
+    real_monitor = core.monitor
+
+    async def capture_monitor(*args: object, **kwargs: object) -> None:
+        seen_intervals.append(kwargs.get("interval"))  # type: ignore[arg-type]
+        await real_monitor(*args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(core, "monitor", capture_monitor)
+    int_res = CliRunner().invoke(
+        cli,
+        [
+            "campsites",
+            "--campground",
+            "001",
+            *_DATES,
+            "--interval",
+            "7",
+            "--search-once",
+        ],
+    )
+    assert int_res.exit_code == 0, int_res.output
+    assert seen_intervals == [420.0]
+
+
+def test_search_once_and_json_output(transcript: Transcript) -> None:
+    """Verify --search-once and --json stdout/stderr stream separation."""
     import json
 
-    # 1. --interval < 5.0 is rejected before provider IO
-    bad_int = CliRunner().invoke(
-        cli, ["campsites", "--campground", "001", *_DATES, "--interval", "4.9"]
-    )
-    assert bad_int.exit_code == 2
-    assert transcript.constructed == []
-
-    # 2. campsites --json without --search-once is rejected before provider IO
+    # 1. campsites --json without --search-once is rejected before provider IO
     json_no_once = CliRunner().invoke(
         cli, ["campsites", "--campground", "001", *_DATES, "--json"]
     )

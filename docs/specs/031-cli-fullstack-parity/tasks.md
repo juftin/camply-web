@@ -38,7 +38,7 @@ description: "Task list for CLI Full-Stack Parity (031-cli-fullstack-parity)"
 
 **⚠️ CRITICAL**: Complete this phase before beginning user story implementation.
 
-- [x] T002 Add reusable Click option decorators to `src/camply/cli/options.py` for `--campsite` (repeatable string), `--campsite-type` (repeatable case-insensitive `TENT`, `RV`, `CABIN`, `OTHER`), `--electric` (`is_flag=True`, default `False`), `--accessible` (`is_flag=True`, default `False`), `--rv-length` (`type=click.IntRange(min=1, max=200)`, default `None`), `--notifications` (repeatable case-insensitive `pushover`, `ntfy`), `--state-file` (`type=click.Path(dir_okay=False, path_type=Path)`, default `None`), `--search-once` (`is_flag=True`, default `False`), `--interval` (`type=click.FloatRange(min=5.0)`, default `60.0`), `--limit` (`type=click.IntRange(min=1, max=500)`, default `50`), and `--json` (`is_flag=True`, default `False`)
+- [x] T002 Add reusable Click option decorators to `src/camply/cli/options.py` for `--campsite` (repeatable string), `--campsite-type` (repeatable case-insensitive `TENT`, `RV`, `CABIN`, `OTHER`), `--electric` (`is_flag=True`, default `False`), `--accessible` (`is_flag=True`, default `False`), `--rv-length` (`type=click.IntRange(min=1, max=200)`, default `None`), `--notifications` (repeatable case-insensitive `pushover`, `ntfy`), `--state-file` (`type=click.Path(dir_okay=False, path_type=Path)`, default `None`), `--search-once` (`is_flag=True`, default `False`), `--interval` (`type=click.IntRange(min=5)`, default `10` minutes), `--limit` (`type=click.IntRange(min=1, max=500)`, default `50`), and `--json` (`is_flag=True`, default `False`)
 - [x] T003 [P] Update `set_up_logging` and `diagnostic` in `src/camply/cli/output.py` to accept `stderr_only: bool = False` so that when `--json` is active, all log levels (including `INFO` and `CAMPLY_LOG_LEVEL`) route exclusively to `sys.stderr` while keeping `sys.stdout` clean for structured JSON payloads
 
 **Checkpoint**: Shared CLI option decorators and stderr-isolated logging are ready — user stories can now proceed.
@@ -115,15 +115,15 @@ description: "Task list for CLI Full-Stack Parity (031-cli-fullstack-parity)"
 
 ## Phase 6: User Story 4 - Control run cadence and emit JSON output (Priority: P2)
 
-**Goal**: Support single-pass execution (`--search-once`) and custom polling intervals (`--interval` `>= 5.0` seconds) on `camply campsites`, and support machine-readable `--json` stdout output on `providers`, `recreation-areas`, `campgrounds`, and `campsites --search-once` with all logs routed to `stderr`.
+**Goal**: Support single-pass execution (`--search-once`) and custom polling intervals (`--interval` `>= 5` minutes) on `camply campsites`, and support machine-readable `--json` stdout output on `providers`, `recreation-areas`, `campgrounds`, and `campsites --search-once` with all logs routed to `stderr`.
 
-**Independent Test**: Run `uv run pytest tests/core/test_search.py tests/cli/test_search.py` to verify `camply campsites --search-once` exits `0` after one check cycle, `--interval` enforces `>= 5.0` seconds and passes the custom delay to `monitor()`, and `--json` outputs valid JSON arrays on `stdout` for `providers`, `recreation-areas`, `campgrounds`, and `campsites --search-once` while rejecting `campsites --json` without `--search-once`.
+**Independent Test**: Run `uv run pytest tests/core/test_search.py tests/cli/test_search.py` to verify `camply campsites --search-once` exits `0` after one check cycle, `--interval` enforces `>= 5` minutes and passes the converted delay in seconds to `monitor()`, and `--json` outputs valid JSON arrays on `stdout` for `providers`, `recreation-areas`, `campgrounds`, and `campsites --search-once` while rejecting `campsites --json` without `--search-once`.
 
 ### Tests for User Story 4 ⚠️
 
 > **NOTE: Write these tests FIRST and ensure they FAIL before implementation.**
 
-- [x] T018 [P] [US4] Add unit and Click runner tests in `tests/core/test_search.py` and `tests/cli/test_search.py` for `monitor(..., once=True)`, `camply campsites --search-once`, `camply campsites --interval` (valid `>= 5.0` and rejected `< 5.0`), and `--json` output on `providers`, `recreation-areas`, `campgrounds`, and `campsites --search-once` (including rejection of `campsites --json` without `--search-once` and verification that `stdout` parses as pure JSON with logs on `stderr`)
+- [x] T018 [P] [US4] Add unit and Click runner tests in `tests/core/test_search.py` and `tests/cli/test_search.py` for `monitor(..., once=True)`, `camply campsites --search-once`, `camply campsites --interval` (valid `>= 5` minutes and rejected `< 5` or non-integer), and `--json` output on `providers`, `recreation-areas`, `campgrounds`, and `campsites --search-once` (including rejection of `campsites --json` without `--search-once` and verification that `stdout` parses as pure JSON with logs on `stderr`)
 
 ### Implementation for User Story 4
 

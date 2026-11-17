@@ -174,13 +174,13 @@ def search_once() -> Callable[[_F], _F]:
 
 
 def interval() -> Callable[[_F], _F]:
-    """Configure the wait interval in seconds between continuous checks."""
+    """Configure the wait interval in minutes between continuous checks."""
     return click.option(
         "--interval",
-        type=click.FloatRange(min=5.0),
-        default=60.0,
+        type=click.IntRange(min=5),
+        default=10,
         show_default=True,
-        help="Polling interval in seconds between checks (minimum 5).",
+        help="Polling interval in minutes between checks (minimum 5).",
     )
 
 

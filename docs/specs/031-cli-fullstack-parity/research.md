@@ -80,7 +80,7 @@
 ### Decision 5: Run-Mode Controls (`--search-once`, `--interval`) & Discovery Limit (`--limit`)
 
 - **Decision**:
-  - Add `--search-once` (`is_flag=True`, default `False`) and `--interval` (`click.FloatRange(min=5.0)`, default `60.0`) to `camply campsites`. When `--search-once` is set, `campsites` executes one `check_availability()` cycle, renders output, sends any configured notifications, saves `--state-file` if set, and exits cleanly (`0`).
+  - Add `--search-once` (`is_flag=True`, default `False`) and `--interval` (`click.IntRange(min=5)`, default `10` minutes) to `camply campsites`. When `--search-once` is set, `campsites` executes one `check_availability()` cycle, renders output, sends any configured notifications, saves `--state-file` if set, and exits cleanly (`0`).
   - Add `--limit` (`click.IntRange(min=1, max=500)`, default `50`) to `camply recreation-areas` and `camply campgrounds`. Request `limit + 1` from `BaseProvider.search(..., limit=limit + 1)` (well within `ProviderSearchQuery`'s `le=1000` ceiling) to preserve accurate truncation warnings when more than `--limit` results exist.
 - **Rationale**: Satisfies `FR-005` and `FR-006` while protecting upstream providers from sub-5-second polling and preserving existing truncation detection.
 
