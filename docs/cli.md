@@ -45,6 +45,47 @@ camply checks availability right away, prints matching stays with booking links,
 - **Stay length:** `--nights` defaults to `1` and matches exact-length consecutive stays at a single site (for example, a 4-night opening yields two 3-night options when `--nights 3`).
 - **Targets:** Multiple `--rec-area` flags combine their campgrounds. If you pass `--campground` alongside `--rec-area`, explicit campground IDs win.
 
+## Run multiple searches from a YAML file
+
+Save one or more named searches in `trips.yaml`. Each search specifies its provider, campground or recreation area IDs, and check-in and checkout windows. Quote IDs to preserve leading zeros. Use dates that fit the providers' booking windows.
+
+```yaml
+defaults:
+  notifications: [ntfy]
+  interval: 10
+searches:
+  - name: yosemite
+    provider: RecreationDotGov
+    campgrounds: ["232450"]
+    date_windows:
+      - start_date: "2027-05-07"
+        end_date: "2027-05-10"
+    state_file: yosemite-state.json
+  - name: california-state-park
+    provider: ReserveCalifornia
+    campgrounds: ["327"]
+    date_windows:
+      - start_date: "2027-05-14"
+        end_date: "2027-05-17"
+    interval: 15
+    notifications: []
+```
+
+Set `NTFY_TOPIC` to receive alerts for the first search, then run all searches:
+
+```bash
+camply campsites --yaml-config trips.yaml
+camply campsites --yaml-config trips.yaml --search-once --json
+```
+
+Searches inherit settings they omit from `defaults`. A search's list replaces the shared list, so `notifications: []` keeps that search console-only. Use `rv_length: null` to clear an inherited minimum RV length. Names, providers, targets, dates, and state files are set per search. Relative state paths are resolved from the directory containing the YAML file. Channel credentials and destinations come from the environment.
+
+With `--search-once --json`, the CLI outputs one ordered array with each search's `name`, `provider`, `status`, and `stays`. A search with no matches returns `ok` and an empty list. A failed search returns `error`, and the command exits with status 1 after the batch finishes. Local validation errors exit with status 2. Diagnostics go to stderr.
+
+For editor validation, associate the YAML file with the repository's `docs/specs/032-cli-yaml-config/contracts/cli-yaml-config.schema.json` in your editor settings. See the [configuration field reference](specs/032-cli-yaml-config/spec.md#configuration-fields) for settings and defaults.
+
+To migrate a legacy flat file, create one entry under `searches` and give it a `name` and an explicit `provider`. Convert scalar target and channel values to lists, use `recreation_areas` for recreation-area IDs, and move each start and end date pair into `date_windows`. Use `interval` for the polling interval and the CLI's `--search-once` when you want a single pass. Replace legacy offline history settings with a per-search `state_file`.
+
 ## Filter by site type, equipment, hookups, and specific sites
 
 Narrow availability matches to campsites that fit your setup:

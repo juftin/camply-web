@@ -1,6 +1,7 @@
 """List registered providers and resolve canonical CLI names and aliases."""
 
 import os
+from typing import TYPE_CHECKING
 
 import click
 
@@ -17,6 +18,31 @@ from camply.db.models import Provider
 from camply.providers import PROVIDERS
 from camply.providers.base import BaseProvider
 
+if TYPE_CHECKING:
+    from camply.core.search import SearchRequest
+
+
+def validate_provider_filters(
+    provider_name: str,
+    provider_class: type["BaseProvider"],
+    request: "SearchRequest",
+) -> None:
+    """Reject site-attribute filters that are unsupported by the selected provider."""
+    caps = provider_class.filter_capabilities
+    unsupported: list[str] = []
+    if request.campsite_types and not caps.preferred_types:
+        unsupported.append("campsite type")
+    if request.require_electric and not caps.require_electric:
+        unsupported.append("electric hookup")
+    if request.require_accessible and not caps.require_accessible:
+        unsupported.append("ADA accessibility")
+    if request.min_rv_length is not None and not caps.min_rv_length:
+        unsupported.append("minimum RV / trailer length")
+    if unsupported:
+        raise click.UsageError(
+            f"{provider_name} does not support {', '.join(unsupported)} filtering."
+        )
+
 
 def provider_entries() -> dict[str, tuple[type[BaseProvider], Provider]]:
     """Read registered identities without constructing clients or touching storage."""
@@ -25,6 +51,14 @@ def provider_entries() -> dict[str, tuple[type[BaseProvider], Provider]]:
         for name, identity in vars(identities).items()
         if isinstance(identity, Provider) and identity.id in PROVIDERS
     }
+
+
+def find_provider(value: str) -> tuple[str, type[BaseProvider], int] | None:
+    """Resolve an explicit CLI provider name or class alias without runtime access."""
+    for name, (provider_class, identity) in provider_entries().items():
+        if value.casefold() in {name.casefold(), provider_class.__name__.casefold()}:
+            return name, provider_class, identity.id
+    return None
 
 
 def selected_provider(
@@ -36,9 +70,10 @@ def selected_provider(
         selected = ctx.find_root().params.get("provider")
     if selected is None:
         selected = os.environ.get("CAMPLY_PROVIDER", "RecreationDotGov")
-    for name, (provider_class, _) in provider_entries().items():
-        if selected.casefold() in {name.casefold(), provider_class.__name__.casefold()}:
-            return name, provider_class
+    match = find_provider(selected)
+    if match is not None:
+        name, provider_class, _ = match
+        return name, provider_class
     raise click.BadParameter(
         f"Unsupported provider {selected!r}. Run 'camply providers' for supported names; legacy deployments such as GoingToCamp are deferred.",
         param_hint="--provider",

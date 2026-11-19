@@ -358,9 +358,11 @@ def render_discovery_json(
     )
 
 
-def render_stays_json(stays: Sequence["AvailabilityStay"]) -> None:
-    """Emit qualifying stays as a JSON array on stdout."""
-    payload = [
+def serialize_stays(
+    stays: Sequence["AvailabilityStay"],
+) -> list[dict[str, str | int | None]]:
+    """Represent stays with the existing CLI JSON fields."""
+    return [
         {
             "provider_id": stay.campground.provider_id,
             "provider_name": stay.campground.provider_name,
@@ -377,4 +379,8 @@ def render_stays_json(stays: Sequence["AvailabilityStay"]) -> None:
         }
         for stay in stays
     ]
-    click.echo(json.dumps(payload, indent=2))
+
+
+def render_stays_json(stays: Sequence["AvailabilityStay"]) -> None:
+    """Emit qualifying stays as a JSON array on stdout."""
+    click.echo(json.dumps(serialize_stays(stays), indent=2))

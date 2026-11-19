@@ -103,7 +103,7 @@ def normalize_request(
         or not (1 <= min_rv_length <= _MAX_RV_LENGTH_FEET)
     ):
         raise ValueError("--rv-length must be an integer between 1 and 200 feet.")
-    allowed_days = _allowed_weekdays(days, weekends=weekends)
+    allowed_days = allowed_weekdays(days, weekends=weekends)
     current_day = today if today is not None else utc_today()
     requested_dates, warnings = _requested_dates(start_dates, end_dates, current_day)
     eligible = frozenset(
@@ -177,7 +177,7 @@ def site_matches_request(site: CampsiteDTO, request: SearchRequest) -> bool:
     )
 
 
-def _allowed_weekdays(days: Sequence[str], *, weekends: bool) -> set[int]:
+def allowed_weekdays(days: Sequence[str], *, weekends: bool) -> set[int]:
     """Resolve the weekday union; an empty set means unrestricted nights."""
     allowed_days: set[int] = set()
     for name in days:
