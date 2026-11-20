@@ -60,8 +60,8 @@ def test_reversed_window_reports_yaml_field(tmp_path, transcript):
     path = tmp_path / "trips.yaml"
     search = SEARCH | {
         "provider": "ReserveCaliforniaProvider",
-        "date_windows": [
-            *SEARCH["date_windows"],
+        "dates": [
+            *SEARCH["dates"],
             {"start_date": "2030-08-05", "end_date": "2030-08-03"},
         ],
     }
@@ -72,7 +72,7 @@ def test_reversed_window_reports_yaml_field(tmp_path, transcript):
     assert result.exit_code == 2
     assert not result.stdout
     assert "'trip' (ReserveCalifornia)" in result.stderr
-    assert "date_windows.1.end_date" in result.stderr
+    assert "dates.1.end_date" in result.stderr
     assert "2030-08-03" not in result.stderr
     assert "--end-date" not in result.stderr
     assert not transcript.constructed
@@ -85,7 +85,7 @@ def test_effective_filters_and_target_precedence(tmp_path, transcript, monkeypat
     path = tmp_path / "trips.yaml"
     search = SEARCH | {
         "recreation_areas": ["ignored"],
-        "date_windows": [{"start_date": "2027-07-09", "end_date": "2027-07-13"}],
+        "dates": [{"start_date": "2027-07-09", "end_date": "2027-07-13"}],
         "weekends": True,
     }
     document = {"defaults": {"rv_length": 28}, "searches": [search]}

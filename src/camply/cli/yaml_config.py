@@ -139,7 +139,7 @@ class SearchInput(SearchDefaults):
     campgrounds: list[NonBlank] = Field(default_factory=list)
     recreation_areas: list[NonBlank] = Field(default_factory=list)
     campsites: list[NonBlank] = Field(default_factory=list)
-    date_windows: list[DateWindow] = Field(min_length=1)
+    dates: list[DateWindow] = Field(min_length=1)
     state_file: NonBlank | None = None
 
     @field_validator("state_file")
@@ -178,7 +178,7 @@ _HINTS = {
     "rv_length": "use a whole number from 1 to 200 (or null on a search)",
     "interval": "use a whole number of at least 5 minutes",
     "nights": "use a positive whole number",
-    "date_windows": "provide at least one date window",
+    "dates": "provide at least one date window",
     "start_date": "use a valid calendar date in YYYY-MM-DD form",
     "end_date": "use a valid calendar date in YYYY-MM-DD form",
     "notifications": "choose pushover or ntfy",
@@ -228,7 +228,7 @@ def load_config(path: Path) -> SearchConfig:
         raise ConfigError("Invalid YAML configuration.") from None
     if isinstance(data, dict) and "searches" not in data and _LEGACY_KEYS & data.keys():
         raise ConfigError(
-            "This is a legacy flat configuration. Move the search into the searches list and pair dates under date_windows."
+            "This is a legacy flat configuration. Move the search into the searches list and pair dates under dates."
         )
     try:
         return SearchConfig.model_validate(data)
@@ -268,14 +268,14 @@ def _prepare_search(
     today = core_search.utc_today()
     start_dates = []
     end_dates = []
-    for index, window in enumerate(search.date_windows):
+    for index, window in enumerate(search.dates):
         start = date.fromisoformat(window.start_date)
         end = date.fromisoformat(window.end_date)
         if end <= start:
-            raise ConfigError(f"date_windows.{index}.end_date: must follow start_date.")
+            raise ConfigError(f"dates.{index}.end_date: must follow start_date.")
         if end <= today:
             raise ConfigError(
-                f"date_windows.{index}.end_date: choose a window with current or future booking nights."
+                f"dates.{index}.end_date: choose a window with current or future booking nights."
             )
         start_dates.append(start)
         end_dates.append(end)
@@ -295,7 +295,7 @@ def _prepare_search(
         )
     except ValueError:
         raise ConfigError(
-            "date_windows: choose windows and weekdays that allow the configured number of consecutive nights."
+            "dates: choose windows and weekdays that allow the configured number of consecutive nights."
         ) from None
     validate_provider_filters(name, provider_class, request)
     try:

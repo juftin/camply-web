@@ -410,17 +410,17 @@ searches:
   - name: california
     provider: ReserveCalifornia
     campgrounds: ['60']
-    date_windows: [{start_date: 2030-01-01, end_date: 2030-01-03}]
+    dates: [{start_date: 2030-01-01, end_date: 2030-01-03}]
     state_file: california.json
   - name: florida
     provider: FloridaStateParks
     campgrounds: ['60']
-    date_windows: [{start_date: 2030-01-01, end_date: 2030-01-03}]
+    dates: [{start_date: 2030-01-01, end_date: 2030-01-03}]
     state_file: florida.json
   - name: california-alias
     provider: ReserveCaliforniaProvider
     campgrounds: ['60']
-    date_windows: [{start_date: 2030-01-01, end_date: 2030-01-03}]
+    dates: [{start_date: 2030-01-01, end_date: 2030-01-03}]
     notifications: []
 """
         )
@@ -459,7 +459,7 @@ searches:
             + """  - name: bad-target
     provider: ReserveCalifornia
     campgrounds: ['900']
-    date_windows: [{start_date: 2030-01-01, end_date: 2030-01-03}]
+    dates: [{start_date: 2030-01-01, end_date: 2030-01-03}]
     notifications: []
 """
         )

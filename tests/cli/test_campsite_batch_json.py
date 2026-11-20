@@ -19,7 +19,7 @@ def test_single_pass_mixed_results(tmp_path, transcript):
                     SEARCH | {"name": "failure", "campgrounds": ["bad"]},
                     SEARCH
                     | {
-                        "date_windows": [
+                        "dates": [
                             {"start_date": "2027-07-09", "end_date": "2027-07-13"}
                         ]
                     },

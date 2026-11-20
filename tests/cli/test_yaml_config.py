@@ -14,7 +14,7 @@ SEARCH = {
     "name": "trip",
     "provider": "RecreationDotGov",
     "campgrounds": ["001"],
-    "date_windows": [{"start_date": "2030-06-01", "end_date": "2030-06-05"}],
+    "dates": [{"start_date": "2030-06-01", "end_date": "2030-06-05"}],
 }
 
 
@@ -37,6 +37,8 @@ def test_documented_example_matches_defaults():
         ({"rv_length": "28"}, False),
         ({"campgrounds": [1]}, False),
         ({"campgrounds": []}, False),
+        ({"dates": []}, False),
+        ({"date_windows": SEARCH["dates"]}, False),
         ({"electric": "true"}, False),
         ({"interval": 4}, False),
         ({"notifications": ["secret-marker"]}, False),
@@ -101,12 +103,17 @@ searches:
   - name: trip
     provider: RecreationDotGov
     campgrounds: ['001']
-    date_windows: [{start_date: 2030-06-01, end_date: '2030-06-05'}]
+    dates:
+      - {start_date: 2030-06-01, end_date: '2030-06-05'}
+      - {start_date: 2030-06-08, end_date: '2030-06-12'}
     rv_length: null
     electric: false
     notifications: []
 """
     )
     search = load_config(path).searches[0]
-    assert search.date_windows[0].start_date == "2030-06-01"
+    assert [window.start_date for window in search.dates] == [
+        "2030-06-01",
+        "2030-06-08",
+    ]
     assert {"rv_length", "electric", "notifications"} <= search.model_fields_set

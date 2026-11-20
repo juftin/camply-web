@@ -47,7 +47,7 @@ searches:
     # Specific campsite IDs or names within the targets. [] allows every site.
     campsites: []
     # Required date windows in YYYY-MM-DD format. Add entries to watch more dates.
-    date_windows:
+    dates:
       - start_date: "2027-05-07" # Inclusive check-in date.
         end_date: "2027-05-10" # Exclusive checkout date.
     # By default, alert history is in memory. Set a unique JSON file per search
@@ -57,7 +57,7 @@ searches:
   - name: california-state-park
     provider: ReserveCalifornia
     campgrounds: ["327"]
-    date_windows:
+    dates:
       - start_date: "2027-05-14"
         end_date: "2027-05-17"
     # Uncomment to poll this search every 15 minutes instead of inheriting 10.

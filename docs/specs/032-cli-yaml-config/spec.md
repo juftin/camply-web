@@ -105,7 +105,7 @@ In `defaults`, `rv_length` accepts a whole number from 1 to 200. In a search, `r
 | `name`, `provider`                                      | Required strings. Names must be unique. Providers use the current CLI names or aliases.                                                                                                                                 |
 | `campgrounds`, `recreation_areas`                       | Lists of provider-specific IDs. At least one populated list is required.                                                                                                                                                |
 | `campsites`                                             | Optional list of campsite IDs or names within the selected parent targets.                                                                                                                                              |
-| `date_windows`                                          | Required non-empty list of `start_date` and `end_date` pairs in `YYYY-MM-DD` form.                                                                                                                                      |
+| `dates`                                                 | Required non-empty list of `start_date` and `end_date` pairs in `YYYY-MM-DD` form.                                                                                                                                      |
 | `days`, `weekends`, `nights`                            | Optional weekday names or abbreviations, weekend boolean, and positive exact stay length. Defaults allow all days and require one night. `weekends: true` adds Friday and Saturday to any explicitly selected weekdays. |
 | `campsite_types`, `electric`, `accessible`, `rv_length` | Optional list of `TENT`, `RV`, `CABIN`, or `OTHER`, electric and accessibility booleans, and minimum compatible RV or trailer length in whole feet (1–200). Defaults apply no equipment or site-type restrictions.      |
 | `interval`                                              | Whole minutes between checks. Default 10, minimum 5.                                                                                                                                                                    |
@@ -121,7 +121,7 @@ searches:
   - name: yosemite-weekends
     provider: RecreationDotGov
     campgrounds: ["232450"]
-    date_windows:
+    dates:
       - start_date: "2027-07-01"
         end_date: "2027-07-31"
     weekends: true
@@ -129,7 +129,7 @@ searches:
   - name: california-coast
     provider: ReserveCalifornia
     campgrounds: ["1234"]
-    date_windows:
+    dates:
       - start_date: "2027-08-06"
         end_date: "2027-08-09"
     interval: 15

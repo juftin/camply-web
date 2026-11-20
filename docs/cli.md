@@ -47,7 +47,7 @@ camply checks availability right away, prints matching stays with booking links,
 
 ## Run multiple searches from a YAML file
 
-Save one or more named searches in `camply.yaml`. Each search specifies its provider, campground or recreation area IDs, and check-in and checkout windows. Quote IDs to preserve leading zeros. Use dates that fit the providers' booking windows.
+Save one or more named searches in `camply.yaml`. Each search specifies its provider, campground or recreation area IDs, and one or more check-in and checkout pairs under `dates`. Quote IDs to preserve leading zeros. Use dates that fit the providers' booking windows.
 
 [Download `camply.yaml`](https://camply.rocks/docs/examples/camply.yaml) or save it with cURL.
 
@@ -68,11 +68,13 @@ camply campsites --yaml-config camply.yaml --search-once --json
 
 Searches inherit settings they omit from `defaults`. A search's list replaces the shared list, so `notifications: []` keeps that search console-only. Use `rv_length: null` to clear an inherited minimum RV length. Names, providers, targets, dates, and state files are set per search. Relative state paths are resolved from the directory containing the YAML file. Channel credentials and destinations come from the environment.
 
+Set `days` and `weekends` in `defaults` for all searches or beside `dates` for one search. They filter occupied nights across all of that search's date ranges. With `weekends: true`, Friday and Saturday are included along with any `days` you list.
+
 With `--search-once --json`, the CLI outputs one ordered array with each search's `name`, `provider`, `status`, and `stays`. A search with no matches returns `ok` and an empty list. A failed search returns `error`, and the command exits with status 1 after the batch finishes. Local validation errors exit with status 2. Diagnostics go to stderr.
 
 Editors that use the YAML Language Server read the schema URL from the example's first line. For other editors, associate the YAML file with `docs/cli-yaml-config.schema.json` from the repository. See the [configuration field reference](specs/032-cli-yaml-config/spec.md#configuration-fields) for settings and defaults.
 
-To migrate a legacy flat file, create one entry under `searches` and give it a `name` and an explicit `provider`. Convert scalar target and channel values to lists, use `recreation_areas` for recreation-area IDs, and move each start and end date pair into `date_windows`. Use `interval` for the polling interval and the CLI's `--search-once` when you want a single pass. Replace legacy offline history settings with a per-search `state_file`.
+To migrate a legacy flat file, create one entry under `searches` and give it a `name` and an explicit `provider`. Convert scalar target and channel values to lists, use `recreation_areas` for recreation-area IDs, and move each start and end date pair into `dates`. Use `interval` for the polling interval and the CLI's `--search-once` when you want a single pass. Replace legacy offline history settings with a per-search `state_file`.
 
 ## Filter by site type, equipment, hookups, and specific sites
 
