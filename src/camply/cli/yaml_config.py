@@ -23,7 +23,8 @@ from yaml.nodes import MappingNode, ScalarNode
 from camply.cli.discovery import normalize_ids
 from camply.cli.notifications import CLINotificationConfig, resolve_notification_config
 from camply.cli.providers import find_provider, validate_provider_filters
-from camply.core.search import SearchRequest, allowed_weekdays, normalize_request
+from camply.core import search as core_search
+from camply.core.search import SearchRequest, allowed_weekdays
 from camply.providers.base import BaseProvider
 
 
@@ -64,9 +65,17 @@ _ConfigLoader.add_implicit_resolver(
 NonBlank = Annotated[str, StringConstraints(pattern=r"\S")]
 IsoDay = Annotated[str, StringConstraints(pattern=r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")]
 RvLength = Annotated[int, Field(ge=1, le=200)]
-Channel = Annotated[str, StringConstraints(pattern=r"(?i)^\s*(pushover|ntfy)\s*$")]
+Channel = Annotated[
+    str,
+    StringConstraints(
+        pattern=r"^\s*([Pp][Uu][Ss][Hh][Oo][Vv][Ee][Rr]|[Nn][Tt][Ff][Yy])\s*$"
+    ),
+]
 SiteType = Annotated[
-    str, StringConstraints(pattern=r"(?i)^\s*(tent|rv|cabin|other)\s*$")
+    str,
+    StringConstraints(
+        pattern=r"^\s*([Tt][Ee][Nn][Tt]|[Rr][Vv]|[Cc][Aa][Bb][Ii][Nn]|[Oo][Tt][Hh][Ee][Rr])\s*$"
+    ),
 ]
 
 
@@ -116,6 +125,8 @@ class SearchDefaults(_Input):
     @classmethod
     def valid_days(cls, value: list[str]) -> list[str]:
         """Validate shared weekday values even when every search overrides them."""
+        if any(not day.strip().isascii() for day in value):
+            raise ValueError("use English weekday names or abbreviations")
         allowed_weekdays(value, weekends=False)
         return value
 
@@ -246,29 +257,46 @@ class PreparedSearch:
         return f"{self.name!r} ({self.provider_name})"
 
 
-def _prepare_search(search: SearchInput, state_file: Path | None) -> PreparedSearch:
-    selected = find_provider(search.provider)
-    if selected is None:
-        raise ConfigError("provider: choose a provider listed by camply providers.")
-    name, provider_class, provider_id = selected
+def _prepare_search(
+    search: SearchInput,
+    state_file: Path | None,
+    provider: tuple[str, type[BaseProvider], int],
+) -> PreparedSearch:
+    name, provider_class, provider_id = provider
     areas = normalize_ids(search.recreation_areas, "recreation_areas")
     campgrounds = normalize_ids(search.campgrounds, "campgrounds")
-    request = normalize_request(
-        start_dates=[
-            date.fromisoformat(window.start_date) for window in search.date_windows
-        ],
-        end_dates=[
-            date.fromisoformat(window.end_date) for window in search.date_windows
-        ],
-        days=search.days,
-        weekends=search.weekends,
-        nights=search.nights,
-        campsites=normalize_ids(search.campsites, "campsites"),
-        campsite_types=search.campsite_types,
-        require_electric=search.electric,
-        require_accessible=search.accessible,
-        min_rv_length=search.rv_length,
-    )
+    today = core_search.utc_today()
+    start_dates = []
+    end_dates = []
+    for index, window in enumerate(search.date_windows):
+        start = date.fromisoformat(window.start_date)
+        end = date.fromisoformat(window.end_date)
+        if end <= start:
+            raise ConfigError(f"date_windows.{index}.end_date: must follow start_date.")
+        if end <= today:
+            raise ConfigError(
+                f"date_windows.{index}.end_date: choose a window with current or future booking nights."
+            )
+        start_dates.append(start)
+        end_dates.append(end)
+    try:
+        request = core_search.normalize_request(
+            start_dates=start_dates,
+            end_dates=end_dates,
+            days=search.days,
+            weekends=search.weekends,
+            nights=search.nights,
+            campsites=normalize_ids(search.campsites, "campsites"),
+            campsite_types=search.campsite_types,
+            require_electric=search.electric,
+            require_accessible=search.accessible,
+            min_rv_length=search.rv_length,
+            today=today,
+        )
+    except ValueError:
+        raise ConfigError(
+            "date_windows: choose windows and weekdays that allow the configured number of consecutive nights."
+        ) from None
     validate_provider_filters(name, provider_class, request)
     try:
         notifications = resolve_notification_config(search.notifications)
@@ -286,6 +314,21 @@ def _prepare_search(search: SearchInput, state_file: Path | None) -> PreparedSea
         notifications,
         state_file,
     )
+
+
+def _resolve_state_file(
+    state_file: str, config_path: Path, directory: Path, state_paths: set[Path]
+) -> Path:
+    try:
+        resolved = (directory / Path(state_file).expanduser()).resolve()
+    except (OSError, RuntimeError, ValueError):
+        raise ConfigError("state_file: could not resolve this path.") from None
+    if resolved == config_path:
+        raise ConfigError("state_file: path resolves to the configuration file.")
+    if resolved in state_paths:
+        raise ConfigError("state_file: path is already used by another search.")
+    state_paths.add(resolved)
+    return resolved
 
 
 def prepare_searches(path: Path) -> list[PreparedSearch]:
@@ -308,32 +351,25 @@ def prepare_searches(path: Path) -> list[PreparedSearch]:
                 if name not in raw.model_fields_set
             }
         )
+        location = f"searches.{index} {search.name!r}"
+        provider = find_provider(search.provider)
+        if provider is None:
+            raise ConfigError(
+                f"{location}: provider: choose a provider listed by camply providers."
+            )
+        location = f"{location} ({provider[0]})"
         try:
             if search.name in names:
                 raise ConfigError("name: choose a unique search name.")
             names.add(search.name)
             state_file = None
             if search.state_file is not None:
-                try:
-                    state_file = (
-                        path.absolute().parent / Path(search.state_file).expanduser()
-                    ).resolve()
-                except (OSError, RuntimeError, ValueError):
-                    raise ConfigError(
-                        "state_file: could not resolve this path."
-                    ) from None
-                if state_file == config_path:
-                    raise ConfigError(
-                        "state_file: path resolves to the configuration file."
-                    )
-                if state_file in state_paths:
-                    raise ConfigError(
-                        "state_file: path is already used by another search."
-                    )
-                state_paths.add(state_file)
-            prepared.append(_prepare_search(search, state_file))
+                state_file = _resolve_state_file(
+                    search.state_file, config_path, path.absolute().parent, state_paths
+                )
+            prepared.append(_prepare_search(search, state_file, provider))
         except click.UsageError as exc:
-            raise ConfigError(f"searches.{index}: {exc.format_message()}") from None
-        except ValueError as exc:
-            raise ConfigError(f"searches.{index}: {exc}") from None
+            raise ConfigError(f"{location}: {exc.format_message()}") from None
+        except ConfigError as exc:
+            raise ConfigError(f"{location}: {exc}") from None
     return prepared

@@ -3,8 +3,10 @@
 import json
 import os
 import re
+import stat
 import tempfile
 from collections.abc import Sequence
+from contextlib import suppress
 from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
@@ -98,7 +100,7 @@ def resolve_notification_config(
         key = raw.strip().lower()
         if key not in ("pushover", "ntfy"):
             raise ValueError(
-                f"Unsupported notification channel {raw!r}; choose 'pushover' or 'ntfy'."
+                "Unsupported notification channel; choose 'pushover' or 'ntfy'."
             )
         channel = cast(ChannelName, key)
         if channel not in normalized:
@@ -137,6 +139,15 @@ def stay_key(stay: "AvailabilityStay") -> str:
     )
 
 
+class _NonRegularStateFileError(OSError):
+    """A configured state path points to a special file or directory."""
+
+
+def _require_regular_state_file(mode: int) -> None:
+    if not stat.S_ISREG(mode):
+        raise _NonRegularStateFileError("State path must point to a regular file.")
+
+
 class StayDeduplicationState:
     """Track seen stay keys across poll cycles and optional JSON state-file persistence."""
 
@@ -159,7 +170,17 @@ class StayDeduplicationState:
         if state_file is None:
             return cls(label=label)
         try:
-            payload = json.loads(state_file.read_text(encoding="utf-8"))
+            _require_regular_state_file(state_file.stat().st_mode)
+            # A path can change after stat. Open without waiting for a FIFO writer
+            # and check the actual descriptor before reading any data.
+            flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0)
+            descriptor = os.open(state_file, flags)
+            try:
+                _require_regular_state_file(os.fstat(descriptor).st_mode)
+                with os.fdopen(descriptor, encoding="utf-8", closefd=False) as stream:
+                    payload = json.load(stream)
+            finally:
+                os.close(descriptor)
             entries = payload.get("seen_stays") if isinstance(payload, dict) else None
             if not isinstance(entries, list) or not all(
                 isinstance(item, str) for item in entries
@@ -175,6 +196,8 @@ class StayDeduplicationState:
                 "" if label else f" {state_file}",
                 type(exc).__name__,
             )
+            if isinstance(exc, _NonRegularStateFileError):
+                state_file = None
             return cls(state_file=state_file, label=label)
 
     def record_cycle(
@@ -191,6 +214,7 @@ class StayDeduplicationState:
         """Atomically persist the current seen stay set to ``self.state_file``."""
         if self.state_file is None:
             return
+        temp_path = None
         try:
             self.state_file.parent.mkdir(parents=True, exist_ok=True)
             content = json.dumps(
@@ -206,9 +230,12 @@ class StayDeduplicationState:
                 prefix=".camply-state-",
                 suffix=".tmp",
             ) as handle:
-                handle.write(content)
                 temp_path = Path(handle.name)
+                handle.write(content)
+            with suppress(FileNotFoundError):
+                _require_regular_state_file(self.state_file.stat().st_mode)
             temp_path.replace(self.state_file)
+            temp_path = None
         except OSError as exc:
             logger.warning(
                 "%sWarning: Could not write state file%s (%s).",
@@ -216,6 +243,12 @@ class StayDeduplicationState:
                 "" if self.label else f" {self.state_file}",
                 type(exc).__name__,
             )
+            if isinstance(exc, _NonRegularStateFileError):
+                self.state_file = None
+        finally:
+            if temp_path is not None:
+                with suppress(OSError):
+                    temp_path.unlink(missing_ok=True)
 
 
 async def _deliver_payload(

@@ -28,6 +28,11 @@ SEARCH = {
         ({"electric": "true"}, False),
         ({"interval": 4}, False),
         ({"notifications": ["secret-marker"]}, False),
+        ({"notifications": ["pu\u017fhover"]}, False),
+        ({"notifications": [" PUSHOVER ", "ntfy"]}, True),
+        ({"days": ["Tues", " thURs ", "Sunday"]}, True),
+        ({"days": ["Funday"]}, False),
+        ({"days": ["\u017funday"]}, False),
         ({"secret-marker": 1}, False),
     ],
 )
@@ -44,6 +49,19 @@ def test_editor_and_input_model(tmp_path, changes, valid):
         with pytest.raises(ConfigError) as error:
             load_config(path)
         assert "secret-marker" not in str(error.value)
+        assert "pu\u017fhover" not in str(error.value)
+
+
+def test_invalid_default_weekday_is_rejected_even_with_override(tmp_path):
+    path = tmp_path / "trips.yaml"
+    document = {
+        "defaults": {"days": ["Funday"]},
+        "searches": [SEARCH | {"days": ["Mon"]}],
+    }
+    path.write_text(json.dumps(document))
+    assert not Draft202012Validator(json.loads(SCHEMA.read_text())).is_valid(document)
+    with pytest.raises(ConfigError, match=r"defaults\.days"):
+        load_config(path)
 
 
 @pytest.mark.parametrize(

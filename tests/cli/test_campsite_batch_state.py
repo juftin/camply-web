@@ -1,9 +1,13 @@
 """Check per-search state paths before batch startup."""
 
 import json
+import os
+import stat
+from pathlib import Path
 
 import pytest
 
+from camply.cli.notifications import StayDeduplicationState
 from camply.cli.yaml_config import ConfigError, prepare_searches
 from tests.cli.test_yaml_config import SEARCH
 
@@ -29,6 +33,58 @@ def test_relative_state_paths_and_conflicts(tmp_path):
     write()
     with pytest.raises(ConfigError, match="configuration file"):
         prepare_searches(path)
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="requires a POSIX named pipe")
+def test_special_file_uses_memory_only(tmp_path, monkeypatch):
+    """Inspect a FIFO without blocking or replacing it on subsequent polls."""
+    path = tmp_path / "state.fifo"
+    os.mkfifo(path)
+
+    def blocking_read(*args, **kwargs):
+        pytest.fail("state loading tried to read the named pipe as a regular file")
+
+    monkeypatch.setattr(Path, "read_text", blocking_read)
+    state = StayDeduplicationState.load(path, label="trip")
+    assert state.state_file is None
+    state.record_cycle([])
+    assert stat.S_ISFIFO(path.stat().st_mode)
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="requires a POSIX named pipe")
+def test_state_file_replaced_by_fifo_during_open(tmp_path, monkeypatch):
+    """The opened descriptor is checked independently of the earlier path stat."""
+    path = tmp_path / "state.json"
+    path.write_text('{"seen_stays": []}')
+    original_open = os.open
+
+    def open_after_path_changes(file, flags, *args, **kwargs):
+        if file == path:
+            path.unlink()
+            os.mkfifo(path)
+            assert flags & os.O_NONBLOCK
+        return original_open(file, flags, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", open_after_path_changes)
+    state = StayDeduplicationState.load(path, label="trip")
+    assert state.state_file is None
+    state.record_cycle([])
+    assert stat.S_ISFIFO(path.stat().st_mode)
+
+
+def test_failed_state_replace_removes_temporary_file(tmp_path, monkeypatch):
+    """A failed publish leaves the prior history and no transient files."""
+    path = tmp_path / "state.json"
+    path.write_text('{"seen_stays": ["previous"]}')
+
+    def deny_replace(self, target):
+        raise PermissionError("synthetic write failure")
+
+    monkeypatch.setattr(Path, "replace", deny_replace)
+    state = StayDeduplicationState.load(path, label="trip")
+    state.record_cycle([])
+    assert list(tmp_path.iterdir()) == [path]
+    assert json.loads(path.read_text())["seen_stays"] == ["previous"]
 
 
 @pytest.mark.asyncio

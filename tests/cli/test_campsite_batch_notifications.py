@@ -15,7 +15,7 @@ def test_effective_channels(tmp_path, monkeypatch):
             {
                 "defaults": {"notifications": ["ntfy"]},
                 "searches": [
-                    SEARCH,
+                    SEARCH | {"provider": "ReserveCaliforniaProvider"},
                     SEARCH | {"name": "push", "notifications": ["pushover"]},
                     SEARCH | {"name": "quiet", "notifications": []},
                 ],
@@ -23,7 +23,9 @@ def test_effective_channels(tmp_path, monkeypatch):
         )
     )
     monkeypatch.delenv("NTFY_TOPIC", raising=False)
-    with pytest.raises(ConfigError, match="NTFY_TOPIC"):
+    with pytest.raises(
+        ConfigError, match=r"'trip' \(ReserveCalifornia\).*notifications.*NTFY_TOPIC"
+    ):
         prepare_searches(path)
     monkeypatch.setenv("NTFY_TOPIC", "synthetic")
     monkeypatch.setenv("PUSHOVER_USER_KEY", "synthetic")

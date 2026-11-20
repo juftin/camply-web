@@ -56,6 +56,28 @@ def test_invalid_final_search_has_no_side_effects(tmp_path, transcript):
     assert not (tmp_path / "state.json").exists()
 
 
+def test_reversed_window_reports_yaml_field(tmp_path, transcript):
+    path = tmp_path / "trips.yaml"
+    search = SEARCH | {
+        "provider": "ReserveCaliforniaProvider",
+        "date_windows": [
+            *SEARCH["date_windows"],
+            {"start_date": "2030-08-05", "end_date": "2030-08-03"},
+        ],
+    }
+    path.write_text(json.dumps({"searches": [search]}))
+    result = CliRunner().invoke(
+        cli, ["campsites", "--yaml-config", str(path), "--search-once", "--json"]
+    )
+    assert result.exit_code == 2
+    assert not result.stdout
+    assert "'trip' (ReserveCalifornia)" in result.stderr
+    assert "date_windows.1.end_date" in result.stderr
+    assert "2030-08-03" not in result.stderr
+    assert "--end-date" not in result.stderr
+    assert not transcript.constructed
+
+
 def test_effective_filters_and_target_precedence(tmp_path, transcript, monkeypatch):
     from camply.cli.yaml_config import prepare_searches
     from camply.providers.base import ProviderFilterCapabilities
