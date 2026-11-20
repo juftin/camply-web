@@ -47,21 +47,21 @@ camply checks availability right away, prints matching stays with booking links,
 
 ## Run multiple searches from a YAML file
 
-Save one or more named searches in `trips.yaml`. Each search specifies its provider, campground or recreation area IDs, and check-in and checkout windows. Quote IDs to preserve leading zeros. Use dates that fit the providers' booking windows.
+Save one or more named searches in `camply.yaml`. Each search specifies its provider, campground or recreation area IDs, and check-in and checkout windows. Quote IDs to preserve leading zeros. Use dates that fit the providers' booking windows.
 
-[Download `trips.yaml`](https://camply.rocks/docs/examples/trips.yaml) or save it with cURL.
+[Download `camply.yaml`](https://camply.rocks/docs/examples/camply.yaml) or save it with cURL.
 
 ```bash
-curl --fail --location --output trips.yaml https://camply.rocks/docs/examples/trips.yaml
+curl --fail --location --output camply.yaml https://camply.rocks/docs/examples/camply.yaml
 ```
 
-<<< @/public/examples/trips.yaml
+<<< @/public/examples/camply.yaml
 
 Set `NTFY_TOPIC` to receive alerts for the first search, then run all searches:
 
 ```bash
-camply campsites --yaml-config trips.yaml
-camply campsites --yaml-config trips.yaml --search-once --json
+camply campsites --yaml-config camply.yaml
+camply campsites --yaml-config camply.yaml --search-once --json
 ```
 
 Searches inherit settings they omit from `defaults`. A search's list replaces the shared list, so `notifications: []` keeps that search console-only. Use `rv_length: null` to clear an inherited minimum RV length. Names, providers, targets, dates, and state files are set per search. Relative state paths are resolved from the directory containing the YAML file. Channel credentials and destinations come from the environment.

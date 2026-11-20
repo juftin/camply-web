@@ -29,14 +29,14 @@ Validate the same structural examples against `docs/specs/032-cli-yaml-config/co
 ## Try file mode from a shell
 
 1. Use `uv run camply providers` and `uv run camply campgrounds --provider PROVIDER --search QUERY` with two providers to find real campground IDs.
-2. Copy the example from the [specification](spec.md#configuration-fields) to `trips.yaml`. Use the discovered IDs and future date windows. Omit notification settings for a console-only check, or supply the existing channel environment settings to verify delivery.
+2. Copy the example from the [specification](spec.md#configuration-fields) to `camply.yaml`. Use the discovered IDs and future date windows. Omit notification settings for a console-only check, or supply the existing channel environment settings to verify delivery.
 3. Check the file once and validate its output.
 
    ```bash
-   uv run camply campsites --yaml-config trips.yaml --search-once --json > outcomes.json
+   uv run camply campsites --yaml-config camply.yaml --search-once --json > outcomes.json
    uv run python -m json.tool outcomes.json
    ```
 
-4. Run `uv run camply campsites --yaml-config trips.yaml` to watch continuously, then press Ctrl-C. Compare output with the [CLI contract](contracts/cli.md).
+4. Run `uv run camply campsites --yaml-config camply.yaml` to watch continuously, then press Ctrl-C. Compare output with the [CLI contract](contracts/cli.md).
 
-For editor validation, associate `trips.yaml` with the checked-in schema using the editor's schema settings. Keep live-provider checks separate from automated acceptance so results do not depend on upstream inventory.
+For editor validation, associate `camply.yaml` with the checked-in schema using the editor's schema settings. Keep live-provider checks separate from automated acceptance so results do not depend on upstream inventory.

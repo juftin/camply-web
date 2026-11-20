@@ -26,7 +26,7 @@ A camper wants to save several trips in one file and watch them from one termina
 
 **Acceptance scenarios**
 
-1. **Given** two searches with different providers, dates, and target IDs, **when** the camper runs `camply campsites --yaml-config trips.yaml`, **then** both searches begin checking immediately and each result identifies its search and provider.
+1. **Given** two searches with different providers, dates, and target IDs, **when** the camper runs `camply campsites --yaml-config camply.yaml`, **then** both searches begin checking immediately and each result identifies its search and provider.
 2. **Given** two searches on the same provider with different weekday, stay-length, or equipment filters, **when** a provider response contains a mix of eligible and ineligible stays, **then** each search reports only the stays that satisfy its own rules.
 3. **Given** one search takes longer or encounters a provider failure, **when** another search is ready to report results or begin its next cycle, **then** it proceeds on its own schedule subject to provider rate limits. The failed search reports its name and provider and retries after its normal interval.
 4. **Given** checks are running or waiting between cycles, **when** the user presses Ctrl-C, **then** the invocation stops all searches and exits.
@@ -53,7 +53,7 @@ A camper wants to schedule a single round of checks and distinguish an empty res
 
 **Why this priority** — Reliable exit status and attributable results let scripts act on the whole batch.
 
-**Independent test** — Run `camply campsites --yaml-config trips.yaml --search-once --json` with one search that finds a stay, one that completes without matches, and one whose provider fails.
+**Independent test** — Run `camply campsites --yaml-config camply.yaml --search-once --json` with one search that finds a stay, one that completes without matches, and one whose provider fails.
 
 **Acceptance scenarios**
 
