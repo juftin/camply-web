@@ -40,15 +40,15 @@ All five gates pass before research and after design review.
 ### Documentation
 
 ```text
-docs/specs/032-cli-yaml-config/
-├── spec.md
-├── plan.md
-├── research.md
-├── data-model.md
-├── quickstart.md
-└── contracts/
-    ├── cli.md
-    └── cli-yaml-config.schema.json
+docs/
+├── cli-yaml-config.schema.json
+└── specs/032-cli-yaml-config/
+    ├── spec.md
+    ├── plan.md
+    ├── research.md
+    ├── data-model.md
+    ├── quickstart.md
+    └── contracts/cli.md
 ```
 
 ### Source Code

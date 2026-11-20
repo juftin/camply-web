@@ -2,7 +2,7 @@
 
 ## Configuration file
 
-A configuration contains an ordered, non-empty list of named searches and an optional mapping of shared settings. File order is the order of outcomes in a single-pass JSON response. The checked-in `contracts/cli-yaml-config.schema.json` defines the portable object structure.
+A configuration contains an ordered, non-empty list of named searches and an optional mapping of shared settings. File order is the order of outcomes in a single-pass JSON response. The checked-in `docs/cli-yaml-config.schema.json` defines the portable object structure.
 
 | Entity          | Fields and constraints                                                                                                                                                                                                                                                                   |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -24,7 +24,7 @@ The CLI and installed-wheel suites use synthetic provider and notification respo
 | Supply an invalid final search, duplicate key, conflicting flag, or state path collision | Exit with a useful diagnostic before any provider or notification request or state-file write.                                                 |
 | Run the current flag-only commands                                                       | Existing stays, JSON output shape, validation, and help work as before.                                                                        |
 
-Validate the same structural examples against `docs/specs/032-cli-yaml-config/contracts/cli-yaml-config.schema.json` and the Pydantic input models. Run separate checks for local scalar parsing, inherited constraints, and runtime-only rules.
+Validate the same structural examples against `docs/cli-yaml-config.schema.json` and the Pydantic input models. Run separate checks for local scalar parsing, inherited constraints, and runtime-only rules.
 
 ## Try file mode from a shell
 

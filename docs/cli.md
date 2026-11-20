@@ -57,7 +57,9 @@ curl --fail --location --output camply.yaml https://camply.rocks/docs/examples/c
 
 <<< @/public/examples/camply.yaml
 
-Set `NTFY_TOPIC` to receive alerts for the first search, then run all searches:
+The example prints results to the terminal. To enable ntfy alerts, add `ntfy` to `defaults.notifications` and set `NTFY_TOPIC` before running the command.
+
+Run all searches continuously or check them once.
 
 ```bash
 camply campsites --yaml-config camply.yaml
@@ -68,7 +70,7 @@ Searches inherit settings they omit from `defaults`. A search's list replaces th
 
 With `--search-once --json`, the CLI outputs one ordered array with each search's `name`, `provider`, `status`, and `stays`. A search with no matches returns `ok` and an empty list. A failed search returns `error`, and the command exits with status 1 after the batch finishes. Local validation errors exit with status 2. Diagnostics go to stderr.
 
-For editor validation, associate the YAML file with the repository's `docs/specs/032-cli-yaml-config/contracts/cli-yaml-config.schema.json` in your editor settings. See the [configuration field reference](specs/032-cli-yaml-config/spec.md#configuration-fields) for settings and defaults.
+Editors that use the YAML Language Server read the schema URL from the example's first line. For other editors, associate the YAML file with `docs/cli-yaml-config.schema.json` from the repository. See the [configuration field reference](specs/032-cli-yaml-config/spec.md#configuration-fields) for settings and defaults.
 
 To migrate a legacy flat file, create one entry under `searches` and give it a `name` and an explicit `provider`. Convert scalar target and channel values to lists, use `recreation_areas` for recreation-area IDs, and move each start and end date pair into `date_windows`. Use `interval` for the polling interval and the CLI's `--search-once` when you want a single pass. Replace legacy offline history settings with a per-search `state_file`.
 

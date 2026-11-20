@@ -90,7 +90,7 @@ A camper wants to schedule a single round of checks and distinguish an empty res
 
 ### JSON Schema
 
-The Draft 2020-12 schema in `contracts/cli-yaml-config.schema.json` describes the input accepted by the Pydantic models. Keep the schema and models aligned on field names, required fields, types, defaults, and structural constraints. Verify valid and invalid fixtures against both. The CLI also validates rules that depend on multiple fields or the runtime environment, such as unique search names, date ordering, provider capabilities, notification settings, and state-file conflicts.
+The Draft 2020-12 schema in `docs/cli-yaml-config.schema.json` describes the input accepted by the Pydantic models. Keep the schema and models aligned on field names, required fields, types, defaults, and structural constraints. Verify valid and invalid fixtures against both. The CLI also validates rules that depend on multiple fields or the runtime environment, such as unique search names, date ordering, provider capabilities, notification settings, and state-file conflicts.
 
 ### Configuration Fields
 

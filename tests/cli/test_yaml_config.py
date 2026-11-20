@@ -4,17 +4,29 @@ import json
 from pathlib import Path
 
 import pytest
-from jsonschema import Draft202012Validator
+import yaml
+from jsonschema import Draft202012Validator, FormatChecker
 
-from camply.cli.yaml_config import ConfigError, load_config
+from camply.cli.yaml_config import ConfigError, SearchDefaults, load_config
 
-SCHEMA = Path("docs/specs/032-cli-yaml-config/contracts/cli-yaml-config.schema.json")
+SCHEMA = Path("docs/cli-yaml-config.schema.json")
 SEARCH = {
     "name": "trip",
     "provider": "RecreationDotGov",
     "campgrounds": ["001"],
     "date_windows": [{"start_date": "2030-06-01", "end_date": "2030-06-05"}],
 }
+
+
+def test_documented_example_matches_defaults():
+    path = Path("docs/public/examples/camply.yaml")
+    schema = json.loads(SCHEMA.read_text())
+    Draft202012Validator(schema, format_checker=FormatChecker()).validate(
+        yaml.safe_load(path.read_text())
+    )
+    assert load_config(path).defaults.model_dump(exclude_unset=True) == (
+        SearchDefaults().model_dump(exclude_none=True)
+    )
 
 
 @pytest.mark.parametrize(
