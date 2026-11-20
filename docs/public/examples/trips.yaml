@@ -1,0 +1,19 @@
+defaults:
+  notifications: [ntfy]
+  interval: 10
+searches:
+  - name: yosemite
+    provider: RecreationDotGov
+    campgrounds: ["232450"]
+    date_windows:
+      - start_date: "2027-05-07"
+        end_date: "2027-05-10"
+    state_file: yosemite-state.json
+  - name: california-state-park
+    provider: ReserveCalifornia
+    campgrounds: ["327"]
+    date_windows:
+      - start_date: "2027-05-14"
+        end_date: "2027-05-17"
+    interval: 15
+    notifications: []

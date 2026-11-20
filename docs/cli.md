@@ -49,27 +49,13 @@ camply checks availability right away, prints matching stays with booking links,
 
 Save one or more named searches in `trips.yaml`. Each search specifies its provider, campground or recreation area IDs, and check-in and checkout windows. Quote IDs to preserve leading zeros. Use dates that fit the providers' booking windows.
 
-```yaml
-defaults:
-  notifications: [ntfy]
-  interval: 10
-searches:
-  - name: yosemite
-    provider: RecreationDotGov
-    campgrounds: ["232450"]
-    date_windows:
-      - start_date: "2027-05-07"
-        end_date: "2027-05-10"
-    state_file: yosemite-state.json
-  - name: california-state-park
-    provider: ReserveCalifornia
-    campgrounds: ["327"]
-    date_windows:
-      - start_date: "2027-05-14"
-        end_date: "2027-05-17"
-    interval: 15
-    notifications: []
+[Download `trips.yaml`](https://camply.rocks/docs/examples/trips.yaml) or save it with cURL.
+
+```bash
+curl --fail --location --output trips.yaml https://camply.rocks/docs/examples/trips.yaml
 ```
+
+<<< @/public/examples/trips.yaml
 
 Set `NTFY_TOPIC` to receive alerts for the first search, then run all searches:
 
