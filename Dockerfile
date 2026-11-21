@@ -1,5 +1,5 @@
 ARG PYTHON_VERSION=3.14
-FROM node:24-bookworm-slim AS node
+FROM node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c0161664a011f7ff6b0f1 AS node
 FROM ghcr.io/astral-sh/uv:latest AS uv
 
 FROM python:${PYTHON_VERSION}-slim-bookworm AS python-base
