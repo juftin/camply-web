@@ -1,4 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/juftin/camply-web/main/docs/cli-yaml-config.schema.json
+
 # Run with: camply campsites --yaml-config camply.yaml
 # Edit the target IDs and date windows for the campsites you want to watch.
 
