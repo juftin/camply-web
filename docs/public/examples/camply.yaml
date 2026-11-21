@@ -50,6 +50,8 @@ searches:
     dates:
       - start_date: "2027-05-07" # Inclusive check-in date.
         end_date: "2027-05-10" # Exclusive checkout date.
+    # Include Friday and Saturday nights across this search's date ranges.
+    weekends: true
     # By default, alert history is in memory. Set a unique JSON file per search
     # to keep it across runs. Relative paths start beside this YAML file.
     # state_file: yosemite-state.json
