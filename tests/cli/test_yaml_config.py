@@ -36,6 +36,19 @@ def test_documented_example_matches_defaults():
 
 
 @pytest.mark.parametrize(
+    "fields", [{}, {"version": 2}, {"version": "1"}, {"version": True}]
+)
+def test_config_requires_supported_integer_version(tmp_path, fields):
+    path = tmp_path / "camply.yaml"
+    document = {"searches": [SEARCH], **fields}
+    path.write_text(json.dumps(document))
+    schema = Draft202012Validator(json.loads(SCHEMA.read_text()))
+    assert not schema.is_valid(document)
+    with pytest.raises(ConfigError, match=r"version.*version: 1"):
+        load_config(path)
+
+
+@pytest.mark.parametrize(
     ("changes", "valid"),
     [
         ({}, True),
@@ -62,7 +75,7 @@ def test_documented_example_matches_defaults():
 )
 def test_editor_and_input_model(tmp_path, changes, valid):
     path = tmp_path / "trips.yaml"
-    document = {"searches": [SEARCH | changes]}
+    document = {"version": 1, "searches": [SEARCH | changes]}
     path.write_text(json.dumps(document))
     schema = json.loads(SCHEMA.read_text())
     Draft202012Validator.check_schema(schema)
@@ -80,6 +93,7 @@ def test_invalid_default_weekday_is_rejected_even_with_override(tmp_path):
     path = tmp_path / "trips.yaml"
     document = {
         "defaults": {"days": ["Funday"]},
+        "version": 1,
         "searches": [SEARCH | {"days": ["Mon"]}],
     }
     path.write_text(json.dumps(document))
@@ -91,7 +105,8 @@ def test_invalid_default_weekday_is_rejected_even_with_override(tmp_path):
 def test_weekday_filters_inherit_independently_across_three_levels(tmp_path):
     path = tmp_path / "camply.yaml"
     path.write_text(
-        """defaults: {days: [Sun], weekends: true}
+        """version: 1
+defaults: {days: [Sun], weekends: true}
 searches:
   - name: shared
     provider: RecreationDotGov
@@ -119,7 +134,8 @@ searches:
 def test_overlapping_date_ranges_union_their_eligible_nights(tmp_path):
     path = tmp_path / "camply.yaml"
     path.write_text(
-        """searches:
+        """version: 1
+searches:
   - name: overlapping
     provider: RecreationDotGov
     campgrounds: ['001']
@@ -140,7 +156,7 @@ def test_overlapping_date_ranges_union_their_eligible_nights(tmp_path):
         ("searches: []\n---\nsearches: []", "line"),
         ("provider: RecreationDotGov", "legacy"),
         ("", "configuration"),
-        ("defaults: {rv_length: null}\nsearches: []", "defaults.rv_length"),
+        ("version: 1\ndefaults: {rv_length: null}\nsearches: []", "defaults.rv_length"),
     ],
 )
 def test_yaml_document_errors(tmp_path, source, diagnostic):
@@ -153,7 +169,8 @@ def test_yaml_document_errors(tmp_path, source, diagnostic):
 def test_yaml_dates_and_field_presence(tmp_path):
     path = tmp_path / "trips.yaml"
     path.write_text(
-        """defaults: {rv_length: 28, electric: true, notifications: [ntfy]}
+        """version: 1
+defaults: {rv_length: 28, electric: true, notifications: [ntfy]}
 searches:
   - name: trip
     provider: RecreationDotGov

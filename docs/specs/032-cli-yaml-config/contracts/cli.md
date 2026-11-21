@@ -9,6 +9,8 @@ camply [--debug | --no-debug] campsites --yaml-config PATH
 
 File mode accepts `--yaml-config` alone for the file path. The file uses the checked-in Draft 2020-12 `docs/cli-yaml-config.schema.json`, with runtime checks described in the [data model](../data-model.md). Every search specifies a provider. Explicit provider, target, date, filter, interval, notification, and state-file flags conflict with file mode, including the root provider flag. In the absence of `--yaml-config`, the existing flag-based invocation remains available.
 
+The file requires a top-level integer `version: 1`. Unsupported versions fail as usage errors before search fields are validated.
+
 ## Lifecycle and exit status
 
 | Event                                            | Result                                                                                                                                                                          |

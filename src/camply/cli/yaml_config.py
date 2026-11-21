@@ -27,6 +27,8 @@ from camply.core import search as core_search
 from camply.core.search import SearchRequest, allowed_weekdays
 from camply.providers.base import BaseProvider
 
+_CONFIG_VERSION = 1
+
 
 class ConfigError(ValueError):
     """An actionable configuration error safe to print."""
@@ -166,6 +168,7 @@ class SearchInput(SearchDefaults):
 class SearchConfig(_Input):
     """The single file-mode document."""
 
+    version: int = Field(ge=_CONFIG_VERSION, le=_CONFIG_VERSION)
     defaults: SearchDefaults = Field(default_factory=SearchDefaults)
     searches: list[SearchInput] = Field(min_length=1)
 
@@ -229,10 +232,22 @@ def load_config(path: Path) -> SearchConfig:
         raise ConfigError(f"Invalid YAML configuration{location}.") from None
     except (yaml.YAMLError, RecursionError, ValueError):
         raise ConfigError("Invalid YAML configuration.") from None
-    if isinstance(data, dict) and "searches" not in data and _LEGACY_KEYS & data.keys():
-        raise ConfigError(
-            "This is a legacy flat configuration. Move the search into the searches list and pair dates under dates."
-        )
+    if isinstance(data, dict):
+        if (
+            "version" not in data
+            and "searches" not in data
+            and _LEGACY_KEYS & data.keys()
+        ):
+            raise ConfigError(
+                f"This is a legacy flat configuration. Set version: {_CONFIG_VERSION}, move the search into the searches list, and pair dates under dates."
+            )
+        version = data.get("version")
+        if type(version) is not int:
+            raise ConfigError(f"version: set version: {_CONFIG_VERSION} as an integer.")
+        if version != _CONFIG_VERSION:
+            raise ConfigError(
+                f"Unsupported configuration version. This release supports version: {_CONFIG_VERSION}. Use a compatible camply release or migrate the file."
+            )
     try:
         return SearchConfig.model_validate(data)
     except ValidationError as exc:

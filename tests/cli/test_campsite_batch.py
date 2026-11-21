@@ -24,7 +24,7 @@ pytestmark = pytest.mark.usefixtures("transcript")
 )
 def test_explicit_search_flags_conflict(tmp_path, root, options, transcript):
     path = tmp_path / "trips.yaml"
-    path.write_text(json.dumps({"searches": [SEARCH]}))
+    path.write_text(json.dumps({"version": 1, "searches": [SEARCH]}))
     result = CliRunner().invoke(
         cli, [*root, "campsites", "--yaml-config", str(path), *options]
     )
@@ -38,10 +38,11 @@ def test_invalid_final_search_has_no_side_effects(tmp_path, transcript):
     path.write_text(
         json.dumps(
             {
+                "version": 1,
                 "searches": [
                     SEARCH | {"state_file": "state.json"},
                     SEARCH | {"name": "invalid", "provider": "secret-marker"},
-                ]
+                ],
             }
         )
     )
@@ -56,6 +57,22 @@ def test_invalid_final_search_has_no_side_effects(tmp_path, transcript):
     assert not (tmp_path / "state.json").exists()
 
 
+def test_future_config_version_is_rejected_before_search_validation(
+    tmp_path, transcript
+):
+    path = tmp_path / "camply.yaml"
+    path.write_text("version: 2\nfuture_searches: []\n")
+    result = CliRunner().invoke(
+        cli, ["campsites", "--yaml-config", str(path), "--search-once", "--json"]
+    )
+    assert result.exit_code == 2
+    assert not result.stdout
+    assert "Unsupported configuration version" in result.stderr
+    assert "version: 1" in result.stderr
+    assert "searches" not in result.stderr
+    assert not transcript.constructed
+
+
 def test_reversed_window_reports_yaml_field(tmp_path, transcript):
     path = tmp_path / "trips.yaml"
     search = SEARCH | {
@@ -65,7 +82,7 @@ def test_reversed_window_reports_yaml_field(tmp_path, transcript):
             {"start_date": "2030-08-05", "end_date": "2030-08-03"},
         ],
     }
-    path.write_text(json.dumps({"searches": [search]}))
+    path.write_text(json.dumps({"version": 1, "searches": [search]}))
     result = CliRunner().invoke(
         cli, ["campsites", "--yaml-config", str(path), "--search-once", "--json"]
     )
@@ -91,7 +108,7 @@ def test_effective_filters_and_target_precedence(tmp_path, transcript, monkeypat
         ],
         "weekends": True,
     }
-    document = {"defaults": {"rv_length": 28}, "searches": [search]}
+    document = {"version": 1, "defaults": {"rv_length": 28}, "searches": [search]}
     path.write_text(json.dumps(document))
     provider = prepare_searches(path)[0].provider_class
     monkeypatch.setattr(

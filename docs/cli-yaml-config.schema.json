@@ -4,8 +4,13 @@
   "description": "The configuration accepted by camply campsites --yaml-config.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["searches"],
+  "required": ["version", "searches"],
   "properties": {
+    "version": {
+      "description": "CLI YAML configuration format version.",
+      "type": "integer",
+      "const": 1
+    },
     "defaults": {
       "$ref": "#/$defs/searchDefaults"
     },

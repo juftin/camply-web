@@ -47,17 +47,26 @@ camply checks availability right away, prints matching stays with booking links,
 
 ## Run multiple searches from a YAML file
 
-Save this minimal search in `camply.yaml`. Use a campground or recreation area ID from your provider, and set check-in and checkout dates within its booking window. Quote IDs to preserve leading zeros.
+Save this minimal configuration in `camply.yaml` to watch May at Lower Pines in Yosemite and February at Furnace Creek in Death Valley. Choose IDs and dates for your trip, and quote IDs to preserve leading zeros. [Lower Pines](https://www.recreation.gov/camping/campgrounds/232450), [Furnace Creek](https://www.recreation.gov/camping/campgrounds/232496).
 
 ```yaml
+version: 1
 searches:
   - name: yosemite
     provider: RecreationDotGov
     campgrounds: ["232450"]
     dates:
-      - start_date: "2027-05-07"
-        end_date: "2027-05-10"
+      - start_date: "2027-05-01"
+        end_date: "2027-06-01"
+  - name: death-valley
+    provider: RecreationDotGov
+    campgrounds: ["232496"]
+    dates:
+      - start_date: "2027-02-01"
+        end_date: "2027-03-01"
 ```
+
+The required top-level `version: 1` identifies the YAML format. Camply reports unsupported versions before starting any searches.
 
 Run continuously or check once.
 
@@ -88,7 +97,7 @@ With `--search-once --json`, the CLI outputs one ordered array with each search'
 
 Editors that use the YAML Language Server read the schema URL from the full example's first line. For other editors, associate the YAML file with `docs/cli-yaml-config.schema.json` from the repository. See the [configuration field reference](specs/032-cli-yaml-config/spec.md#configuration-fields) for settings and defaults.
 
-To migrate a legacy flat file, create one entry under `searches` and give it a `name` and an explicit `provider`. Convert scalar target and channel values to lists, use `recreation_areas` for recreation-area IDs, and move each start and end date pair into `dates`. Use `interval` for the polling interval and the CLI's `--search-once` when you want a single pass. Replace legacy offline history settings with a per-search `state_file`.
+To migrate a legacy flat file, set `version: 1` and create one entry under `searches` with a `name` and an explicit `provider`. Convert scalar target and channel values to lists, use `recreation_areas` for recreation-area IDs, and move each start and end date pair into `dates`. Use `interval` for the polling interval and the CLI's `--search-once` when you want a single pass. Replace legacy offline history settings with a per-search `state_file`.
 
 ## Filter by site type, equipment, hookups, and specific sites
 
