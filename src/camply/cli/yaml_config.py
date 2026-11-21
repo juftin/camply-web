@@ -1,10 +1,11 @@
 """Decode and validate campsite search configuration before starting a batch."""
 
+import json
 import re
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Annotated, Any, Self
+from typing import Annotated, Any, Self, get_args
 
 import click
 import yaml
@@ -17,15 +18,21 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from pydantic.json_schema import SkipJsonSchema, WithJsonSchema
 from pydantic_core import PydanticCustomError
 from yaml.nodes import MappingNode, ScalarNode
 
 from camply.cli.discovery import normalize_ids
-from camply.cli.notifications import CLINotificationConfig, resolve_notification_config
+from camply.cli.notifications import (
+    ChannelName,
+    CLINotificationConfig,
+    resolve_notification_config,
+)
 from camply.cli.providers import find_provider, validate_provider_filters
 from camply.core import search as core_search
-from camply.core.search import SearchRequest, allowed_weekdays
+from camply.core.search import WEEKDAY_NAMES, SearchRequest, allowed_weekdays
 from camply.providers.base import BaseProvider
+from camply.providers.dto import CampsiteType
 
 _CONFIG_VERSION = 2
 
@@ -64,20 +71,42 @@ _ConfigLoader.add_implicit_resolver(
     "tag:yaml.org,2002:bool", re.compile(r"^(?:true|false)$", re.IGNORECASE), "tTfF"
 )
 
+
+def _ascii_choice_pattern(*choices: str) -> str:
+    alternatives = "|".join(
+        "".join(f"[{letter.lower()}{letter.upper()}]" for letter in choice)
+        for choice in choices
+    )
+    return rf"^\s*(?:{alternatives})\s*$"
+
+
 NonBlank = Annotated[str, StringConstraints(pattern=r"\S")]
-IsoDay = Annotated[str, StringConstraints(pattern=r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")]
+IsoDay = Annotated[
+    str,
+    StringConstraints(pattern=r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"),
+    Field(json_schema_extra={"format": "date"}),
+]
 RvLength = Annotated[int, Field(ge=1, le=200)]
+DayName = Annotated[
+    NonBlank,
+    WithJsonSchema(
+        {
+            "type": "string",
+            "pattern": _ascii_choice_pattern(
+                *(name for names in WEEKDAY_NAMES for name in names)
+            ),
+        }
+    ),
+]
 Channel = Annotated[
     str,
-    StringConstraints(
-        pattern=r"^\s*([Pp][Uu][Ss][Hh][Oo][Vv][Ee][Rr]|[Nn][Tt][Ff][Yy])\s*$"
-    ),
+    StringConstraints(pattern=_ascii_choice_pattern(*get_args(ChannelName))),
+    Field(examples=list(get_args(ChannelName))),
 ]
 SiteType = Annotated[
     str,
-    StringConstraints(
-        pattern=r"^\s*([Tt][Ee][Nn][Tt]|[Rr][Vv]|[Cc][Aa][Bb][Ii][Nn]|[Oo][Tt][Hh][Ee][Rr])\s*$"
-    ),
+    StringConstraints(pattern=_ascii_choice_pattern(*CampsiteType)),
+    Field(examples=list(CampsiteType)),
 ]
 
 
@@ -86,8 +115,14 @@ class _Input(BaseModel):
 
 
 class _WeekdayFilters(_Input):
-    days: list[NonBlank] = Field(default_factory=list)
-    weekends: bool = False
+    days: list[DayName] = Field(
+        default_factory=list,
+        description="English weekday names or abbreviations. An explicit empty list clears inherited weekdays.",
+    )
+    weekends: bool = Field(
+        default=False,
+        description="Include Friday and Saturday nights. An explicit false clears an inherited weekend filter.",
+    )
 
     @field_validator("days")
     @classmethod
@@ -102,8 +137,8 @@ class _WeekdayFilters(_Input):
 class DateWindow(_WeekdayFilters):
     """A check-in and checkout pair in the config file."""
 
-    start_date: IsoDay
-    end_date: IsoDay
+    start_date: IsoDay = Field(description="Inclusive check-in date.")
+    end_date: IsoDay = Field(description="Exclusive checkout date.")
 
     @field_validator("start_date", "end_date")
     @classmethod
@@ -116,6 +151,10 @@ class DateWindow(_WeekdayFilters):
         return value
 
 
+def _omit_schema_default(schema: dict[str, Any]) -> None:
+    schema.pop("default", None)
+
+
 class SearchDefaults(_WeekdayFilters):
     """Settings that may be shared by all searches."""
 
@@ -123,7 +162,9 @@ class SearchDefaults(_WeekdayFilters):
     campsite_types: list[SiteType] = Field(default_factory=list)
     electric: bool = False
     accessible: bool = False
-    rv_length: RvLength | None = None
+    rv_length: RvLength | SkipJsonSchema[None] = Field(
+        default=None, json_schema_extra=_omit_schema_default
+    )
     interval: int = Field(default=10, ge=5)
     notifications: list[Channel] = Field(default_factory=list)
 
@@ -139,13 +180,30 @@ class SearchDefaults(_WeekdayFilters):
 class SearchInput(SearchDefaults):
     """A single named search and its optional overrides."""
 
-    name: NonBlank
-    provider: NonBlank
+    model_config = ConfigDict(
+        json_schema_extra={
+            "anyOf": [
+                {"required": [key], "properties": {key: {"minItems": 1}}}
+                for key in ("campgrounds", "recreation_areas")
+            ]
+        }
+    )
+
+    rv_length: RvLength | None = Field(
+        default=None,
+        description="Minimum compatible RV length. Set to null to clear an inherited length.",
+    )
+    name: NonBlank = Field(description="Unique within the file.")
+    provider: NonBlank = Field(
+        description="A provider name or alias recognized by camply."
+    )
     campgrounds: list[NonBlank] = Field(default_factory=list)
     recreation_areas: list[NonBlank] = Field(default_factory=list)
     campsites: list[NonBlank] = Field(default_factory=list)
     dates: list[DateWindow] = Field(min_length=1)
-    state_file: NonBlank | None = None
+    state_file: NonBlank | SkipJsonSchema[None] = Field(
+        default=None, json_schema_extra=_omit_schema_default
+    )
 
     @field_validator("state_file")
     @classmethod
@@ -166,9 +224,19 @@ class SearchInput(SearchDefaults):
 
 
 class SearchConfig(_Input):
-    """The single file-mode document."""
+    """The configuration accepted by camply campsites --yaml-config."""
 
-    version: int = Field(ge=_CONFIG_VERSION, le=_CONFIG_VERSION)
+    model_config = ConfigDict(
+        title="Camply CLI YAML configuration",
+        json_schema_extra={"$schema": "https://json-schema.org/draft/2020-12/schema"},
+    )
+
+    version: int = Field(
+        ge=_CONFIG_VERSION,
+        le=_CONFIG_VERSION,
+        description="CLI YAML configuration format version.",
+        json_schema_extra={"const": _CONFIG_VERSION},
+    )
     defaults: SearchDefaults = Field(default_factory=SearchDefaults)
     searches: list[SearchInput] = Field(min_length=1)
 
@@ -401,3 +469,9 @@ def prepare_searches(path: Path) -> list[PreparedSearch]:
         except ConfigError as exc:
             raise ConfigError(f"{location}: {exc}") from None
     return prepared
+
+
+if __name__ == "__main__":
+    Path("docs/cli-yaml-config.schema.json").write_text(
+        json.dumps(SearchConfig.model_json_schema(), indent=2) + "\n", encoding="utf-8"
+    )

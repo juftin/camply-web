@@ -1,225 +1,314 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Camply CLI YAML configuration",
-  "description": "The configuration accepted by camply campsites --yaml-config.",
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["version", "searches"],
-  "properties": {
-    "version": {
-      "description": "CLI YAML configuration format version.",
-      "type": "integer",
-      "const": 2
-    },
-    "defaults": {
-      "$ref": "#/$defs/searchDefaults"
-    },
-    "searches": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "$ref": "#/$defs/search"
-      }
-    }
-  },
   "$defs": {
-    "nonBlankString": {
-      "type": "string",
-      "pattern": "\\S"
-    },
-    "selectors": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/nonBlankString"
-      }
-    },
-    "date": {
-      "type": "string",
-      "format": "date",
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
-    },
-    "dateWindow": {
-      "type": "object",
+    "DateWindow": {
       "additionalProperties": false,
-      "required": ["start_date", "end_date"],
+      "description": "A check-in and checkout pair in the config file.",
       "properties": {
-        "start_date": {
-          "$ref": "#/$defs/date",
-          "description": "Inclusive check-in date."
-        },
-        "end_date": {
-          "$ref": "#/$defs/date",
-          "description": "Exclusive checkout date."
-        },
         "days": {
-          "$ref": "#/$defs/days",
-          "description": "Override the search's weekday list for this date range."
+          "description": "English weekday names or abbreviations. An explicit empty list clears inherited weekdays.",
+          "items": {
+            "pattern": "^\\s*(?:[mM][oO][nN][dD][aA][yY]|[mM][oO][nN]|[tT][uU][eE][sS][dD][aA][yY]|[tT][uU][eE]|[tT][uU][eE][sS]|[wW][eE][dD][nN][eE][sS][dD][aA][yY]|[wW][eE][dD]|[tT][hH][uU][rR][sS][dD][aA][yY]|[tT][hH][uU]|[tT][hH][uU][rR]|[tT][hH][uU][rR][sS]|[fF][rR][iI][dD][aA][yY]|[fF][rR][iI]|[sS][aA][tT][uU][rR][dD][aA][yY]|[sS][aA][tT]|[sS][uU][nN][dD][aA][yY]|[sS][uU][nN])\\s*$",
+            "type": "string"
+          },
+          "title": "Days",
+          "type": "array"
         },
         "weekends": {
-          "$ref": "#/$defs/weekends",
-          "description": "Override the search's Friday and Saturday filter for this date range."
+          "default": false,
+          "description": "Include Friday and Saturday nights. An explicit false clears an inherited weekend filter.",
+          "title": "Weekends",
+          "type": "boolean"
+        },
+        "start_date": {
+          "description": "Inclusive check-in date.",
+          "format": "date",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "title": "Start Date",
+          "type": "string"
+        },
+        "end_date": {
+          "description": "Exclusive checkout date.",
+          "format": "date",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "title": "End Date",
+          "type": "string"
         }
-      }
+      },
+      "required": [
+        "start_date",
+        "end_date"
+      ],
+      "title": "DateWindow",
+      "type": "object"
     },
-    "search": {
-      "type": "object",
+    "SearchDefaults": {
       "additionalProperties": false,
-      "required": ["name", "provider", "dates"],
+      "description": "Settings that may be shared by all searches.",
+      "properties": {
+        "days": {
+          "description": "English weekday names or abbreviations. An explicit empty list clears inherited weekdays.",
+          "items": {
+            "pattern": "^\\s*(?:[mM][oO][nN][dD][aA][yY]|[mM][oO][nN]|[tT][uU][eE][sS][dD][aA][yY]|[tT][uU][eE]|[tT][uU][eE][sS]|[wW][eE][dD][nN][eE][sS][dD][aA][yY]|[wW][eE][dD]|[tT][hH][uU][rR][sS][dD][aA][yY]|[tT][hH][uU]|[tT][hH][uU][rR]|[tT][hH][uU][rR][sS]|[fF][rR][iI][dD][aA][yY]|[fF][rR][iI]|[sS][aA][tT][uU][rR][dD][aA][yY]|[sS][aA][tT]|[sS][uU][nN][dD][aA][yY]|[sS][uU][nN])\\s*$",
+            "type": "string"
+          },
+          "title": "Days",
+          "type": "array"
+        },
+        "weekends": {
+          "default": false,
+          "description": "Include Friday and Saturday nights. An explicit false clears an inherited weekend filter.",
+          "title": "Weekends",
+          "type": "boolean"
+        },
+        "nights": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Nights",
+          "type": "integer"
+        },
+        "campsite_types": {
+          "items": {
+            "examples": [
+              "TENT",
+              "RV",
+              "CABIN",
+              "OTHER"
+            ],
+            "pattern": "^\\s*(?:[tT][eE][nN][tT]|[rR][vV]|[cC][aA][bB][iI][nN]|[oO][tT][hH][eE][rR])\\s*$",
+            "type": "string"
+          },
+          "title": "Campsite Types",
+          "type": "array"
+        },
+        "electric": {
+          "default": false,
+          "title": "Electric",
+          "type": "boolean"
+        },
+        "accessible": {
+          "default": false,
+          "title": "Accessible",
+          "type": "boolean"
+        },
+        "rv_length": {
+          "maximum": 200,
+          "minimum": 1,
+          "title": "Rv Length",
+          "type": "integer"
+        },
+        "interval": {
+          "default": 10,
+          "minimum": 5,
+          "title": "Interval",
+          "type": "integer"
+        },
+        "notifications": {
+          "items": {
+            "examples": [
+              "pushover",
+              "ntfy"
+            ],
+            "pattern": "^\\s*(?:[pP][uU][sS][hH][oO][vV][eE][rR]|[nN][tT][fF][yY])\\s*$",
+            "type": "string"
+          },
+          "title": "Notifications",
+          "type": "array"
+        }
+      },
+      "title": "SearchDefaults",
+      "type": "object"
+    },
+    "SearchInput": {
+      "additionalProperties": false,
       "anyOf": [
         {
-          "required": ["campgrounds"],
           "properties": {
             "campgrounds": {
               "minItems": 1
             }
-          }
+          },
+          "required": [
+            "campgrounds"
+          ]
         },
         {
-          "required": ["recreation_areas"],
           "properties": {
             "recreation_areas": {
               "minItems": 1
             }
-          }
+          },
+          "required": [
+            "recreation_areas"
+          ]
         }
       ],
+      "description": "A single named search and its optional overrides.",
       "properties": {
+        "days": {
+          "description": "English weekday names or abbreviations. An explicit empty list clears inherited weekdays.",
+          "items": {
+            "pattern": "^\\s*(?:[mM][oO][nN][dD][aA][yY]|[mM][oO][nN]|[tT][uU][eE][sS][dD][aA][yY]|[tT][uU][eE]|[tT][uU][eE][sS]|[wW][eE][dD][nN][eE][sS][dD][aA][yY]|[wW][eE][dD]|[tT][hH][uU][rR][sS][dD][aA][yY]|[tT][hH][uU]|[tT][hH][uU][rR]|[tT][hH][uU][rR][sS]|[fF][rR][iI][dD][aA][yY]|[fF][rR][iI]|[sS][aA][tT][uU][rR][dD][aA][yY]|[sS][aA][tT]|[sS][uU][nN][dD][aA][yY]|[sS][uU][nN])\\s*$",
+            "type": "string"
+          },
+          "title": "Days",
+          "type": "array"
+        },
+        "weekends": {
+          "default": false,
+          "description": "Include Friday and Saturday nights. An explicit false clears an inherited weekend filter.",
+          "title": "Weekends",
+          "type": "boolean"
+        },
+        "nights": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Nights",
+          "type": "integer"
+        },
+        "campsite_types": {
+          "items": {
+            "examples": [
+              "TENT",
+              "RV",
+              "CABIN",
+              "OTHER"
+            ],
+            "pattern": "^\\s*(?:[tT][eE][nN][tT]|[rR][vV]|[cC][aA][bB][iI][nN]|[oO][tT][hH][eE][rR])\\s*$",
+            "type": "string"
+          },
+          "title": "Campsite Types",
+          "type": "array"
+        },
+        "electric": {
+          "default": false,
+          "title": "Electric",
+          "type": "boolean"
+        },
+        "accessible": {
+          "default": false,
+          "title": "Accessible",
+          "type": "boolean"
+        },
+        "rv_length": {
+          "anyOf": [
+            {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Minimum compatible RV length. Set to null to clear an inherited length.",
+          "title": "Rv Length"
+        },
+        "interval": {
+          "default": 10,
+          "minimum": 5,
+          "title": "Interval",
+          "type": "integer"
+        },
+        "notifications": {
+          "items": {
+            "examples": [
+              "pushover",
+              "ntfy"
+            ],
+            "pattern": "^\\s*(?:[pP][uU][sS][hH][oO][vV][eE][rR]|[nN][tT][fF][yY])\\s*$",
+            "type": "string"
+          },
+          "title": "Notifications",
+          "type": "array"
+        },
         "name": {
-          "$ref": "#/$defs/nonBlankString",
-          "description": "Unique within the file."
+          "description": "Unique within the file.",
+          "pattern": "\\S",
+          "title": "Name",
+          "type": "string"
         },
         "provider": {
-          "$ref": "#/$defs/nonBlankString",
-          "description": "A provider name or alias recognized by camply."
+          "description": "A provider name or alias recognized by camply.",
+          "pattern": "\\S",
+          "title": "Provider",
+          "type": "string"
         },
         "campgrounds": {
-          "$ref": "#/$defs/selectors"
+          "items": {
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "title": "Campgrounds",
+          "type": "array"
         },
         "recreation_areas": {
-          "$ref": "#/$defs/selectors"
+          "items": {
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "title": "Recreation Areas",
+          "type": "array"
         },
         "campsites": {
-          "$ref": "#/$defs/selectors"
+          "items": {
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "title": "Campsites",
+          "type": "array"
         },
         "dates": {
-          "type": "array",
-          "minItems": 1,
           "items": {
-            "$ref": "#/$defs/dateWindow"
-          }
-        },
-        "days": {
-          "$ref": "#/$defs/days"
-        },
-        "weekends": {
-          "$ref": "#/$defs/weekends"
-        },
-        "nights": {
-          "$ref": "#/$defs/nights"
-        },
-        "campsite_types": {
-          "$ref": "#/$defs/campsite_types"
-        },
-        "electric": {
-          "$ref": "#/$defs/electric"
-        },
-        "accessible": {
-          "$ref": "#/$defs/accessible"
-        },
-        "rv_length": {
-          "description": "Minimum compatible RV length. Set to null to clear an inherited length.",
-          "anyOf": [{ "$ref": "#/$defs/rv_length" }, { "type": "null" }]
-        },
-        "interval": {
-          "$ref": "#/$defs/interval"
-        },
-        "notifications": {
-          "$ref": "#/$defs/notifications"
+            "$ref": "#/$defs/DateWindow"
+          },
+          "minItems": 1,
+          "title": "Dates",
+          "type": "array"
         },
         "state_file": {
-          "$ref": "#/$defs/nonBlankString"
+          "pattern": "\\S",
+          "title": "State File",
+          "type": "string"
         }
-      }
-    },
-    "days": {
-      "description": "English weekday names or abbreviations.",
-      "type": "array",
-      "items": {
-        "type": "string",
-        "pattern": "^\\s*([Mm][Oo][Nn]([Dd][Aa][Yy])?|[Tt][Uu][Ee]([Ss]([Dd][Aa][Yy])?)?|[Ww][Ee][Dd]([Nn][Ee][Ss][Dd][Aa][Yy])?|[Tt][Hh][Uu]([Rr]([Ss]([Dd][Aa][Yy])?)?)?|[Ff][Rr][Ii]([Dd][Aa][Yy])?|[Ss][Aa][Tt]([Uu][Rr][Dd][Aa][Yy])?|[Ss][Uu][Nn]([Dd][Aa][Yy])?)\\s*$"
-      }
-    },
-    "weekends": {
-      "type": "boolean"
-    },
-    "nights": {
-      "type": "integer",
-      "minimum": 1
-    },
-    "campsite_types": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "pattern": "^\\s*([Tt][Ee][Nn][Tt]|[Rr][Vv]|[Cc][Aa][Bb][Ii][Nn]|[Oo][Tt][Hh][Ee][Rr])\\s*$",
-        "examples": ["TENT", "RV", "CABIN", "OTHER"]
-      }
-    },
-    "electric": {
-      "type": "boolean"
-    },
-    "accessible": {
-      "type": "boolean"
-    },
-    "rv_length": {
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 200
-    },
-    "interval": {
-      "type": "integer",
-      "minimum": 5
-    },
-    "notifications": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "pattern": "^\\s*([Pp][Uu][Ss][Hh][Oo][Vv][Ee][Rr]|[Nn][Tt][Ff][Yy])\\s*$",
-        "examples": ["pushover", "ntfy"]
-      }
-    },
-    "searchDefaults": {
-      "description": "Shared settings inherited by searches that omit the corresponding field.",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "days": {
-          "$ref": "#/$defs/days"
-        },
-        "weekends": {
-          "$ref": "#/$defs/weekends"
-        },
-        "nights": {
-          "$ref": "#/$defs/nights"
-        },
-        "campsite_types": {
-          "$ref": "#/$defs/campsite_types"
-        },
-        "electric": {
-          "$ref": "#/$defs/electric"
-        },
-        "accessible": {
-          "$ref": "#/$defs/accessible"
-        },
-        "rv_length": {
-          "$ref": "#/$defs/rv_length"
-        },
-        "interval": {
-          "$ref": "#/$defs/interval"
-        },
-        "notifications": {
-          "$ref": "#/$defs/notifications"
-        }
-      }
+      },
+      "required": [
+        "name",
+        "provider",
+        "dates"
+      ],
+      "title": "SearchInput",
+      "type": "object"
     }
-  }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The configuration accepted by camply campsites --yaml-config.",
+  "properties": {
+    "version": {
+      "const": 2,
+      "description": "CLI YAML configuration format version.",
+      "maximum": 2,
+      "minimum": 2,
+      "title": "Version",
+      "type": "integer"
+    },
+    "defaults": {
+      "$ref": "#/$defs/SearchDefaults"
+    },
+    "searches": {
+      "items": {
+        "$ref": "#/$defs/SearchInput"
+      },
+      "minItems": 1,
+      "title": "Searches",
+      "type": "array"
+    }
+  },
+  "required": [
+    "version",
+    "searches"
+  ],
+  "title": "Camply CLI YAML configuration",
+  "type": "object"
 }

@@ -51,9 +51,15 @@ repos:
         language: system
         pass_filenames: false
         files: ^(src/camply/.*\.py|pyproject\.toml)$
+      - id: cli-yaml-schema
+        name: regenerate CLI YAML schema
+        entry: uv run --locked python -m camply.cli.yaml_config
+        language: system
+        pass_filenames: false
+        files: ^(src/camply/(cli/(yaml_config|notifications)|core/search|providers/dto)\.py|docs/cli-yaml-config\.schema\.json|uv\.lock)$
       - id: oxfmt
-        # TOML is already formatted by pretty-format-toml above.
-        exclude: \.toml$
+        # TOML and the generated schema are handled by their own hooks.
+        exclude: (\.toml$|^docs/cli-yaml-config\.schema\.json$)
         name: oxfmt
         description: Opinionated Code Formatter
         entry: pnpm run format

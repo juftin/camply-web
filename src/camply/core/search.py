@@ -15,7 +15,7 @@ from camply.providers.dto import CampgroundSearchResult, CampsiteDTO, CampsiteTy
 POLL_INTERVAL_SECONDS = 600.0
 _MAX_RV_LENGTH_FEET = 200
 
-_DAY_NAMES = (
+WEEKDAY_NAMES = (
     ("monday", "mon"),
     ("tuesday", "tue", "tues"),
     ("wednesday", "wed"),
@@ -25,7 +25,7 @@ _DAY_NAMES = (
     ("sunday", "sun"),
 )
 _WEEKDAYS = {
-    name: weekday for weekday, names in enumerate(_DAY_NAMES) for name in names
+    name: weekday for weekday, names in enumerate(WEEKDAY_NAMES) for name in names
 }
 
 

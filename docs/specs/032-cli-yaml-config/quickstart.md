@@ -26,6 +26,8 @@ The CLI and installed-wheel suites use synthetic provider and notification respo
 
 Validate the same structural examples against `docs/cli-yaml-config.schema.json` and the Pydantic input models. Run separate checks for local scalar parsing, inherited constraints, and runtime-only rules.
 
+To regenerate the editor schema from Pydantic, run `uv run --locked python -m camply.cli.yaml_config` from the repository root. The pre-commit hook runs the same command when the schema or its inputs change.
+
 ## Try file mode from a shell
 
 1. Use `uv run camply providers` and `uv run camply campgrounds --provider PROVIDER --search QUERY` with two providers to find real campground IDs.

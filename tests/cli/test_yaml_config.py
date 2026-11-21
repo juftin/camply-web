@@ -10,6 +10,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 from camply.cli.yaml_config import (
     ConfigError,
+    SearchConfig,
     SearchDefaults,
     load_config,
     prepare_searches,
@@ -22,6 +23,10 @@ SEARCH = {
     "campgrounds": ["001"],
     "dates": [{"start_date": "2030-06-01", "end_date": "2030-06-05"}],
 }
+
+
+def test_checked_in_schema_matches_model():
+    assert json.loads(SCHEMA.read_text()) == SearchConfig.model_json_schema()
 
 
 def test_documented_example_matches_defaults():
@@ -56,6 +61,7 @@ def test_config_requires_supported_integer_version(tmp_path, fields):
         ({}, True),
         ({"rv_length": None, "notifications": [], "electric": False}, True),
         ({"rv_length": "28"}, False),
+        ({"state_file": None}, False),
         ({"campgrounds": [1]}, False),
         ({"campgrounds": []}, False),
         ({"dates": []}, False),
@@ -101,6 +107,15 @@ def test_invalid_default_weekday_is_rejected_even_with_override(tmp_path):
     path.write_text(json.dumps(document))
     assert not Draft202012Validator(json.loads(SCHEMA.read_text())).is_valid(document)
     with pytest.raises(ConfigError, match=r"defaults\.days"):
+        load_config(path)
+
+
+def test_shared_rv_length_cannot_clear_a_filter(tmp_path):
+    path = tmp_path / "camply.yaml"
+    document = {"version": 2, "defaults": {"rv_length": None}, "searches": [SEARCH]}
+    path.write_text(json.dumps(document))
+    assert not Draft202012Validator(json.loads(SCHEMA.read_text())).is_valid(document)
+    with pytest.raises(ConfigError, match=r"defaults\.rv_length"):
         load_config(path)
 
 
