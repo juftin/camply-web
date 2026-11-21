@@ -47,24 +47,38 @@ camply checks availability right away, prints matching stays with booking links,
 
 ## Run multiple searches from a YAML file
 
-Save one or more named searches in `camply.yaml`. Each search specifies its provider, campground or recreation area IDs, and one or more check-in and checkout pairs under `dates`. Quote IDs to preserve leading zeros. Use dates that fit the providers' booking windows.
+Save this minimal search in `camply.yaml`. Use a campground or recreation area ID from your provider, and set check-in and checkout dates within its booking window. Quote IDs to preserve leading zeros.
 
-[Download `camply.yaml`](https://camply.rocks/docs/examples/camply.yaml) or save it with cURL.
-
-```bash
-curl --fail --location --output camply.yaml https://camply.rocks/docs/examples/camply.yaml
+```yaml
+searches:
+  - name: yosemite
+    provider: RecreationDotGov
+    campgrounds: ["232450"]
+    dates:
+      - start_date: "2027-05-07"
+        end_date: "2027-05-10"
 ```
 
-<<< @/public/examples/camply.yaml
-
-The example prints results to the terminal. To enable ntfy alerts, add `ntfy` to `defaults.notifications` and set `NTFY_TOPIC` before running the command.
-
-Run all searches continuously or check them once.
+Run continuously or check once.
 
 ```bash
 camply campsites --yaml-config camply.yaml
 camply campsites --yaml-config camply.yaml --search-once --json
 ```
+
+To see every option, [download the full `camply.yaml` example](https://camply.rocks/docs/examples/camply.yaml) or save it with cURL.
+
+```bash
+curl --fail --location --output camply.yaml https://camply.rocks/docs/examples/camply.yaml
+```
+
+::: details Full configuration example
+
+<<< @/public/examples/camply.yaml
+
+:::
+
+Both examples print results to the terminal. To enable ntfy alerts, add `ntfy` to `defaults.notifications` and set `NTFY_TOPIC` before running the command.
 
 Searches inherit settings they omit from `defaults`. A search's list replaces the shared list, so `notifications: []` keeps that search console-only. Use `rv_length: null` to clear an inherited minimum RV length. Names, providers, targets, dates, and state files are set per search. Relative state paths are resolved from the directory containing the YAML file. Channel credentials and destinations come from the environment.
 
@@ -72,7 +86,7 @@ Set `days` and `weekends` in `defaults`, beside `dates` in a search, or inside a
 
 With `--search-once --json`, the CLI outputs one ordered array with each search's `name`, `provider`, `status`, and `stays`. A search with no matches returns `ok` and an empty list. A failed search returns `error`, and the command exits with status 1 after the batch finishes. Local validation errors exit with status 2. Diagnostics go to stderr.
 
-Editors that use the YAML Language Server read the schema URL from the example's first line. For other editors, associate the YAML file with `docs/cli-yaml-config.schema.json` from the repository. See the [configuration field reference](specs/032-cli-yaml-config/spec.md#configuration-fields) for settings and defaults.
+Editors that use the YAML Language Server read the schema URL from the full example's first line. For other editors, associate the YAML file with `docs/cli-yaml-config.schema.json` from the repository. See the [configuration field reference](specs/032-cli-yaml-config/spec.md#configuration-fields) for settings and defaults.
 
 To migrate a legacy flat file, create one entry under `searches` and give it a `name` and an explicit `provider`. Convert scalar target and channel values to lists, use `recreation_areas` for recreation-area IDs, and move each start and end date pair into `dates`. Use `interval` for the polling interval and the CLI's `--search-once` when you want a single pass. Replace legacy offline history settings with a per-search `state_file`.
 
