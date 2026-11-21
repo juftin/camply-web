@@ -15,7 +15,7 @@ permissions:
 jobs:
   backend:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     concurrency:
       group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
@@ -82,7 +82,7 @@ jobs:
 
   frontend:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     concurrency:
       group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
@@ -118,7 +118,7 @@ jobs:
 
   verify:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     concurrency:
       group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
@@ -165,7 +165,7 @@ jobs:
   build:
     name: ${{ matrix.name }}
     needs: [backend, frontend, verify]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     concurrency:
       group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
@@ -190,7 +190,7 @@ jobs:
   smoke:
     name: ${{ matrix.name }}
     needs: [build]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     concurrency:
       group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
