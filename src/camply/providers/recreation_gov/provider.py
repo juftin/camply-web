@@ -4,7 +4,7 @@ import zipfile
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, ClassVar, cast
+from typing import Any, ClassVar
 from urllib.parse import urljoin
 
 import ijson
@@ -594,21 +594,32 @@ class RecreationGovProvider(BaseProvider):
         facility_id = int(park_id)
 
         # Parallel fetch of metadata and availabilities
-        campsites_task = self.paginate_recdotgov_campsites(facility_id=facility_id)
+        campsites_task = asyncio.create_task(
+            self.paginate_recdotgov_campsites(facility_id=facility_id)
+        )
         availability_tasks = [
-            self.make_recdotgov_availability_request(campground_id=facility_id, month=m)
+            asyncio.create_task(
+                self.make_recdotgov_availability_request(
+                    campground_id=facility_id, month=m
+                )
+            )
             for m in months
         ]
 
-        results = await asyncio.gather(campsites_task, *availability_tasks)
-        campsites = cast(list[RecDotGovCampsite], results[0])
-        availability_responses = cast(
-            list[CampsiteAvailabilityResponse], list(results[1:])
-        )
+        try:
+            await asyncio.gather(campsites_task, *availability_tasks)
+        except BaseException:
+            for task in (campsites_task, *availability_tasks):
+                if not task.done() and not task.cancelling():
+                    task.cancel()
+            await asyncio.gather(
+                campsites_task, *availability_tasks, return_exceptions=True
+            )
+            raise
 
-        metadata_map = {c.campsite_id: c for c in campsites}
+        metadata_map = {c.campsite_id: c for c in campsites_task.result()}
         return self._process_availability_responses(
-            availability_responses=availability_responses,
+            availability_responses=[task.result() for task in availability_tasks],
             metadata_map=metadata_map,
             start_date=start_date,
             end_date=end_date,

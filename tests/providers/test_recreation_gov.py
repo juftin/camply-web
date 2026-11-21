@@ -2,6 +2,7 @@
 Tests for Recreation.gov Provider
 """
 
+import asyncio
 import datetime
 from unittest.mock import AsyncMock, patch
 
@@ -109,6 +110,67 @@ async def test_find_availabilities():
         assert isinstance(avail.available_dates, list)
         assert len(avail.available_dates) > 0
         assert all(start_date <= d <= end_date for d in avail.available_dates)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("cancel_search", [False, True])
+async def test_availability_drains_requests_when_search_stops(
+    monkeypatch, cancel_search
+):
+    """A failed or cancelled check waits for its outstanding requests to stop."""
+    metadata_started = asyncio.Event()
+    metadata_finished = asyncio.Event()
+    monthly_started = asyncio.Event()
+    monthly_finished = asyncio.Event()
+    error = ValueError("synthetic monthly request failure")
+    metadata_task = None
+
+    async def metadata(*, facility_id):
+        nonlocal metadata_task
+        metadata_task = asyncio.current_task()
+        metadata_started.set()
+        try:
+            await asyncio.Future()
+        finally:
+            await asyncio.sleep(0)
+            metadata_finished.set()
+
+    async def monthly(*, campground_id, month):
+        await metadata_started.wait()
+        monthly_started.set()
+        if not cancel_search:
+            raise error
+        try:
+            await asyncio.Future()
+        finally:
+            await asyncio.sleep(0)
+            monthly_finished.set()
+
+    provider = RecreationGovProvider()
+    monkeypatch.setattr(provider, "paginate_recdotgov_campsites", metadata)
+    monkeypatch.setattr(provider, "make_recdotgov_availability_request", monthly)
+    search = asyncio.create_task(
+        provider.find_availabilities(
+            "234708", datetime.date(2026, 9, 1), datetime.date(2026, 9, 2)
+        )
+    )
+    try:
+        if cancel_search:
+            await asyncio.wait_for(monthly_started.wait(), timeout=2)
+            search.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await search
+            assert monthly_finished.is_set()
+        else:
+            with pytest.raises(ValueError) as exc:
+                await asyncio.wait_for(search, timeout=2)
+            assert exc.value is error
+        assert metadata_finished.is_set()
+    finally:
+        if metadata_task is not None and not metadata_task.done():
+            metadata_task.cancel()
+            await asyncio.gather(metadata_task, return_exceptions=True)
+        await provider.async_client.aclose()
 
 
 @pytest.mark.anyio

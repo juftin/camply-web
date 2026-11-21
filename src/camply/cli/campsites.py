@@ -23,33 +23,11 @@ from camply.cli.output import (
     render_stays,
     render_stays_json,
 )
-from camply.cli.providers import selected_provider
+from camply.cli.providers import selected_provider, validate_provider_filters
 
 if TYPE_CHECKING:
     from camply.core.search import AvailabilityStay, SearchRequest
     from camply.providers.base import BaseProvider
-
-
-def _validate_provider_filters(
-    provider_name: str,
-    provider_class: type["BaseProvider"],
-    request: "SearchRequest",
-) -> None:
-    """Reject site-attribute filters that are unsupported by the selected provider."""
-    caps = provider_class.filter_capabilities
-    unsupported: list[str] = []
-    if request.campsite_types and not caps.preferred_types:
-        unsupported.append("campsite type")
-    if request.require_electric and not caps.require_electric:
-        unsupported.append("electric hookup")
-    if request.require_accessible and not caps.require_accessible:
-        unsupported.append("ADA accessibility")
-    if request.min_rv_length is not None and not caps.min_rv_length:
-        unsupported.append("minimum RV / trailer length")
-    if unsupported:
-        raise click.UsageError(
-            f"{provider_name} does not support {', '.join(unsupported)} filtering."
-        )
 
 
 def _announce_watch(
@@ -137,6 +115,11 @@ async def _execute_watch(
 
 
 @click.command(name="campsites")
+@click.option(
+    "--yaml-config",
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Run named searches from a YAML configuration file.",
+)
 @options.provider()
 @options.debug()
 @options.rec_area()
@@ -146,15 +129,13 @@ async def _execute_watch(
     "--start-date",
     type=ISODate(),
     multiple=True,
-    required=True,
-    help="Inclusive arrival date; pair each occurrence with --end-date.",
+    help="Inclusive arrival date. Pair with --end-date in flag mode.",
 )
 @click.option(
     "--end-date",
     type=ISODate(),
     multiple=True,
-    required=True,
-    help="Exclusive checkout date; pair each occurrence with --start-date.",
+    help="Exclusive checkout date. Pair with --start-date in flag mode.",
 )
 @click.option(
     "--day",
@@ -200,12 +181,31 @@ def campsites_cmd(
     search_once: bool = False,
     interval: int = 10,
     json_output: bool = False,
+    yaml_config: Path | None = None,
 ) -> None:
     """Watch campground availability immediately and until cancelled (Ctrl-C)."""
     from camply.core.search import POLL_INTERVAL_SECONDS, normalize_request
 
+    if yaml_config is None:
+        for name, values in (("--start-date", start_date), ("--end-date", end_date)):
+            if not values:
+                raise click.MissingParameter(
+                    ctx=ctx, param_hint=name, param_type="option"
+                )
     if json_output and not search_once:
         raise click.UsageError("--json requires --search-once on campsites.")
+    if yaml_config is not None:
+        from camply.cli.campsite_batch import run_batch
+
+        run_batch(
+            ctx,
+            yaml_config,
+            debug=resolve_debug(ctx, debug),
+            once=search_once,
+            json_output=json_output,
+        )
+        return
+
     name, provider_class = selected_provider(ctx, provider)
     areas, campgrounds = (
         normalize_ids(rec_area, "--rec-area"),
@@ -230,7 +230,7 @@ def campsites_cmd(
         notification_config = resolve_notification_config(notifications)
     except ValueError as exc:
         raise click.UsageError(str(exc)) from exc
-    _validate_provider_filters(name, provider_class, request)
+    validate_provider_filters(name, provider_class, request)
     _announce_watch(
         name,
         resolve_debug(ctx, debug),

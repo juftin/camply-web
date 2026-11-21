@@ -2,6 +2,10 @@
 
 This checklist tracks the granular progress of `camply`. Agents **MUST** update this file by marking tasks as completed (`[x]`) before finalizing any PR.
 
+## CLI YAML configuration (032)
+
+- [x] Specify, plan, and implement `camply campsites --yaml-config` with strict validation, shared defaults, concurrent provider searches, per-search alert history, and single-pass JSON results. Verify the CLI on Python 3.11 and 3.14 and exercise the installed base wheel against synthetic providers and notification delivery. [Spec](specs/032-cli-yaml-config/spec.md) | [Tasks](specs/032-cli-yaml-config/tasks.md) | [CLI guide](cli.md#run-multiple-searches-from-a-yaml-file).
+
 ## CLI full-stack parity (031)
 
 - [x] Specify, clarify, plan, and task out stateless CLI full-stack parity in [spec 031](specs/031-cli-fullstack-parity/spec.md), [plan](specs/031-cli-fullstack-parity/plan.md), and [tasks](specs/031-cli-fullstack-parity/tasks.md); add deferred database saved-scan CRUD and multi-provider YAML configuration to [docs/PLAN.md](PLAN.md).

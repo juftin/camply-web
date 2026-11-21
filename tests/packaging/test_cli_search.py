@@ -126,7 +126,8 @@ def synthetic_environment(installation: Installation, endpoint: str) -> dict[str
         "from pathlib import Path\n"
         "import camply.core.search as search\n"
         "import camply.providers.usedirect.provider as usedirect\n"
-        "from camply.providers.usedirect.variations import ReserveCaliforniaProvider\n"
+        "from camply.providers.usedirect.variations import FloridaStateParksProvider, ReserveCaliforniaProvider\n"
+        "FloridaStateParksProvider.api_url = os.environ['CAMPLY_TEST_ENDPOINT']\n"
         "ReserveCaliforniaProvider.api_url = os.environ['CAMPLY_TEST_ENDPOINT']\n"
         "usedirect._REQUEST_INTERVAL = 0\n"
         "search.POLL_INTERVAL_SECONDS = 0.02\n"
@@ -390,3 +391,96 @@ def test_installed_help_and_provider_listing_create_no_state(
         )
         assert result.returncode == 0, result.stderr
     assert not list(tmp_path.iterdir())
+
+
+def test_installed_yaml_batch_and_alert_history(
+    install: Callable[[str], Installation],
+) -> None:
+    """Run multi-provider configuration through the base wheel and real HTTP seams."""
+    installation = install("")
+    with upstream() as (endpoint, transcript):
+        environment = synthetic_environment(installation, endpoint)
+        environment.update(NTFY_TOPIC="synthetic", NTFY_SERVER_URL=f"{endpoint}/ntfy")
+        directory = installation.directory / "config"
+        directory.mkdir(exist_ok=True)
+        path = directory / "trips.yaml"
+        path.write_text(
+            """version: 2
+defaults: {nights: 2, notifications: [ntfy]}
+searches:
+  - name: california
+    provider: ReserveCalifornia
+    campgrounds: ['60']
+    dates: [{start_date: 2030-01-01, end_date: 2030-01-03}]
+    state_file: california.json
+  - name: florida
+    provider: FloridaStateParks
+    campgrounds: ['60']
+    dates: [{start_date: 2030-01-01, end_date: 2030-01-03}]
+    state_file: florida.json
+  - name: california-alias
+    provider: ReserveCaliforniaProvider
+    campgrounds: ['60']
+    dates: [{start_date: 2030-01-01, end_date: 2030-01-03}]
+    notifications: []
+"""
+        )
+
+        def run(*options: str) -> subprocess.CompletedProcess[str]:
+            return subprocess.run(
+                [
+                    executable(installation),
+                    "campsites",
+                    "--yaml-config",
+                    str(path),
+                    *options,
+                ],
+                cwd=installation.directory,
+                env=environment,
+                text=True,
+                capture_output=True,
+                timeout=20,
+                check=False,
+            )
+
+        terminal = run("--search-once")
+        assert terminal.returncode == 0, terminal.stderr
+        assert "'california' (ReserveCalifornia)" in terminal.stdout
+        assert "'florida' (FloridaStateParks)" in terminal.stdout
+        assert (directory / "california.json").is_file()
+        assert (directory / "florida.json").is_file()
+        alerts = [payload for route, payload in transcript if route == "/ntfy/"]
+        assert len(alerts) == 2
+        assert {"california", "florida"} == {
+            item["message"].split("'")[1] for item in alerts
+        }
+
+        path.write_text(
+            path.read_text()
+            + """  - name: bad-target
+    provider: ReserveCalifornia
+    campgrounds: ['900']
+    dates: [{start_date: 2030-01-01, end_date: 2030-01-03}]
+    notifications: []
+"""
+        )
+        transcript.clear()
+        result = run("--search-once", "--json")
+        assert result.returncode == 1, result.stderr
+        outcomes = json.loads(result.stdout)
+        assert [(item["name"], item["status"]) for item in outcomes] == [
+            ("california", "ok"),
+            ("florida", "ok"),
+            ("california-alias", "ok"),
+            ("bad-target", "error"),
+        ]
+        assert [item["stays"][0]["campground_id"] for item in outcomes[:3]] == [
+            "60"
+        ] * 3
+        assert (
+            outcomes[0]["stays"][0]["provider_id"]
+            != outcomes[1]["stays"][0]["provider_id"]
+        )
+        assert not outcomes[3]["stays"]
+        assert "bad-target" in result.stderr
+        assert not [payload for route, payload in transcript if route == "/ntfy/"]

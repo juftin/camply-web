@@ -3,8 +3,10 @@
 import json
 import os
 import re
+import stat
 import tempfile
 from collections.abc import Sequence
+from contextlib import suppress
 from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
@@ -70,7 +72,14 @@ def _resolve_ntfy_settings() -> tuple[str, str, str | None]:
             "ntfy notifications require a valid NTFY_TOPIC environment variable (1-64 letters, digits, '_' or '-')."
         )
     raw_server = os.environ.get("NTFY_SERVER_URL", "").strip()
-    server_url = validate_ntfy_url(raw_server) if raw_server else _DEFAULT_NTFY_SERVER
+    try:
+        server_url = (
+            validate_ntfy_url(raw_server) if raw_server else _DEFAULT_NTFY_SERVER
+        )
+    except ValueError:
+        raise ValueError(
+            "NTFY_SERVER_URL must be a valid HTTP(S) server URL without credentials, query or fragment."
+        ) from None
     raw_token = os.environ.get("NTFY_ACCESS_TOKEN", "")
     if raw_token and any(
         not char.isprintable() or not char.isascii() for char in raw_token
@@ -91,7 +100,7 @@ def resolve_notification_config(
         key = raw.strip().lower()
         if key not in ("pushover", "ntfy"):
             raise ValueError(
-                f"Unsupported notification channel {raw!r}; choose 'pushover' or 'ntfy'."
+                "Unsupported notification channel; choose 'pushover' or 'ntfy'."
             )
         channel = cast(ChannelName, key)
         if channel not in normalized:
@@ -130,6 +139,15 @@ def stay_key(stay: "AvailabilityStay") -> str:
     )
 
 
+class _NonRegularStateFileError(OSError):
+    """A configured state path points to a special file or directory."""
+
+
+def _require_regular_state_file(mode: int) -> None:
+    if not stat.S_ISREG(mode):
+        raise _NonRegularStateFileError("State path must point to a regular file.")
+
+
 class StayDeduplicationState:
     """Track seen stay keys across poll cycles and optional JSON state-file persistence."""
 
@@ -138,30 +156,49 @@ class StayDeduplicationState:
         seen: set[str] | None = None,
         *,
         state_file: Path | None = None,
+        label: str | None = None,
     ) -> None:
         self.seen: set[str] = set(seen) if seen else set()
         self.state_file = state_file
+        self.label = label
 
     @classmethod
-    def load(cls, state_file: Path | None = None) -> "StayDeduplicationState":
+    def load(
+        cls, state_file: Path | None = None, *, label: str | None = None
+    ) -> "StayDeduplicationState":
         """Load initial seen stays from ``state_file`` if present, recovering on corruption."""
-        if state_file is None or not state_file.exists():
-            return cls(state_file=state_file)
+        if state_file is None:
+            return cls(label=label)
         try:
-            payload = json.loads(state_file.read_text(encoding="utf-8"))
+            _require_regular_state_file(state_file.stat().st_mode)
+            # A path can change after stat. Open without waiting for a FIFO writer
+            # and check the actual descriptor before reading any data.
+            flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0)
+            descriptor = os.open(state_file, flags)
+            try:
+                _require_regular_state_file(os.fstat(descriptor).st_mode)
+                with os.fdopen(descriptor, encoding="utf-8", closefd=False) as stream:
+                    payload = json.load(stream)
+            finally:
+                os.close(descriptor)
             entries = payload.get("seen_stays") if isinstance(payload, dict) else None
             if not isinstance(entries, list) or not all(
                 isinstance(item, str) for item in entries
             ):
                 raise ValueError("Invalid state file schema")
-            return cls(seen=set(entries), state_file=state_file)
+            return cls(seen=set(entries), state_file=state_file, label=label)
+        except FileNotFoundError:
+            return cls(state_file=state_file, label=label)
         except Exception as exc:
             logger.warning(
-                "Warning: Could not read state file %s (%s); starting with empty state.",
-                state_file,
+                "%sWarning: Could not read state file%s (%s); starting with empty state.",
+                f"{label}: " if label else "",
+                "" if label else f" {state_file}",
                 type(exc).__name__,
             )
-            return cls(state_file=state_file)
+            if isinstance(exc, _NonRegularStateFileError):
+                state_file = None
+            return cls(state_file=state_file, label=label)
 
     def record_cycle(
         self, stays: Sequence["AvailabilityStay"]
@@ -177,6 +214,7 @@ class StayDeduplicationState:
         """Atomically persist the current seen stay set to ``self.state_file``."""
         if self.state_file is None:
             return
+        temp_path = None
         try:
             self.state_file.parent.mkdir(parents=True, exist_ok=True)
             content = json.dumps(
@@ -192,15 +230,25 @@ class StayDeduplicationState:
                 prefix=".camply-state-",
                 suffix=".tmp",
             ) as handle:
-                handle.write(content)
                 temp_path = Path(handle.name)
+                handle.write(content)
+            with suppress(FileNotFoundError):
+                _require_regular_state_file(self.state_file.stat().st_mode)
             temp_path.replace(self.state_file)
+            temp_path = None
         except OSError as exc:
             logger.warning(
-                "Warning: Could not write state file %s (%s).",
-                self.state_file,
+                "%sWarning: Could not write state file%s (%s).",
+                f"{self.label}: " if self.label else "",
+                "" if self.label else f" {self.state_file}",
                 type(exc).__name__,
             )
+            if isinstance(exc, _NonRegularStateFileError):
+                self.state_file = None
+        finally:
+            if temp_path is not None:
+                with suppress(OSError):
+                    temp_path.unlink(missing_ok=True)
 
 
 async def _deliver_payload(
@@ -208,6 +256,7 @@ async def _deliver_payload(
     payload: NotificationDTO,
     *,
     strict: bool,
+    label: str | None = None,
 ) -> None:
     """Deliver ``payload`` to each configured channel, redacting secrets on errors."""
     for channel in config.channels:
@@ -237,7 +286,8 @@ async def _deliver_payload(
                     f"Could not send {channel} notification ({type(exc).__name__}); check credentials and server settings."
                 ) from None
             logger.warning(
-                "Warning: %s notification delivery failed (%s); continuing watch.",
+                "%sWarning: %s notification delivery failed (%s); continuing watch.",
+                f"{label}: " if label else "",
                 channel,
                 type(exc).__name__,
             )
@@ -246,6 +296,8 @@ async def _deliver_payload(
 async def send_stay_notifications(
     config: CLINotificationConfig,
     stays: Sequence["AvailabilityStay"],
+    *,
+    label: str | None = None,
 ) -> None:
     """Send direct provider booking alerts for each newly observed stay."""
     if not config.channels or not stays:
@@ -261,7 +313,8 @@ async def send_stay_notifications(
         payload = NotificationDTO(
             title=f"⛺ {stay.campground.campground_name} ({stay.arrival.isoformat()})",
             message=(
-                f"{stay.campsite_name} (#{stay.campsite_id}) available at {park} "
+                (f"{label}: " if label else "")
+                + f"{stay.campsite_name} (#{stay.campsite_id}) available at {park} "
                 f"from {stay.arrival.isoformat()} to {stay.checkout.isoformat()} "
                 f"({nights} night{suffix})."
             ),
@@ -272,7 +325,7 @@ async def send_stay_notifications(
             start_date=stay.arrival,
             end_date=stay.checkout,
         )
-        await _deliver_payload(config, payload, strict=False)
+        await _deliver_payload(config, payload, strict=False, label=label)
 
 
 @click.command(name="test-notifications")

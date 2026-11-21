@@ -45,6 +45,60 @@ camply checks availability right away, prints matching stays with booking links,
 - **Stay length:** `--nights` defaults to `1` and matches exact-length consecutive stays at a single site (for example, a 4-night opening yields two 3-night options when `--nights 3`).
 - **Targets:** Multiple `--rec-area` flags combine their campgrounds. If you pass `--campground` alongside `--rec-area`, explicit campground IDs win.
 
+## Run multiple searches from a YAML file
+
+Save this minimal configuration in `camply.yaml` to watch May at Lower Pines in Yosemite and February at Furnace Creek in Death Valley. Choose IDs and dates for your trip, and quote IDs to preserve leading zeros. [Lower Pines](https://www.recreation.gov/camping/campgrounds/232450), [Furnace Creek](https://www.recreation.gov/camping/campgrounds/232496).
+
+```yaml
+version: 2
+searches:
+  - name: yosemite
+    provider: RecreationDotGov
+    campgrounds: ["232450"]
+    dates:
+      - start_date: "2027-05-01"
+        end_date: "2027-06-01"
+  - name: death-valley
+    provider: RecreationDotGov
+    campgrounds: ["232496"]
+    dates:
+      - start_date: "2027-02-01"
+        end_date: "2027-03-01"
+```
+
+The required top-level `version: 2` identifies the YAML format. Camply reports unsupported versions before starting any searches.
+
+Run continuously or check once.
+
+```bash
+camply campsites --yaml-config camply.yaml
+camply campsites --yaml-config camply.yaml --search-once --json
+```
+
+To see every option, [download the full `camply.yaml` example](https://camply.rocks/docs/examples/camply.yaml) or save it with cURL.
+
+```bash
+curl --fail --location --output camply.yaml https://camply.rocks/docs/examples/camply.yaml
+```
+
+::: details Full configuration example
+
+<<< @/public/examples/camply.yaml
+
+:::
+
+Both examples print results to the terminal. To enable ntfy alerts, add `ntfy` to `defaults.notifications` and set `NTFY_TOPIC` before running the command.
+
+Searches inherit settings they omit from `defaults`. A search's list replaces the shared list, so `notifications: []` keeps that search console-only. Use `rv_length: null` to clear an inherited minimum RV length. Names, providers, targets, dates, and state files are set per search. Relative state paths are resolved from the directory containing the YAML file. Channel credentials and destinations come from the environment.
+
+Set `days` and `weekends` in `defaults`, beside `dates` in a search, or inside a date range. Each setting inherits independently. A range overrides its search, and a search overrides `defaults`. `days: []` clears inherited weekdays, and `weekends: false` turns off the inherited weekend filter. With `weekends: true`, Friday and Saturday are included along with any `days` you list. If date ranges overlap, a night qualifies when any range covering it allows it.
+
+With `--search-once --json`, the CLI outputs one ordered array with each search's `name`, `provider`, `status`, and `stays`. A search with no matches returns `ok` and an empty list. A failed search returns `error`, and the command exits with status 1 after the batch finishes. Local validation errors exit with status 2. Diagnostics go to stderr.
+
+Editors that use the YAML Language Server read the schema URL from the full example's first line. For other editors, associate the YAML file with `docs/cli-yaml-config.schema.json` from the repository. See the [configuration field reference](specs/032-cli-yaml-config/spec.md#configuration-fields) for settings and defaults.
+
+To migrate a legacy flat file, set `version: 2` and create one entry under `searches` with a `name` and an explicit `provider`. Convert scalar target and channel values to lists, use `recreation_areas` for recreation-area IDs, and move each start and end date pair into `dates`. Use `interval` for the polling interval and the CLI's `--search-once` when you want a single pass. Replace legacy offline history settings with a per-search `state_file`.
+
 ## Filter by site type, equipment, hookups, and specific sites
 
 Narrow availability matches to campsites that fit your setup:
