@@ -1,13 +1,19 @@
 """Validate the YAML loader and the editor contract with shared fixtures."""
 
 import json
+from datetime import date
 from pathlib import Path
 
 import pytest
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
-from camply.cli.yaml_config import ConfigError, SearchDefaults, load_config
+from camply.cli.yaml_config import (
+    ConfigError,
+    SearchDefaults,
+    load_config,
+    prepare_searches,
+)
 
 SCHEMA = Path("docs/cli-yaml-config.schema.json")
 SEARCH = {
@@ -38,6 +44,10 @@ def test_documented_example_matches_defaults():
         ({"campgrounds": [1]}, False),
         ({"campgrounds": []}, False),
         ({"dates": []}, False),
+        ({"dates": [SEARCH["dates"][0] | {"days": [], "weekends": False}]}, True),
+        ({"dates": [SEARCH["dates"][0] | {"days": ["Funday"]}]}, False),
+        ({"dates": [SEARCH["dates"][0] | {"weekends": "true"}]}, False),
+        ({"dates": [SEARCH["dates"][0] | {"nights": 2}]}, False),
         ({"date_windows": SEARCH["dates"]}, False),
         ({"electric": "true"}, False),
         ({"interval": 4}, False),
@@ -76,6 +86,51 @@ def test_invalid_default_weekday_is_rejected_even_with_override(tmp_path):
     assert not Draft202012Validator(json.loads(SCHEMA.read_text())).is_valid(document)
     with pytest.raises(ConfigError, match=r"defaults\.days"):
         load_config(path)
+
+
+def test_weekday_filters_inherit_independently_across_three_levels(tmp_path):
+    path = tmp_path / "camply.yaml"
+    path.write_text(
+        """defaults: {days: [Sun], weekends: true}
+searches:
+  - name: shared
+    provider: RecreationDotGov
+    campgrounds: ['001']
+    dates:
+      - {start_date: 2030-06-07, end_date: 2030-06-11}
+  - name: mixed
+    provider: RecreationDotGov
+    campgrounds: ['001']
+    days: [Fri]
+    dates:
+      - {start_date: 2030-06-07, end_date: 2030-06-11}
+      - {start_date: 2030-06-14, end_date: 2030-06-18, weekends: false}
+      - {start_date: 2030-06-21, end_date: 2030-06-25, days: [Sun]}
+      - {start_date: 2030-06-28, end_date: 2030-07-02, days: [], weekends: false}
+"""
+    )
+    shared, mixed = prepare_searches(path)
+    assert shared.request.eligible_dates == {date(2030, 6, day) for day in (7, 8, 9)}
+    assert mixed.request.eligible_dates == {
+        date(2030, 6, day) for day in (7, 8, 14, 21, 22, 23, 28, 29, 30)
+    } | {date(2030, 7, 1)}
+
+
+def test_overlapping_date_ranges_union_their_eligible_nights(tmp_path):
+    path = tmp_path / "camply.yaml"
+    path.write_text(
+        """searches:
+  - name: overlapping
+    provider: RecreationDotGov
+    campgrounds: ['001']
+    nights: 2
+    dates:
+      - {start_date: 2030-06-07, end_date: 2030-06-10, days: [Fri]}
+      - {start_date: 2030-06-07, end_date: 2030-06-09, days: [Sat]}
+"""
+    )
+    (search,) = prepare_searches(path)
+    assert search.request.eligible_dates == {date(2030, 6, 7), date(2030, 6, 8)}
 
 
 @pytest.mark.parametrize(

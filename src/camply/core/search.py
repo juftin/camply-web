@@ -74,6 +74,7 @@ def normalize_request(
     end_dates: Sequence[date],
     days: Sequence[str] = (),
     weekends: bool = False,
+    window_weekdays: Sequence[set[int]] | None = None,
     nights: int = 1,
     campsites: Sequence[str] = (),
     campsite_types: Sequence[str] = (),
@@ -83,6 +84,9 @@ def normalize_request(
     today: date | None = None,
 ) -> SearchRequest:
     """Validate paired windows and union eligible nights without bridging gaps.
+
+    When provided, window_weekdays supplies the resolved weekday set for each
+    pair. An empty set allows every night in its window.
 
     Raises
     ------
@@ -103,13 +107,11 @@ def normalize_request(
         or not (1 <= min_rv_length <= _MAX_RV_LENGTH_FEET)
     ):
         raise ValueError("--rv-length must be an integer between 1 and 200 feet.")
-    allowed_days = allowed_weekdays(days, weekends=weekends)
+    if window_weekdays is None:
+        window_weekdays = [allowed_weekdays(days, weekends=weekends)] * len(start_dates)
     current_day = today if today is not None else utc_today()
-    requested_dates, warnings = _requested_dates(start_dates, end_dates, current_day)
-    eligible = frozenset(
-        night
-        for night in requested_dates
-        if not allowed_days or night.weekday() in allowed_days
+    requested_dates, eligible, warnings = _requested_dates(
+        start_dates, end_dates, window_weekdays, current_day
     )
     if not matching_available_dates(
         [night.isoformat() for night in eligible], min_stay_length=nights
@@ -119,7 +121,7 @@ def normalize_request(
         )
     return SearchRequest(
         windows=_merged_windows(requested_dates),
-        eligible_dates=eligible,
+        eligible_dates=frozenset(eligible),
         nights=nights,
         campsites=normalized_campsites,
         campsite_types=normalized_types,
@@ -193,12 +195,18 @@ def allowed_weekdays(days: Sequence[str], *, weekends: bool) -> set[int]:
 
 
 def _requested_dates(
-    start_dates: Sequence[date], end_dates: Sequence[date], current_day: date
-) -> tuple[set[date], list[str]]:
-    """Validate original windows, clamp starts and preserve every covered night."""
+    start_dates: Sequence[date],
+    end_dates: Sequence[date],
+    window_weekdays: Sequence[set[int]],
+    current_day: date,
+) -> tuple[set[date], set[date], list[str]]:
+    """Collect covered nights and the union of nights allowed by each window."""
     requested_dates: set[date] = set()
+    eligible_dates: set[date] = set()
     warnings: list[str] = []
-    for start, end in zip(start_dates, end_dates, strict=True):
+    for start, end, weekdays in zip(
+        start_dates, end_dates, window_weekdays, strict=True
+    ):
         if end <= start:
             raise ValueError(
                 "Each --end-date must be after its paired --start-date (checkout is exclusive)."
@@ -212,10 +220,12 @@ def _requested_dates(
             if warning not in warnings:
                 warnings.append(warning)
             start = current_day
-        requested_dates.update(
-            start + timedelta(days=offset) for offset in range((end - start).days)
-        )
-    return requested_dates, warnings
+        for offset in range((end - start).days):
+            night = start + timedelta(days=offset)
+            requested_dates.add(night)
+            if not weekdays or night.weekday() in weekdays:
+                eligible_dates.add(night)
+    return requested_dates, eligible_dates, warnings
 
 
 def _merged_windows(requested_dates: set[date]) -> tuple[DateWindow, ...]:

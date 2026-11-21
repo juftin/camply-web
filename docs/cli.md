@@ -68,7 +68,7 @@ camply campsites --yaml-config camply.yaml --search-once --json
 
 Searches inherit settings they omit from `defaults`. A search's list replaces the shared list, so `notifications: []` keeps that search console-only. Use `rv_length: null` to clear an inherited minimum RV length. Names, providers, targets, dates, and state files are set per search. Relative state paths are resolved from the directory containing the YAML file. Channel credentials and destinations come from the environment.
 
-Set `days` and `weekends` in `defaults` for all searches or beside `dates` for one search. They filter occupied nights across all of that search's date ranges. With `weekends: true`, Friday and Saturday are included along with any `days` you list.
+Set `days` and `weekends` in `defaults`, beside `dates` in a search, or inside a date range. Each setting inherits independently. A range overrides its search, and a search overrides `defaults`. `days: []` clears inherited weekdays, and `weekends: false` turns off the inherited weekend filter. With `weekends: true`, Friday and Saturday are included along with any `days` you list. If date ranges overlap, a night qualifies when any range covering it allows it.
 
 With `--search-once --json`, the CLI outputs one ordered array with each search's `name`, `provider`, `status`, and `stays`. A search with no matches returns `ok` and an empty list. A failed search returns `error`, and the command exits with status 1 after the batch finishes. Local validation errors exit with status 2. Diagnostics go to stderr.
 

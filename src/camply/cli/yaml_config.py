@@ -83,7 +83,21 @@ class _Input(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
 
-class DateWindow(_Input):
+class _WeekdayFilters(_Input):
+    days: list[NonBlank] = Field(default_factory=list)
+    weekends: bool = False
+
+    @field_validator("days")
+    @classmethod
+    def valid_days(cls, value: list[str]) -> list[str]:
+        """Validate English weekday names and abbreviations."""
+        if any(not day.strip().isascii() for day in value):
+            raise ValueError("use English weekday names or abbreviations")
+        allowed_weekdays(value, weekends=False)
+        return value
+
+
+class DateWindow(_WeekdayFilters):
     """A check-in and checkout pair in the config file."""
 
     start_date: IsoDay
@@ -100,11 +114,9 @@ class DateWindow(_Input):
         return value
 
 
-class SearchDefaults(_Input):
+class SearchDefaults(_WeekdayFilters):
     """Settings that may be shared by all searches."""
 
-    days: list[NonBlank] = Field(default_factory=list)
-    weekends: bool = False
     nights: int = Field(default=1, ge=1)
     campsite_types: list[SiteType] = Field(default_factory=list)
     electric: bool = False
@@ -119,15 +131,6 @@ class SearchDefaults(_Input):
         """Require a length when the shared key is explicitly supplied."""
         if value is None and cls is SearchDefaults:
             raise ValueError("shared RV length must be an integer")
-        return value
-
-    @field_validator("days")
-    @classmethod
-    def valid_days(cls, value: list[str]) -> list[str]:
-        """Validate shared weekday values even when every search overrides them."""
-        if any(not day.strip().isascii() for day in value):
-            raise ValueError("use English weekday names or abbreviations")
-        allowed_weekdays(value, weekends=False)
         return value
 
 
@@ -268,6 +271,7 @@ def _prepare_search(
     today = core_search.utc_today()
     start_dates = []
     end_dates = []
+    window_weekdays = []
     for index, window in enumerate(search.dates):
         start = date.fromisoformat(window.start_date)
         end = date.fromisoformat(window.end_date)
@@ -279,12 +283,21 @@ def _prepare_search(
             )
         start_dates.append(start)
         end_dates.append(end)
+        window_weekdays.append(
+            allowed_weekdays(
+                window.days if "days" in window.model_fields_set else search.days,
+                weekends=(
+                    window.weekends
+                    if "weekends" in window.model_fields_set
+                    else search.weekends
+                ),
+            )
+        )
     try:
         request = core_search.normalize_request(
             start_dates=start_dates,
             end_dates=end_dates,
-            days=search.days,
-            weekends=search.weekends,
+            window_weekdays=window_weekdays,
             nights=search.nights,
             campsites=normalize_ids(search.campsites, "campsites"),
             campsite_types=search.campsite_types,

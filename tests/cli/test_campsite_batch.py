@@ -85,7 +85,10 @@ def test_effective_filters_and_target_precedence(tmp_path, transcript, monkeypat
     path = tmp_path / "trips.yaml"
     search = SEARCH | {
         "recreation_areas": ["ignored"],
-        "dates": [{"start_date": "2027-07-09", "end_date": "2027-07-13"}],
+        "dates": [
+            {"start_date": "2027-07-09", "end_date": "2027-07-13"},
+            {"start_date": "2027-07-12", "end_date": "2027-07-13", "weekends": False},
+        ],
         "weekends": True,
     }
     document = {"defaults": {"rv_length": 28}, "searches": [search]}
@@ -111,4 +114,5 @@ def test_effective_filters_and_target_precedence(tmp_path, transcript, monkeypat
     assert [stay["arrival"] for stay in json.loads(result.stdout)[0]["stays"]] == [
         "2027-07-09",
         "2027-07-10",
+        "2027-07-12",
     ]

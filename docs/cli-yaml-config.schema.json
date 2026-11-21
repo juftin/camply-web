@@ -45,6 +45,14 @@
         "end_date": {
           "$ref": "#/$defs/date",
           "description": "Exclusive checkout date."
+        },
+        "days": {
+          "$ref": "#/$defs/days",
+          "description": "Override the search's weekday list for this date range."
+        },
+        "weekends": {
+          "$ref": "#/$defs/weekends",
+          "description": "Override the search's Friday and Saturday filter for this date range."
         }
       }
     },
