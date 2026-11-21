@@ -2,8 +2,8 @@
 # Run with: camply campsites --yaml-config camply.yaml
 # Edit the target IDs and date windows for the campsites you want to watch.
 
-# Required YAML format version. This example uses version 1.
-version: 1
+# Required YAML format version. This example uses version 2.
+version: 2
 
 # Optional settings shared by all searches. The values below are the built-in
 # defaults. A search can override any setting here. A list override replaces the

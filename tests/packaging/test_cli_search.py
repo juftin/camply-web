@@ -405,7 +405,7 @@ def test_installed_yaml_batch_and_alert_history(
         directory.mkdir(exist_ok=True)
         path = directory / "trips.yaml"
         path.write_text(
-            """version: 1
+            """version: 2
 defaults: {nights: 2, notifications: [ntfy]}
 searches:
   - name: california

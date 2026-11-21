@@ -9,7 +9,7 @@
     "version": {
       "description": "CLI YAML configuration format version.",
       "type": "integer",
-      "const": 1
+      "const": 2
     },
     "defaults": {
       "$ref": "#/$defs/searchDefaults"

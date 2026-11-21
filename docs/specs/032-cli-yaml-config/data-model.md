@@ -2,7 +2,7 @@
 
 ## Configuration file
 
-A configuration contains a required integer `version`, an ordered, non-empty list of named searches, and an optional mapping of shared settings. The current release accepts `version: 1`. File order is the order of outcomes in a single-pass JSON response. The checked-in `docs/cli-yaml-config.schema.json` defines the portable object structure.
+A configuration contains a required integer `version`, an ordered, non-empty list of named searches, and an optional mapping of shared settings. The current release accepts `version: 2`. File order is the order of outcomes in a single-pass JSON response. The checked-in `docs/cli-yaml-config.schema.json` defines the portable object structure.
 
 | Entity          | Fields and constraints                                                                                                                                                                                                                                                                   |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

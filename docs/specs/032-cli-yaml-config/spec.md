@@ -89,7 +89,7 @@ A camper wants to schedule a single round of checks and distinguish an empty res
 - **FR-012** — Decode YAML as data and validate the resulting document with Pydantic models. Reject duplicate mapping keys during YAML decoding. Pydantic must forbid unknown fields and reject type coercion that would accept mistyped inputs, including numeric IDs, numeric strings for integer settings, and strings for booleans. Preserve field paths in sanitized error messages.
 - **FR-013** — Accept an optional top-level `defaults` mapping for reusable search settings. Resolve each setting from the search's explicit value, then the shared default, then the built-in default. Explicit lists replace inherited lists in full, including `[]`, and explicit `false` overrides inherited `true`. A search can set `rv_length: null` to clear the RV length filter. This is the only field and placement that accepts `null`. Validate the defaults block even when all searches override it, then apply provider, date, and credential checks to each search's effective settings. Report invalid shared values under `defaults.<field>` and invalid combinations under the affected search.
 - **FR-014** — Accept `days` and `weekends` on date ranges. Resolve each field independently from the range, search, shared defaults, then built-in defaults. `days: []` clears inherited weekday names and `weekends: false` clears inherited weekend selection. Eligible occupied nights are the union of the nights each range allows, and stays still require the configured number of consecutive nights.
-- **FR-015** — Require a top-level integer `version: 1`. Reject unsupported versions before validating search fields or starting external work. Explain which version the current release supports.
+- **FR-015** — Require a top-level integer `version: 2`. Reject unsupported versions before validating search fields or starting external work. Explain which version the current release supports.
 
 ### JSON Schema
 
@@ -97,7 +97,7 @@ The Draft 2020-12 schema in `docs/cli-yaml-config.schema.json` describes the inp
 
 ### Configuration Fields
 
-The file must declare `version: 1` at the top level.
+The file must declare `version: 2` at the top level.
 
 All list fields take YAML sequences. Location IDs and campsite selectors are strings. Quote numeric-looking IDs to preserve their exact spelling.
 
@@ -119,7 +119,7 @@ In `defaults`, `rv_length` accepts a whole number from 1 to 200. In a search, `r
 This example uses illustrative campground IDs. Each ID comes from discovery for the corresponding provider.
 
 ```yaml
-version: 1
+version: 2
 defaults:
   notifications: [ntfy]
   interval: 10

@@ -17,7 +17,7 @@ async def test_batch_cancellation_drains_watchers(tmp_path, monkeypatch):
     path.write_text(
         json.dumps(
             {
-                "version": 1,
+                "version": 2,
                 "searches": [
                     SEARCH,
                     SEARCH | {"name": "alias", "provider": "RecreationGovProvider"},
@@ -68,7 +68,7 @@ async def test_target_resolution_retries_after_its_own_interval(tmp_path, monkey
     from types import SimpleNamespace
 
     path = tmp_path / "trips.yaml"
-    path.write_text(json.dumps({"version": 1, "searches": [SEARCH | {"interval": 7}]}))
+    path.write_text(json.dumps({"version": 2, "searches": [SEARCH | {"interval": 7}]}))
     searches = prepare_searches(path)
     provider_client = AsyncMock()
     waits = []

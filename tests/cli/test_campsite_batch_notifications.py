@@ -14,7 +14,7 @@ def test_effective_channels(tmp_path, monkeypatch):
         json.dumps(
             {
                 "defaults": {"notifications": ["ntfy"]},
-                "version": 1,
+                "version": 2,
                 "searches": [
                     SEARCH | {"provider": "ReserveCaliforniaProvider"},
                     SEARCH | {"name": "push", "notifications": ["pushover"]},

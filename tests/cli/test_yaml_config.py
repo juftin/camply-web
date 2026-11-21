@@ -30,13 +30,15 @@ def test_documented_example_matches_defaults():
     Draft202012Validator(schema, format_checker=FormatChecker()).validate(
         yaml.safe_load(path.read_text())
     )
-    assert load_config(path).defaults.model_dump(exclude_unset=True) == (
+    config = load_config(path)
+    assert config.version == 2
+    assert config.defaults.model_dump(exclude_unset=True) == (
         SearchDefaults().model_dump(exclude_none=True)
     )
 
 
 @pytest.mark.parametrize(
-    "fields", [{}, {"version": 2}, {"version": "1"}, {"version": True}]
+    "fields", [{}, {"version": 1}, {"version": 3}, {"version": "2"}, {"version": True}]
 )
 def test_config_requires_supported_integer_version(tmp_path, fields):
     path = tmp_path / "camply.yaml"
@@ -44,7 +46,7 @@ def test_config_requires_supported_integer_version(tmp_path, fields):
     path.write_text(json.dumps(document))
     schema = Draft202012Validator(json.loads(SCHEMA.read_text()))
     assert not schema.is_valid(document)
-    with pytest.raises(ConfigError, match=r"version.*version: 1"):
+    with pytest.raises(ConfigError, match=r"version.*version: 2"):
         load_config(path)
 
 
@@ -75,7 +77,7 @@ def test_config_requires_supported_integer_version(tmp_path, fields):
 )
 def test_editor_and_input_model(tmp_path, changes, valid):
     path = tmp_path / "trips.yaml"
-    document = {"version": 1, "searches": [SEARCH | changes]}
+    document = {"version": 2, "searches": [SEARCH | changes]}
     path.write_text(json.dumps(document))
     schema = json.loads(SCHEMA.read_text())
     Draft202012Validator.check_schema(schema)
@@ -93,7 +95,7 @@ def test_invalid_default_weekday_is_rejected_even_with_override(tmp_path):
     path = tmp_path / "trips.yaml"
     document = {
         "defaults": {"days": ["Funday"]},
-        "version": 1,
+        "version": 2,
         "searches": [SEARCH | {"days": ["Mon"]}],
     }
     path.write_text(json.dumps(document))
@@ -105,7 +107,7 @@ def test_invalid_default_weekday_is_rejected_even_with_override(tmp_path):
 def test_weekday_filters_inherit_independently_across_three_levels(tmp_path):
     path = tmp_path / "camply.yaml"
     path.write_text(
-        """version: 1
+        """version: 2
 defaults: {days: [Sun], weekends: true}
 searches:
   - name: shared
@@ -134,7 +136,7 @@ searches:
 def test_overlapping_date_ranges_union_their_eligible_nights(tmp_path):
     path = tmp_path / "camply.yaml"
     path.write_text(
-        """version: 1
+        """version: 2
 searches:
   - name: overlapping
     provider: RecreationDotGov
@@ -156,7 +158,7 @@ searches:
         ("searches: []\n---\nsearches: []", "line"),
         ("provider: RecreationDotGov", "legacy"),
         ("", "configuration"),
-        ("version: 1\ndefaults: {rv_length: null}\nsearches: []", "defaults.rv_length"),
+        ("version: 2\ndefaults: {rv_length: null}\nsearches: []", "defaults.rv_length"),
     ],
 )
 def test_yaml_document_errors(tmp_path, source, diagnostic):
@@ -169,7 +171,7 @@ def test_yaml_document_errors(tmp_path, source, diagnostic):
 def test_yaml_dates_and_field_presence(tmp_path):
     path = tmp_path / "trips.yaml"
     path.write_text(
-        """version: 1
+        """version: 2
 defaults: {rv_length: 28, electric: true, notifications: [ntfy]}
 searches:
   - name: trip

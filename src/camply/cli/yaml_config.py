@@ -27,7 +27,7 @@ from camply.core import search as core_search
 from camply.core.search import SearchRequest, allowed_weekdays
 from camply.providers.base import BaseProvider
 
-_CONFIG_VERSION = 1
+_CONFIG_VERSION = 2
 
 
 class ConfigError(ValueError):

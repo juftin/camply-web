@@ -18,7 +18,7 @@ def test_relative_state_paths_and_conflicts(tmp_path):
     second = SEARCH | {"name": "second", "state_file": "alerts/second.json"}
 
     def write():
-        path.write_text(json.dumps({"version": 1, "searches": [first, second]}))
+        path.write_text(json.dumps({"version": 2, "searches": [first, second]}))
 
     write()
     assert [search.state_file for search in prepare_searches(path)] == [
@@ -101,7 +101,7 @@ async def test_failed_checks_preserve_state_and_reopening_alerts(tmp_path, monke
     path.write_text(
         json.dumps(
             {
-                "version": 1,
+                "version": 2,
                 "searches": [
                     SEARCH | {"state_file": "trip.json", "notifications": ["ntfy"]}
                 ],

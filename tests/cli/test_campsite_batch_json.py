@@ -15,7 +15,7 @@ def test_single_pass_mixed_results(tmp_path, transcript):
     path.write_text(
         json.dumps(
             {
-                "version": 1,
+                "version": 2,
                 "searches": [
                     SEARCH | {"name": "failure", "campgrounds": ["bad"]},
                     SEARCH
@@ -48,7 +48,7 @@ def test_single_pass_mixed_results(tmp_path, transcript):
     assert "nonbookable" not in result.stderr
     assert len(transcript.checks) == 2
     transcript.checks.clear()
-    path.write_text(json.dumps({"version": 1, "searches": [SEARCH]}))
+    path.write_text(json.dumps({"version": 2, "searches": [SEARCH]}))
     result = CliRunner().invoke(cli, [*args, "--search-once"])
     assert result.exit_code == 0
     assert json.loads(result.stdout)[0]["status"] == "ok"
