@@ -644,7 +644,10 @@ const SCENARIOS: Scenario[] = [
       )
         throw new Error("Availability grid overflows the viewport");
       await page.evaluate(() => window.scrollTo(0, 0));
-      await page.waitForTimeout(200);
+      await page.waitForFunction(
+        () =>
+          document.querySelector("header")?.getBoundingClientRect().top === 0,
+      );
     },
   })),
   ...(["desktop", "mobile"] as const).map((size) => ({
@@ -676,7 +679,10 @@ const SCENARIOS: Scenario[] = [
       )
         throw new Error("Campsite results overflow the viewport");
       await page.evaluate(() => window.scrollTo(0, 0));
-      await page.waitForTimeout(200);
+      await page.waitForFunction(
+        () =>
+          document.querySelector("header")?.getBoundingClientRect().top === 0,
+      );
     },
   })),
   ...(["light", "dark"] as const).flatMap((theme) =>
