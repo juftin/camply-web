@@ -51,6 +51,7 @@ async def check_target(
     registry: dict[int, type[BaseProvider]],
     dispatch: Callable[[UserScan, NotificationDTO], None] | None = None,
     dispatch_ntfy: Callable[[UserScan, NotificationDTO], None] | None = None,
+    dispatch_area: Callable[[datetime.datetime], None] | None = None,
     persistent: bool = False,
     terminal_attempt: bool = False,
     notification_mode: Literal["summary", "direct"] = "summary",
@@ -270,6 +271,7 @@ async def check_target(
         dispatches: list[
             tuple[UserScan, NotificationDTO, Literal["pushover", "ntfy"]]
         ] = []
+        area_due_times: set[datetime.datetime] = set()
         if new_openings:
             us_stmt = (
                 select(UserScan)
@@ -304,14 +306,16 @@ async def check_target(
                     recipient.notification_provider if recipient else "pushover"
                 )
                 if scan.destination_type == "recreation_area":
-                    await enqueue_area(
-                        session,
-                        scan,
-                        target,
-                        matching,
-                        channel=channel,
-                        now=target.last_checked_at,
-                        direct=notification_mode == "direct",
+                    area_due_times.update(
+                        await enqueue_area(
+                            session,
+                            scan,
+                            target,
+                            matching,
+                            channel=channel,
+                            now=target.last_checked_at,
+                            direct=notification_mode == "direct",
+                        )
                     )
                     notifications_sent += 1
                     continue
@@ -354,6 +358,9 @@ async def check_target(
                 dispatch_ntfy(scan, notification)
             elif channel == "pushover" and dispatch is not None:
                 dispatch(scan, notification)
+        if dispatch_area is not None:
+            for due in sorted(area_due_times):
+                dispatch_area(due)
 
         return {
             "status": "success",

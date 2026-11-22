@@ -11,7 +11,7 @@ from typing import Any, cast
 
 import httpx2
 from pydantic import ValidationError
-from sqlalchemy import delete, select, true, update
+from sqlalchemy import delete, func, select, true, update
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -108,6 +108,35 @@ async def prune_finished(database: DatabaseConfig) -> None:
             )
         )
         await session.commit()
+
+
+async def next_area_due(database: DatabaseConfig) -> dt.datetime | None:
+    """Return the earliest next_attempt_at for any pending or retryable area row."""
+    async with database.get_session() as session:
+        return await session.scalar(
+            select(func.min(NotificationOutbox.next_attempt_at)).where(
+                NotificationOutbox.payload_kind == "area",
+                NotificationOutbox.status.in_(["pending", "retry"]),
+            )
+        )
+
+
+async def has_overdue_area_outbox(database: DatabaseConfig) -> bool:
+    """Return whether any area outbox row is overdue for delivery or claim recovery."""
+    now = dt.datetime.now(dt.timezone.utc)
+    async with database.get_session() as session:
+        rows = (
+            await session.scalars(
+                select(NotificationOutbox.id)
+                .where(
+                    NotificationOutbox.payload_kind == "area",
+                    NotificationOutbox.status.in_(["pending", "retry", "sending"]),
+                    NotificationOutbox.next_attempt_at <= now,
+                )
+                .limit(1)
+            )
+        ).all()
+        return bool(rows)
 
 
 async def recover_deliveries(database: DatabaseConfig) -> None:

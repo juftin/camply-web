@@ -11,6 +11,7 @@ from camply.worker.celery_app import celery_app
 from camply.worker.config import worker_config
 from camply.worker.engine.discovery import due_targets
 from camply.worker.metrics import TARGETS_DISCOVERED_TOTAL, TARGETS_ENQUEUED_TOTAL
+from camply.worker.outbox import has_overdue_area_outbox
 from camply.worker.telemetry import record_discovery_completion
 
 logger = structlog.getLogger(__name__)
@@ -65,6 +66,12 @@ async def _discover_targets_async() -> dict:
             queue="celery",
         )
         enqueued += 1
+
+    if await has_overdue_area_outbox(db):
+        celery_app.send_task(
+            name="camply.notifications.deliver_area_outbox",
+            queue="celery",
+        )
 
     logger.info(
         "Heartbeat: discovered targets",

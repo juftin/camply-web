@@ -3,6 +3,7 @@ Scanner: check_target_availability Celery task.
 """
 
 import asyncio
+import datetime
 from typing import Any, Optional
 
 import structlog
@@ -65,6 +66,24 @@ def _dispatch_ntfy(scan: UserScan, opening: NotificationDTO) -> None:
     )
 
 
+def _dispatch_area_outbox(due: datetime.datetime) -> None:
+    """Schedule event-driven area outbox delivery when a new window is committed."""
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
+    if due.tzinfo is None:
+        due = due.replace(tzinfo=datetime.timezone.utc)
+    if due > now:
+        celery_app.send_task(
+            name="camply.notifications.deliver_area_outbox",
+            eta=due,
+            queue="celery",
+        )
+    else:
+        celery_app.send_task(
+            name="camply.notifications.deliver_area_outbox",
+            queue="celery",
+        )
+
+
 @celery_app.task(
     name="camply.search.check_campsite_availability",
     bind=True,
@@ -119,6 +138,7 @@ async def _check_target_availability_async(self: Any, target_id: str) -> Optiona
             registry=PROVIDERS,
             dispatch=_dispatch_notification,
             dispatch_ntfy=_dispatch_ntfy,
+            dispatch_area=_dispatch_area_outbox,
             notification_mode=worker_config.notification_mode,
             app_url=str(worker_config.app_url),
             on_provider_result=_record_provider_result,
