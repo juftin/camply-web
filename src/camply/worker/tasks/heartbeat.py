@@ -69,7 +69,7 @@ async def _discover_targets_async() -> dict:
 
     if await has_overdue_area_outbox(db):
         celery_app.send_task(
-            name="notifications.send_area_summary",
+            name="notifications.send_area_alerts",
             queue="celery",
         )
 

@@ -218,7 +218,7 @@ def test_worker_only_registration(install: Callable[[str], Installation]) -> Non
                 'catalog.enrich_provider',
                 'notifications.send_pushover',
                 'notifications.send_ntfy',
-                'notifications.send_area_summary',
+                'notifications.send_area_alerts',
             }
             assert celery_app.conf.beat_schedule['schedule-availability-checks']['task'] == 'search.schedule_checks'
             assert celery_app.conf.beat_schedule['sync-provider-catalogs-daily']['task'] == 'catalog.sync_all'

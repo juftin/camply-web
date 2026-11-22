@@ -73,13 +73,13 @@ def _dispatch_area_outbox(due: datetime.datetime) -> None:
         due = due.replace(tzinfo=datetime.timezone.utc)
     if due > now:
         celery_app.send_task(
-            name="notifications.send_area_summary",
+            name="notifications.send_area_alerts",
             eta=due,
             queue="celery",
         )
     else:
         celery_app.send_task(
-            name="notifications.send_area_summary",
+            name="notifications.send_area_alerts",
             queue="celery",
         )
 

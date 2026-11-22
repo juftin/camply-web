@@ -23,10 +23,10 @@ const TASK_METADATA: Record<string, TaskMetadata> = {
     label: "Send ntfy alert",
     description: "Delivers a campsite availability alert to a user via ntfy.",
   },
-  "notifications.send_area_summary": {
-    label: "Send area alert summary",
+  "notifications.send_area_alerts": {
+    label: "Send recreation area alerts",
     description:
-      "Batches and sends queued multi-campground recreation area alert summaries.",
+      "Sends queued availability alerts for multi-campground recreation area scans.",
   },
   "catalog.sync_all": {
     label: "Sync all provider catalogs",
@@ -56,7 +56,7 @@ const LEGACY_TASK_ALIASES: Record<string, string> = {
   "camply.notifications.send_pushover_notification":
     "notifications.send_pushover",
   "camply.notifications.send_ntfy_notification": "notifications.send_ntfy",
-  "camply.notifications.deliver_area_outbox": "notifications.send_area_summary",
+  "camply.notifications.deliver_area_outbox": "notifications.send_area_alerts",
   "camply.catalog.sync_all_providers": "catalog.sync_all",
   "camply.catalog.sync_provider_catalog": "catalog.sync_provider",
   "camply.catalog.enrich_all_providers": "catalog.enrich_all",
