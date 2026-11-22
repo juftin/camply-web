@@ -56,7 +56,7 @@ async def test_discovery_and_alerts_use_celery(
         discovery = await heartbeat._discover_targets_async()
         assert discovery["discovered"] == discovery["enqueued"] == 1
         publish.assert_called_once_with(
-            name="camply.search.check_campsite_availability",
+            name="search.check_availability",
             kwargs={"target_id": str(target.id)},
             queue="celery",
         )
@@ -68,10 +68,7 @@ async def test_discovery_and_alerts_use_celery(
         assert result["notifications_sent"] == 1
         publish.assert_called_once()
         alert = publish.call_args.kwargs
-        assert (
-            alert["name"]
-            == f"camply.notifications.send_{notification_provider}_notification"
-        )
+        assert alert["name"] == f"notifications.send_{notification_provider}"
         assert alert["queue"] == "celery"
         assert alert["kwargs"]["user_id"] == str(scan.user_id)
         assert alert["kwargs"]["scan_id"] == str(scan.id)
@@ -142,7 +139,7 @@ def test_area_outbox_event_driven_task_execution() -> None:
         result = deliver_area_outbox()
     assert result == {"delivered": 1}
     send_task.assert_called_once_with(
-        name="camply.notifications.deliver_area_outbox",
+        name="notifications.send_area_summary",
         eta=retry_at,
         queue="celery",
     )
@@ -196,7 +193,7 @@ async def test_area_scan_dispatches_outbox_task_on_commit(
     assert result["notifications_sent"] == 1
     publish.assert_called_once()
     call = publish.call_args.kwargs
-    assert call["name"] == "camply.notifications.deliver_area_outbox"
+    assert call["name"] == "notifications.send_area_summary"
     assert call["queue"] == "celery"
     if notification_mode == "summary":
         assert "eta" in call and isinstance(call["eta"], dt.datetime)
@@ -219,7 +216,7 @@ async def test_area_scan_dispatches_outbox_task_on_commit(
         publish_two.assert_not_called()
     else:
         publish_two.assert_called_once_with(
-            name="camply.notifications.deliver_area_outbox",
+            name="notifications.send_area_summary",
             queue="celery",
         )
 
@@ -261,6 +258,6 @@ async def test_heartbeat_recovers_overdue_area_outbox(
         await heartbeat._discover_targets_async()
 
     publish.assert_called_once_with(
-        name="camply.notifications.deliver_area_outbox",
+        name="notifications.send_area_summary",
         queue="celery",
     )

@@ -28,12 +28,12 @@ from camply.worker.engine.catalog import (
 logger = structlog.getLogger(__name__)
 
 
-@celery_app.task(name="camply.catalog.enrich_all_providers", ignore_result=True)
+@celery_app.task(name="catalog.enrich_all", ignore_result=True)
 def enrich_all_provider_details() -> dict:
     """Resume due detail batches independently of daily full catalog imports."""
     for provider_id in PROVIDERS:
         celery_app.send_task(
-            name="camply.catalog.enrich_provider_details",
+            name="catalog.enrich_provider",
             kwargs={"provider_id": provider_id},
         )
     return {
@@ -44,7 +44,7 @@ def enrich_all_provider_details() -> dict:
     }
 
 
-@celery_app.task(name="camply.catalog.enrich_provider_details", ignore_result=True)
+@celery_app.task(name="catalog.enrich_provider", ignore_result=True)
 def enrich_provider_details(provider_id: int) -> dict:
     """Yield between bounded batches and stop immediate continuations on failure."""
     provider_cls = PROVIDERS.get(provider_id)
@@ -57,7 +57,7 @@ def enrich_provider_details(provider_id: int) -> dict:
     result = asyncio.run(_enrich_provider_details_async(provider_id, provider_cls))
     if result["status"] == "success" and result["has_more"]:
         celery_app.send_task(
-            name="camply.catalog.enrich_provider_details",
+            name="catalog.enrich_provider",
             kwargs={"provider_id": provider_id},
             countdown=1,
         )
@@ -65,7 +65,7 @@ def enrich_provider_details(provider_id: int) -> dict:
 
 
 @celery_app.task(
-    name="camply.catalog.sync_all_providers",
+    name="catalog.sync_all",
     ignore_result=True,
 )
 def populate_database() -> dict:
@@ -85,7 +85,7 @@ def populate_database() -> dict:
 
     for provider_id in provider_ids:
         celery_app.send_task(
-            name="camply.catalog.sync_provider_catalog",
+            name="catalog.sync_provider",
             kwargs={"provider_id": provider_id},
         )
 
@@ -100,7 +100,7 @@ def populate_database() -> dict:
 
 
 @celery_app.task(
-    name="camply.catalog.sync_provider_catalog",
+    name="catalog.sync_provider",
     bind=True,
     max_retries=3,
     default_retry_delay=300,

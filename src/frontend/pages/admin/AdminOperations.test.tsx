@@ -132,7 +132,7 @@ describe("AdminOperations", () => {
       tasks: [
         {
           task_id: "task-abc-123",
-          task_name: "camply.search.check_campsite_availability",
+          task_name: "search.check_availability",
           worker: "celery@worker-node-1",
           finished_at: "2026-10-09T01:04:30Z",
           duration_ms: 1250,
@@ -181,7 +181,7 @@ describe("AdminOperations", () => {
     );
 
     // Telemetry stream
-    expect(screen.getByText("Check campsite availability")).toBeInTheDocument();
+    expect(screen.getByText("Check availability")).toBeInTheDocument();
     expect(screen.getAllByText("Recreation.gov").length).toBeGreaterThanOrEqual(
       1,
     );
@@ -214,7 +214,7 @@ describe("AdminOperations", () => {
       tasks: [
         {
           task_id: "task-xyz-789",
-          task_name: "camply.search.check_campsite_availability",
+          task_name: "search.check_availability",
           worker: "celery@worker-node-2",
           finished_at: "2026-10-09T01:04:30Z",
           duration_ms: 450,
@@ -247,6 +247,11 @@ describe("AdminOperations", () => {
     await waitFor(() => {
       expect(screen.getByText("Task Execution Details")).toBeInTheDocument();
       expect(screen.getByText("task-xyz-789")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Queries the booking provider for open campsites and queues alerts for new matches.",
+        ),
+      ).toBeInTheDocument();
       expect(screen.getAllByText("Lower Pines").length).toBeGreaterThanOrEqual(
         2,
       );

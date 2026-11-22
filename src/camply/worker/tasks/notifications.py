@@ -22,7 +22,7 @@ AREA_OUTBOX_BATCH_SIZE = 100
 
 
 @celery_app.task(
-    name="camply.notifications.send_pushover_notification",
+    name="notifications.send_pushover",
     bind=True,
     max_retries=3,
     default_retry_delay=120,
@@ -70,7 +70,7 @@ async def _send_pushover_notification_async(
 
 
 @celery_app.task(
-    name="camply.notifications.send_ntfy_notification",
+    name="notifications.send_ntfy",
     bind=True,
     max_retries=3,
     default_retry_delay=120,
@@ -100,7 +100,7 @@ def send_ntfy_notification(
         raise self.retry(exc=RuntimeError("ntfy delivery failed")) from None
 
 
-@celery_app.task(name="camply.notifications.deliver_area_outbox", ignore_result=True)
+@celery_app.task(name="notifications.send_area_summary", ignore_result=True)
 def deliver_area_outbox() -> dict:
     """Consume bounded area work on demand and reschedule only if work remains."""
     from camply.worker.outbox import deliver_next, next_area_due, recover_deliveries
@@ -127,13 +127,13 @@ def deliver_area_outbox() -> dict:
             next_due = next_due.replace(tzinfo=datetime.timezone.utc)
         if next_due <= now and delivered >= AREA_OUTBOX_BATCH_SIZE:
             celery_app.send_task(
-                name="camply.notifications.deliver_area_outbox",
+                name="notifications.send_area_summary",
                 queue="celery",
             )
         else:
             eta = max(next_due, now + datetime.timedelta(seconds=1))
             celery_app.send_task(
-                name="camply.notifications.deliver_area_outbox",
+                name="notifications.send_area_summary",
                 eta=eta,
                 queue="celery",
             )

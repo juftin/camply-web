@@ -377,7 +377,7 @@ def test_beat_optionally_dispatches_provider_sync(
                     "-A",
                     "camply.worker.celery_app",
                     "call",
-                    "camply.catalog.sync_all_providers",
+                    "catalog.sync_all",
                     "--expires=600",
                 ],
                 check=True,
