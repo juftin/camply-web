@@ -180,7 +180,7 @@ def _worker_process(
                     "-A",
                     "camply.worker.celery_app",
                     "call",
-                    "camply.catalog.sync_all_providers",
+                    "catalog.sync_all",
                     "--expires=600",
                 ],
                 check=True,

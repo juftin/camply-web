@@ -17,7 +17,7 @@ import { useAdminLocation } from "@/hooks/useAdminLocation";
 import { AdminNav } from "@/components/AdminNav";
 import { AdminFeedback } from "@/components/admin/AdminFeedback";
 import { AdminTrendsPanel } from "@/components/admin/AdminTrendsPanel";
-import { taskLabel } from "@/components/admin/labels";
+import { taskDescription, taskLabel } from "@/components/admin/labels";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -853,6 +853,16 @@ export function AdminOperations() {
                   </div>
                 </div>
               </div>
+              {taskDescription(selectedTask.task_name) && (
+                <div className="border-b pb-2">
+                  <div className="text-muted-foreground text-xs mb-1">
+                    Description:
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {taskDescription(selectedTask.task_name)}
+                  </p>
+                </div>
+              )}
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-muted-foreground text-xs">Provider:</span>
                 <span>

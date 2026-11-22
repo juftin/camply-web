@@ -89,7 +89,7 @@ def test_record_task_execution_writes_to_redis() -> None:
     with patch("camply.worker.telemetry.get_redis_client", return_value=mock_redis):
         record_task_execution(
             task_id="t-123",
-            task_name="camply.search.check_campsite_availability",
+            task_name="search.check_availability",
             worker="worker-1",
             start_time=100.0,
             finish_time=100.25,
@@ -129,7 +129,7 @@ def test_record_task_execution_records_provider_and_search_metadata() -> None:
     with patch("camply.worker.telemetry.get_redis_client", return_value=mock_redis):
         record_task_execution(
             task_id="t-999",
-            task_name="camply.search.check_campsite_availability",
+            task_name="search.check_availability",
             worker="worker-1",
             start_time=100.0,
             finish_time=100.5,
@@ -146,7 +146,7 @@ def test_record_task_execution_records_provider_and_search_metadata() -> None:
 
         assert mock_redis.xadd.called
         _, record = mock_redis.xadd.call_args[0]
-        assert record["task_name"] == "camply.search.check_campsite_availability"
+        assert record["task_name"] == "search.check_availability"
         assert record["provider_id"] == 1
         assert record["provider_name"] == "Recreation.gov"
         assert record["search_name"] == "Tuolumne Meadows"
@@ -162,7 +162,7 @@ def test_record_task_execution_failure_isolation() -> None:
         # Should not raise
         record_task_execution(
             task_id="t-456",
-            task_name="camply.search.schedule_checks",
+            task_name="search.schedule_checks",
             worker="worker-1",
             start_time=50.0,
             finish_time=50.1,

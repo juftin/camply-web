@@ -25,7 +25,7 @@ def test_ingestion_fans_out_all_registered_providers(
     assert result["providers_fanned_out"] == len(PROVIDERS)
     assert send.call_args_list == [
         call(
-            name="camply.catalog.sync_provider_catalog",
+            name="catalog.sync_provider",
             kwargs={"provider_id": provider_id},
         )
         for provider_id in PROVIDERS
@@ -70,7 +70,7 @@ def test_enrichment_discovery_fans_out_without_importing_catalogs(
     assert result["providers_fanned_out"] == len(PROVIDERS)
     assert send.call_args_list == [
         call(
-            name="camply.catalog.enrich_provider_details",
+            name="catalog.enrich_provider",
             kwargs={"provider_id": provider_id},
         )
         for provider_id in PROVIDERS
@@ -94,7 +94,7 @@ def test_enrichment_continues_only_successful_pending_batches(
     refresh.assert_awaited_once_with(1, PROVIDERS[1])
     if continues:
         send.assert_called_once_with(
-            name="camply.catalog.enrich_provider_details",
+            name="catalog.enrich_provider",
             kwargs={"provider_id": 1},
             countdown=1,
         )

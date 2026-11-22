@@ -43,7 +43,7 @@ def _record_provider_result(provider_id: int, success: bool) -> None:
 def _dispatch_notification(scan: UserScan, opening: NotificationDTO) -> None:
     """Send the existing Celery notification contract after result commit."""
     celery_app.send_task(
-        name="camply.notifications.send_pushover_notification",
+        name="notifications.send_pushover",
         kwargs={
             "user_id": str(scan.user_id),
             "notification": opening.model_dump(mode="json"),
@@ -56,7 +56,7 @@ def _dispatch_notification(scan: UserScan, opening: NotificationDTO) -> None:
 def _dispatch_ntfy(scan: UserScan, opening: NotificationDTO) -> None:
     """Enqueue ntfy with an independent retry budget."""
     celery_app.send_task(
-        name="camply.notifications.send_ntfy_notification",
+        name="notifications.send_ntfy",
         kwargs={
             "user_id": str(scan.user_id),
             "notification": opening.model_dump(mode="json"),
@@ -73,19 +73,19 @@ def _dispatch_area_outbox(due: datetime.datetime) -> None:
         due = due.replace(tzinfo=datetime.timezone.utc)
     if due > now:
         celery_app.send_task(
-            name="camply.notifications.deliver_area_outbox",
+            name="notifications.send_area_alerts",
             eta=due,
             queue="celery",
         )
     else:
         celery_app.send_task(
-            name="camply.notifications.deliver_area_outbox",
+            name="notifications.send_area_alerts",
             queue="celery",
         )
 
 
 @celery_app.task(
-    name="camply.search.check_campsite_availability",
+    name="search.check_availability",
     bind=True,
     max_retries=3,
     default_retry_delay=60,

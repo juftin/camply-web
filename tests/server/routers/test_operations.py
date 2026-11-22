@@ -132,7 +132,7 @@ class TestOperationsEndpoints:
             tasks=[
                 AdminTaskTelemetryItem(
                     task_id="task-1",
-                    task_name="camply.search.check_campsite_availability",
+                    task_name="search.check_availability",
                     worker="celery@worker-1",
                     finished_at=dt.datetime.now(tz=dt.timezone.utc),
                     duration_ms=150.0,
@@ -179,7 +179,7 @@ class TestOperationsEndpoints:
     ) -> None:
         mock_detail = AdminOperationsTaskDetail(
             task_id="task-found",
-            task_name="camply.notifications.send_pushover_notification",
+            task_name="notifications.send_pushover",
             worker="celery@worker-1",
             finished_at=dt.datetime.now(tz=dt.timezone.utc),
             duration_ms=85.0,
@@ -423,6 +423,4 @@ def test_dispatch_sync_all_providers() -> None:
 
         task_id = dispatch_sync_all_providers()
         assert task_id == "task-sync-999"
-        mock_app.send_task.assert_called_once_with(
-            "camply.catalog.sync_all_providers", queue="celery"
-        )
+        mock_app.send_task.assert_called_once_with("catalog.sync_all", queue="celery")

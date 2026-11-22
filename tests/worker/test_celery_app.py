@@ -55,30 +55,30 @@ class TestCeleryTaskRegistration:
 
     def test_heartbeat_task_registered(self) -> None:
         """The heartbeat schedule_checks task should be registered."""
-        task_name = "camply.search.schedule_checks"
+        task_name = "search.schedule_checks"
         registered_tasks = list(celery_app.tasks.keys())
         assert task_name in registered_tasks
 
     def test_scanner_task_registered(self) -> None:
-        """The scanner check_campsite_availability task should be registered."""
-        task_name = "camply.search.check_campsite_availability"
+        """The scanner check_availability task should be registered."""
+        task_name = "search.check_availability"
         registered_tasks = list(celery_app.tasks.keys())
         assert task_name in registered_tasks
 
     def test_notifications_task_registered(self) -> None:
-        """The send_pushover_notification task should be registered."""
-        task_name = "camply.notifications.send_pushover_notification"
+        """The send_pushover task should be registered."""
+        task_name = "notifications.send_pushover"
         registered_tasks = list(celery_app.tasks.keys())
         assert task_name in registered_tasks
 
     def test_beat_schedule_configured(self) -> None:
-        """The beat schedule should include schedule_checks and sync_all_providers."""
+        """The beat schedule should include schedule_checks and catalog.sync_all."""
         beat_schedule = celery_app.conf.beat_schedule
         assert beat_schedule is not None
         assert "schedule-availability-checks" in beat_schedule
         assert (
             beat_schedule["schedule-availability-checks"]["task"]
-            == "camply.search.schedule_checks"
+            == "search.schedule_checks"
         )
         assert (
             beat_schedule["schedule-availability-checks"]["schedule"]
@@ -87,14 +87,13 @@ class TestCeleryTaskRegistration:
         assert beat_schedule["schedule-availability-checks"]["schedule"] == 300
         assert "sync-provider-catalogs-daily" in beat_schedule
         assert (
-            beat_schedule["sync-provider-catalogs-daily"]["task"]
-            == "camply.catalog.sync_all_providers"
+            beat_schedule["sync-provider-catalogs-daily"]["task"] == "catalog.sync_all"
         )
 
     def test_enrichment_is_scheduled_independently_of_daily_catalogs(self) -> None:
         """Existing unfilled snapshots resume after deployment on every heartbeat."""
         schedule = celery_app.conf.beat_schedule["enrich-provider-details"]
-        assert schedule["task"] == "camply.catalog.enrich_all_providers"
+        assert schedule["task"] == "catalog.enrich_all"
         assert schedule["schedule"] == worker_config.heartbeat_interval
-        assert "camply.catalog.enrich_all_providers" in celery_app.tasks
-        assert "camply.catalog.enrich_provider_details" in celery_app.tasks
+        assert "catalog.enrich_all" in celery_app.tasks
+        assert "catalog.enrich_provider" in celery_app.tasks

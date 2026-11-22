@@ -200,12 +200,12 @@ class LocalRunner:
                     "targets_enqueued": enqueued,
                     "status": "success",
                 }
-                self.record("camply.search.schedule_checks", outcome="success")
+                self.record("search.schedule_checks", outcome="success")
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
                 logger.warning("Standalone discovery loop error: %s", exc)
-                self.record("camply.search.schedule_checks", outcome="failure")
+                self.record("search.schedule_checks", outcome="failure")
             delays = [
                 deadline - time.monotonic()
                 for key, (_, deadline, _) in self.retries.items()
@@ -245,7 +245,7 @@ class LocalRunner:
                 }[result["status"]]
                 self.retries.pop(key, None)
                 self.record(
-                    "camply.search.check_campsite_availability",
+                    "search.check_availability",
                     outcome=outcome,
                     task_id=job_id,
                     attempt=attempt,
@@ -268,7 +268,7 @@ class LocalRunner:
                 )
                 self.wake.set()
                 self.record(
-                    "camply.search.check_campsite_availability",
+                    "search.check_availability",
                     outcome="retry" if attempt < _MAX_TARGET_ATTEMPTS else "failure",
                     task_id=job_id,
                     attempt=attempt,
@@ -297,7 +297,7 @@ class LocalRunner:
                     finally:
                         self.active -= 1
                     self.record(
-                        "camply.catalog.sync_provider_catalog",
+                        "catalog.sync_provider",
                         outcome=outcome,
                         task_id=job,
                         duration_ms=(time.monotonic() - started) * 1000,
@@ -330,7 +330,7 @@ class LocalRunner:
                     self.active -= 1
                 if outcome != "skipped":
                     self.record(
-                        "camply.catalog.enrich_provider_details",
+                        "catalog.enrich_provider",
                         outcome=outcome,
                         duration_ms=(time.monotonic() - started) * 1000,
                         provider_id=provider_id,
@@ -351,4 +351,4 @@ class LocalRunner:
             if result is None:
                 await asyncio.sleep(0.5)
             else:
-                self.record("camply.notifications.send_pushover_notification", **result)
+                self.record("notifications.send_pushover", **result)

@@ -110,7 +110,7 @@ Use `task helm:test` for rendering/gate checks and `task helm:smoke` for a dispo
 kind installation and failed-upgrade verification.
 
 Compose runs `camply serve beat --sync-providers`. The opt-in flag enqueues
-`camply.catalog.sync_all_providers` with a ten-minute expiry before replacing the CLI with Celery
+`catalog.sync_all` with a ten-minute expiry before replacing the CLI with Celery
 beat. Dispatch uses the same Python environment as the CLI, and a nonzero dispatch exit stops
 startup. Bare `camply serve beat` keeps its existing schedule without dispatching an initial sync.
 The flag requests work asynchronously; it does not wait for provider ingestion to finish.

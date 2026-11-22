@@ -17,7 +17,7 @@ from camply.worker.telemetry import record_discovery_completion
 logger = structlog.getLogger(__name__)
 
 
-@celery_app.task(name="camply.search.schedule_checks", ignore_result=True)
+@celery_app.task(name="search.schedule_checks", ignore_result=True)
 def discover_targets() -> dict:
     """
     Periodic task (defaults to every 5m / 300s). Discovers UniqueTargets that are due for
@@ -61,7 +61,7 @@ async def _discover_targets_async() -> dict:
     enqueued = 0
     for target in targets:
         celery_app.send_task(
-            name="camply.search.check_campsite_availability",
+            name="search.check_availability",
             kwargs={"target_id": str(target.id)},
             queue="celery",
         )
@@ -69,7 +69,7 @@ async def _discover_targets_async() -> dict:
 
     if await has_overdue_area_outbox(db):
         celery_app.send_task(
-            name="camply.notifications.deliver_area_outbox",
+            name="notifications.send_area_alerts",
             queue="celery",
         )
 

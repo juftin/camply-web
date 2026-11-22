@@ -208,21 +208,21 @@ def test_worker_only_registration(install: Callable[[str], Installation]) -> Non
             from celery.beat import PersistentScheduler
             assert issubclass(HealthScheduler, PersistentScheduler)
             celery_app.loader.import_default_modules()
-            tasks = {name for name in celery_app.tasks if name.startswith('camply.')}
+            tasks = {name for name in celery_app.tasks if not name.startswith('celery.')}
             assert tasks == {
-                'camply.search.schedule_checks',
-                'camply.search.check_campsite_availability',
-                'camply.catalog.sync_all_providers',
-                'camply.catalog.sync_provider_catalog',
-                'camply.catalog.enrich_all_providers',
-                'camply.catalog.enrich_provider_details',
-                'camply.notifications.send_pushover_notification',
-                'camply.notifications.send_ntfy_notification',
-                'camply.notifications.deliver_area_outbox',
+                'search.schedule_checks',
+                'search.check_availability',
+                'catalog.sync_all',
+                'catalog.sync_provider',
+                'catalog.enrich_all',
+                'catalog.enrich_provider',
+                'notifications.send_pushover',
+                'notifications.send_ntfy',
+                'notifications.send_area_alerts',
             }
-            assert celery_app.conf.beat_schedule['schedule-availability-checks']['task'] == 'camply.search.schedule_checks'
-            assert celery_app.conf.beat_schedule['sync-provider-catalogs-daily']['task'] == 'camply.catalog.sync_all_providers'
-            assert celery_app.conf.beat_schedule['enrich-provider-details']['task'] == 'camply.catalog.enrich_all_providers'
+            assert celery_app.conf.beat_schedule['schedule-availability-checks']['task'] == 'search.schedule_checks'
+            assert celery_app.conf.beat_schedule['sync-provider-catalogs-daily']['task'] == 'catalog.sync_all'
+            assert celery_app.conf.beat_schedule['enrich-provider-details']['task'] == 'catalog.enrich_all'
             assert 'area-outbox' not in celery_app.conf.beat_schedule
         assert not any(name.startswith('camply.server') for name in sys.modules)
     """)
@@ -257,7 +257,7 @@ def test_installed_beat_provider_sync(
         if sync_providers:
             calls.dispatch.assert_called_once_with(
                 [sys.executable, '-m', 'celery', '-A', 'camply.worker.celery_app',
-                 'call', 'camply.catalog.sync_all_providers', '--expires=600'],
+                 'call', 'catalog.sync_all', '--expires=600'],
                 check=True,
             )
         assert calls.execute.call_args.args[0] == sys.executable

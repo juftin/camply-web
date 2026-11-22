@@ -568,7 +568,7 @@ async def get_task_detail(task_id: str) -> Optional[AdminOperationsTaskDetail]:
 
 def dispatch_sync_all_providers() -> str:
     """
-    Dispatch the camply.catalog.sync_all_providers Celery task.
+    Dispatch the catalog.sync_all Celery task.
 
     Returns
     -------
@@ -578,7 +578,7 @@ def dispatch_sync_all_providers() -> str:
     require_distributed()
     app = Celery("camply_backend", broker=backend_config.valkey_url)
     app.conf.broker_connection_timeout = 2.0
-    task = app.send_task("camply.catalog.sync_all_providers", queue="celery")
+    task = app.send_task("catalog.sync_all", queue="celery")
     return str(task.id)
 
 

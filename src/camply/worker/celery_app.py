@@ -51,20 +51,20 @@ def create_celery_app() -> Celery:
     app.conf.result_expires = 3600
 
     # Beat schedule:
-    # - schedule_checks every 5 minutes (configurable via CAMPLY_HEARTBEAT_INTERVAL)
-    # - sync_all_providers daily at midnight UTC
-    # - enrich_all_providers each heartbeat to resume the persisted details backlog
+    # - search.schedule_checks every 5 minutes (configurable via CAMPLY_HEARTBEAT_INTERVAL)
+    # - catalog.sync_all daily at midnight UTC
+    # - catalog.enrich_all each heartbeat to resume the persisted details backlog
     app.conf.beat_schedule = {
         "schedule-availability-checks": {
-            "task": "camply.search.schedule_checks",
+            "task": "search.schedule_checks",
             "schedule": worker_config.heartbeat_interval,
         },
         "sync-provider-catalogs-daily": {
-            "task": "camply.catalog.sync_all_providers",
+            "task": "catalog.sync_all",
             "schedule": crontab(minute=0, hour=0),
         },
         "enrich-provider-details": {
-            "task": "camply.catalog.enrich_all_providers",
+            "task": "catalog.enrich_all",
             "schedule": worker_config.heartbeat_interval,
         },
     }
