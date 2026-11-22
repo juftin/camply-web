@@ -602,14 +602,14 @@ const SCENARIOS: Scenario[] = [
     viewport: { width: 1280, height: 800 },
     theme: "light",
     description:
-      "Date-grouped campsites with a full-campground provider link (Desktop, Light)",
+      "Interactive availability calendar with deduplicated campsite cards and cohesive scan header (Desktop, Light)",
   },
   ...(["light", "dark"] as const).map((theme) => ({
     name: `scan-detail-mobile-${theme}`,
     route: "/dashboard/scans/scan-mock-1",
     viewport: { width: 375, height: 812 },
     theme,
-    description: `Date-grouped campsites and full-campground provider link (Mobile, ${theme})`,
+    description: `Interactive availability calendar and deduplicated campsite cards (Mobile, ${theme})`,
   })),
   {
     name: "scan-detail-desktop-dark",
@@ -617,8 +617,39 @@ const SCENARIOS: Scenario[] = [
     viewport: { width: 1280, height: 800 },
     theme: "dark",
     description:
-      "Date-grouped campsites and full-campground provider link (Desktop, Dark)",
+      "Interactive availability calendar with deduplicated campsite cards and cohesive scan header (Desktop, Dark)",
   },
+  ...(["desktop", "mobile"] as const).map((size) => ({
+    name: `scan-detail-grid-${size}-${size === "desktop" ? "light" : "dark"}`,
+    route: "/dashboard/scans/scan-mock-1",
+    viewport:
+      size === "desktop"
+        ? { width: 1280, height: 800 }
+        : { width: 375, height: 812 },
+    theme: size === "desktop" ? ("light" as const) : ("dark" as const),
+    description: `Sites x Dates availability grid with inspected stay details (${size}, ${size === "desktop" ? "light" : "dark"})`,
+    action: async (page: Page) => {
+      const results = page.getByRole("region", { name: "Found campsites" });
+      await results.getByRole("button", { name: "Grid" }).click();
+      await results
+        .getByRole("button", { name: /Upper Pines Site 042.*Nov 15, 2026/i })
+        .click();
+      await results
+        .getByRole("region", { name: "Selected stay details" })
+        .waitFor();
+      if (
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > window.innerWidth,
+        )
+      )
+        throw new Error("Availability grid overflows the viewport");
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForFunction(
+        () =>
+          document.querySelector("header")?.getBoundingClientRect().top === 0,
+      );
+    },
+  })),
   ...(["desktop", "mobile"] as const).map((size) => ({
     name: `scan-detail-paginated-${size}-${size === "desktop" ? "light" : "dark"}`,
     route: "/dashboard/scans/scan-mock-1",
@@ -628,19 +659,19 @@ const SCENARIOS: Scenario[] = [
         : { width: 375, height: 812 },
     theme: size === "desktop" ? ("light" as const) : ("dark" as const),
     manyCampsites: true,
-    description: "Each date group stays bounded to five campsites per page",
+    description:
+      "Deduplicated campsite cards stay bounded to ten sites per page",
     action: async (page: Page) => {
-      const group = page.getByRole("group", {
-        name: "Nov 15, 2026 – Nov 17, 2026",
-      });
-      await group.getByRole("button", { name: "Next campsites" }).click();
-      await group.getByText("6–10 of 12 sites").waitFor();
+      const results = page.getByRole("region", { name: "Found campsites" });
+      await results.getByText("1–10 of 13 sites").waitFor();
       if (
-        (await group
+        (await results
           .getByRole("link", { name: /^View .* on provider website$/ })
-          .count()) !== 5
+          .count()) !== 10
       )
-        throw new Error("Campsite pagination must show five booking actions");
+        throw new Error("Campsite pagination must show ten booking actions");
+      await results.getByRole("button", { name: "Next campsites" }).click();
+      await results.getByText("11–13 of 13 sites").waitFor();
       if (
         await page.evaluate(
           () => document.documentElement.scrollWidth > window.innerWidth,
@@ -648,7 +679,10 @@ const SCENARIOS: Scenario[] = [
       )
         throw new Error("Campsite results overflow the viewport");
       await page.evaluate(() => window.scrollTo(0, 0));
-      await page.waitForTimeout(200);
+      await page.waitForFunction(
+        () =>
+          document.querySelector("header")?.getBoundingClientRect().top === 0,
+      );
     },
   })),
   ...(["light", "dark"] as const).flatMap((theme) =>

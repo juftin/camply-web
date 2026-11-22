@@ -3,25 +3,23 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Accessibility,
   Calendar,
-  Activity,
-  Zap,
-  Clock,
   ChevronLeft,
-  Loader2,
+  Clock,
   ExternalLink,
-  ChevronRight,
+  Loader2,
+  Zap,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScanForm } from "@/components/ScanForm";
 import { FoundCampsites } from "@/components/FoundCampsites";
+import { CoverageSummary } from "@/components/found-campsites/CoverageSummary";
 import { useScanDetail } from "@/hooks/useScans";
 import { getCampground, getRecreationArea } from "@/lib/api";
 import { formatAllowedWeekdays } from "@/lib/weekdays";
 import {
   toTitleCase,
-  formatDate,
   daysBetween,
   formatRelativeTime,
   formatDisplayDate,
@@ -53,8 +51,8 @@ export function ScanDetail() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="flex items-center justify-center min-h-[40vh]">
+      <div className="container mx-auto max-w-5xl px-4 py-8">
+        <div className="flex min-h-[40vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       </div>
@@ -63,11 +61,11 @@ export function ScanDetail() {
 
   if (!scan) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto max-w-5xl px-4 py-8">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <h2 className="text-xl font-semibold mb-2">Scan Not Found</h2>
-            <p className="text-muted-foreground mb-4">
+            <h2 className="mb-2 text-xl font-semibold">Scan Not Found</h2>
+            <p className="mb-4 text-muted-foreground">
               The scan you're looking for could not be found.
             </p>
             <Button variant="outline" onClick={() => navigate("/dashboard")}>
@@ -87,212 +85,143 @@ export function ScanDetail() {
   }
 
   const daysDiff = daysBetween(scan.start_date, scan.end_date);
+  const isEnded = new Date(scan.end_date) < new Date();
   const lastChecked = scan.last_checked_at
     ? formatRelativeTime(scan.last_checked_at)
-    : "Never";
+    : "Not checked yet";
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto max-w-5xl px-4 py-8">
       <Button
         variant="ghost"
         size="sm"
-        className="mb-4"
+        className="mb-4 -ml-2"
         onClick={() => navigate("/dashboard")}
       >
-        <ChevronLeft className="h-4 w-4 mr-1" />
+        <ChevronLeft className="mr-1 h-4 w-4" />
         Back to Dashboard
       </Button>
 
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">
-          {toTitleCase(
-            scan.destination_name ||
-              scan.campground_name ||
-              scan.recreation_area_name ||
-              "Unknown Campground",
-          )}
-        </h1>
-        {scan.recreation_area_name && scan.campground_name && (
-          <p className="text-muted-foreground mt-1">
-            {toTitleCase(scan.recreation_area_name)}
-          </p>
-        )}
-        {campground?.url && (
-          <a
-            href={campground.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm text-primary hover:underline"
-          >
-            {scan.destination_type === "recreation_area"
-              ? "View recreation area on provider"
-              : "View campground on provider"}
-            <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
-          </a>
-        )}
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <Badge variant={scan.is_active ? "success" : "secondary"}>
-            {scan.is_active ? "Monitoring" : "Paused"}
-          </Badge>
-          <span>
+      {/* Cohesive Scan Header */}
+      <header className="mb-6 rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="break-words text-2xl font-bold sm:text-3xl">
+                {toTitleCase(
+                  scan.destination_name ||
+                    scan.campground_name ||
+                    scan.recreation_area_name ||
+                    "Unknown Campground",
+                )}
+              </h1>
+              <Badge variant={scan.is_active ? "success" : "secondary"}>
+                {scan.is_active ? "Monitoring" : "Paused"}
+              </Badge>
+              {isEnded && <Badge variant="warning">Ended</Badge>}
+            </div>
+
+            {scan.recreation_area_name && scan.campground_name && (
+              <p className="text-sm text-muted-foreground">
+                {toTitleCase(scan.recreation_area_name)}
+              </p>
+            )}
+
+            {campground?.url && (
+              <a
+                href={campground.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-9 items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+              >
+                {scan.destination_type === "recreation_area"
+                  ? "View recreation area on provider"
+                  : "View campground on provider"}
+                <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+              </a>
+            )}
+          </div>
+
+          <div className="shrink-0">
+            <ScanForm scan={scan} />
+          </div>
+        </div>
+
+        {/* Dates, freshness, and saved criteria */}
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 text-foreground">
+            <Calendar
+              aria-hidden="true"
+              className="h-4 w-4 shrink-0 text-muted-foreground"
+            />
             {formatDisplayDate(scan.start_date, false)} –{" "}
-            {formatDisplayDate(scan.end_date, false)}
+            {formatDisplayDate(scan.end_date, false)}{" "}
+            <span className="text-muted-foreground">
+              ({daysDiff} night{daysDiff !== 1 ? "s" : ""})
+            </span>
           </span>
-          <span>· {scan.min_stay_length}+ nights</span>
-          <span>· {formatAllowedWeekdays(scan.allowed_weekdays)}</span>
-          {(scan.preferred_types ?? []).length > 0 && (
-            <span>· {scan.preferred_types.join(", ")}</span>
+          <span className="inline-flex items-center gap-1.5">
+            <Clock aria-hidden="true" className="h-4 w-4 shrink-0" />
+            Last checked: {lastChecked}
+          </span>
+          <span>Created {formatRelativeTime(scan.created_at)}</span>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <Badge variant="secondary">
+            Min {scan.min_stay_length} night
+            {scan.min_stay_length !== 1 ? "s" : ""}
+          </Badge>
+          <Badge variant="secondary">
+            {formatAllowedWeekdays(scan.allowed_weekdays)}
+          </Badge>
+          {scan.require_electric && (
+            <Badge variant="secondary" className="gap-1">
+              <Zap aria-hidden="true" className="h-3 w-3" />
+              Electric required
+            </Badge>
           )}
-          {scan.require_electric && <span>· Electric required</span>}
-          {scan.require_accessible && <span>· ADA accessible</span>}
+          {scan.require_accessible && (
+            <Badge variant="secondary" className="gap-1">
+              <Accessibility aria-hidden="true" className="h-3 w-3" />
+              ADA accessible
+            </Badge>
+          )}
           {scan.min_rv_length != null && (
-            <span>· Min {scan.min_rv_length} ft</span>
+            <Badge variant="secondary">Min {scan.min_rv_length} ft</Badge>
+          )}
+          {(scan.preferred_types ?? []).length > 0 && (
+            <Badge variant="secondary">
+              Types: {(scan.preferred_types ?? []).join(", ")}
+            </Badge>
           )}
         </div>
-      </div>
+      </header>
 
-      <div className="mb-6">
-        <ScanForm scan={scan} />
-        {scan.destination_type === "recreation_area" && (
-          <section aria-label="Campground coverage" className="space-y-2">
-            <p>
-              {scan.coverage_mode === "all"
-                ? "All campgrounds"
-                : "Selected campgrounds"}
-              : {scan.eligible_campground_count} eligible,{" "}
-              {scan.unavailable_selection_count} unavailable.
-            </p>
-            <p>
-              {scan.checked_campground_count} checked,{" "}
-              {scan.pending_campground_count} pending,{" "}
-              {scan.failed_campground_count} failed.{" "}
-              {scan.coverage_status !== "complete" &&
-                "Results may be incomplete; some campgrounds are unchecked or failed."}
-            </p>
-            {scan.campgrounds?.map((member) => (
-              <p
-                key={`${member.provider_id}:${member.campground_id}`}
-                className="text-sm text-muted-foreground"
-              >
-                {member.campground_name}:{" "}
-                {member.eligible ? member.outcome : "Unavailable"}
-                {member.last_checked_at
-                  ? ` · Last successful check ${member.last_checked_at}`
-                  : ""}
-              </p>
-            ))}
-          </section>
-        )}
-      </div>
+      {scan.destination_type === "recreation_area" && (
+        <CoverageSummary scan={scan} />
+      )}
 
-      <div className="grid gap-6">
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            Could not refresh availability. Showing the last loaded results.{" "}
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={isFetching}
-              onClick={() => refetch()}
-            >
-              Try again
-            </Button>
-          </p>
-        )}
-        <FoundCampsites key={scan.id} scan={scan} />
-        {/* Overview */}
-        <details className="group rounded-lg border bg-card text-card-foreground shadow-sm">
-          <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg p-5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-            <ChevronRight
-              aria-hidden="true"
-              className="h-3.5 w-3.5 text-muted-foreground transition-transform group-open:rotate-90"
-            />
-            Scan overview
-            <span className="ml-auto hidden text-xs font-normal text-muted-foreground sm:inline">
-              Dates, preferences & monitoring details
-            </span>
-          </summary>
-          <div className="space-y-4 p-6 pt-0">
-            <div className="flex flex-wrap gap-2">
-              <Badge variant={scan.is_active ? "success" : "secondary"}>
-                {scan.is_active ? "Active" : "Paused"}
-              </Badge>
-              {new Date(scan.end_date) < new Date() && (
-                <Badge variant="warning">Ended</Badge>
-              )}
-            </div>
+      {error && (
+        <div
+          role="alert"
+          className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          <span>
+            Could not refresh availability. Showing the last loaded results.
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isFetching}
+            onClick={() => refetch()}
+          >
+            Try again
+          </Button>
+        </div>
+      )}
 
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span>
-                  <span className="text-muted-foreground">Dates: </span>
-                  {formatDate(scan.start_date)} – {formatDate(scan.end_date)}{" "}
-                  <span className="text-muted-foreground">
-                    ({daysDiff} night{daysDiff !== 1 ? "s" : ""})
-                  </span>
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm">
-                <Activity className="h-4 w-4 text-primary shrink-0" />
-                <span>
-                  <span className="text-muted-foreground">Sites found: </span>
-                  <strong>{scan.found_count}</strong>
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span>
-                  <span className="text-muted-foreground">Last checked: </span>
-                  {lastChecked}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span>
-                  <span className="text-muted-foreground">Created: </span>
-                  {formatRelativeTime(scan.created_at)}
-                </span>
-              </div>
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2 pt-2 border-t">
-              <Badge variant="secondary">
-                {formatAllowedWeekdays(scan.allowed_weekdays)}
-              </Badge>
-              {scan.require_electric && (
-                <Badge variant="secondary" className="gap-1">
-                  <Zap className="h-3 w-3" /> Electric Required
-                </Badge>
-              )}
-              {scan.require_accessible && (
-                <Badge variant="secondary" className="gap-1">
-                  <Accessibility className="h-3 w-3" /> ADA Accessible
-                </Badge>
-              )}
-              {scan.min_rv_length != null && (
-                <Badge variant="secondary">
-                  Min RV: {scan.min_rv_length} ft
-                </Badge>
-              )}
-              {scan.min_stay_length > 1 && (
-                <Badge variant="secondary">
-                  Min {scan.min_stay_length} nights
-                </Badge>
-              )}
-              {(scan.preferred_types ?? []).length > 0 && (
-                <Badge variant="secondary">
-                  Types: {(scan.preferred_types ?? []).join(", ")}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </details>
-      </div>
+      <FoundCampsites key={scan.id} scan={scan} />
     </div>
   );
 }

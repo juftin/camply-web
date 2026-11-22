@@ -1,259 +1,237 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
-  ChevronRight,
-  Clock,
-  ExternalLink,
+  Grid3X3,
+  LayoutList,
   Search,
   Tent,
-  Zap,
+  X,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { AvailabilityCalendar } from "@/components/found-campsites/AvailabilityCalendar";
+import { AvailabilityGrid } from "@/components/found-campsites/AvailabilityGrid";
+import { CampsiteCardList } from "@/components/found-campsites/CampsiteCardList";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { ScanDetailResponse, ScanResultItem } from "@/lib/structs";
 import {
-  addDays,
-  formatDisplayDate,
-  formatRelativeTime,
-  parseIsoDate,
-} from "@/lib/utils";
+  SITES_PER_PAGE,
+  applyCalendarDayClick,
+  clampMonth,
+  filterAndSortSites,
+  filterSitesBySearch,
+  formatDateSelectionSummary,
+  getCalendarMonthBounds,
+  getInitialCalendarMonth,
+  normalizeFoundSites,
+  type DateSelection,
+  type FoundSortMode,
+  type FoundViewMode,
+  type MonthRef,
+} from "@/lib/availability";
+import type { ScanDetailResponse } from "@/lib/structs";
+import { cn } from "@/lib/utils";
 
-const SITES_PER_PAGE = 5;
-
-/** A maximal consecutive opening, with an exclusive check-out date. */
-interface AvailableStay {
-  start: string;
-  end: string;
-  nights: number;
+export interface FoundCampsitesProps {
+  scan: ScanDetailResponse;
 }
 
-/** Turn available nights into distinct check-in/check-out blocks. */
-function availableStays(dates: string[]): AvailableStay[] {
-  const blocks: AvailableStay[] = [];
-  for (const date of [...new Set(dates)].sort()) {
-    const previous = blocks[blocks.length - 1];
-    if (previous?.end === date) {
-      previous.end = addDays(date, 1);
-      previous.nights += 1;
-    } else {
-      blocks.push({ start: date, end: addDays(date, 1), nights: 1 });
-    }
-  }
-  return blocks;
-}
-
-/** Use compact weekdays; include years when a stay crosses New Year's Day. */
-function stayDate(date: string, includeYear: boolean): string {
-  return parseIsoDate(date).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    ...(includeYear ? { year: "numeric" } : {}),
-  });
-}
-
-/** Bound each date group's site list while retaining native expansion state. */
-const CampsiteDateGroup = ({
-  group,
-  expanded,
-}: {
-  group: AvailableStay & { sites: ScanResultItem[] };
-  expanded: boolean;
-}) => {
-  const [page, setPage] = useState(0);
-  const pageCount = Math.max(1, Math.ceil(group.sites.length / SITES_PER_PAGE));
-  const currentPage = Math.min(page, pageCount - 1);
-  const sites = group.sites.slice(
-    currentPage * SITES_PER_PAGE,
-    (currentPage + 1) * SITES_PER_PAGE,
-  );
-  useEffect(() => {
-    setPage((previous) => Math.min(previous, pageCount - 1));
-  }, [pageCount]);
-  const includeYear = group.start.slice(0, 4) !== group.end.slice(0, 4);
-  return (
-    <details
-      key={`${group.start}/${group.end}`}
-      open={expanded}
-      aria-label={`${formatDisplayDate(group.start, false)} – ${formatDisplayDate(group.end, false)}`}
-      className="group border-t"
-    >
-      <summary className="flex cursor-pointer list-none items-start gap-2 bg-muted/40 px-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:items-center sm:gap-3 sm:px-6 [&::-webkit-details-marker]:hidden">
-        <ChevronRight
-          aria-hidden="true"
-          className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90 sm:mt-0"
-        />
-        <div className="grid min-w-0 grid-cols-[auto_auto_auto] items-start gap-x-1.5 text-xs sm:gap-x-2 sm:text-sm">
-          <div>
-            <time dateTime={group.start} className="font-semibold">
-              {stayDate(group.start, includeYear)}
-            </time>
-            <p className="mt-1 text-[10px] text-muted-foreground sm:text-xs">
-              Check-in
-            </p>
-          </div>
-          <span aria-hidden="true" className="text-muted-foreground">
-            →
-          </span>
-          <div>
-            <time dateTime={group.end} className="font-semibold">
-              {stayDate(group.end, includeYear)}
-            </time>
-            <p className="mt-1 text-[10px] text-muted-foreground sm:text-xs">
-              Check-out
-            </p>
-          </div>
-        </div>
-        <div className="ml-auto flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
-          <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-            {group.nights} night{group.nights !== 1 ? "s" : ""}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {group.sites.length} site
-            {group.sites.length !== 1 ? "s" : ""}
-          </span>
-        </div>
-      </summary>
-      <ul className="divide-y pl-9 pr-4 sm:pl-12 sm:pr-6">
-        {sites.map((site) => {
-          const name = site.campsite_name || `Campsite ${site.campsite_id}`;
-          return (
-            <li
-              key={`${site.provider_id}:${site.campground_id}:${site.campsite_id}`}
-              className="flex items-center justify-between gap-2 py-2"
-            >
-              <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-6">
-                <h3 className="min-w-20 break-words text-sm font-semibold">
-                  {site.campground_name && (
-                    <span className="block text-xs text-muted-foreground">
-                      {site.campground_name}
-                      {site.is_stale ? " · Stale observation" : ""}
-                    </span>
-                  )}
-                  {name}
-                </h3>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                  {site.campsite_type && <span>{site.campsite_type}</span>}
-                  {site.is_electric && (
-                    <span className="inline-flex items-center gap-1">
-                      <Zap aria-hidden="true" className="h-3 w-3" />
-                      Electric hookup
-                    </span>
-                  )}
-                  {site.is_accessible && <span>Accessible</span>}
-                  {site.max_vehicle_length != null && (
-                    <span>Up to {site.max_vehicle_length} ft</span>
-                  )}
-                  {(site.permitted_equipment ?? []).length > 0 && (
-                    <span>{site.permitted_equipment!.join(", ")}</span>
-                  )}
-                </div>
-              </div>
-              {site.booking_url && (
-                <a
-                  href={site.booking_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`View ${name} on provider website${site.campground_name ? ` (${site.campground_name})` : ""}`}
-                  className="inline-flex min-h-11 shrink-0 items-center gap-1 pl-2 text-xs font-medium text-primary hover:underline"
-                >
-                  View on provider
-                  <ExternalLink aria-hidden="true" className="h-3 w-3" />
-                </a>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-
-      {pageCount > 1 && (
-        <nav
-          aria-label="Campsite pages"
-          className="flex flex-wrap items-center justify-between gap-2 px-4 pb-3 sm:px-6"
-        >
-          <Button
-            variant="outline"
-            size="sm"
-            aria-label="Previous campsites"
-            disabled={currentPage === 0}
-            onClick={() => setPage(currentPage - 1)}
-          >
-            Previous
-          </Button>
-          <span role="status" className="text-xs text-muted-foreground">
-            {currentPage * SITES_PER_PAGE + 1}–
-            {Math.min((currentPage + 1) * SITES_PER_PAGE, group.sites.length)}{" "}
-            of {group.sites.length} sites
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            aria-label="Next campsites"
-            disabled={currentPage === pageCount - 1}
-            onClick={() => setPage(currentPage + 1)}
-          >
-            Next
-          </Button>
-        </nav>
-      )}
-    </details>
-  );
-};
-
-/** Browse matching campsites under their shared check-in/check-out ranges. */
-export const FoundCampsites = ({ scan }: { scan: ScanDetailResponse }) => {
+/** Visual-first campsite results with interactive calendar, deduplicated cards, and grid view. */
+export const FoundCampsites = ({ scan }: FoundCampsitesProps) => {
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState("soonest");
+  const [sort, setSort] = useState<FoundSortMode>("soonest");
+  const [viewMode, setViewMode] = useState<FoundViewMode>("cards");
+  const [dateSelection, setDateSelection] = useState<DateSelection>(null);
+  const [page, setPage] = useState(0);
+
   const section = useRef<HTMLElement>(null);
   const { hash } = useLocation();
   useEffect(() => {
-    if (hash === "#results")
+    if (hash === "#results") {
       section.current?.scrollIntoView?.({ block: "start" });
+    }
   }, [hash]);
 
-  const groups = new Map<string, AvailableStay & { sites: ScanResultItem[] }>();
-  for (const site of scan.results ?? []) {
-    for (const stay of availableStays(site.available_dates)) {
-      if (stay.nights < scan.min_stay_length) continue;
-      const key = `${stay.start}/${stay.end}`;
-      const group = groups.get(key);
-      if (group) group.sites.push(site);
-      else groups.set(key, { ...stay, sites: [site] });
+  const allSites = useMemo(
+    () => normalizeFoundSites(scan.results ?? [], scan.min_stay_length),
+    [scan.results, scan.min_stay_length],
+  );
+
+  const isMultiCampground = useMemo(() => {
+    if (scan.destination_type === "recreation_area") return true;
+    const ids = new Set(allSites.map((s) => s.campgroundId).filter(Boolean));
+    return ids.size > 1;
+  }, [scan.destination_type, allSites]);
+
+  const monthBounds = useMemo(
+    () => getCalendarMonthBounds(scan.start_date, scan.end_date),
+    [scan.start_date, scan.end_date],
+  );
+
+  const [visibleMonth, setVisibleMonth] = useState<MonthRef>(() =>
+    getInitialCalendarMonth(allSites, scan.start_date),
+  );
+  const [hasUserNavigatedMonth, setHasUserNavigatedMonth] = useState(false);
+
+  // Anchor to the soonest opening month on first results arrival unless the user already navigated.
+  useEffect(() => {
+    if (!hasUserNavigatedMonth && allSites.length > 0) {
+      setVisibleMonth(getInitialCalendarMonth(allSites, scan.start_date));
     }
-  }
-  const normalizedQuery = query.trim().toLowerCase();
-  const visible = [...groups.values()]
-    .map((group) => ({
-      ...group,
-      sites: group.sites.filter((site) =>
-        `${site.campground_name ?? ""} ${site.campsite_name} ${site.campsite_id} ${site.campsite_type ?? ""}`
-          .toLowerCase()
-          .includes(normalizedQuery),
-      ),
-    }))
-    .filter((group) => group.sites.length > 0)
-    .sort(
-      (a, b) =>
-        (sort === "longest" ? b.nights - a.nights : 0) ||
-        a.start.localeCompare(b.start) ||
-        a.end.localeCompare(b.end),
+  }, [allSites, hasUserNavigatedMonth, scan.start_date]);
+
+  // Clamp visible month and clear out-of-window date selection if scan dates are edited.
+  useEffect(() => {
+    setVisibleMonth((previous) =>
+      clampMonth(previous, monthBounds.min, monthBounds.max),
     );
-  const siteCount = new Set(
-    visible.flatMap((group) =>
-      group.sites.map(
-        (site) =>
-          `${site.provider_id}:${site.campground_id}:${site.campsite_id}`,
+    setDateSelection((previous) => {
+      if (!previous) return null;
+      const startValid =
+        previous.start >= scan.start_date && previous.start < scan.end_date;
+      const endValid =
+        previous.end === null ||
+        (previous.end > previous.start && previous.end <= scan.end_date);
+      return startValid && endValid ? previous : null;
+    });
+  }, [monthBounds.min, monthBounds.max, scan.start_date, scan.end_date]);
+
+  const soonestOpeningDate = useMemo(() => {
+    let soonest: string | null = null;
+    for (const s of allSites) {
+      if (soonest === null || s.soonestCheckIn < soonest) {
+        soonest = s.soonestCheckIn;
+      }
+    }
+    return soonest ?? scan.start_date;
+  }, [allSites, scan.start_date]);
+
+  const [gridStartDate, setGridStartDate] = useState<string>(
+    () => soonestOpeningDate,
+  );
+  const [hasUserNavigatedGrid, setHasUserNavigatedGrid] = useState(false);
+
+  // Re-anchor grid start to the soonest opening when initial results arrive or scan dates shift.
+  useEffect(() => {
+    if (!hasUserNavigatedGrid && !dateSelection) {
+      setGridStartDate(soonestOpeningDate);
+    } else if (
+      gridStartDate < scan.start_date ||
+      gridStartDate >= scan.end_date
+    ) {
+      setHasUserNavigatedGrid(false);
+      setGridStartDate(soonestOpeningDate);
+    }
+  }, [
+    soonestOpeningDate,
+    hasUserNavigatedGrid,
+    dateSelection,
+    gridStartDate,
+    scan.start_date,
+    scan.end_date,
+  ]);
+
+  // Search-filtered sites drive calendar day counts so search immediately highlights matching dates.
+  const searchFilteredSites = useMemo(
+    () => filterSitesBySearch(allSites, query),
+    [allSites, query],
+  );
+
+  const visibleItems = useMemo(
+    () =>
+      filterAndSortSites(
+        allSites,
+        query,
+        dateSelection,
+        sort,
+        isMultiCampground,
       ),
-    ),
-  ).size;
+    [allSites, query, dateSelection, sort, isMultiCampground],
+  );
+
+  const openingCount = useMemo(
+    () =>
+      visibleItems.reduce((sum, entry) => sum + entry.matchingStays.length, 0),
+    [visibleItems],
+  );
+
+  const pageCount = Math.max(
+    1,
+    Math.ceil(visibleItems.length / SITES_PER_PAGE),
+  );
+  const currentPage = Math.min(page, pageCount - 1);
+  const pagedItems = useMemo(
+    () =>
+      visibleItems.slice(
+        currentPage * SITES_PER_PAGE,
+        (currentPage + 1) * SITES_PER_PAGE,
+      ),
+    [visibleItems, currentPage],
+  );
+
+  useEffect(() => {
+    setPage((previous) => Math.min(previous, pageCount - 1));
+  }, [pageCount]);
+
+  const handleSelectCalendarDate = (isoDate: string) => {
+    const next = applyCalendarDayClick(
+      dateSelection,
+      isoDate,
+      scan.start_date,
+      scan.end_date,
+    );
+    setDateSelection(next);
+    setPage(0);
+    if (next) {
+      setGridStartDate(next.start);
+    }
+  };
+
+  const handleClearDates = () => {
+    setDateSelection(null);
+    setPage(0);
+  };
+
+  const handleQueryChange = (nextQuery: string) => {
+    setQuery(nextQuery);
+    setPage(0);
+  };
+
+  const handleSortChange = (nextSort: FoundSortMode) => {
+    setSort(nextSort);
+    setPage(0);
+  };
+
+  const handleClearAllFilters = () => {
+    setQuery("");
+    setDateSelection(null);
+    setPage(0);
+  };
+
+  const handleMonthChange = (next: MonthRef) => {
+    setHasUserNavigatedMonth(true);
+    setVisibleMonth(clampMonth(next, monthBounds.min, monthBounds.max));
+  };
+
+  const handleGridWindowStartChange = (nextStart: string) => {
+    setHasUserNavigatedGrid(true);
+    setGridStartDate(nextStart);
+  };
+
+  const handleViewChange = (nextMode: FoundViewMode) => {
+    setViewMode(nextMode);
+    if (nextMode === "grid" && dateSelection) {
+      setGridStartDate(dateSelection.start);
+    }
+  };
+
+  const includeYearByDefault =
+    scan.start_date.slice(0, 4) !== scan.end_date.slice(0, 4);
+  const hasSearch = query.trim().length > 0;
+  const hasDateFilter = dateSelection !== null;
+  const isPartialAreaEmpty =
+    scan.destination_type === "recreation_area" &&
+    scan.coverage_status !== "complete";
 
   return (
     <section
@@ -263,115 +241,288 @@ export const FoundCampsites = ({ scan }: { scan: ScanDetailResponse }) => {
       className="scroll-mt-24"
     >
       <Card className="overflow-hidden">
-        <CardHeader>
+        <CardHeader className="space-y-3 border-b pb-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle id="found-campsites-heading">Found campsites</CardTitle>
+            <CardTitle id="found-campsites-heading" className="text-xl">
+              Found campsites
+            </CardTitle>
             <p role="status" className="text-sm text-muted-foreground">
-              {siteCount} site{siteCount !== 1 ? "s" : ""} · {visible.length}{" "}
-              date range{visible.length !== 1 ? "s" : ""}
+              {visibleItems.length} site{visibleItems.length !== 1 ? "s" : ""} ·{" "}
+              {openingCount} opening{openingCount !== 1 ? "s" : ""}
             </p>
           </div>
-          <CardDescription className="flex items-center gap-1.5">
-            <Clock aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-            {scan.last_checked_at
-              ? `Last checked ${formatRelativeTime(scan.last_checked_at)}`
-              : "Your scan is ready to check for openings."}
-          </CardDescription>
-          <p className="text-sm text-muted-foreground">
-            Confirm availability, minimum and maximum stay rules, and vehicle
-            length restrictions with the booking provider before making a
-            reservation.
-          </p>
-          {!scan.is_active && groups.size > 0 && (
-            <p className="text-sm text-muted-foreground">
+
+          {!scan.is_active && allSites.length > 0 && (
+            <p className="rounded-md border border-amber-500/30 bg-amber-50/70 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
               This scan is paused; availability is not being refreshed.
             </p>
           )}
-          {groups.size > 0 && (
-            <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="relative w-full sm:max-w-xs">
+
+          {allSites.length > 0 && (
+            <div className="flex flex-col gap-3 pt-1 md:flex-row md:items-center md:justify-between">
+              <div className="relative w-full md:max-w-xs">
                 <Search
                   aria-hidden="true"
-                  className="absolute left-3 top-3 h-4 w-4 text-muted-foreground"
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
                 />
                 <Input
                   type="search"
                   aria-label="Search found campsites"
-                  placeholder="Search sites or campsite types"
+                  placeholder={
+                    isMultiCampground
+                      ? "Search sites, types, or campgrounds"
+                      : "Search sites or campsite types"
+                  }
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => handleQueryChange(event.target.value)}
                   className="pl-9"
                 />
               </div>
-              <label className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                Sort by
-                <span className="relative">
-                  <select
-                    aria-label="Sort date groups"
-                    value={sort}
-                    onChange={(event) => setSort(event.target.value)}
-                    className="h-10 w-44 appearance-none rounded-md border bg-background pl-3 pr-9 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+
+              <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="sr-only sm:not-sr-only">Sort</span>
+                  <span className="relative">
+                    <select
+                      aria-label="Sort campsites"
+                      value={sort}
+                      onChange={(event) =>
+                        handleSortChange(event.target.value as FoundSortMode)
+                      }
+                      className="h-9 w-44 appearance-none rounded-md border bg-background pl-3 pr-8 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="soonest">Soonest opening</option>
+                      <option value="longest">Longest stay</option>
+                      <option value="most_nights">Most available nights</option>
+                      <option value="name">Site name</option>
+                    </select>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                    />
+                  </span>
+                </label>
+
+                <div
+                  role="group"
+                  aria-label="Results view"
+                  className="inline-flex rounded-md border bg-muted/40 p-0.5"
+                >
+                  <button
+                    type="button"
+                    aria-pressed={viewMode === "cards"}
+                    onClick={() => handleViewChange("cards")}
+                    className={cn(
+                      "inline-flex h-8 items-center gap-1.5 rounded-sm px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      viewMode === "cards"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
                   >
-                    <option value="soonest">Soonest check-in</option>
-                    <option value="longest">Longest stay</option>
-                  </select>
-                  <ChevronDown
-                    aria-hidden="true"
-                    className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground"
-                  />
-                </span>
-              </label>
+                    <LayoutList aria-hidden="true" className="h-3.5 w-3.5" />
+                    Cards
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={viewMode === "grid"}
+                    onClick={() => handleViewChange("grid")}
+                    className={cn(
+                      "inline-flex h-8 items-center gap-1.5 rounded-sm px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      viewMode === "grid"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Grid3X3 aria-hidden="true" className="h-3.5 w-3.5" />
+                    Grid
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </CardHeader>
-        <CardContent className="p-0">
-          {groups.size === 0 ? (
-            <div className="mx-6 mb-6 rounded-lg border border-dashed p-8 text-center">
+
+        <CardContent className="p-4 sm:p-6">
+          {allSites.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-8 text-center">
               <Tent
                 aria-hidden="true"
                 className="mx-auto mb-3 h-8 w-8 text-muted-foreground"
               />
               <p className="font-medium">
-                {scan.last_checked_at
-                  ? "No matching campsites right now"
-                  : "Waiting for the first check"}
+                {!scan.last_checked_at
+                  ? "Waiting for the first check"
+                  : isPartialAreaEmpty
+                    ? "No matching campsites in checked campgrounds yet"
+                    : "No matching campsites right now"}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                {scan.is_active
-                  ? "Camply will notify you when new openings match your scan."
-                  : "This scan is paused. Resume it from your dashboard to check for new openings."}
+                {!scan.is_active
+                  ? "This scan is paused. Resume it from your dashboard to check for new openings."
+                  : isPartialAreaEmpty && scan.last_checked_at
+                    ? "Some campgrounds in this area are still pending or failed; Camply will notify you when openings match."
+                    : "Camply will notify you when new openings match your scan."}
               </p>
             </div>
-          ) : (
-            <>
-              {visible.map((group, index) => (
-                <CampsiteDateGroup
-                  key={`${group.start}/${group.end}/${normalizedQuery}`}
-                  group={group}
-                  expanded={normalizedQuery !== "" || index < 2}
+          ) : viewMode === "cards" ? (
+            <div className="grid gap-6 lg:grid-cols-[310px_minmax(0,1fr)] lg:items-start">
+              <div className="lg:sticky lg:top-20">
+                <AvailabilityCalendar
+                  scanStartDate={scan.start_date}
+                  scanEndDate={scan.end_date}
+                  sites={searchFilteredSites}
+                  visibleMonth={visibleMonth}
+                  onVisibleMonthChange={handleMonthChange}
+                  selection={dateSelection}
+                  onSelectDate={handleSelectCalendarDate}
+                  onClearSelection={handleClearDates}
                 />
-              ))}
-              {visible.length === 0 && (
-                <div className="px-6 py-8 text-center">
-                  <p className="text-muted-foreground">
-                    No campsites match your search.
-                  </p>
+              </div>
+
+              <div className="min-w-0">
+                {visibleItems.length > 0 ? (
+                  <CampsiteCardList
+                    items={pagedItems}
+                    totalMatchingSites={visibleItems.length}
+                    page={currentPage}
+                    pageCount={pageCount}
+                    onPageChange={setPage}
+                    isMultiCampground={isMultiCampground}
+                    scanCampgroundName={scan.campground_name}
+                    hasDateSelection={hasDateFilter}
+                    includeYearByDefault={includeYearByDefault}
+                  />
+                ) : (
+                  <div className="rounded-lg border border-dashed p-8 text-center">
+                    <p className="font-medium">
+                      {hasSearch && hasDateFilter
+                        ? "No campsites match your search and selected dates."
+                        : hasDateFilter
+                          ? "No campsites are continuously available for the selected dates."
+                          : "No campsites match your search."}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                      {hasSearch && hasDateFilter ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleClearAllFilters}
+                        >
+                          Clear filters
+                        </Button>
+                      ) : hasDateFilter ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleClearDates}
+                        >
+                          Clear dates
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleQueryChange("")}
+                        >
+                          Clear search
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {dateSelection && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs">
+                  <span>
+                    Filtered dates:{" "}
+                    <strong className="font-semibold text-foreground">
+                      {formatDateSelectionSummary(dateSelection)}
+                    </strong>
+                  </span>
                   <Button
+                    type="button"
                     variant="ghost"
-                    onClick={() => setQuery("")}
-                    className="mt-2"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={handleClearDates}
                   >
-                    Clear search
+                    <X aria-hidden="true" className="mr-1 h-3 w-3" />
+                    Clear dates
                   </Button>
                 </div>
               )}
-            </>
+
+              {visibleItems.length > 0 ? (
+                <AvailabilityGrid
+                  scanStartDate={scan.start_date}
+                  scanEndDate={scan.end_date}
+                  items={pagedItems}
+                  totalMatchingSites={visibleItems.length}
+                  page={currentPage}
+                  pageCount={pageCount}
+                  onPageChange={setPage}
+                  isMultiCampground={isMultiCampground}
+                  dateSelection={dateSelection}
+                  windowStartDate={gridStartDate}
+                  onWindowStartChange={handleGridWindowStartChange}
+                  includeYearByDefault={includeYearByDefault}
+                />
+              ) : (
+                <div className="rounded-lg border border-dashed p-8 text-center">
+                  <p className="font-medium">
+                    {hasSearch && hasDateFilter
+                      ? "No campsites match your search and selected dates."
+                      : hasDateFilter
+                        ? "No campsites are continuously available for the selected dates."
+                        : "No campsites match your search."}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                    {hasSearch && hasDateFilter ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearAllFilters}
+                      >
+                        Clear filters
+                      </Button>
+                    ) : hasDateFilter ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearDates}
+                      >
+                        Clear dates
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleQueryChange("")}
+                      >
+                        Clear search
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
-          <p className="border-t px-6 py-4 text-xs text-muted-foreground">
-            Dates show check-in → check-out. Availability can change; confirm
-            your dates with the booking provider.
-          </p>
         </CardContent>
+
+        <p className="border-t bg-muted/20 px-4 py-3 text-xs text-muted-foreground sm:px-6">
+          Dates show check-in → check-out. Availability can change quickly;
+          confirm stay rules and vehicle length limits with the booking provider
+          before reserving.
+        </p>
       </Card>
     </section>
   );

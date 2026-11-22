@@ -61,8 +61,10 @@ try {
   await expect(
     page.getByRole("region", { name: "Campground coverage" }),
   ).toBeVisible();
-  await expect(page.getByText("Synthetic Ridge").first()).toBeVisible();
-  await expect(page.getByText("Synthetic Cove").first()).toBeVisible();
+  const results = page.getByRole("region", { name: "Found campsites" });
+  await expect(results).toBeVisible();
+  await expect(results.getByText("Synthetic Ridge").first()).toBeVisible();
+  await expect(results.getByText("Synthetic Cove").first()).toBeVisible();
   expect(errors).toEqual([]);
 } finally {
   await browser.close();

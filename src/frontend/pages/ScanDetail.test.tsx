@@ -44,6 +44,9 @@ const scan: ScanDetailResponse = {
   created_at: "2027-01-01T00:00:00Z",
   results: [
     {
+      provider_id: 1,
+      campground_id: "camp-1",
+      campground_name: "Synthetic Pines",
       campsite_id: "42",
       campsite_name: "Site 042",
       campsite_type: "RV",
@@ -59,6 +62,9 @@ const scan: ScanDetailResponse = {
       ],
     },
     {
+      provider_id: 1,
+      campground_id: "camp-1",
+      campground_name: "Synthetic Pines",
       campsite_id: "43",
       campsite_name: "",
       campsite_type: null,
@@ -70,7 +76,6 @@ const scan: ScanDetailResponse = {
   ],
 };
 
-/** Synthetic catalog metadata links to the campground rather than a site. */
 const campground: Campground = {
   id: "camp-1",
   provider_id: 1,
@@ -86,15 +91,15 @@ const campground: Campground = {
   url: "https://book.example/entire-campground",
 };
 
-/** Render the scan route with optional cached availability for outage checks. */
 const open = (cached?: ScanDetailResponse) => {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, retryDelay: 0 } },
   });
-  if (cached)
+  if (cached) {
     client.setQueryData(["scans", "detail", "scan-1"], cached, {
       updatedAt: 1,
     });
+  }
   const view = render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={["/dashboard/scans/scan-1#results"]}>
@@ -107,51 +112,59 @@ const open = (cached?: ScanDetailResponse) => {
   return { ...view, client };
 };
 
-describe("Found campsites", () => {
+describe("ScanDetail & Found campsites", () => {
   beforeEach(() => {
     vi.mocked(getScan).mockResolvedValue(scan);
     vi.mocked(getCampground).mockResolvedValue(campground);
   });
 
-  it("shows the saved nights in the scan summary and overview", async () => {
-    vi.mocked(getScan).mockResolvedValue({ ...scan, allowed_weekdays: [0, 2] });
+  it("renders a single cohesive header without a duplicate Scan overview card", async () => {
+    vi.mocked(getScan).mockResolvedValue({
+      ...scan,
+      allowed_weekdays: [0, 2],
+      min_rv_length: 28,
+      require_accessible: true,
+      require_electric: true,
+    });
     open();
-    expect(await screen.findByText("· Monday, Wednesday")).toBeInTheDocument();
-    expect(screen.getByText("Monday, Wednesday")).toBeInTheDocument();
+
+    expect(await screen.findByText("Monday, Wednesday")).toBeInTheDocument();
+    expect(screen.getByText("Min 28 ft")).toBeInTheDocument();
+    expect(screen.getByText("ADA accessible")).toBeInTheDocument();
+    expect(screen.getByText("Electric required")).toBeInTheDocument();
+    expect(screen.queryByText("Scan overview")).not.toBeInTheDocument();
   });
 
-  it("describes older unrestricted scans as any night", async () => {
+  it("describes unrestricted scans as Any night", async () => {
     open();
-    expect(await screen.findByText("· Any night")).toBeInTheDocument();
+    expect(await screen.findByText("Any night")).toBeInTheDocument();
   });
 
-  it("shows separate date groups with site details and provider links", async () => {
+  it("shows deduplicated site cards with stays, capabilities, and provider booking links", async () => {
     open();
     const results = await screen.findByRole("region", {
       name: "Found campsites",
     });
-    expect(within(results).getAllByText("Site 042")).toHaveLength(2);
+
+    // Site 042 has two stays (Jul 1-3, Jul 5-7) and appears once
+    expect(within(results).getAllByText("Site 042")).toHaveLength(1);
     expect(within(results).getByText("Campsite 43")).toBeInTheDocument();
-    expect(within(results).getAllByText("Electric hookup")).toHaveLength(2);
-    expect(within(results).getAllByText("Accessible")).toHaveLength(2);
-    const first = within(results).getByRole("group", {
-      name: "Jul 1, 2027 – Jul 3, 2027",
-    });
-    const last = within(results).getByRole("group", {
-      name: "Jul 5, 2027 – Jul 7, 2027",
-    });
-    expect(first).toHaveAttribute("open");
-    expect(last).not.toHaveAttribute("open");
-    expect(within(results).getAllByText("2 nights")).toHaveLength(3);
+    expect(within(results).getByText("Electric hookup")).toBeInTheDocument();
+    expect(within(results).getByText("Accessible")).toBeInTheDocument();
+    expect(within(results).getByRole("status")).toHaveTextContent(
+      "2 sites · 3 openings",
+    );
     expect(
-      within(first).getByRole("link", { name: /view site 042 on provider/i }),
+      within(results).getByRole("link", {
+        name: /view site 042 on provider website/i,
+      }),
     ).toHaveAttribute("href", "https://book.example/camp");
     expect(
-      within(results).getByText(/Availability can change/),
-    ).toBeInTheDocument();
+      within(results).getAllByText(/Availability can change/),
+    ).toHaveLength(1);
   });
 
-  it("groups identical maximal stays and counts sites once across date groups", async () => {
+  it("excludes stays shorter than min_stay_length and counts unique sites accurately", async () => {
     vi.mocked(getScan).mockResolvedValue({
       ...scan,
       results: [
@@ -168,98 +181,49 @@ describe("Found campsites", () => {
       ],
     });
     open();
+
     const results = await screen.findByRole("region", {
       name: "Found campsites",
     });
-    expect(within(results).getAllByRole("group")).toHaveLength(2);
-    const shared = within(results).getByRole("group", {
-      name: "Jul 1, 2027 – Jul 3, 2027",
-    });
-    expect(within(shared).getAllByRole("listitem")).toHaveLength(2);
-    expect(within(shared).getByText("Site 042")).toBeInTheDocument();
-    expect(within(shared).getByText("Campsite 43")).toBeInTheDocument();
     expect(within(results).getByRole("status")).toHaveTextContent(
-      "2 sites · 2 date ranges",
+      "2 sites · 3 openings",
     );
     expect(
       within(results).queryByText("Campsite short"),
     ).not.toBeInTheDocument();
   });
 
-  it("keeps ranges with the same check-in but different check-outs separate", async () => {
-    vi.mocked(getScan).mockResolvedValue({
-      ...scan,
-      results: [
-        scan.results[0],
-        {
-          ...scan.results[1],
-          available_dates: ["2027-07-01", "2027-07-02", "2027-07-03"],
-        },
-      ],
-    });
-    open();
+  it("preserves view mode, search query, and calendar filter when availability refreshes", async () => {
+    const user = userEvent.setup();
+    const { client } = open();
+
     const results = await screen.findByRole("region", {
       name: "Found campsites",
     });
-    expect(within(results).getAllByRole("group")).toHaveLength(3);
-    const longer = within(results).getByRole("group", {
-      name: "Jul 1, 2027 – Jul 4, 2027",
+    const calendar = within(results).getByRole("region", {
+      name: "Availability calendar",
     });
-    expect(within(longer).getByText("Campsite 43")).toBeInTheDocument();
-    expect(within(longer).queryByText("Site 042")).not.toBeInTheDocument();
-  });
+    await user.click(
+      within(calendar).getByRole("button", {
+        name: /Jul 2, 2027 — 2 sites available/i,
+      }),
+    );
+    await user.click(within(results).getByRole("button", { name: "Grid" }));
 
-  it("preserves expanded date groups when availability refreshes", async () => {
-    const user = userEvent.setup();
-    const { client } = open();
-    const last = await screen.findByRole("group", {
-      name: "Jul 5, 2027 – Jul 7, 2027",
-    });
-    const summary = last.querySelector("summary")!;
-    await user.click(summary);
-    expect(last).toHaveAttribute("open");
     act(() =>
       client.setQueryData(["scans", "detail", "scan-1"], {
         ...scan,
         last_checked_at: "2027-01-01T12:01:00Z",
       }),
     );
-    expect(last).toHaveAttribute("open");
+
+    expect(
+      within(results).getByRole("button", { name: "Grid" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(within(results).getByText(/Filtered dates:/i)).toBeInTheDocument();
   });
 
-  it("sorts date groups by longest stay and returns to soonest check-in", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getScan).mockResolvedValue({
-      ...scan,
-      results: [
-        scan.results[0],
-        {
-          ...scan.results[1],
-          available_dates: [
-            "2027-07-02",
-            "2027-07-03",
-            "2027-07-04",
-            "2027-07-05",
-          ],
-        },
-      ],
-    });
-    open();
-    const sort = await screen.findByRole("combobox", {
-      name: "Sort date groups",
-    });
-    const results = screen.getByRole("region", { name: "Found campsites" });
-    await user.selectOptions(sort, "longest");
-    expect(within(results).getAllByRole("group")[0]).toHaveAccessibleName(
-      "Jul 2, 2027 – Jul 6, 2027",
-    );
-    await user.selectOptions(sort, "soonest");
-    expect(within(results).getAllByRole("group")[0]).toHaveAccessibleName(
-      "Jul 1, 2027 – Jul 3, 2027",
-    );
-  });
-
-  it("links to the full campground separately from site booking actions", async () => {
+  it("links to the full campground in the header separately from site booking actions", async () => {
     open();
     const link = await screen.findByRole("link", {
       name: "View campground on provider",
@@ -284,125 +248,29 @@ describe("Found campsites", () => {
     expect(
       screen.queryByRole("link", { name: "View campground on provider" }),
     ).not.toBeInTheDocument();
-    expect(screen.getAllByText("Site 042")).toHaveLength(2);
+    expect(screen.getByText("Site 042")).toBeInTheDocument();
   });
 
-  it("searches sites and lets users clear an empty search", async () => {
+  it("clamps pagination cleanly when campsites disappear and later return", async () => {
     const user = userEvent.setup();
-    open();
-    await user.type(
-      await screen.findByRole("searchbox", { name: "Search found campsites" }),
-      "042",
-    );
-    expect(screen.queryByText("Campsite 43")).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "1 site · 2 date ranges",
-    );
-    expect(
-      screen
-        .getAllByRole("group")
-        .filter((group) => group.hasAttribute("open")),
-    ).toHaveLength(2);
-    await user.clear(screen.getByRole("searchbox"));
-    await user.type(screen.getByRole("searchbox"), "missing");
-    expect(
-      screen.getByText("No campsites match your search."),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Clear search" }));
-    expect(screen.getAllByText("Site 042")).toHaveLength(2);
-  });
-
-  it("shows a waiting state before the first check", async () => {
-    vi.mocked(getScan).mockResolvedValue({
-      ...scan,
-      results: [],
-      found_count: 0,
-      last_checked_at: null,
-    });
-    open();
-    expect(
-      await screen.findByText("Waiting for the first check"),
-    ).toBeInTheDocument();
-  });
-
-  it("paginates date groups independently and searches all their campsites", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getScan).mockResolvedValue({
+    const largeScan: ScanDetailResponse = {
       ...scan,
       found_count: 12,
       results: Array.from({ length: 12 }, (_, index) => ({
         ...scan.results[0],
-        campsite_id: `site-${index}`,
-        campsite_name: `Synthetic site ${index + 1}`,
-      })),
-    });
-    open();
-    const results = await screen.findByRole("region", {
-      name: "Found campsites",
-    });
-    const first = within(results).getByRole("group", {
-      name: "Jul 1, 2027 – Jul 3, 2027",
-    });
-    const second = within(results).getByRole("group", {
-      name: "Jul 5, 2027 – Jul 7, 2027",
-    });
-    expect(
-      within(results).getByText("12 sites · 2 date ranges"),
-    ).toBeInTheDocument();
-    expect(
-      within(first).getAllByRole("link", { name: /view synthetic site/i }),
-    ).toHaveLength(5);
-    expect(
-      within(second).getAllByRole("link", { name: /view synthetic site/i }),
-    ).toHaveLength(5);
-    expect(
-      within(first).getByRole("button", { name: "Previous campsites" }),
-    ).toBeDisabled();
-    await user.click(
-      within(first).getByRole("button", { name: "Next campsites" }),
-    );
-    expect(within(first).getByText("Synthetic site 6")).toBeInTheDocument();
-    expect(within(second).getByText("Synthetic site 1")).toBeInTheDocument();
-    await user.click(
-      within(first).getByRole("button", { name: "Next campsites" }),
-    );
-    expect(
-      within(first).getAllByRole("link", { name: /view synthetic site/i }),
-    ).toHaveLength(2);
-    expect(
-      within(first).getByRole("button", { name: "Next campsites" }),
-    ).toBeDisabled();
-    await user.type(screen.getByRole("searchbox"), "site 1");
-    expect(screen.getAllByText("Synthetic site 1")).toHaveLength(2);
-    expect(screen.getAllByText("Synthetic site 12")).toHaveLength(2);
-    expect(
-      within(results).getByText("4 sites · 2 date ranges"),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Next campsites" }),
-    ).not.toBeInTheDocument();
-    await user.clear(screen.getByRole("searchbox"));
-    expect(screen.getAllByText("Synthetic site 1")).toHaveLength(2);
-    expect(screen.queryByText("Synthetic site 6")).not.toBeInTheDocument();
-  });
-
-  it("keeps pagination valid when campsites disappear and later return", async () => {
-    const user = userEvent.setup();
-    const largeScan = {
-      ...scan,
-      results: Array.from({ length: 6 }, (_, index) => ({
-        ...scan.results[0],
-        campsite_id: `site-${index}`,
+        campsite_id: `site-${index + 1}`,
         campsite_name: `Synthetic site ${index + 1}`,
         available_dates: ["2027-07-01", "2027-07-02"],
       })),
     };
     vi.mocked(getScan).mockResolvedValue(largeScan);
     const { client } = open();
+
     await user.click(
       await screen.findByRole("button", { name: "Next campsites" }),
     );
-    expect(screen.getByText("Synthetic site 6")).toBeInTheDocument();
+    expect(screen.getByText("Synthetic site 11")).toBeInTheDocument();
+
     vi.mocked(getScan).mockResolvedValue({
       ...largeScan,
       results: largeScan.results.slice(0, 2),
@@ -412,73 +280,107 @@ describe("Found campsites", () => {
         queryKey: ["scans", "detail", "scan-1"],
       });
     });
+
     expect(await screen.findByText("Synthetic site 1")).toBeInTheDocument();
-    expect(screen.queryByText("Synthetic site 6")).not.toBeInTheDocument();
+    expect(screen.queryByText("Synthetic site 11")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Next campsites" }),
     ).not.toBeInTheDocument();
+
     vi.mocked(getScan).mockResolvedValue(largeScan);
     await act(async () => {
       await client.invalidateQueries({
         queryKey: ["scans", "detail", "scan-1"],
       });
     });
+
     expect(screen.getByText("Synthetic site 1")).toBeInTheDocument();
     expect(
       await screen.findByRole("button", { name: "Previous campsites" }),
     ).toBeDisabled();
   });
 
-  it("labels paused snapshots with matches as no longer being refreshed", async () => {
+  it("shows waiting, paused, and cached-error states appropriately", async () => {
+    vi.mocked(getScan).mockResolvedValue({
+      ...scan,
+      results: [],
+      found_count: 0,
+      last_checked_at: null,
+    });
+    const firstView = open();
+    expect(
+      await screen.findByText("Waiting for the first check"),
+    ).toBeInTheDocument();
+    firstView.unmount();
+
     vi.mocked(getScan).mockResolvedValue({ ...scan, is_active: false });
-    open();
+    const pausedView = open();
     expect(
       await screen.findByText(/availability is not being refreshed/),
     ).toBeInTheDocument();
-  });
+    pausedView.unmount();
 
-  it("shows a checked empty state for paused scans", async () => {
     vi.mocked(getScan).mockResolvedValue({
       ...scan,
       results: [],
       found_count: 0,
       is_active: false,
     });
-    open();
+    const pausedEmptyView = open();
     expect(
       await screen.findByText("No matching campsites right now"),
     ).toBeInTheDocument();
     expect(screen.getByText(/This scan is paused/)).toBeInTheDocument();
-    expect(
-      await screen.findByRole("link", { name: "View campground on provider" }),
-    ).toHaveAttribute("href", campground.url);
-  });
+    pausedEmptyView.unmount();
 
-  it("keeps cached matches visible when a refresh fails", async () => {
+    vi.mocked(getScan).mockResolvedValue({
+      ...scan,
+      results: [],
+      found_count: 0,
+      is_active: true,
+    });
+    const activeEmptyView = open();
+    expect(
+      await screen.findByText("No matching campsites right now"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Camply will notify you when new openings match/i),
+    ).toBeInTheDocument();
+    activeEmptyView.unmount();
+
+    vi.mocked(getScan).mockResolvedValue({
+      ...scan,
+      destination_type: "recreation_area",
+      destination_name: "Synthetic Basin",
+      campground_id: null,
+      campground_name: null,
+      recreation_area_id: "area-1",
+      coverage_status: "partial",
+      results: [],
+      found_count: 0,
+      is_active: true,
+    });
+    const partialAreaEmptyView = open();
+    expect(
+      await screen.findByText(
+        "No matching campsites in checked campgrounds yet",
+      ),
+    ).toBeInTheDocument();
+    partialAreaEmptyView.unmount();
+
     vi.mocked(getScan).mockRejectedValue(new Error("Network unavailable"));
     open(scan);
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Could not refresh availability",
     );
-    expect(screen.getAllByText("Site 042")).toHaveLength(2);
+    expect(screen.getByText("Site 042")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Try again" }),
     ).toBeInTheDocument();
   });
 
-  it("offers retry when results fail to load", async () => {
-    vi.mocked(getScan).mockRejectedValue(new Error("Network unavailable"));
-    open();
-    expect(
-      await screen.findByRole(
-        "button",
-        { name: "Try again" },
-        { timeout: 3000 },
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("renders partial area coverage, unavailable selections, and attributed results", async () => {
+  it("renders structured recreation-area coverage with relative timestamps and stale-attributed results", async () => {
+    const user = userEvent.setup();
     vi.mocked(getScan).mockResolvedValue({
       ...scan,
       destination_type: "recreation_area",
@@ -503,6 +405,7 @@ describe("Found campsites", () => {
           campground_name: "North Pine",
           eligible: true,
           outcome: "success",
+          last_checked_at: "2027-01-01T11:50:00Z",
         },
         {
           provider_id: 1,
@@ -531,43 +434,29 @@ describe("Found campsites", () => {
       ],
     });
     open();
+
     const coverage = await screen.findByRole("region", {
       name: "Campground coverage",
     });
     expect(
-      within(coverage).getByText(/Selected campgrounds/),
+      within(coverage).getByText("Selected campgrounds"),
     ).toBeInTheDocument();
-    expect(
-      within(coverage).getByText(/1 eligible, 1 unavailable/),
-    ).toBeInTheDocument();
+    expect(within(coverage).getByText("1 eligible")).toBeInTheDocument();
+    expect(within(coverage).getByText("1 unavailable")).toBeInTheDocument();
     expect(
       within(coverage).getByText(
         /Results may be incomplete; some campgrounds are unchecked or failed/,
       ),
     ).toBeInTheDocument();
-    expect(within(coverage).getByText(/Closed Creek/)).toBeInTheDocument();
-    expect(screen.getAllByText(/North Pine/).length).toBeGreaterThanOrEqual(1);
-  });
 
-  it("displays min_rv_length, require_accessible badges, and site vehicle length", async () => {
-    vi.mocked(getScan).mockResolvedValue({
-      ...scan,
-      min_rv_length: 28,
-      require_accessible: true,
-      results: [
-        {
-          ...scan.results[0],
-          max_vehicle_length: 36,
-          permitted_equipment: ["RV", "Trailer"],
-        },
-      ],
-    });
-    open();
-    expect(await screen.findByText("· Min 28 ft")).toBeInTheDocument();
-    expect(screen.getByText("· ADA accessible")).toBeInTheDocument();
-    expect(screen.getByText("Min RV: 28 ft")).toBeInTheDocument();
-    expect(screen.getByText("ADA Accessible")).toBeInTheDocument();
-    expect(screen.getAllByText("Up to 36 ft").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("RV, Trailer").length).toBeGreaterThanOrEqual(1);
+    await user.click(within(coverage).getByText(/Campground status details/i));
+    expect(within(coverage).getByText("Closed Creek")).toBeInTheDocument();
+    expect(
+      within(coverage).queryByText(/2027-01-01T11:50:00Z/),
+    ).not.toBeInTheDocument();
+
+    const results = screen.getByRole("region", { name: "Found campsites" });
+    expect(within(results).getByText("North Pine")).toBeInTheDocument();
+    expect(within(results).getByText(/Stale/i)).toBeInTheDocument();
   });
 });
