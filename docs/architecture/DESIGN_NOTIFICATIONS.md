@@ -26,4 +26,4 @@ Before sending any queued alert, both standalone and distributed adapters rechec
 
 - **Standalone outbox:** Inserts `notification_outbox` intents atomically in the same transaction as `scan_results`, retries transient failures after 120 seconds (up to 4 total attempts), and prunes terminal rows after 24 hours.
 - **Distributed tasks:** Enqueues Celery tasks (`camply.notifications.send_pushover_notification` or `send_ntfy_notification`).
-- **Area scan coalescing:** `area_alerts.py` batches new recreation-area openings under `delivery_key="area-summary"` across a 5-second window (`area-outbox` loop or Beat schedule) so multi-campground rounds produce one clean summary instead of a flood of messages.
+- **Area scan coalescing:** `area_alerts.py` batches new recreation-area openings under `delivery_key="area-summary"` across a 5-second window so multi-campground rounds produce one clean summary instead of a flood of messages. Standalone mode drains due rows in its local outbox loop; distributed mode schedules `camply.notifications.deliver_area_outbox` on demand via Celery `eta` when windows are enqueued or retried, with heartbeat recovery for orphaned rows.

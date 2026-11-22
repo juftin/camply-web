@@ -74,8 +74,9 @@ async def enqueue_area(
     channel: str,
     now: dt.datetime,
     direct: bool = False,
-) -> None:
-    """Append with version/status guards; sealed or expired windows stay immutable."""
+) -> list[dt.datetime]:
+    """Append with version/status guards and return due times for new outbox rows."""
+    scheduled_due: list[dt.datetime] = []
     candidates = [
         item.model_copy(
             update={
@@ -159,6 +160,7 @@ async def enqueue_area(
                             )
                         )
                         await session.flush()
+                    scheduled_due.append(due)
                     break
                 except IntegrityError:
                     bumped = True
@@ -192,6 +194,7 @@ async def enqueue_area(
             if result.scalar_one_or_none():
                 break
             await session.refresh(row)
+    return scheduled_due
 
 
 async def current_area_payload(

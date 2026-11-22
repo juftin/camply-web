@@ -223,7 +223,7 @@ def test_worker_only_registration(install: Callable[[str], Installation]) -> Non
             assert celery_app.conf.beat_schedule['schedule-availability-checks']['task'] == 'camply.search.schedule_checks'
             assert celery_app.conf.beat_schedule['sync-provider-catalogs-daily']['task'] == 'camply.catalog.sync_all_providers'
             assert celery_app.conf.beat_schedule['enrich-provider-details']['task'] == 'camply.catalog.enrich_all_providers'
-            assert celery_app.conf.beat_schedule['area-outbox']['task'] == 'camply.notifications.deliver_area_outbox'
+            assert 'area-outbox' not in celery_app.conf.beat_schedule
         assert not any(name.startswith('camply.server') for name in sys.modules)
     """)
 

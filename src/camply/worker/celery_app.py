@@ -70,10 +70,6 @@ def create_celery_app() -> Celery:
     }
 
     # Module containing task definitions (autodiscovery)
-    app.conf.beat_schedule["area-outbox"] = {
-        "task": "camply.notifications.deliver_area_outbox",
-        "schedule": 1.0,
-    }
     app.conf.imports = [
         "camply.worker.tasks.heartbeat",
         "camply.worker.tasks.ingestion",

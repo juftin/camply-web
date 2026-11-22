@@ -529,5 +529,9 @@ def test_deliver_area_outbox_increments_metric(
         "camply.worker.outbox.recover_deliveries",
         AsyncMock(return_value=0),
     )
+    monkeypatch.setattr(
+        "camply.worker.outbox.next_area_due",
+        AsyncMock(return_value=None),
+    )
     assert deliver_area_outbox() == {"delivered": 1}
     assert NOTIFICATIONS_SENT_TOTAL._value.get() == before + 1
