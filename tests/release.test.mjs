@@ -456,6 +456,8 @@ test("reusable workflow calls grant all required permissions", () => {
     publish,
     /permissions:\s*\n\s+contents: read\s*\n\s+packages: write\s*\n\s+id-token: write/,
   );
+  const ci = readFileSync(join(root, ".github/workflows/ci.yaml"), "utf8");
+  assert.doesNotMatch(ci, /^concurrency:/m);
 });
 
 test("semantic release signals publication only after preparing source assets", (t) => {
