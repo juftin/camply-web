@@ -24,7 +24,7 @@ def test_complete_archive_contents(artifacts: dict[str, Path]) -> None:
             assert "camply/server/static/docs/404.html" in names
             assert "camply/cli/nginx/nginx.conf" in names
             assert "camply/cli/nginx/server.conf" in names
-            assert "camply/server/gunicorn.py" in names
+            assert "camply/server/standalone.py" in names
             assert any(
                 path.startswith("camply/server/static/assets/")
                 and "worker" in path.lower()
@@ -57,7 +57,7 @@ def test_complete_archive_contents(artifacts: dict[str, Path]) -> None:
         )
 
 
-def test_installed_frontend_and_gunicorn(
+def test_installed_frontend(
     install: Callable[[str], Installation],
 ) -> None:
     """Installed artifacts serve real built assets, SPA navigation and API errors."""
@@ -65,24 +65,13 @@ def test_installed_frontend_and_gunicorn(
         import asyncio
         import importlib.resources
         import importlib.util
-        import os
         import re
-        import subprocess
-        import sys
         from pathlib import Path
         import httpx2
         from camply.server.config import RuntimeMode, backend_config
         from camply.server.app import app
         from camply.server.static import attach_frontend
 
-        if os.name != 'nt':
-            from camply.server import gunicorn
-            assert gunicorn.worker_class == 'uvicorn_worker.UvicornWorker'
-            subprocess.run(
-                [str(Path(sys.executable).with_name('camply')), 'serve', 'backend', '--check-config'],
-                env={**os.environ, 'PATH': '', 'SKIP_MIGRATIONS': '1'},
-                check=True, capture_output=True, text=True,
-            )
         static = importlib.resources.files('camply.server').joinpath('static')
         assert static.joinpath('index.html').is_file()
         assert importlib.util.find_spec('zensical') is None

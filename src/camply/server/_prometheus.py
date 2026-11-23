@@ -1,7 +1,7 @@
 """
 Prometheus metrics instrumentation for the FastAPI backend.
 
-Uses prometheus_client multiprocess mode for gunicorn multi-worker
+Uses prometheus_client multiprocess mode for Granian multi-worker
 compatibility. Each worker writes metrics to a file in
 PROMETHEUS_MULTIPROC_DIR; the /metrics endpoint aggregates them.
 """
@@ -287,7 +287,7 @@ def get_metrics_response() -> Response:
     """
     Produce the Prometheus metrics response.
 
-    Uses MultiProcessCollector to aggregate metrics from all gunicorn
+    Uses MultiProcessCollector to aggregate metrics from all Granian
     workers when PROMETHEUS_MULTIPROC_DIR is configured; falls back to
     the default global registry otherwise.
     """

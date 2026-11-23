@@ -1,9 +1,10 @@
 """Verify the Camply CLI entrypoint reports its program name and version."""
 
+import os
 import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import Mock, call
+from unittest.mock import Mock, call, patch
 
 import pytest
 from click.testing import CliRunner
@@ -128,14 +129,17 @@ def test_frontend_serve_rejects_missing_assets(
     ("command", "module", "arguments"),
     [
         (
-            ["serve", "backend", "--bind", "127.0.0.1:9000"],
-            "gunicorn",
+            ["serve", "backend", "--host", "127.0.0.1", "--port", "9000"],
+            "granian",
             [
-                "--config",
-                "python:camply.server.gunicorn",
-                "--bind",
-                "127.0.0.1:9000",
-                "camply.server.app:app",
+                "--interface",
+                "asgi",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "9000",
+                "--factory",
+                "camply.server.app:granian_app",
             ],
         ),
         (
@@ -191,7 +195,8 @@ def test_runtime_commands_replace_the_process(
     monkeypatch.setattr(migration, "upgrade", upgrade)
     monkeypatch.setattr("os.execv", execute)
 
-    result = CliRunner().invoke(cli, command)
+    with patch.dict(os.environ):
+        result = CliRunner().invoke(cli, command)
 
     assert result.exit_code == 0, result.output
     execute.assert_called_once_with(
@@ -213,7 +218,8 @@ def test_backend_migration_ownership(
     monkeypatch.setattr(migration, "upgrade", upgrade)
     monkeypatch.setattr("os.execv", Mock(side_effect=SystemExit(0)))
 
-    result = CliRunner().invoke(cli, ["serve", "backend"])
+    with patch.dict(os.environ):
+        result = CliRunner().invoke(cli, ["serve", "backend"])
 
     assert result.exit_code == 0, result.output
     assert upgrade.call_count == (0 if skip else 1)
@@ -239,13 +245,11 @@ def test_backend_migration_ownership(
             "server",
             (
                 "fastapi",
-                "uvicorn",
+                "granian",
                 "orjson",
                 "jwt",
                 "cryptography",
                 "prometheus_client",
-                "gunicorn",
-                "uvicorn_worker",
             ),
         ),
         (["serve", "worker"], "distributed", ("celery", "redis", "prometheus_client")),

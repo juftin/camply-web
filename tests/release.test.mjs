@@ -184,7 +184,7 @@ test("one wheel and sdist contain stamped metadata and support standalone rebuil
     "src/camply/py.typed",
     "src/camply/db/migrations/env.py",
     "src/camply/db/migrations/script.py.mako",
-    "src/camply/server/gunicorn.py",
+    "src/camply/server/standalone.py",
     "src/camply/server/static/index.html",
     "src/frontend/index.html",
     "build/frontend-manifest.json",
@@ -225,7 +225,7 @@ test("one wheel and sdist contain stamped metadata and support standalone rebuil
       "camply/py.typed",
       "camply/db/migrations/env.py",
       "camply/db/migrations/script.py.mako",
-      "camply/server/gunicorn.py",
+      "camply/server/standalone.py",
       "camply/server/static/index.html",
     ])
       assert.ok(listed.stdout.split("\n").includes(file), file);

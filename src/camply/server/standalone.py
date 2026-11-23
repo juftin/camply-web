@@ -16,12 +16,12 @@ def validate_standalone(config: BackendConfig, database: DatabaseConfig) -> Path
         raise ValueError(
             "Standalone requires file-backed SQLite; configure CAMPLY_DB_DRIVERNAME and CAMPLY_DB_HOST"
         )
-    for setting in ("WEB_CONCURRENCY", "GUNICORN_WORKERS", "UVICORN_WORKERS"):
+    for setting in ("WEB_CONCURRENCY", "GRANIAN_WORKERS", "UVICORN_WORKERS"):
         if os.environ.get(setting, "1") != "1":
             raise ValueError(
                 f"Standalone requires one worker; unset {setting} or set it to 1"
             )
-    if os.environ.get("GUNICORN_RELOAD", "0").lower() not in {"0", "false", ""}:
+    if os.environ.get("GRANIAN_RELOAD", "0").lower() not in {"0", "false", ""}:
         raise ValueError("Standalone requires one worker without production reload")
     directory = config.frontend_dir or Path(__file__).resolve().parent / "static"
     if not directory.is_absolute():

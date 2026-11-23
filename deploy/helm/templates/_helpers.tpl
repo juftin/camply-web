@@ -65,7 +65,7 @@ app.kubernetes.io/component: {{ .role | quote }}
 {{- $_ := set $env "PROMETHEUS_MULTIPROC_DIR" "/tmp/prometheus_multiproc" -}}
 {{- $_ := set $env "CAMPLY_PROMETHEUS_MULTIPROC_DIR" "/tmp/prometheus_multiproc" -}}
 {{- if eq .role "backend" -}}
-{{- $_ := set $env "GUNICORN_PORT" "8000" -}}
+{{- $_ := set $env "GRANIAN_PORT" "8000" -}}
 {{- else -}}
 {{- $_ := set $env "CAMPLY_METRICS_PORT" "8001" -}}
 {{- end -}}

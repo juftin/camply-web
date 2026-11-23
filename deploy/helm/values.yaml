@@ -71,7 +71,7 @@ backend:
   replicas: 1
   args: [camply, serve, backend]
   env:
-    GUNICORN_WORKERS: "2"
+    GRANIAN_WORKERS: "2"
   envFrom: []
   annotations: {}
   podAnnotations: {}

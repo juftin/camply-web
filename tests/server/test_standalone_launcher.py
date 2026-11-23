@@ -23,12 +23,15 @@ def test_required_frontend_and_database(tmp_path: Path) -> None:
         validate_standalone(config, DatabaseConfig(DRIVERNAME=DatabaseDrivers.POSTGRES))
 
 
+@pytest.mark.parametrize(
+    "setting", ["WEB_CONCURRENCY", "UVICORN_WORKERS", "GRANIAN_WORKERS"]
+)
 def test_reject_multiple_workers(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, setting: str
 ) -> None:
     """Multiple API workers would create duplicate local schedulers."""
     (tmp_path / "index.html").write_text("<html></html>")
-    monkeypatch.setenv("WEB_CONCURRENCY", "2")
+    monkeypatch.setenv(setting, "2")
     with pytest.raises(ValueError, match="one worker"):
         validate_standalone(
             BackendConfig(runtime_mode=RuntimeMode.STANDALONE, frontend_dir=tmp_path),
@@ -82,7 +85,7 @@ def test_actionable_local_resource_errors(
         database.HOST = str(tmp_path)
         message = "writable"
     else:
-        monkeypatch.setenv("GUNICORN_RELOAD", "1")
+        monkeypatch.setenv("GRANIAN_RELOAD", "1")
         message = "reload"
     with pytest.raises(ValueError, match=message):
         validate_standalone(config, database)

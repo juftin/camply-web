@@ -2,6 +2,7 @@
 camply-backend FastAPI Application
 """
 
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -18,6 +19,7 @@ except ModuleNotFoundError as exc:
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import Response
+from starlette.types import ASGIApp
 
 from camply.server.__about__ import __application__, __version__
 from camply.server.config import RuntimeMode, backend_config
@@ -155,6 +157,15 @@ if backend_config.runtime_mode == RuntimeMode.STANDALONE:
 
     attach_frontend(
         app, backend_config.frontend_dir or Path(__file__).resolve().parent / "static"
+    )
+
+
+def granian_app() -> ASGIApp:
+    """Apply trusted proxy headers when serving with Granian."""
+    from granian.utils.proxies import wrap_asgi_with_proxy_headers
+
+    return wrap_asgi_with_proxy_headers(  # type: ignore[no-any-return]
+        app, trusted_hosts=os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1")
     )
 
 
