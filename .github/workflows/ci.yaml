@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   id-token: write
   pull-requests: write
@@ -267,3 +268,62 @@ jobs:
             tmp/snapshots/current/
             tmp/snapshots/before/
           if-no-files-found: ignore
+
+  status-start:
+    name: ci - status (start)
+    if: github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    continue-on-error: true
+    concurrency:
+      group: ci-status-comment-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout status action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions/ci-status-comment
+      - name: Update CI status comment
+        uses: ./.github/actions/ci-status-comment
+        with:
+          stage: running
+
+  status-checks:
+    name: ci - status (checks)
+    needs: [backend, frontend, verify]
+    if: always() && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    continue-on-error: true
+    concurrency:
+      group: ci-status-comment-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout status action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions/ci-status-comment
+      - name: Update CI status comment
+        uses: ./.github/actions/ci-status-comment
+        with:
+          stage: checks
+
+  status-final:
+    name: ci - status (final)
+    needs: [backend, frontend, verify, build, smoke, snapshots]
+    if: always() && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    continue-on-error: true
+    concurrency:
+      group: ci-status-comment-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout status action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions/ci-status-comment
+      - name: Update CI status comment
+        uses: ./.github/actions/ci-status-comment
+        with:
+          stage: complete

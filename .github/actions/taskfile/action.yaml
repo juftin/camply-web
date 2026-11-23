@@ -101,7 +101,7 @@ runs:
       continue-on-error: true
       uses: davelosert/vitest-coverage-report-action@74c2d9210b4fc44c84d8213f61d7ec99837b7aa0 # v2.13.2
       with:
-        name: Frontend Coverage
+        name: Frontend
         vite-config-path: src/frontend/vite.config.ts
         json-summary-path: tmp/ci-reports/coverage/coverage-summary.json
         json-final-path: tmp/ci-reports/coverage/coverage-final.json
@@ -111,5 +111,8 @@ runs:
       if: inputs.pytest-coverage == 'true'
       uses: MishaKav/pytest-coverage-comment@13d3c18e21895566c746187c9ea74736372e5e91 # v1.1.54
       with:
+        title: Backend Coverage Report
+        badge-title: Backend Coverage
+        junitxml-title: Backend Tests
         pytest-xml-coverage-path: tmp/ci-reports/coverage/coverage.xml
         junitxml-path: tmp/ci-reports/junit.xml

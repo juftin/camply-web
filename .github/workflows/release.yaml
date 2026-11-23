@@ -25,6 +25,7 @@ jobs:
   ci:
     name: ci
     permissions:
+      actions: read
       contents: read
       id-token: write
       pull-requests: write

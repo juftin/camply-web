@@ -31,7 +31,7 @@ flowchart LR
 
 Open the workflow run's **Summary** from the pull request's **Checks** tab or the repository's **Actions** tab. Backend Python, backend packaging, and frontend test jobs publish JUnit test summaries and failure annotations via `mikepenz/action-junit-report`, and the frontend test job publishes Vitest coverage via `davelosert/vitest-coverage-report-action`.
 
-The **Artifacts** list provides downloadable JUnit reports for each Python version, backend packaging, and frontend tests, even when tests fail or run on fork pull requests. The frontend artifact includes a browsable HTML coverage report (`coverage/index.html`) alongside JSON coverage reports. On same-repository pull requests, CI posts and updates the backend pytest coverage comment (Python 3.13) and the frontend Vitest coverage comment.
+The **Artifacts** list provides downloadable JUnit reports for each Python version, backend packaging, and frontend tests, even when tests fail or run on fork pull requests. The frontend artifact includes a browsable HTML coverage report (`coverage/index.html`) alongside JSON coverage reports. On same-repository pull requests, CI posts and updates the backend pytest coverage comment (Python 3.13), the frontend Vitest coverage comment, and a live CI status comment (`mshick/add-pr-comment`) that updates across workflow stages.
 
 Run `CI=true task frontend:test` or `CI=true task backend:test` locally to produce the corresponding reports in `tmp/ci-reports`. The **frontend - Pages integration** check exercises the built frontend and its API proxy against a local stand-in backend.
 
