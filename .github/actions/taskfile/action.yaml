@@ -22,12 +22,15 @@ inputs:
   problem-matcher:
     description: Problem matcher to register (mypy or pytest)
     default: ""
-  pytest-coverage:
-    description: Post the pytest coverage report on the pull request
+  coverage-comment:
+    description: Post the Cobertura coverage and JUnit test summary comment on the pull request
     default: "false"
-  vitest-coverage:
-    description: Publish the Vitest coverage summary and pull request comment
-    default: "false"
+  coverage-title:
+    description: Prefix for coverage and test comment titles (e.g. Backend or Frontend)
+    default: ""
+  coverage-path-prefix:
+    description: Optional repository-relative path prefix for source links in the coverage report
+    default: ""
   report-name:
     description: Artifact name for the test reports
     default: ""
@@ -135,23 +138,14 @@ runs:
         detailed_summary: true
         failed_summary_logs: true
 
-    - name: Report Vitest coverage
-      if: ${{ !cancelled() && inputs.vitest-coverage == 'true' }}
+    - name: Report coverage and tests on pull request
+      if: ${{ !cancelled() && inputs.coverage-comment == 'true' }}
       continue-on-error: true
-      uses: davelosert/vitest-coverage-report-action@74c2d9210b4fc44c84d8213f61d7ec99837b7aa0 # v2.13.2
-      with:
-        name: Frontend
-        vite-config-path: src/frontend/vite.config.ts
-        json-summary-path: tmp/ci-reports/coverage/coverage-summary.json
-        json-final-path: tmp/ci-reports/coverage/coverage-final.json
-        comment-on: ${{ github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork && 'pr' || 'none' }}
-
-    - name: Report pytest coverage
-      if: inputs.pytest-coverage == 'true'
       uses: MishaKav/pytest-coverage-comment@13d3c18e21895566c746187c9ea74736372e5e91 # v1.1.54
       with:
-        title: Backend Coverage Report
-        badge-title: Backend Coverage
-        junitxml-title: Backend Tests
+        title: ${{ inputs.coverage-title && format('{0} Coverage Report', inputs.coverage-title) || 'Coverage Report' }}
+        badge-title: ${{ inputs.coverage-title && format('{0} Coverage', inputs.coverage-title) || 'Coverage' }}
+        junitxml-title: ${{ inputs.coverage-title && format('{0} Tests', inputs.coverage-title) || '' }}
+        coverage-path-prefix: ${{ inputs.coverage-path-prefix }}
         pytest-xml-coverage-path: tmp/ci-reports/coverage/coverage.xml
         junitxml-path: tmp/ci-reports/junit.xml

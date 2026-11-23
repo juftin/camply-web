@@ -23,5 +23,5 @@ After the workflow split, `task fix`, `task lint`, `task check`, `task test`, ch
 ## CI reporting
 
 - [x] Generate backend, packaging, and frontend test reports through Task and add the Pages integration check to CI.
-- [x] Publish JUnit summaries (`mikepenz/action-junit-report`), frontend coverage (`davelosert/vitest-coverage-report-action`), and downloadable artifacts through the local Taskfile action.
+- [x] Publish JUnit summaries (`mikepenz/action-junit-report`), unified backend/frontend coverage and test comments (`MishaKav/pytest-coverage-comment`), and downloadable artifacts through the local Taskfile action.
 - [x] Document where maintainers can find and download reports.

@@ -56,7 +56,7 @@ jobs:
             install: backend
             python: "3.13"
             problem_matcher: pytest
-            pytest_coverage: true
+            coverage_comment: true
 
           - name: backend - test - 3.14
             task: backend:test
@@ -78,7 +78,8 @@ jobs:
           annotations-ruff: ${{ matrix.annotations_ruff || false }}
           problem-matcher: ${{ matrix.problem_matcher }}
           report-name: ${{ matrix.python && format('backend-tests-python-{0}', matrix.python) || matrix.report_name }}
-          pytest-coverage: ${{ matrix.pytest_coverage && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork || false }}
+          coverage-comment: ${{ matrix.coverage_comment && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork || false }}
+          coverage-title: Backend
         env:
           UV_PYTHON: ${{ matrix.python || '' }}
 
@@ -114,7 +115,9 @@ jobs:
           task: ${{ matrix.task }}
           install: ${{ matrix.install || 'none' }}
           report-name: ${{ matrix.task == 'frontend:test' && 'frontend-tests' || '' }}
-          vitest-coverage: ${{ matrix.task == 'frontend:test' }}
+          coverage-comment: ${{ matrix.task == 'frontend:test' && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork || false }}
+          coverage-title: Frontend
+          coverage-path-prefix: src/frontend/
 
   verify:
     name: ${{ matrix.name }}

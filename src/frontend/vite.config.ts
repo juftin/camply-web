@@ -146,7 +146,11 @@ export default defineConfig({
         import.meta.dirname,
         "../../tmp/ci-reports/coverage",
       ),
-      reporter: ["text-summary", "html", "json-summary", "json"],
+      reporter: [
+        "text-summary",
+        "html",
+        ["cobertura", { file: "coverage.xml" }],
+      ],
       reportOnFailure: true,
     },
   },
