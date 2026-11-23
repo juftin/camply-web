@@ -12,6 +12,16 @@ _MULTIPROC_ENV_VARS = (
 )
 
 
+def resolve_prometheus_multiproc_dir() -> str | None:
+    """Return the configured Prometheus multiprocess directory, if non-empty."""
+    return (
+        os.environ.get("CAMPLY_PROMETHEUS_MULTIPROC_DIR")
+        or os.environ.get("PROMETHEUS_MULTIPROC_DIR")
+        or os.environ.get("prometheus_multiproc_dir")
+        or None
+    )
+
+
 def env_without_prometheus_multiproc() -> dict[str, str] | None:
     """Return os.environ without Prometheus multiprocess vars, or None if unset."""
     if not any(var in os.environ for var in _MULTIPROC_ENV_VARS):

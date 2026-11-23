@@ -12,7 +12,11 @@ from pathlib import Path
 import click
 
 from camply.cli.healthcheck import beat_health_path, healthcheck
-from camply.cli.runtime import env_without_prometheus_multiproc, require_modules
+from camply.cli.runtime import (
+    env_without_prometheus_multiproc,
+    require_modules,
+    resolve_prometheus_multiproc_dir,
+)
 
 
 def _executable(name: str, *, hint: str) -> str:
@@ -169,11 +173,7 @@ def _is_pid_alive(pid: int) -> bool:
 
 def _cleanup_worker_multiproc_dir() -> None:
     """Remove stale Prometheus multiprocess files before starting a worker process."""
-    multiproc_dir = (
-        os.environ.get("CAMPLY_PROMETHEUS_MULTIPROC_DIR")
-        or os.environ.get("PROMETHEUS_MULTIPROC_DIR")
-        or os.environ.get("prometheus_multiproc_dir")
-    )
+    multiproc_dir = resolve_prometheus_multiproc_dir()
     if not multiproc_dir or not os.path.isdir(multiproc_dir):
         return
     current_pid = os.getpid()
@@ -184,6 +184,8 @@ def _cleanup_worker_multiproc_dir() -> None:
         try:
             pid = int(pid_text)
         except ValueError:
+            continue
+        if pid <= 0:
             continue
         # os.execv replaces current_pid, so any pre-exec file for it is also stale.
         if pid != current_pid and _is_pid_alive(pid):

@@ -475,7 +475,7 @@ export function AdminTrendsPanel({
                               </td>
                               {(metric.series ?? []).map((s, seriesIndex) => (
                                 <td
-                                  key={s.name}
+                                  key={`${s.name}-${seriesIndex}`}
                                   className="p-1.5 text-right font-mono"
                                 >
                                   {row[`series_${seriesIndex}`] == null

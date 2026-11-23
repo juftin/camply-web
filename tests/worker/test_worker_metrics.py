@@ -91,8 +91,26 @@ from camply.worker.metrics import _cleanup_stale_multiproc_files, _on_worker_pro
 
 _cleanup_stale_multiproc_files({str(tmp_path)!r})
 _on_worker_process_shutdown(pid=424242)
+_on_worker_process_shutdown(pid=424242)
 """
     subprocess.run([sys.executable, "-c", script], check=True)
     assert not dead_file.exists()
     assert live_file.exists()
     assert not child_gauge.exists()
+
+
+def test_empty_multiproc_env_falls_back_to_in_process_metrics(
+    tmp_path: Path,
+) -> None:
+    """Empty PROMETHEUS_MULTIPROC_DIR must not create .db files in cwd."""
+    script = """
+import os
+os.environ["PROMETHEUS_MULTIPROC_DIR"] = ""
+os.environ.pop("CAMPLY_PROMETHEUS_MULTIPROC_DIR", None)
+import camply.worker.metrics as wm
+wm.TARGETS_DISCOVERED_TOTAL.inc()
+assert wm._multiproc_dir is None
+assert "PROMETHEUS_MULTIPROC_DIR" not in os.environ
+"""
+    subprocess.run([sys.executable, "-c", script], cwd=tmp_path, check=True)
+    assert list(tmp_path.glob("*.db")) == []

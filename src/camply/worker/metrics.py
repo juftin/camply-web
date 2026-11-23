@@ -18,17 +18,22 @@ from typing import Any
 import structlog
 from celery.signals import task_postrun, task_prerun, worker_process_shutdown
 
-# Must create the multiprocess directory BEFORE prometheus_client is first
-# imported — the library checks the env var at import time.
+# Must configure the multiprocess directory BEFORE prometheus_client is first
+# imported — the library checks env key presence at import time.
 _multiproc_dir = (
     os.environ.get("CAMPLY_PROMETHEUS_MULTIPROC_DIR")
     or os.environ.get("PROMETHEUS_MULTIPROC_DIR")
     or os.environ.get("prometheus_multiproc_dir")
+    or None
 )
 if _multiproc_dir:
     if not os.environ.get("PROMETHEUS_MULTIPROC_DIR"):
         os.environ["PROMETHEUS_MULTIPROC_DIR"] = _multiproc_dir
     os.makedirs(_multiproc_dir, exist_ok=True)
+else:
+    for _env_key in ("PROMETHEUS_MULTIPROC_DIR", "prometheus_multiproc_dir"):
+        if os.environ.get(_env_key) == "":
+            os.environ.pop(_env_key, None)
 
 import prometheus_client  # noqa: E402
 from prometheus_client import Counter, Gauge, Histogram, multiprocess  # noqa: E402
@@ -151,7 +156,10 @@ def _on_task_postrun(
 def _on_worker_process_shutdown(pid: int | None = None, **kwargs: Any) -> None:
     """Clean up live-gauge multiprocess files when a prefork child exits."""
     if _multiproc_dir:
-        multiprocess.mark_process_dead(pid or os.getpid(), path=_multiproc_dir)
+        try:
+            multiprocess.mark_process_dead(pid or os.getpid(), path=_multiproc_dir)
+        except OSError:
+            pass
 
 
 # ---------------------------------------------------------------------------
@@ -181,7 +189,7 @@ def _cleanup_stale_multiproc_files(multiproc_dir: str) -> None:
             pid = int(pid_text)
         except ValueError:
             continue
-        if pid == current_pid or _is_pid_alive(pid):
+        if pid <= 0 or pid == current_pid or _is_pid_alive(pid):
             continue
         try:
             os.remove(os.path.join(multiproc_dir, fname))
