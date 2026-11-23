@@ -27,6 +27,14 @@ flowchart LR
     Latest --> MainCharts[SHA and latest OCI charts]
 ```
 
+## CI test reports
+
+Open the workflow run's **Summary** from the pull request's **Checks** tab or the repository's **Actions** tab. Backend Python, backend packaging, and frontend test jobs publish JUnit test summaries and failure annotations via `mikepenz/action-junit-report`, and the frontend test job publishes Vitest coverage via `davelosert/vitest-coverage-report-action`.
+
+The **Artifacts** list provides downloadable JUnit reports for each Python version, backend packaging, and frontend tests, even when tests fail or run on fork pull requests. The frontend artifact includes a browsable HTML coverage report (`coverage/index.html`) alongside JSON coverage reports. On same-repository pull requests, CI posts and updates the backend pytest coverage comment (Python 3.13) and the frontend Vitest coverage comment.
+
+Run `CI=true task frontend:test` or `CI=true task backend:test` locally to produce the corresponding reports in `tmp/ci-reports`. The **frontend - Pages integration** check exercises the built frontend and its API proxy against a local stand-in backend.
+
 The release preparation hook runs `task release:prepare RELEASE_VERSION=1.2.3` and `task dist`. Preparation stamps the `camply-web` backend distribution, updates `uv.lock`, and sets the frontend package version. Those changes exist only in the runner; development version files remain unchanged in Git. The publisher repeats version preparation at the full release tag so installed application metadata matches the image version. Tags identify the exact source commit.
 
 The GitHub release provides generated release notes and one version-stamped

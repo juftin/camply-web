@@ -22,6 +22,12 @@ inputs:
   pytest-coverage:
     description: Post the pytest coverage report on the pull request
     default: "false"
+  vitest-coverage:
+    description: Publish the Vitest coverage summary and pull request comment
+    default: "false"
+  report-name:
+    description: Artifact name for the test reports
+    default: ""
 
 runs:
   using: composite
@@ -68,9 +74,42 @@ runs:
         PROBLEM_MATCHER: ${{ inputs.problem-matcher }}
       run: echo "::remove-matcher owner=$PROBLEM_MATCHER::"
 
+    - name: Upload test reports
+      if: ${{ !cancelled() && inputs.report-name != '' }}
+      continue-on-error: true
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: ${{ inputs.report-name }}-attempt-${{ github.run_attempt }}
+        path: tmp/ci-reports/
+        if-no-files-found: ignore
+
+    - name: Report JUnit test results
+      if: ${{ !cancelled() && inputs.report-name != '' }}
+      continue-on-error: true
+      uses: mikepenz/action-junit-report@a16be3a69023e9bd7e748ede768b3282ea7b30ce # v6.7.1
+      with:
+        report_paths: tmp/ci-reports/junit.xml
+        check_name: ${{ inputs.report-name }}
+        annotate_only: true
+        job_summary: true
+        include_time_in_summary: true
+        detailed_summary: true
+        failed_summary_logs: true
+
+    - name: Report Vitest coverage
+      if: ${{ !cancelled() && inputs.vitest-coverage == 'true' }}
+      continue-on-error: true
+      uses: davelosert/vitest-coverage-report-action@74c2d9210b4fc44c84d8213f61d7ec99837b7aa0 # v2.13.2
+      with:
+        name: Frontend Coverage
+        vite-config-path: src/frontend/vite.config.ts
+        json-summary-path: tmp/ci-reports/coverage/coverage-summary.json
+        json-final-path: tmp/ci-reports/coverage/coverage-final.json
+        comment-on: ${{ github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork && 'pr' || 'none' }}
+
     - name: Report pytest coverage
       if: inputs.pytest-coverage == 'true'
       uses: MishaKav/pytest-coverage-comment@13d3c18e21895566c746187c9ea74736372e5e91 # v1.1.54
       with:
-        pytest-xml-coverage-path: coverage.xml
-        junitxml-path: pytest.xml
+        pytest-xml-coverage-path: tmp/ci-reports/coverage/coverage.xml
+        junitxml-path: tmp/ci-reports/junit.xml

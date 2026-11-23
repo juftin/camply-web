@@ -19,3 +19,9 @@ Verification after integrating current `main`: `task fix`, `task lint`, `task ch
 - [x] Update release documentation, feature checklist, and PR description.
 
 After the workflow split, `task fix`, `task lint`, `task check`, `task test`, changed-file pre-commit hooks, and actionlint with ShellCheck pass. The two new release checks exercise exact release/main source selection, invalid refs/tags, and the success marker. Repository secret names confirm `APP_ID` and `APP_PRIVATE_KEY` are configured; the workflow references them directly. The App installation and its Contents/Workflows write permissions still need confirmation before hosted release creation.
+
+## CI reporting
+
+- [x] Generate backend, packaging, and frontend test reports through Task and add the Pages integration check to CI.
+- [x] Publish JUnit summaries (`mikepenz/action-junit-report`), frontend coverage (`davelosert/vitest-coverage-report-action`), and downloadable artifacts through the local Taskfile action.
+- [x] Document where maintainers can find and download reports.

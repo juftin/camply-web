@@ -64,6 +64,7 @@ jobs:
           - name: backend - packaging test
             task: backend:packaging:test
             install: true
+            report_name: backend-packaging-tests
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -74,6 +75,7 @@ jobs:
           install: ${{ matrix.install || false }}
           annotations-ruff: ${{ matrix.annotations_ruff || false }}
           problem-matcher: ${{ matrix.problem_matcher }}
+          report-name: ${{ matrix.python && format('backend-tests-python-{0}', matrix.python) || matrix.report_name }}
           pytest-coverage: ${{ matrix.pytest_coverage && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork || false }}
         env:
           UV_PYTHON: ${{ matrix.python || '' }}
@@ -112,6 +114,8 @@ jobs:
         with:
           task: ${{ matrix.task }}
           install: ${{ matrix.install || false }}
+          report-name: ${{ matrix.task == 'frontend:test' && 'frontend-tests' || '' }}
+          vitest-coverage: ${{ matrix.task == 'frontend:test' }}
 
   verify:
     name: ${{ matrix.name }}
@@ -135,6 +139,10 @@ jobs:
 
           - name: docs - check
             task: docs:check
+            install: true
+
+          - name: frontend - Pages integration
+            task: frontend:pages:check
             install: true
 
           - name: helm - chart test

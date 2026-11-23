@@ -26,3 +26,10 @@ As a maintainer, merging a release-worthy Gitmoji commit to `main` should produc
 6. Each GitHub release includes `backend`, `db`, `providers`, and `worker` sdists with matching metadata versions and required source/configuration files; a failed source build prevents publication.
 7. After a successful `1.2.3` release, Git tag `v1` points to the released commit; later releases advance their own major alias without changing other majors.
 8. A release-producing main build publishes images once via the release event; a successful main build without a release calls the same publisher for `latest` only. Missing App credentials fail release creation rather than silently suppressing the publish event.
+
+## CI reporting
+
+- Publish JUnit test summaries and failure annotations on the Actions run summary for each backend Python version, the packaging suite, and frontend tests using an off-the-shelf JUnit reporting action.
+- Generate and publish frontend Vitest coverage (summary + per-file breakdown) using an off-the-shelf Vitest coverage action, plus downloadable JUnit and HTML coverage artifacts.
+- Reports are available on failed tests and on fork pull requests while preserving the original check's exit status. On same-repository pull requests, retain the backend coverage comment and post/update the frontend coverage comment.
+- Run the existing local Pages integration check in CI to exercise the built frontend, Functions, and API proxy together.

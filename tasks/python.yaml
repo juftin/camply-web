@@ -18,13 +18,17 @@ tasks:
   test:
     desc: Run Backend Tests
     cmds:
-      - uv run --all-extras -- pytest --ignore=tests/packaging {{if .CI}}--junitxml=pytest.xml --cov=camply --cov-report=xml:coverage.xml{{end}} {{.CLI_ARGS}}
+      - >-
+        uv run --all-extras -- pytest --ignore=tests/packaging
+        {{if .CI}}--junitxml=tmp/ci-reports/junit.xml --cov=camply
+        --cov-report=xml:tmp/ci-reports/coverage/coverage.xml{{end}}
+        {{.CLI_ARGS}}
     deps: [sync]
 
   packaging:test:
     summary: Verify Isolated Python Artifacts and Optional Extras
     cmds:
-      - uv run --all-extras -- pytest tests/packaging {{.CLI_ARGS}}
+      - uv run --all-extras -- pytest tests/packaging {{if .CI}}--junitxml=tmp/ci-reports/junit.xml{{end}} {{.CLI_ARGS}}
     env:
       PACKAGING_PYTHON: "{{.PACKAGING_PYTHON}}"
     deps: [sync]
