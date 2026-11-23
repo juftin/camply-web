@@ -140,7 +140,23 @@ Compose configures these probes per role, with a 10-second outer timeout and sta
 
 `camply serve backend` defaults to `0.0.0.0:8000`, a worker count of CPU count minus one (minimum one), and access logging. Compose defaults to four workers and Helm defaults to two. Set `GRANIAN_HOST`, `GRANIAN_PORT`, `GRANIAN_WORKERS`, `GRANIAN_LOG_LEVEL`, or `GRANIAN_LOG_ACCESS_ENABLED` to override those settings. Backend flags take precedence over environment variables. In both serving modes, `FORWARDED_ALLOW_IPS` controls which reverse proxy addresses can supply forwarded request information and defaults to `127.0.0.1`.
 
-When upgrading, rename `GUNICORN_HOST`, `GUNICORN_PORT`, `GUNICORN_WORKERS`, `GUNICORN_LOG_LEVEL`, and `GUNICORN_RELOAD` to their `GRANIAN_` equivalents. Replace `--bind HOST:PORT` with `--host HOST --port PORT`. Review any custom Gunicorn options against Granian’s CLI, which you can inspect with `python -m granian --help`. [Granian configuration reference](https://github.com/emmett-framework/granian#quickstart)
+Use this mapping when upgrading deployments with custom Gunicorn settings. Replace `--bind HOST:PORT` with `--host HOST --port PORT`.
+
+| Former setting               | Granian behavior                                                                                                                                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GUNICORN_HOST`              | `GRANIAN_HOST` or `--host`. Camply defaults to `0.0.0.0`.                                                                                                                                            |
+| `GUNICORN_PORT`              | `GRANIAN_PORT` or `--port`. The default is `8000`, and Helm fixes it to match the service and probes.                                                                                                |
+| `GUNICORN_WORKERS`           | `GRANIAN_WORKERS` or `--workers`. Camply, Compose, and Helm keep their worker-count defaults.                                                                                                        |
+| `GUNICORN_RELOAD`            | `GRANIAN_RELOAD` or `--reload`. Production reload defaults to off. The development task enables it with one worker.                                                                                  |
+| `GUNICORN_LOG_LEVEL`         | `GRANIAN_LOG_LEVEL` or `--log-level`. The default is `info`.                                                                                                                                         |
+| `GUNICORN_WORKER_CLASS`      | Granian serves FastAPI directly with `--interface asgi`. Custom Gunicorn worker classes require a separate migration.                                                                                |
+| `GUNICORN_PRELOAD`           | Each Granian worker loads the app independently. Granian has no Gunicorn-style preloading option.                                                                                                    |
+| `GUNICORN_TIMEOUT`           | Granian has no equivalent to Gunicorn’s silent-worker watchdog. `--workers-kill-timeout` limits the wait for a worker that refuses to stop during graceful shutdown.                                 |
+| `GUNICORN_ACCESS_LOG`        | Access logging defaults to stdout. Use `GRANIAN_LOG_ACCESS_ENABLED` or `--no-access-log` to disable it. For another destination, configure the `granian.access` logger through `GRANIAN_LOG_CONFIG`. |
+| `GUNICORN_ERROR_LOG`         | Runtime logging also defaults to stdout. Configure the `_granian` logger through `GRANIAN_LOG_CONFIG` for a different stream or file.                                                                |
+| `GUNICORN_ACCESS_LOG_FORMAT` | Use `GRANIAN_LOG_ACCESS_FMT` or `--access-log-fmt`. Rewrite templates using Granian’s fields, such as `%(addr)s` and `%(status)d`.                                                                   |
+
+Granian can restart a crashed worker when `GRANIAN_RESPAWN_FAILED_WORKERS` is enabled. Its default is to exit the server when a worker fails. Inspect available options with `python -m granian --help`. [Granian CLI and logging reference](https://github.com/emmett-framework/granian#quickstart)
 
 ## Process shutdown
 
