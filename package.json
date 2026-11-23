@@ -69,7 +69,7 @@
     "mermaid": "^12.3.0",
     "openapi-typescript": "^7.13.0",
     "oxfmt": "0.76.0",
-    "oxlint": "1.91.0",
+    "oxlint": "1.94.0",
     "pixelmatch": "^8.0.0",
     "pngjs": "^7.0.0",
     "tsx": "^4.23.15",
