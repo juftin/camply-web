@@ -442,7 +442,7 @@ test("reusable workflow calls grant all required permissions", () => {
   );
   assert.match(
     release,
-    /ci:\s*\n\s+name: ci\s*\n\s+permissions:\s*\n\s+contents: read\s*\n\s+id-token: write\s*\n\s+pull-requests: write/,
+    /ci:\s*\n\s+name: ci\s*\n\s+permissions:\s*\n\s+actions: read\s*\n\s+contents: read\s*\n\s+id-token: write\s*\n\s+pull-requests: write/,
   );
   assert.match(
     release,
