@@ -13,11 +13,13 @@ from typing import Any
 
 # Must create the multiprocess directory BEFORE prometheus_client is first
 # imported — the library checks the env var at import time.
-_multiproc_dir = os.environ.get(
-    "CAMPLY_PROMETHEUS_MULTIPROC_DIR",
-    os.environ.get("PROMETHEUS_MULTIPROC_DIR"),
+_multiproc_dir = (
+    os.environ.get("CAMPLY_PROMETHEUS_MULTIPROC_DIR")
+    or os.environ.get("PROMETHEUS_MULTIPROC_DIR")
+    or os.environ.get("prometheus_multiproc_dir")
 )
 if _multiproc_dir:
+    os.environ.setdefault("PROMETHEUS_MULTIPROC_DIR", _multiproc_dir)
     os.makedirs(_multiproc_dir, exist_ok=True)
 
 import prometheus_client  # noqa: E402

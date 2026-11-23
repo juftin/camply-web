@@ -316,8 +316,19 @@ async def test_trends_promql_aggregates_across_workers() -> None:
     assert "max(camply_eligible_scans)" in executed_queries
     assert "max(camply_total_unique_targets)" in executed_queries
     assert "max(camply_eligible_targets)" in executed_queries
-    assert "sum(rate(camply_targets_discovered_total[1m])) * 60" in executed_queries
-    assert "sum(rate(camply_targets_enqueued_total[1m])) * 60" in executed_queries
-    assert "sum(rate(camply_scan_results_stored_total[1m])) * 60" in executed_queries
-    assert "sum(rate(camply_notifications_sent_total[1m])) * 60" in executed_queries
-    assert "sum(rate(camply_targets_checked_total[1m])) * 60" in executed_queries
+    assert "sum(rate(camply_targets_discovered_total[15m])) * 60" in executed_queries
+    assert "sum(rate(camply_targets_enqueued_total[15m])) * 60" in executed_queries
+    assert "sum(rate(camply_scan_results_stored_total[15m])) * 60" in executed_queries
+    assert "sum(rate(camply_notifications_sent_total[15m])) * 60" in executed_queries
+    assert "sum(rate(camply_targets_checked_total[15m])) * 60" in executed_queries
+
+    executed_queries.clear()
+    with patch(
+        "camply.server.services.trends._query_prometheus_range",
+        side_effect=fake_query,
+    ):
+        await get_admin_trends(group="worker", range_param="7d")
+        await get_admin_trends(group="api", range_param="30d")
+
+    assert "sum(rate(camply_targets_discovered_total[1h])) * 60" in executed_queries
+    assert "sum(rate(camply_http_requests_total[1d])) by (endpoint)" in executed_queries

@@ -20,19 +20,14 @@ from celery.signals import task_postrun, task_prerun
 
 # Must create the multiprocess directory BEFORE prometheus_client is first
 # imported — the library checks the env var at import time.
-_multiproc_dir = os.environ.get(
-    "CAMPLY_PROMETHEUS_MULTIPROC_DIR",
-    os.environ.get("PROMETHEUS_MULTIPROC_DIR"),
+_multiproc_dir = (
+    os.environ.get("CAMPLY_PROMETHEUS_MULTIPROC_DIR")
+    or os.environ.get("PROMETHEUS_MULTIPROC_DIR")
+    or os.environ.get("prometheus_multiproc_dir")
 )
 if _multiproc_dir:
+    os.environ.setdefault("PROMETHEUS_MULTIPROC_DIR", _multiproc_dir)
     os.makedirs(_multiproc_dir, exist_ok=True)
-    # Clean stale .db files from previous runs to prevent metric accumulation
-    for fname in os.listdir(_multiproc_dir):
-        if fname.endswith(".db"):
-            try:
-                os.remove(os.path.join(_multiproc_dir, fname))
-            except OSError:
-                pass
 
 import prometheus_client  # noqa: E402
 from prometheus_client import Counter, Gauge, Histogram  # noqa: E402
@@ -156,6 +151,36 @@ def _on_task_postrun(
 # ---------------------------------------------------------------------------
 
 
+def _is_pid_alive(pid: int) -> bool:
+    """Return True when a process with the given PID exists."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def _cleanup_stale_multiproc_files(multiproc_dir: str) -> None:
+    """Remove Prometheus multiprocess .db files left behind by dead processes."""
+    current_pid = os.getpid()
+    for fname in os.listdir(multiproc_dir):
+        if not fname.endswith(".db"):
+            continue
+        pid_text = fname[:-3].rsplit("_", 1)[-1]
+        try:
+            pid = int(pid_text)
+        except ValueError:
+            continue
+        if pid == current_pid or _is_pid_alive(pid):
+            continue
+        try:
+            os.remove(os.path.join(multiproc_dir, fname))
+        except OSError:
+            pass
+
+
 def start_metrics_server(port: int = 8001) -> None:
     """
     Start a prometheus_client HTTP server in a daemon thread.
@@ -167,6 +192,7 @@ def start_metrics_server(port: int = 8001) -> None:
     """
     try:
         if _multiproc_dir:
+            _cleanup_stale_multiproc_files(_multiproc_dir)
             registry = prometheus_client.CollectorRegistry()
             MultiProcessCollector(registry)
             prometheus_client.start_http_server(port, addr="0.0.0.0", registry=registry)

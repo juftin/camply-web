@@ -12,7 +12,7 @@ from pathlib import Path
 import click
 
 from camply.cli.healthcheck import beat_health_path, healthcheck
-from camply.cli.runtime import require_modules
+from camply.cli.runtime import env_without_prometheus_multiproc, require_modules
 
 
 def _executable(name: str, *, hint: str) -> str:
@@ -156,6 +156,23 @@ def serve_beat(sync_providers: bool, args: tuple[str, ...]) -> None:
     )
 
 
+def _cleanup_worker_multiproc_dir() -> None:
+    """Remove stale Prometheus multiprocess files before starting a worker process."""
+    multiproc_dir = (
+        os.environ.get("CAMPLY_PROMETHEUS_MULTIPROC_DIR")
+        or os.environ.get("PROMETHEUS_MULTIPROC_DIR")
+        or os.environ.get("prometheus_multiproc_dir")
+    )
+    if not multiproc_dir or not os.path.isdir(multiproc_dir):
+        return
+    for fname in os.listdir(multiproc_dir):
+        if fname.endswith(".db"):
+            try:
+                os.remove(os.path.join(multiproc_dir, fname))
+            except OSError:
+                pass
+
+
 def _worker_process(
     command: str, args: tuple[str, ...], *, sync_providers: bool = False
 ) -> None:
@@ -172,23 +189,27 @@ def _worker_process(
         os.environ["CAMPLY_BEAT_HEALTH_FILE"] = str(path)
     if sync_providers:
         try:
-            subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "celery",
-                    "-A",
-                    "camply.worker.celery_app",
-                    "call",
-                    "catalog.sync_all",
-                    "--expires=600",
-                ],
-                check=True,
-            )
+            call_args = [
+                sys.executable,
+                "-m",
+                "celery",
+                "-A",
+                "camply.worker.celery_app",
+                "call",
+                "catalog.sync_all",
+                "--expires=600",
+            ]
+            clean_env = env_without_prometheus_multiproc()
+            if clean_env is not None:
+                subprocess.run(call_args, check=True, env=clean_env)
+            else:
+                subprocess.run(call_args, check=True)
         except subprocess.CalledProcessError as exc:
             raise click.ClickException(
                 f"Could not enqueue provider sync (exit status {exc.returncode})."
             ) from exc
+    if command == "worker":
+        _cleanup_worker_multiproc_dir()
     os.execv(
         sys.executable,
         [

@@ -102,6 +102,25 @@ def test_worker_health_targets_one_node(
     assert execute.call_args.kwargs["capture_output"] is True
 
 
+def test_worker_health_strips_prometheus_multiproc_env(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Worker health probes must not write to or wipe the worker's multiprocess dir."""
+    monkeypatch.setenv("PROMETHEUS_MULTIPROC_DIR", str(tmp_path))
+    monkeypatch.setenv("prometheus_multiproc_dir", str(tmp_path))
+    monkeypatch.setenv("CAMPLY_PROMETHEUS_MULTIPROC_DIR", str(tmp_path))
+    execute = Mock(return_value=subprocess.CompletedProcess([], 0))
+    monkeypatch.setattr(subprocess, "run", execute)
+
+    result = CliRunner().invoke(cli, ["serve", "healthcheck", "worker"])
+
+    assert result.exit_code == 0, result.output
+    sub_env = execute.call_args.kwargs["env"]
+    assert "PROMETHEUS_MULTIPROC_DIR" not in sub_env
+    assert "prometheus_multiproc_dir" not in sub_env
+    assert "CAMPLY_PROMETHEUS_MULTIPROC_DIR" not in sub_env
+
+
 @pytest.mark.parametrize(
     "failure",
     [

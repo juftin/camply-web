@@ -1,8 +1,26 @@
 """Validate optional runtime dependencies without importing application bootstraps."""
 
 import importlib.util
+import os
 
 import click
+
+_MULTIPROC_ENV_VARS = (
+    "PROMETHEUS_MULTIPROC_DIR",
+    "prometheus_multiproc_dir",
+    "CAMPLY_PROMETHEUS_MULTIPROC_DIR",
+)
+
+
+def env_without_prometheus_multiproc() -> dict[str, str] | None:
+    """Return os.environ without Prometheus multiprocess vars, or None if unset."""
+    if not any(var in os.environ for var in _MULTIPROC_ENV_VARS):
+        return None
+    return {
+        key: value
+        for key, value in os.environ.items()
+        if key not in _MULTIPROC_ENV_VARS
+    }
 
 
 def require_modules(extra: str, modules: tuple[str, ...]) -> None:

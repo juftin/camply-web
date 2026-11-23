@@ -12,7 +12,7 @@ import click
 import jiter
 
 from camply.cli import options
-from camply.cli.runtime import require_modules
+from camply.cli.runtime import env_without_prometheus_multiproc, require_modules
 
 
 def beat_health_path() -> Path:
@@ -113,6 +113,7 @@ def worker(destination: str | None, timeout: float) -> None:
             text=True,
             check=False,
             timeout=timeout,
+            env=env_without_prometheus_multiproc(),
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise click.ClickException(
