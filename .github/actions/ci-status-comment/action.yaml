@@ -27,7 +27,7 @@ runs:
               --arg sha "${COMMIT_SHA:0:7}" \
               --arg run_url "$RUN_URL" \
               --arg run_num "$RUN_NUMBER" '
-              [.[].jobs[] | select(.name | startswith("ci - status") | not)]
+              [.[].jobs[] | select((.name | startswith("ci - status") | not) and .name != "verification")]
               | sort_by(.name) as $jobs
               | ($jobs | map(select(.conclusion == "success")) | length) as $passed
               | ($jobs | map(select(.conclusion == "failure" or .conclusion == "timed_out")) | length) as $failed

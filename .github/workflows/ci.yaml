@@ -319,3 +319,22 @@ jobs:
         uses: ./.github/actions/ci-status-comment
         with:
           stage: complete
+
+  verification:
+    name: verification
+    needs: [backend, frontend, verify, build, smoke, snapshots]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify all CI jobs succeeded
+        env:
+          NEEDS_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          failed=$(printf '%s' "$NEEDS_RESULTS" | jq -r 'to_entries[] | select(.value.result != "success") | "\(.key): \(.value.result)"')
+          if [ -n "$failed" ]; then
+            echo "The following CI jobs did not succeed:"
+            echo "$failed"
+            exit 1
+          fi
+          echo "All CI jobs succeeded."
