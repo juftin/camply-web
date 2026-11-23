@@ -216,6 +216,8 @@ def test_workflow_publishes_chart_after_matching_images() -> None:
     tools = next(s for s in steps if "ORAS_VERSION" in s.get("env", {}))
     assert "if" not in tools
     assert steps.index(tools) < steps.index(chart)
+    assert 'mkdir -p "$HOME/.local/bin"' in tools["run"]
+    assert 'echo "$HOME/.local/bin" >> "$GITHUB_PATH"' in tools["run"]
     login = next(
         s for s in steps if s.get("uses", "").startswith("docker/login-action@")
     )
