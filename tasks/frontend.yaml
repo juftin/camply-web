@@ -96,7 +96,11 @@ tasks:
   test:
     desc: Run Frontend Tests
     cmds:
-      - pnpm run test:run {{.CLI_ARGS}}
+      - >-
+        pnpm run test:run
+        {{if .CI}}--coverage.enabled --reporter=default --reporter=junit
+        --outputFile.junit="{{.ROOT_DIR}}/tmp/ci-reports/junit.xml"{{end}}
+        {{.CLI_ARGS}}
     deps: [install]
 
   browser:install:

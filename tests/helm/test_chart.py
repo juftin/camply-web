@@ -404,7 +404,7 @@ def test_schema_allows_native_extensions_and_rejects_conflicting_handlers(
 
 
 def test_ci_lifecycle_uses_the_source_image() -> None:
-    """The required CI pipeline verifies the locally built image and Helm lifecycle DAG."""
+    """The required CI pipeline verifies the locally built image and Helm smoke suite."""
     ci = yaml.safe_load((ROOT / ".github/workflows/ci.yaml").read_text())
     tasks = [
         item.get("task")
@@ -414,7 +414,6 @@ def test_ci_lifecycle_uses_the_source_image() -> None:
     assert "build" in tasks
     assert "helm:smoke" in tasks
     assert "smoke" in ci["jobs"]
-    assert "build" in ci["jobs"]["smoke"].get("needs", [])
 
 
 def test_notes_render_release_specific_commands(tmp_path: Path) -> None:

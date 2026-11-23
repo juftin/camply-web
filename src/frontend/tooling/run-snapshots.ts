@@ -559,6 +559,9 @@ const SCENARIOS: Scenario[] = [
     theme: "light",
     description:
       "User profile settings and Pushover notification config (Desktop, Light)",
+    action: async (page: Page) => {
+      await page.getByLabel("Notification provider").waitFor();
+    },
   },
   {
     name: "profile-desktop-dark",
@@ -567,6 +570,9 @@ const SCENARIOS: Scenario[] = [
     theme: "dark",
     description:
       "User profile settings and Pushover notification config (Desktop, Dark)",
+    action: async (page: Page) => {
+      await page.getByLabel("Notification provider").waitFor();
+    },
   },
   {
     name: "profile-ntfy-desktop-dark",

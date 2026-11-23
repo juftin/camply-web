@@ -132,5 +132,26 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: [path.resolve(import.meta.dirname, "test/setup.ts")],
     testTimeout: 10000,
+    coverage: {
+      include: ["**/*.{ts,tsx}"],
+      exclude: [
+        "**/*.{test,spec,d}.ts?(x)",
+        "**/*.config.ts",
+        "dist/**",
+        "**/generated/**",
+        "test/**",
+        "tooling/**",
+      ],
+      reportsDirectory: path.resolve(
+        import.meta.dirname,
+        "../../tmp/ci-reports/coverage",
+      ),
+      reporter: [
+        "text-summary",
+        "html",
+        ["cobertura", { file: "coverage.xml" }],
+      ],
+      reportOnFailure: true,
+    },
   },
 });
