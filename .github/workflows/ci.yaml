@@ -13,58 +13,59 @@ permissions:
   id-token: write
   pull-requests: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   backend:
     name: ${{ matrix.name }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    concurrency:
-      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
-      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: backend - format
             task: backend:fmt:check
-            install: true
+            install: backend
             annotations_ruff: true
 
           - name: backend - lint
             task: backend:lint
-            install: true
+            install: backend
             annotations_ruff: true
 
           - name: backend - type check
             task: backend:check
-            install: true
+            install: backend
             problem_matcher: mypy
 
           - name: backend - test - 3.11
             task: backend:test
-            install: true
+            install: backend
             python: "3.11"
 
           - name: backend - test - 3.12
             task: backend:test
-            install: true
+            install: backend
             python: "3.12"
 
           - name: backend - test - 3.13
             task: backend:test
-            install: true
+            install: backend
             python: "3.13"
             problem_matcher: pytest
             pytest_coverage: true
 
           - name: backend - test - 3.14
             task: backend:test
-            install: true
+            install: backend
             python: "3.14"
 
           - name: backend - packaging test
             task: backend:packaging:test
-            install: true
+            install: all
             report_name: backend-packaging-tests
     steps:
       - name: Checkout repository
@@ -73,7 +74,7 @@ jobs:
         uses: ./.github/actions/taskfile
         with:
           task: ${{ matrix.task }}
-          install: ${{ matrix.install || false }}
+          install: ${{ matrix.install || 'none' }}
           annotations-ruff: ${{ matrix.annotations_ruff || false }}
           problem-matcher: ${{ matrix.problem_matcher }}
           report-name: ${{ matrix.python && format('backend-tests-python-{0}', matrix.python) || matrix.report_name }}
@@ -85,28 +86,25 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    concurrency:
-      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
-      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: frontend - format
             task: frontend:fmt:check
-            install: true
+            install: frontend
 
           - name: frontend - lint
             task: frontend:lint
-            install: true
+            install: frontend
 
           - name: frontend - type check
             task: frontend:check
-            install: true
+            install: frontend
 
           - name: frontend - test
             task: frontend:test
-            install: true
+            install: frontend
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -114,7 +112,7 @@ jobs:
         uses: ./.github/actions/taskfile
         with:
           task: ${{ matrix.task }}
-          install: ${{ matrix.install || false }}
+          install: ${{ matrix.install || 'none' }}
           report-name: ${{ matrix.task == 'frontend:test' && 'frontend-tests' || '' }}
           vitest-coverage: ${{ matrix.task == 'frontend:test' }}
 
@@ -122,41 +120,38 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    concurrency:
-      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
-      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: pre-commit
             task: pre-commit
-            install: true
+            install: all
             fetch_depth: "0"
 
           - name: mcp - bundle verify
             task: mcp:verify
-            install: true
+            install: none
 
           - name: docs - check
             task: docs:check
-            install: true
+            install: all
 
           - name: frontend - Pages integration
             task: frontend:pages:check
-            install: true
+            install: frontend
 
           - name: helm - chart test
             task: helm:test
-            install: true
+            install: backend
 
           - name: release - verification
             task: release:test
-            install: true
+            install: all
 
           - name: api - contract check
             task: api:check
-            install: true
+            install: all
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -166,16 +161,13 @@ jobs:
         uses: ./.github/actions/taskfile
         with:
           task: ${{ matrix.task }}
-          install: ${{ matrix.install || false }}
+          install: ${{ matrix.install || 'none' }}
 
   build:
     name: ${{ matrix.name }}
     needs: [backend, frontend, verify]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    concurrency:
-      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
-      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
@@ -197,32 +189,32 @@ jobs:
     needs: [build]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    concurrency:
-      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
-      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: search - postgres smoke
             task: search:smoke
-            install: true
+            install: backend
 
           - name: maps - browser verification
             task: maps:verify
-            install: true
+            install: all
+            playwright_cache: true
 
           - name: admin - live smoke
             task: admin:smoke
-            install: true
+            install: all
+            playwright_cache: true
 
           - name: standalone - smoke
             task: standalone:test
-            install: true
+            install: all
+            playwright_cache: true
 
           - name: helm - cluster smoke
             task: helm:smoke
-            install: true
+            install: backend
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -230,23 +222,22 @@ jobs:
         uses: ./.github/actions/taskfile
         with:
           task: ${{ matrix.task }}
-          install: ${{ matrix.install || false }}
+          install: ${{ matrix.install || 'none' }}
+          playwright-cache: ${{ matrix.playwright_cache || false }}
 
   snapshots:
     name: ${{ matrix.name }}
     needs: [frontend]
     runs-on: macos-latest
     timeout-minutes: 15
-    concurrency:
-      group: ${{ github.workflow }}-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
-      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: ui - visual snapshots
             task: snapshot:check
-            install: true
+            install: frontend
+            playwright_cache: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -254,7 +245,8 @@ jobs:
         uses: ./.github/actions/taskfile
         with:
           task: ${{ matrix.task }}
-          install: ${{ matrix.install || false }}
+          install: ${{ matrix.install || 'none' }}
+          playwright-cache: ${{ matrix.playwright_cache || false }}
 
       - name: Upload Snapshot Reports and Visual Diffs
         if: always()
