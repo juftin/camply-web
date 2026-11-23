@@ -239,7 +239,10 @@ jobs:
 
   snapshots:
     name: ${{ matrix.name }}
-    runs-on: macos-latest
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
     timeout-minutes: 15
     concurrency:
       group: ci-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
@@ -251,7 +254,6 @@ jobs:
           - name: ui - visual snapshots
             task: snapshot:check
             install: frontend
-            playwright_cache: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -260,7 +262,6 @@ jobs:
         with:
           task: ${{ matrix.task }}
           install: ${{ matrix.install || 'none' }}
-          playwright-cache: ${{ matrix.playwright_cache || false }}
 
       - name: Upload Snapshot Reports and Visual Diffs
         if: always()

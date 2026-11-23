@@ -106,10 +106,22 @@ tasks:
   browser:install:
     summary: Install Chromium and browser system dependencies for smoke tests
     status:
-      - test -d ~/.cache/ms-playwright
+      - test -d "${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
     cmds:
       - pnpm exec playwright install --with-deps chromium
     deps: [install]
+
+  snapshot:docker:
+    summary: Run UI Snapshots inside the pinned Playwright Docker image (matches CI pixel-for-pixel)
+    cmds:
+      - >-
+        docker run --rm --ipc=host
+        -v "{{.ROOT_DIR}}:/work"
+        -v camply-playwright-node-modules:/work/node_modules
+        -w /work
+        -e GITHUB_REPOSITORY=""
+        mcr.microsoft.com/playwright:v1.64.1-noble
+        bash -lc 'corepack enable pnpm 2>/dev/null || npm install -g pnpm@12; pnpm install --frozen-lockfile && pnpm run snapshot -- {{.CLI_ARGS}}'
 
   snapshot:
     summary: Capture UI Snapshots and Generate Visual Comparison Report
