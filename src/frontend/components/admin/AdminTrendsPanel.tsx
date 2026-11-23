@@ -62,7 +62,7 @@ function seriesLabel(series: TrendSeries): string {
   if (labels.task_name) return taskLabel(labels.task_name);
   if (labels.provider) {
     const provider =
-      labels.provider === "recreation_dot_gov"
+      labels.provider === "recreation_dot_gov" || labels.provider === "1"
         ? "Recreation.gov"
         : labels.provider;
     return labels.status ? `${provider} · ${labels.status}` : provider;
@@ -377,7 +377,7 @@ export function AdminTrendsPanel({
                             />
                             {(metric.series ?? []).map((s, idx) => (
                               <Bar
-                                key={s.name}
+                                key={`${s.name}-${idx}`}
                                 dataKey={`series_${idx}`}
                                 name={displayLabels[idx]}
                                 fill={SERIES_COLORS[idx % SERIES_COLORS.length]}
@@ -430,7 +430,7 @@ export function AdminTrendsPanel({
                             />
                             {(metric.series ?? []).map((s, idx) => (
                               <Line
-                                key={s.name}
+                                key={`${s.name}-${idx}`}
                                 type="linear"
                                 connectNulls={false}
                                 dataKey={`series_${idx}`}
@@ -457,7 +457,7 @@ export function AdminTrendsPanel({
                             </th>
                             {(metric.series ?? []).map((s, seriesIndex) => (
                               <th
-                                key={s.name}
+                                key={`${s.name}-${seriesIndex}`}
                                 className="p-1.5 font-medium text-right"
                               >
                                 {displayLabels[seriesIndex]} ({unit})

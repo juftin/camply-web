@@ -16,7 +16,7 @@ import time
 from typing import Any
 
 import structlog
-from celery.signals import task_postrun, task_prerun
+from celery.signals import task_postrun, task_prerun, worker_process_shutdown
 
 # Must create the multiprocess directory BEFORE prometheus_client is first
 # imported — the library checks the env var at import time.
@@ -26,11 +26,12 @@ _multiproc_dir = (
     or os.environ.get("prometheus_multiproc_dir")
 )
 if _multiproc_dir:
-    os.environ.setdefault("PROMETHEUS_MULTIPROC_DIR", _multiproc_dir)
+    if not os.environ.get("PROMETHEUS_MULTIPROC_DIR"):
+        os.environ["PROMETHEUS_MULTIPROC_DIR"] = _multiproc_dir
     os.makedirs(_multiproc_dir, exist_ok=True)
 
 import prometheus_client  # noqa: E402
-from prometheus_client import Counter, Gauge, Histogram  # noqa: E402
+from prometheus_client import Counter, Gauge, Histogram, multiprocess  # noqa: E402
 from prometheus_client.multiprocess import MultiProcessCollector  # noqa: E402
 
 logger = structlog.getLogger(__name__)
@@ -144,6 +145,13 @@ def _on_task_postrun(
         CELERY_TASK_DURATION_SECONDS.labels(task_name=task_name).observe(
             time.monotonic() - start
         )
+
+
+@worker_process_shutdown.connect
+def _on_worker_process_shutdown(pid: int | None = None, **kwargs: Any) -> None:
+    """Clean up live-gauge multiprocess files when a prefork child exits."""
+    if _multiproc_dir:
+        multiprocess.mark_process_dead(pid or os.getpid(), path=_multiproc_dir)
 
 
 # ---------------------------------------------------------------------------

@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+import multiprocessing
 import os
 import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 from prometheus_client.parser import text_string_to_metric_families
 
 
+@pytest.mark.skipif(
+    "fork" not in multiprocessing.get_all_start_methods(),
+    reason="Prefork worker multiprocess test requires POSIX fork",
+)
 def test_importing_celery_app_does_not_wipe_worker_metrics(tmp_path: Path) -> None:
     """Secondary CLI processes (like healthchecks) must not delete live worker .db files."""
     multiproc_dir = tmp_path / "multiproc"
@@ -19,9 +25,8 @@ import multiprocessing
 import os
 import subprocess
 import sys
-import urllib.request
 
-os.environ["PROMETHEUS_MULTIPROC_DIR"] = {str(multiproc_dir)!r}
+os.environ["PROMETHEUS_MULTIPROC_DIR"] = ""
 os.environ["CAMPLY_PROMETHEUS_MULTIPROC_DIR"] = {str(multiproc_dir)!r}
 
 import camply.worker.metrics as wm
@@ -70,20 +75,24 @@ sys.stdout.write(generate_latest(reg).decode())
     ), output
 
 
-def test_cleanup_stale_multiproc_files_preserves_live_pids(tmp_path: Path) -> None:
-    """Stale .db files from dead PIDs are removed while live PIDs are kept."""
+def test_cleanup_stale_multiproc_files_and_shutdown_hook(tmp_path: Path) -> None:
+    """Dead PIDs are cleaned on startup and exiting worker children drop live gauges."""
     dead_file = tmp_path / "counter_999999.db"
     live_file = tmp_path / f"counter_{os.getpid()}.db"
     dead_file.write_bytes(b"stale")
     live_file.write_bytes(b"live")
+    child_gauge = tmp_path / "gauge_livesum_424242.db"
+    child_gauge.write_bytes(b"gauge")
 
     script = f"""
 import os
 os.environ["PROMETHEUS_MULTIPROC_DIR"] = {str(tmp_path)!r}
-from camply.worker.metrics import _cleanup_stale_multiproc_files
+from camply.worker.metrics import _cleanup_stale_multiproc_files, _on_worker_process_shutdown
 
 _cleanup_stale_multiproc_files({str(tmp_path)!r})
+_on_worker_process_shutdown(pid=424242)
 """
     subprocess.run([sys.executable, "-c", script], check=True)
     assert not dead_file.exists()
     assert live_file.exists()
+    assert not child_gauge.exists()

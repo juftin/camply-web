@@ -156,6 +156,17 @@ def serve_beat(sync_providers: bool, args: tuple[str, ...]) -> None:
     )
 
 
+def _is_pid_alive(pid: int) -> bool:
+    """Return True when a process with the given PID exists."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
 def _cleanup_worker_multiproc_dir() -> None:
     """Remove stale Prometheus multiprocess files before starting a worker process."""
     multiproc_dir = (
@@ -165,12 +176,22 @@ def _cleanup_worker_multiproc_dir() -> None:
     )
     if not multiproc_dir or not os.path.isdir(multiproc_dir):
         return
+    current_pid = os.getpid()
     for fname in os.listdir(multiproc_dir):
-        if fname.endswith(".db"):
-            try:
-                os.remove(os.path.join(multiproc_dir, fname))
-            except OSError:
-                pass
+        if not fname.endswith(".db"):
+            continue
+        pid_text = fname[:-3].rsplit("_", 1)[-1]
+        try:
+            pid = int(pid_text)
+        except ValueError:
+            continue
+        # os.execv replaces current_pid, so any pre-exec file for it is also stale.
+        if pid != current_pid and _is_pid_alive(pid):
+            continue
+        try:
+            os.remove(os.path.join(multiproc_dir, fname))
+        except OSError:
+            pass
 
 
 def _worker_process(

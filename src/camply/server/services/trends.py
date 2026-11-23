@@ -36,6 +36,19 @@ CACHE_TTL_SECONDS = 30.0
 MAX_SERIES_PER_METRIC = 20
 
 
+def _promql_label_matcher(label: str, value: Optional[str]) -> str:
+    """Build a PromQL exact-match selector with escaped string contents."""
+    if not value:
+        return ""
+    escaped = (
+        value.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+    )
+    return f'{{{label}="{escaped}"}}'
+
+
 def _parse_step_and_range(range_param: str) -> tuple[int, int, str]:
     """
     Map range parameter to (duration_seconds, step_seconds, step_string).
@@ -339,9 +352,7 @@ async def get_admin_trends(
 
             elif norm_group == "api":
                 # Metric 1: API Requests per sec by Endpoint
-                ep_filter = (
-                    f'{{endpoint="{endpoint_filter}"}}' if endpoint_filter else ""
-                )
+                ep_filter = _promql_label_matcher("endpoint", endpoint_filter)
                 try:
                     res = await _query_prometheus_range(
                         client,
@@ -485,9 +496,7 @@ async def get_admin_trends(
 
             elif norm_group == "worker":
                 # Metric 1: Task Executions
-                task_filter = (
-                    f'{{task_name="{task_name_filter}"}}' if task_name_filter else ""
-                )
+                task_filter = _promql_label_matcher("task_name", task_name_filter)
                 try:
                     res = await _query_prometheus_range(
                         client,
@@ -758,14 +767,12 @@ async def get_admin_trends(
 
             elif norm_group == "provider":
                 # Metric 1: Booking Provider Errors
-                p_filter = (
-                    f'{{provider="{provider_filter}"}}' if provider_filter else ""
-                )
+                p_filter = _promql_label_matcher("provider", provider_filter)
                 try:
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        f"sum(rate(camply_campground_api_errors_total{p_filter}[{step_str}])) by (provider)",
+                        f"sum(rate(camply_campground_api_errors_total{p_filter}[{step_str}])) by (provider) or (sum(rate(camply_provider_checks_total{p_filter}[{step_str}])) by (provider) * 0)",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -790,7 +797,7 @@ async def get_admin_trends(
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        f"sum(rate(camply_campground_api_errors_total{p_filter}[{step_str}])) / sum(rate(camply_provider_checks_total{p_filter}[{step_str}])) * 100",
+                        f"(sum(rate(camply_campground_api_errors_total{p_filter}[{step_str}])) or (sum(rate(camply_provider_checks_total{p_filter}[{step_str}])) * 0)) / sum(rate(camply_provider_checks_total{p_filter}[{step_str}])) * 100",
                         start_ts,
                         end_ts,
                         step_sec,

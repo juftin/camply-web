@@ -329,6 +329,14 @@ async def test_trends_promql_aggregates_across_workers() -> None:
     ):
         await get_admin_trends(group="worker", range_param="7d")
         await get_admin_trends(group="api", range_param="30d")
+        await get_admin_trends(
+            group="provider", range_param="24h", provider_filter='1"} or vector(1) #'
+        )
 
     assert "sum(rate(camply_targets_discovered_total[1h])) * 60" in executed_queries
     assert "sum(rate(camply_http_requests_total[1d])) by (endpoint)" in executed_queries
+    assert any(
+        "or (sum(rate(camply_provider_checks_total" in query
+        and r'provider="1\"} or vector(1) #"' in query
+        for query in executed_queries
+    )
