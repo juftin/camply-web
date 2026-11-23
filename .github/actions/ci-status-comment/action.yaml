@@ -69,11 +69,16 @@ runs:
               | [
                   $heading,
                   "",
+                  "<details>",
+                  "<summary>Show \($jobs | length) jobs</summary>",
+                  "",
                   "| Job | Status | Duration |",
                   "| :--- | :--- | ---: |"
                 ]
                 + ($jobs | map("| [\(.name)](\(.html_url)) | \(icon) \(status_label) | \(fmt_dur) |"))
                 + [
+                  "",
+                  "</details>",
                   "",
                   "_Commit `\($sha)` · [Workflow run #\($run_num)](\($run_url))_"
                 ]
