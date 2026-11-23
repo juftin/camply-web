@@ -86,7 +86,15 @@ class DocumentationTests(unittest.TestCase):
             deploy["environment"]["url"], "${{ steps.deployment.outputs.page_url }}"
         )
         publish = next(s for s in deploy["steps"] if s.get("id") == "deployment")
+        self.assertEqual(publish["uses"], "./.github/actions/github-pages")
         self.assertEqual(publish["with"]["path"], "build/docs")
+        action = yaml.safe_load(
+            (ROOT / ".github/actions/github-pages/action.yaml").read_text()
+        )
+        self.assertEqual(
+            action["outputs"]["page_url"]["value"],
+            "${{ steps.deployment.outputs.page_url }}",
+        )
         ci = yaml.safe_load((ROOT / ".github/workflows/ci.yaml").read_text())
         tasks = [
             item.get("task")

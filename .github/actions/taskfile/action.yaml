@@ -1,0 +1,76 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+
+name: Run Task
+description: Set up the CI toolchain and run a Camply Taskfile target
+
+inputs:
+  task:
+    description: Taskfile target to run
+    required: true
+  install:
+    description: Run task install first
+    default: "false"
+  buildx:
+    description: Set up Docker Buildx
+    default: "false"
+  annotations-ruff:
+    description: Emit GitHub annotations for Ruff diagnostics
+    default: "false"
+  problem-matcher:
+    description: Problem matcher to register (mypy or pytest)
+    default: ""
+  pytest-coverage:
+    description: Post the pytest coverage report on the pull request
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: uv - set up uv
+      uses: astral-sh/setup-uv@6b9c6063abd6010835644d4c2e1bef4cf5cd0fca # v6.0.1
+      with:
+        version: latest
+
+    - name: task - install task runner
+      uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+      with:
+        version: 3.x
+        repo-token: ${{ github.token }}
+
+    - name: docker - set up buildx
+      if: inputs.buildx == 'true'
+      uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
+    - name: task - install dependencies
+      if: inputs.install == 'true'
+      shell: bash
+      run: task install
+
+    - name: Register problem matcher
+      if: inputs.problem-matcher != ''
+      id: matcher
+      shell: bash
+      env:
+        PROBLEM_MATCHER: ${{ inputs.problem-matcher }}
+      run: echo "::add-matcher::$GITHUB_ACTION_PATH/problem-matchers/$PROBLEM_MATCHER.json"
+
+    - name: Run Taskfile target
+      shell: bash
+      env:
+        TASK_TARGET: ${{ inputs.task }}
+        RUFF_OUTPUT_FORMAT: ${{ inputs.annotations-ruff == 'true' && 'github' || 'full' }}
+      run: task "$TASK_TARGET"
+
+    - name: Remove problem matcher
+      if: always() && steps.matcher.outcome == 'success'
+      shell: bash
+      env:
+        PROBLEM_MATCHER: ${{ inputs.problem-matcher }}
+      run: echo "::remove-matcher owner=$PROBLEM_MATCHER::"
+
+    - name: Report pytest coverage
+      if: inputs.pytest-coverage == 'true'
+      uses: MishaKav/pytest-coverage-comment@13d3c18e21895566c746187c9ea74736372e5e91 # v1.1.54
+      with:
+        pytest-xml-coverage-path: coverage.xml
+        junitxml-path: pytest.xml

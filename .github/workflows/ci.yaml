@@ -37,7 +37,7 @@ jobs:
           - name: backend - type check
             task: backend:check
             install: true
-            annotations_mypy: true
+            problem_matcher: mypy
 
           - name: backend - test - 3.11
             task: backend:test
@@ -53,7 +53,7 @@ jobs:
             task: backend:test
             install: true
             python: "3.13"
-            annotations_pytest: true
+            problem_matcher: pytest
             pytest_coverage: true
 
           - name: backend - test - 3.14
@@ -65,17 +65,15 @@ jobs:
             task: backend:packaging:test
             install: true
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: ${{ matrix.name }}
-        uses: juftin/actions/taskfile@v1
+        uses: ./.github/actions/taskfile
         with:
           task: ${{ matrix.task }}
-          checkout: true
           install: ${{ matrix.install || false }}
-          setup-uv: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           annotations-ruff: ${{ matrix.annotations_ruff || false }}
-          annotations-mypy: ${{ matrix.annotations_mypy || false }}
-          annotations-pytest: ${{ matrix.annotations_pytest || false }}
+          problem-matcher: ${{ matrix.problem_matcher }}
           pytest-coverage: ${{ matrix.pytest_coverage && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork || false }}
         env:
           UV_PYTHON: ${{ matrix.python || '' }}
@@ -107,14 +105,13 @@ jobs:
             task: frontend:test
             install: true
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: ${{ matrix.name }}
-        uses: juftin/actions/taskfile@v1
+        uses: ./.github/actions/taskfile
         with:
           task: ${{ matrix.task }}
-          checkout: true
           install: ${{ matrix.install || false }}
-          setup-uv: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   verify:
     name: ${{ matrix.name }}
@@ -130,7 +127,7 @@ jobs:
           - name: pre-commit
             task: pre-commit
             install: true
-            fetch_depth: 0
+            fetch_depth: "0"
 
           - name: mcp - bundle verify
             task: mcp:verify
@@ -152,15 +149,15 @@ jobs:
             task: api:check
             install: true
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: ${{ matrix.fetch_depth || '1' }}
       - name: ${{ matrix.name }}
-        uses: juftin/actions/taskfile@v1
+        uses: ./.github/actions/taskfile
         with:
           task: ${{ matrix.task }}
-          checkout: true
           install: ${{ matrix.install || false }}
-          fetch-depth: ${{ matrix.fetch_depth || '1' }}
-          setup-uv: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   build:
     name: ${{ matrix.name }}
@@ -178,14 +175,13 @@ jobs:
             task: build
             buildx: true
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: ${{ matrix.name }}
-        uses: juftin/actions/taskfile@v1
+        uses: ./.github/actions/taskfile
         with:
           task: ${{ matrix.task }}
-          checkout: true
-          setup-uv: true
           buildx: ${{ matrix.buildx || false }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   smoke:
     name: ${{ matrix.name }}
@@ -219,14 +215,13 @@ jobs:
             task: helm:smoke
             install: true
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: ${{ matrix.name }}
-        uses: juftin/actions/taskfile@v1
+        uses: ./.github/actions/taskfile
         with:
           task: ${{ matrix.task }}
-          checkout: true
           install: ${{ matrix.install || false }}
-          setup-uv: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   snapshots:
     name: ${{ matrix.name }}
@@ -244,14 +239,13 @@ jobs:
             task: snapshot:check
             install: true
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: ${{ matrix.name }}
-        uses: juftin/actions/taskfile@v1
+        uses: ./.github/actions/taskfile
         with:
           task: ${{ matrix.task }}
-          checkout: true
           install: ${{ matrix.install || false }}
-          setup-uv: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Snapshot Reports and Visual Diffs
         if: always()
