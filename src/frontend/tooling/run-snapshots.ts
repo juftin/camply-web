@@ -88,6 +88,16 @@ async function revealSnapshotPassword(page: Page): Promise<void> {
   });
 }
 
+async function scrollToTop(page: Page): Promise<void> {
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await page.waitForFunction(() => {
+    const top = document.querySelector("header")?.getBoundingClientRect().top;
+    if (top !== undefined && Math.abs(top) <= 1) return true;
+    window.scrollTo({ top: 0, behavior: "instant" });
+    return false;
+  });
+}
+
 /**
  * Standard scenarios covering pages, themes, viewports, and components.
  */
@@ -649,11 +659,7 @@ const SCENARIOS: Scenario[] = [
         )
       )
         throw new Error("Availability grid overflows the viewport");
-      await page.evaluate(() => window.scrollTo(0, 0));
-      await page.waitForFunction(
-        () =>
-          document.querySelector("header")?.getBoundingClientRect().top === 0,
-      );
+      await scrollToTop(page);
     },
   })),
   ...(["desktop", "mobile"] as const).map((size) => ({
@@ -684,11 +690,7 @@ const SCENARIOS: Scenario[] = [
         )
       )
         throw new Error("Campsite results overflow the viewport");
-      await page.evaluate(() => window.scrollTo(0, 0));
-      await page.waitForFunction(
-        () =>
-          document.querySelector("header")?.getBoundingClientRect().top === 0,
-      );
+      await scrollToTop(page);
     },
   })),
   ...(["light", "dark"] as const).flatMap((theme) =>
@@ -947,13 +949,8 @@ for (const [name, width] of [
           await page.evaluate(async () => {
             await new Promise(requestAnimationFrame);
             await new Promise(requestAnimationFrame);
-            window.scrollTo(0, 0);
           });
-          await page.waitForFunction(
-            () =>
-              document.querySelector("header")?.getBoundingClientRect().top ===
-              0,
-          );
+          await scrollToTop(page);
           if (
             await page.evaluate(
               () => document.documentElement.scrollWidth > innerWidth,
