@@ -92,7 +92,7 @@ runs:
     - name: playwright - install Linux system dependencies on cache hit
       if: inputs.playwright-cache == 'true' && runner.os == 'Linux' && steps.playwright-cache.outputs.cache-hit == 'true'
       shell: bash
-      run: pnpm exec playwright install-deps chromium
+      run: task frontend:browser:deps
 
     - name: Register problem matcher
       if: inputs.problem-matcher != ''

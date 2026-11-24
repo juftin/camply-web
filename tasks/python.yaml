@@ -21,7 +21,7 @@ tasks:
       - >-
         uv run --all-extras -- pytest --ignore=tests/packaging
         {{if not .CLI_ARGS}}-n auto{{end}}
-        {{if .CI}}--junitxml=tmp/ci-reports/junit.xml --cov=camply
+        {{if and .CI (not .CLI_ARGS)}}--junitxml=tmp/ci-reports/junit.xml --cov=camply
         --cov-report=xml:tmp/ci-reports/coverage/coverage.xml{{end}}
         {{.CLI_ARGS}}
     deps: [sync]
