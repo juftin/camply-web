@@ -462,4 +462,20 @@ describe("MapLibre shared maps", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry map" }));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+  it("tracks tile and render idle state on the map container", () => {
+    render(<MapComponent latitude={37.74} longitude={-119.58} />);
+    const container = screen.getByLabelText("Interactive campground map");
+    const map = sdk.maps[0];
+    expect(container).toHaveAttribute("data-map-idle", "false");
+    act(() => map.fire("idle"));
+    expect(container).toHaveAttribute("data-map-idle", "true");
+    act(() => map.fire("movestart"));
+    expect(container).toHaveAttribute("data-map-idle", "false");
+    act(() => map.fire("idle"));
+    expect(container).toHaveAttribute("data-map-idle", "true");
+    act(() => map.fire("dataloading"));
+    expect(container).toHaveAttribute("data-map-idle", "false");
+    act(() => map.fire("idle"));
+    expect(container).toHaveAttribute("data-map-idle", "true");
+  });
 });
