@@ -39,6 +39,6 @@ Status of the D01–D13 legacy inventory items across specs 031, 032, and the mo
 - [x] D08 Dropped (intentional): Legacy Trogon TUI dropped; `camply serve` provides the full interactive web UI.
 - [x] D09 Dropped (intentional): `rich-click` dropped; plain Click + `CamplyRichHandler` avoids extra dependency bloat.
 - [x] D10 Dropped (intentional): `configure` wizard and implicit `~/.camply` dotenv file dropped to keep the CLI stateless with explicit env vars and `camply.yaml`.
-- [x] D11 Implemented (redesigned): Continuous watch is the default with transient-error retries and automatic date-expiry stop; `--once` (alias `--search-once`) for single-pass checks, `--stop-on-match` to stop on first match, and `--interval` (>= 5 min). Legacy `--continuous` and `--search-forever` intentionally dropped.
+- [x] D11 Implemented (redesigned): Continuous watch is the default with transient-error retries and automatic date-expiry stop; `--search-once` for single-pass checks, `--stop-on-match` to stop on first match, and `--interval` (>= 5 min). Legacy `--continuous` and `--search-forever` intentionally dropped.
 - [x] D12 Implemented (redesigned): Replaced `--notify-first-try` and hidden 5/20 caps with explicit `--max-notifications` (1–100, default 5; also in YAML) and automatic overflow summary alerts.
 - [x] D13 Implemented (spec 031/032): Stateless in-memory deduplication plus explicit JSON `--state-file` / YAML `state_file` persistence; legacy pickle state dropped.

@@ -225,21 +225,15 @@ def campsites_cmd(
                     ctx=ctx, param_hint=name, param_type="option"
                 )
     if search_once and stop_on_match:
-        raise click.UsageError(
-            "--once/--search-once cannot be combined with --stop-on-match."
-        )
+        raise click.UsageError("--search-once cannot be combined with --stop-on-match.")
     if (
         search_once
         and ctx.get_parameter_source("interval")
         == click.core.ParameterSource.COMMANDLINE
     ):
-        raise click.UsageError(
-            "--interval cannot be combined with --once/--search-once."
-        )
+        raise click.UsageError("--interval cannot be combined with --search-once.")
     if json_output and not search_once:
-        raise click.UsageError(
-            "--json requires --once (or --search-once) on campsites."
-        )
+        raise click.UsageError("--json requires --search-once on campsites.")
     if yaml_config is not None:
         from camply.cli.campsite_batch import run_batch
 

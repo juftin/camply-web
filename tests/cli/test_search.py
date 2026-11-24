@@ -996,7 +996,7 @@ def test_discovery_limit_option_and_truncation_probe(transcript: Transcript) -> 
 def test_interval_minutes_validation_and_conversion(
     transcript: Transcript, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Verify --interval requires an integer >= 5 minutes, rejects --once, and converts to seconds."""
+    """Verify --interval requires an integer >= 5 minutes, rejects --search-once, and converts to seconds."""
     for bad in ("4", "0", "-5", "5.5"):
         bad_int = CliRunner().invoke(
             cli, ["campsites", "--campground", "001", *_DATES, "--interval", bad]
@@ -1004,22 +1004,21 @@ def test_interval_minutes_validation_and_conversion(
         assert bad_int.exit_code == 2
         assert transcript.constructed == []
 
-    for once_flag in ("--once", "--search-once"):
-        conflict = CliRunner().invoke(
-            cli,
-            [
-                "campsites",
-                "--campground",
-                "001",
-                *_DATES,
-                "--interval",
-                "7",
-                once_flag,
-            ],
-        )
-        assert conflict.exit_code == 2
-        assert "--interval" in conflict.stderr
-        assert transcript.constructed == []
+    conflict = CliRunner().invoke(
+        cli,
+        [
+            "campsites",
+            "--campground",
+            "001",
+            *_DATES,
+            "--interval",
+            "7",
+            "--search-once",
+        ],
+    )
+    assert conflict.exit_code == 2
+    assert "--interval" in conflict.stderr
+    assert transcript.constructed == []
 
     seen_intervals: list[float | None] = []
     real_monitor = core.monitor
@@ -1045,29 +1044,21 @@ def test_interval_minutes_validation_and_conversion(
     assert seen_intervals == [420.0]
 
 
-def test_once_alias_and_stop_on_match_lifecycle(
+def test_stop_on_match_lifecycle_and_mode_conflicts(
     transcript: Transcript, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Verify --once alias, --stop-on-match exit on first match, and mode conflict errors."""
-    import json
-
-    # Contradictory mode flags fail before provider IO
-    for once_flag in ("--once", "--search-once"):
+    """Verify --stop-on-match exits on first match, rejects --once, and validates mode conflicts."""
+    # Contradictory mode flags and removed --once alias fail before provider IO
+    for bad_args in (
+        ["--search-once", "--stop-on-match"],
+        ["--once"],
+    ):
         conflict = CliRunner().invoke(
             cli,
-            ["campsites", "--campground", "001", *_DATES, once_flag, "--stop-on-match"],
+            ["campsites", "--campground", "001", *_DATES, *bad_args],
         )
         assert conflict.exit_code == 2
-        assert "--stop-on-match" in conflict.stderr
         assert transcript.constructed == []
-
-    # --once works identically to --search-once, including with --json
-    once_json = CliRunner().invoke(
-        cli, ["campsites", "--campground", "001", *_DATES, "--once", "--json"]
-    )
-    assert once_json.exit_code == 0, once_json.output
-    assert len(json.loads(once_json.stdout)) == 4
-    assert len(transcript.checks) == 1
 
     # --stop-on-match polls past empty cycles and exits 0 once a stay matches
     transcript.checks.clear()
@@ -1144,11 +1135,11 @@ def test_continuous_watch_retries_transient_error_and_stops_on_date_expiry(
     assert "transient-secret-url" not in recovered.output + recovered.stderr
     assert "1 Reservable Campsites Matching Search Preferences" in recovered.stdout
 
-    # 2. Single-pass --once still fails non-zero on provider error
+    # 2. Single-pass --search-once still fails non-zero on provider error
     transcript.checks.clear()
     attempts = 0
     once_fail = CliRunner().invoke(
-        cli, ["campsites", "--campground", "001", *_DATES, "--once"]
+        cli, ["campsites", "--campground", "001", *_DATES, "--search-once"]
     )
     assert once_fail.exit_code == 1
     assert attempts == 1

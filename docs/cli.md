@@ -42,7 +42,7 @@ camply campsites --campground 232450 \
 
 camply checks availability right away, prints matching stays with booking links, and re-checks every `--interval` minutes (default `10`, minimum `5`) until all requested booking dates pass or you press `Ctrl-C`. Transient provider errors during continuous watches are logged and retried on the next interval without resetting alert history.
 
-- **Run modes:** Continuous watching is the default. Pass `--once` (or `--search-once`) to run a single check and exit immediately, or `--stop-on-match` to keep watching until the first cycle that finds a qualifying stay and then exit cleanly.
+- **Run modes:** Continuous watching is the default. Pass `--search-once` to run a single check and exit immediately, or `--stop-on-match` to keep watching until the first cycle that finds a qualifying stay and then exit cleanly.
 - **Dates:** `--start-date` is check-in (inclusive) and `--end-date` is checkout (exclusive). Repeat both flags in pairs to watch multiple date windows in one command.
 - **Stay length:** `--nights` defaults to `1` and matches exact-length consecutive stays at a single site (for example, a 4-night opening yields two 3-night options when `--nights 3`).
 - **Targets:** Multiple `--rec-area` flags combine their campgrounds. If you pass `--campground` alongside `--rec-area`, explicit campground IDs win.
@@ -75,7 +75,7 @@ Run continuously, stop on match, or check once:
 ```bash
 camply campsites --yaml-config camply.yaml
 camply campsites --yaml-config camply.yaml --stop-on-match
-camply campsites --yaml-config camply.yaml --once --json
+camply campsites --yaml-config camply.yaml --search-once --json
 ```
 
 To see every option, [download the full `camply.yaml` example](https://camply.rocks/docs/examples/camply.yaml) or save it with cURL.
@@ -160,33 +160,33 @@ camply test-notifications --notifications discord
 
 All notification settings and webhook URLs are read from environment variables and secret tokens are never logged.
 
-During continuous watching, camply tracks seen openings in memory and only sends alerts for newly opened or reopened stays. To prevent alert floods when many sites open at once, camply caps delivery at `--max-notifications` per channel per cycle (default `5`, range `1`–`100`) and collapses any overflow into one concise summary alert (pass `--max-notifications 1` for a single summary notification per cycle). When running single-pass checks from `cron` or a systemd timer (`--once` / `--search-once`), pass `--state-file` to persist seen openings across runs:
+During continuous watching, camply tracks seen openings in memory and only sends alerts for newly opened or reopened stays. To prevent alert floods when many sites open at once, camply caps delivery at `--max-notifications` per channel per cycle (default `5`, range `1`–`100`) and collapses any overflow into one concise summary alert (pass `--max-notifications 1` for a single summary notification per cycle). When running single-pass checks from `cron` or a systemd timer (`--search-once`), pass `--state-file` to persist seen openings across runs:
 
 ```bash
 export NTFY_TOPIC="camply-alerts"
 camply campsites --campground 232450 \
   --start-date 2027-07-10 --end-date 2027-07-14 --nights 2 \
   --notifications ntfy --max-notifications 5 \
-  --once --state-file ~/.cache/camply-yosemite.json
+  --search-once --state-file ~/.cache/camply-yosemite.json
 ```
 
 ## JSON output for scripting
 
-Pass `--json` to `providers`, `recreation-areas`, `campgrounds`, `list-campsites`, or `campsites --once` (or `--search-once`) to emit machine-readable JSON on `stdout` while routing banners and diagnostics to `stderr`:
+Pass `--json` to `providers`, `recreation-areas`, `campgrounds`, `list-campsites`, or `campsites --search-once` to emit machine-readable JSON on `stdout` while routing banners and diagnostics to `stderr`:
 
 ```bash
 camply campgrounds --search Yosemite --state CA --limit 25 --json
 camply list-campsites --campground 232450 --electric --json
 camply campsites --campground 232450 \
   --start-date 2027-07-10 --end-date 2027-07-12 \
-  --once --json
+  --search-once --json
 ```
 
 ## Differences from legacy camply
 
 The modern CLI intentionally drops several legacy v1 flags and commands in favor of simpler, safer defaults:
 
-- **No `--continuous` or `--search-forever`:** Continuous watching is the default; use `--once` (or `--search-once`) for a single check and `--stop-on-match` to stop once a stay is found.
+- **No `--continuous` or `--search-forever`:** Continuous watching is the default; use `--search-once` for a single check and `--stop-on-match` to stop once a stay is found.
 - **No `--notify-first-try`:** Use `--max-notifications` (default `5`) to control per-cycle alert volume with automatic overflow summaries.
 - **No `configure` or `~/.camply`:** Secrets come from explicit environment variables and multi-search setups live in `camply.yaml` (`version: 2`).
 - **No `tui` or `rich-click`:** Use `camply serve` for the full interactive web UI.

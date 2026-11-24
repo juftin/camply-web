@@ -186,9 +186,7 @@ def state_file() -> Callable[[_F], _F]:
 def search_once() -> Callable[[_F], _F]:
     """Run a single availability check cycle and exit."""
     return click.option(
-        "--once",
         "--search-once",
-        "search_once",
         is_flag=True,
         default=False,
         help="Check availability once and exit.",
