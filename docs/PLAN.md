@@ -1,10 +1,16 @@
 # Roadmap and Plan
 
-Strategic roadmap for transitioning `camply` from a legacy CLI tool into a full-stack campsite availability web application and modern CLI.
+Roadmap for **camply v2**, evolving `camply` from its original CLI tool into a full-stack campsite availability web application with a redesigned CLI.
 
 ## Vision
 
 A **free, open-source, and self-hostable** campsite availability scanner. Users can create accounts, set up high-frequency scans for specific parks and dates, and receive real-time alerts via **Pushover** or **ntfy** when a spot opens up.
+
+## Release direction
+
+Camply v2 is being developed in `github.com/juftin/camply-web` and will eventually move back to `github.com/juftin/camply` as the next major release. Renaming `camply-web` to `camply` across package metadata, install commands, container images, and links is intentionally saved for last, right before the stable v2 release.
+
+Because v2 is a major version, we are not aiming for strict backwards compatibility with v1. Where old CLI flags, configuration formats, or unmaintained features get in the way, we drop or redesign them in favor of a simpler, better experience.
 
 ## Core architecture and standards
 
@@ -37,8 +43,9 @@ Standalone provides bounded local scheduling and serves the bundled frontend fro
 Python process. Root source builds produce complete wheels and sdists; prepared
 sdists rebuild without JavaScript tooling. The base CLI provides current-provider
 discovery and foreground campground availability monitoring; see the
-[command-line guide](cli.md). Full legacy CLI parity remains tracked through
-[feature 026's deferred TODOs](specs/026-cli-parity/tasks.md#deferred-todo-registry).
+[command-line guide](cli.md). Remaining CLI work is tracked in
+[feature 026's deferred TODOs](specs/026-cli-parity/tasks.md#deferred-todo-registry),
+focusing on the redesigned v2 interface rather than strict v1 parity.
 PyPI publication remains separate work.
 
 ## Strategic feature requirements
@@ -90,9 +97,9 @@ PyPI publication remains separate work.
 - [ ] **User Config**: Secure storage for user-specific Pushover keys and notification preferences.
 - [ ] **Validation**: Ensure strict schema validation for all user-provided scan parameters.
 
-### Phase 3: Provider Parity & Advanced Filtering
+### Phase 3: Provider Coverage & Advanced Filtering
 
-**Goal**: Full feature parity with the legacy CLI and advanced scanning features.
+**Goal**: Broad live provider coverage, a modern v2 CLI, and advanced scanning features.
 
 - [x] **Providers**: Port verified `usedirect` and `going_to_camp` deployments (plus `ReserveAmerica`); skip `xanterra` as its campsites are moving to Recreation.gov.
 - [x] **ReserveCalifornia**: Port California State Parks availability and metadata to the current Tyler RDR API; preserve modern booking routes on the shared UseDirect ABC.

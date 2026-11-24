@@ -8,6 +8,9 @@
 
 Use it online at **[camply.rocks](https://camply.rocks)**, from your terminal, or on your own server.
 
+> [!NOTE]
+> This repository is where **camply v2** is being developed. Once v2 reaches a stable release, it will move back to [github.com/juftin/camply](https://github.com/juftin/camply) and the package will be renamed from `camply-web` to `camply`. As a major release, v2 introduces breaking changes to the CLI and configuration compared to v1.
+
 ## Quick start
 
 Run the full web app on your own machine with [uv](https://docs.astral.sh/uv/):
