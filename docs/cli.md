@@ -11,7 +11,7 @@ camply --help
 
 ![Help output showing the discovery and monitoring commands](assets/camply-cli-help.png)
 
-If you also keep legacy `camply` installed, keep `camply-web` in a separate `uv` tool environment because both install a `camply` executable.
+`camply-web` is the preview package for **camply v2** (it will be renamed back to `camply` upon stable release). Camply v2 introduces breaking changes from v1—streamlining CLI options, dropping legacy flags, and using a `version: 2` YAML format. If you also keep legacy v1 `camply` installed, keep `camply-web` in a separate `uv` tool environment because both install a `camply` executable.
 
 ## Discover locations
 
