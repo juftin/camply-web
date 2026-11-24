@@ -1,0 +1,12 @@
+apiVersion: v2
+name: camply-web
+description: Camply campsite monitoring with API, frontend, and distributed workers
+type: application
+version: 0.1.0
+appVersion: latest
+kubeVersion: ">=1.26.0-0"
+home: https://github.com/juftin/camply-web
+sources:
+  - https://github.com/juftin/camply-web
+annotations:
+  org.opencontainers.image.source: https://github.com/juftin/camply-web

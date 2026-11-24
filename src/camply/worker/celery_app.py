@@ -1,0 +1,147 @@
+"""
+Celery Application Configuration
+"""
+
+import structlog
+
+try:
+    from celery import Celery
+except ModuleNotFoundError as exc:
+    if exc.name != "celery":
+        raise
+    raise RuntimeError(
+        "The worker requires installing 'camply-web[distributed]'."
+    ) from exc
+from celery.schedules import crontab
+from celery.signals import setup_logging, worker_init
+
+from camply.worker.config import worker_config
+
+logger = structlog.getLogger(__name__)
+
+
+def create_celery_app() -> Celery:
+    """
+    Create and configure the Celery application instance.
+    """
+    app = Celery("camply_worker")
+
+    # Broker and result backend both point at Valkey
+    app.conf.broker_url = worker_config.valkey_url
+    app.conf.result_backend = worker_config.valkey_url
+
+    # Task serialization: msgpack for speed and compact payloads, accepting json for compatibility
+    app.conf.task_serializer = "msgpack"
+    app.conf.result_serializer = "msgpack"
+    app.conf.accept_content = ["msgpack", "json"]
+
+    # Timezone
+    app.conf.timezone = "UTC"
+    app.conf.enable_utc = True
+
+    # Task settings
+    app.conf.task_track_started = True
+    app.conf.task_acks_late = True
+    app.conf.task_reject_on_worker_lost = True
+    app.conf.task_default_retry_delay = 60  # 1 minute
+    app.conf.task_max_retries = 3
+    app.conf.worker_prefetch_multiplier = 1
+
+    # Result expiry: 1 hour (we don't need results long-term)
+    app.conf.result_expires = 3600
+
+    # Beat schedule:
+    # - search.schedule_checks every 5 minutes (configurable via CAMPLY_HEARTBEAT_INTERVAL)
+    # - catalog.sync_all daily at midnight UTC
+    # - catalog.enrich_all each heartbeat to resume the persisted details backlog
+    app.conf.beat_schedule = {
+        "schedule-availability-checks": {
+            "task": "search.schedule_checks",
+            "schedule": worker_config.heartbeat_interval,
+        },
+        "sync-provider-catalogs-daily": {
+            "task": "catalog.sync_all",
+            "schedule": crontab(minute=0, hour=0),
+        },
+        "enrich-provider-details": {
+            "task": "catalog.enrich_all",
+            "schedule": worker_config.heartbeat_interval,
+        },
+    }
+
+    # Module containing task definitions (autodiscovery)
+    app.conf.imports = [
+        "camply.worker.tasks.heartbeat",
+        "camply.worker.tasks.ingestion",
+        "camply.worker.tasks.scanner",
+        "camply.worker.tasks.notifications",
+    ]
+
+    return app
+
+
+@setup_logging.connect
+def configure_celery_logging(**kwargs: object) -> None:
+    """
+    Override Celery's default logging to use structlog.
+
+    Celery's default logging setup wipes all existing handlers
+    and configures its own. We reconnect structlog after it runs.
+    """
+    structlog.configure(
+        processors=[
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.UnicodeDecoder(),
+            structlog.dev.ConsoleRenderer(),
+        ],
+        wrapper_class=structlog.stdlib.BoundLogger,
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=True,
+    )
+
+
+celery_app = create_celery_app()
+
+# Import metrics and telemetry modules to register Celery signal handlers
+import camply.worker.metrics  # noqa: E402
+import camply.worker.telemetry  # noqa: E402, F401
+
+
+@worker_init.connect
+def _on_worker_init(**kwargs: object) -> None:
+    """Start the Prometheus metrics HTTP server when the worker initializes.
+
+    Uses worker_init (main process, before pool fork) rather than
+    worker_ready so the metrics server is ready before children start.
+    """
+    if worker_config.metrics_port > 0:
+        from camply.worker.metrics import start_metrics_server
+
+        start_metrics_server(port=worker_config.metrics_port)
+
+
+# Conditional Sentry initialization
+if worker_config.sentry_dsn:
+    try:
+        import sentry_sdk
+    except ModuleNotFoundError as exc:
+        if exc.name != "sentry_sdk":
+            raise
+        raise RuntimeError(
+            "CAMPLY_SENTRY_DSN is configured; install 'camply-web[sentry]' to enable reporting."
+        ) from exc
+    from sentry_sdk.integrations.celery import CeleryIntegration
+
+    sentry_sdk.init(
+        dsn=worker_config.sentry_dsn,
+        traces_sample_rate=worker_config.sentry_traces_sample_rate,
+        integrations=[CeleryIntegration()],
+        environment=worker_config.environment,
+    )
+    logger.info("Sentry initialized for Celery worker")

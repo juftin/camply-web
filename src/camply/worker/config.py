@@ -1,0 +1,71 @@
+"""
+Worker Configuration via pydantic-settings
+"""
+
+from typing import ClassVar, Literal, Optional
+
+from pydantic import Field, HttpUrl, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class WorkerConfig(BaseSettings):
+    """
+    Configuration for the Celery worker and notification services.
+    """
+
+    model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
+        env_prefix="CAMPLY_",
+        case_sensitive=False,
+    )
+
+    # Valkey / Redis broker URL
+    valkey_url: str = "redis://localhost:6379/0"
+
+    # Sentry
+    sentry_dsn: Optional[str] = None
+    sentry_traces_sample_rate: float = 0.0
+
+    invite_only: bool = False
+    """Recheck invitation eligibility before notification delivery."""
+
+    # Deployment
+    environment: str = "local"
+
+    notification_mode: Literal["summary", "direct"] = "summary"
+    """Summarize new matches per scan, or send individual provider booking links."""
+
+    app_url: HttpUrl = HttpUrl("https://camply.rocks")
+    """Public frontend URL, including any deployment path prefix, for alerts."""
+
+    @field_validator("app_url")
+    @classmethod
+    def validate_app_url(cls, value: HttpUrl) -> HttpUrl:
+        """Require a base URL so scan paths can be appended without ambiguity."""
+        if value.query or value.fragment or value.username or value.password:
+            raise ValueError(
+                "app_url must not include credentials, a query, or a fragment"
+            )
+        return value
+
+    # Heartbeat interval for target discovery (seconds)
+    heartbeat_interval: int = Field(
+        default=300,
+        description="Heartbeat interval for target discovery in seconds (defaults to 300s = 5m).",
+    )
+    """Heartbeat interval in seconds for target discovery and availability searching."""
+
+    # Lock timeout in seconds (prevents ghost locks)
+    lock_timeout: int = Field(default=120, ge=105)
+
+    # How stale a target must be before re-checking (seconds)
+    target_cooldown: int = Field(
+        default=55,
+        description="How stale a target must be before re-checking in seconds.",
+    )
+    """Minimum seconds elapsed before a previously checked target is re-scanned."""
+
+    # Prometheus metrics HTTP server port (0 = disabled)
+    metrics_port: int = 8001
+
+
+worker_config = WorkerConfig()

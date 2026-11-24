@@ -1,0 +1,12 @@
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+  hosts: [camply.example.com]
+  tls:
+    - secretName: camply-tls
+      hosts: [camply.example.com]
+env:
+  CAMPLY_APP_URL: https://camply.example.com
+  CAMPLY_CORS_ORIGINS: '["https://camply.example.com"]'

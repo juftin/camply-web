@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+tasks:
+  up:
+    desc: Start All Services in Background with Docker Compose
+    cmds:
+      - docker compose up -d --build {{.CLI_ARGS}}
+
+  down:
+    desc: Stop All Docker Compose Services
+    cmds:
+      - docker compose down {{.CLI_ARGS}}
+
+  logs:
+    summary: Follow Docker Compose Logs
+    cmds:
+      - docker compose logs -f {{.CLI_ARGS}}
+
+  ps:
+    summary: List Docker Compose Service Statuses
+    cmds:
+      - docker compose ps {{.CLI_ARGS}}
+
+  restart:
+    summary: Restart Docker Compose Services
+    cmds:
+      - docker compose restart {{.CLI_ARGS}}
+
+  infra:
+    summary: Start Backing Infrastructure Only (PostgreSQL + Valkey)
+    cmds:
+      - docker compose up -d db valkey {{.CLI_ARGS}}

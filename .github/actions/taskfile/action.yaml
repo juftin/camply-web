@@ -1,0 +1,151 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+
+name: Run Task
+description: Set up the CI toolchain and run a Camply Taskfile target
+
+inputs:
+  task:
+    description: Taskfile target to run
+    required: true
+  install:
+    description: Dependencies to set up and install (none, backend, frontend, or all)
+    default: "none"
+  playwright-cache:
+    description: Cache Playwright Chromium binaries across CI runs
+    default: "false"
+  buildx:
+    description: Set up Docker Buildx
+    default: "false"
+  annotations-ruff:
+    description: Emit GitHub annotations for Ruff diagnostics
+    default: "false"
+  problem-matcher:
+    description: Problem matcher to register (mypy or pytest)
+    default: ""
+  coverage-comment:
+    description: Post the Cobertura coverage and JUnit test summary comment on the pull request
+    default: "false"
+  coverage-title:
+    description: Prefix for coverage and test comment titles (e.g. Backend or Frontend)
+    default: ""
+  coverage-path-prefix:
+    description: Optional repository-relative path prefix for source links in the coverage report
+    default: ""
+  report-name:
+    description: Artifact name for the test reports
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: uv - set up uv
+      if: inputs.install != 'frontend'
+      uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      with:
+        enable-cache: ${{ inputs.install == 'backend' || inputs.install == 'all' }}
+        cache-suffix: ${{ runner.os }}-${{ env.UV_PYTHON || 'default' }}
+
+    - name: task - install task runner
+      uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+      with:
+        version: 3.x
+        repo-token: ${{ github.token }}
+
+    - name: pnpm - setup package manager
+      if: inputs.install == 'frontend' || inputs.install == 'all'
+      uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      with:
+        package_json_file: ./package.json
+
+    - name: node - setup node runtime
+      if: inputs.install == 'frontend' || inputs.install == 'all'
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: "24"
+        cache: pnpm
+        cache-dependency-path: ./pnpm-lock.yaml
+
+    - name: playwright - cache browser binaries
+      if: inputs.playwright-cache == 'true'
+      id: playwright-cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ~/.cache/ms-playwright
+          ~/Library/Caches/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+    - name: docker - set up buildx
+      if: inputs.buildx == 'true'
+      uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
+    - name: task - install backend dependencies
+      if: inputs.install == 'backend' || inputs.install == 'all'
+      shell: bash
+      run: task backend:install
+
+    - name: task - install frontend dependencies
+      if: inputs.install == 'frontend' || inputs.install == 'all'
+      shell: bash
+      run: task frontend:install
+
+    - name: playwright - install Linux system dependencies on cache hit
+      if: inputs.playwright-cache == 'true' && runner.os == 'Linux' && steps.playwright-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: task frontend:browser:deps
+
+    - name: Register problem matcher
+      if: inputs.problem-matcher != ''
+      id: matcher
+      shell: bash
+      env:
+        PROBLEM_MATCHER: ${{ inputs.problem-matcher }}
+      run: echo "::add-matcher::$GITHUB_ACTION_PATH/problem-matchers/$PROBLEM_MATCHER.json"
+
+    - name: Run Taskfile target
+      shell: bash
+      env:
+        TASK_TARGET: ${{ inputs.task }}
+        RUFF_OUTPUT_FORMAT: ${{ inputs.annotations-ruff == 'true' && 'github' || 'full' }}
+      run: task "$TASK_TARGET"
+
+    - name: Remove problem matcher
+      if: always() && steps.matcher.outcome == 'success'
+      shell: bash
+      env:
+        PROBLEM_MATCHER: ${{ inputs.problem-matcher }}
+      run: echo "::remove-matcher owner=$PROBLEM_MATCHER::"
+
+    - name: Upload test reports
+      if: ${{ !cancelled() && inputs.report-name != '' }}
+      continue-on-error: true
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: ${{ inputs.report-name }}-attempt-${{ github.run_attempt }}
+        path: tmp/ci-reports/
+        if-no-files-found: ignore
+
+    - name: Report JUnit test results
+      if: ${{ !cancelled() && inputs.report-name != '' }}
+      continue-on-error: true
+      uses: mikepenz/action-junit-report@a16be3a69023e9bd7e748ede768b3282ea7b30ce # v6.7.1
+      with:
+        report_paths: tmp/ci-reports/junit.xml
+        check_name: ${{ inputs.report-name }}
+        annotate_only: true
+        job_summary: true
+        include_time_in_summary: true
+        detailed_summary: true
+        failed_summary_logs: true
+
+    - name: Report coverage and tests on pull request
+      if: ${{ !cancelled() && inputs.coverage-comment == 'true' }}
+      continue-on-error: true
+      uses: MishaKav/pytest-coverage-comment@13d3c18e21895566c746187c9ea74736372e5e91 # v1.1.54
+      with:
+        title: ${{ inputs.coverage-title && format('{0} Coverage Report', inputs.coverage-title) || 'Coverage Report' }}
+        badge-title: ${{ inputs.coverage-title && format('{0} Coverage', inputs.coverage-title) || 'Coverage' }}
+        junitxml-title: ${{ inputs.coverage-title && format('{0} Tests', inputs.coverage-title) || '' }}
+        coverage-path-prefix: ${{ inputs.coverage-path-prefix }}
+        pytest-xml-coverage-path: tmp/ci-reports/coverage/coverage.xml
+        junitxml-path: tmp/ci-reports/junit.xml

@@ -1,0 +1,38 @@
+# Replace the domain and pin an image version/digest before deploying.
+fullnameOverride: camply
+annotations:
+  reloader.stakater.com/auto: "true"
+database:
+  existingSecret: camply-home-ops
+env:
+  CAMPLY_AUTH_MODE: session
+  CAMPLY_APP_URL: https://camply.example.com
+  CAMPLY_CORS_ORIGINS: '["https://camply.example.com"]'
+  CAMPLY_SESSION_MAX_AGE: "43200"
+backend:
+  env:
+    CAMPLY_LOGIN_USERNAME:
+      valueFrom:
+        secretKeyRef: { name: camply-home-ops, key: CAMPLY_LOGIN_USERNAME }
+    CAMPLY_LOGIN_PASSWORD:
+      valueFrom:
+        secretKeyRef: { name: camply-home-ops, key: CAMPLY_LOGIN_PASSWORD }
+    CAMPLY_SESSION_SECRET:
+      valueFrom:
+        secretKeyRef: { name: camply-home-ops, key: CAMPLY_SESSION_SECRET }
+postgresql:
+  persistence:
+    storageClass: node-local
+valkey:
+  persistence:
+    storageClass: node-local
+prometheus:
+  persistence:
+    storageClass: node-local
+route:
+  enabled: true
+  hostnames: [camply.example.com]
+  parentRefs:
+    - name: envoy-external
+      namespace: network
+      sectionName: https

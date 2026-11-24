@@ -1,0 +1,184 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+vars:
+  SOURCE_CODE: src/camply src/hatchling
+  PACKAGING_PYTHON: '{{.PACKAGING_PYTHON | default "3.14"}}'
+
+env:
+  UV_LOCKED: 1
+
+tasks:
+  install:
+    summary: Install Project + Dev Dependencies
+    cmds:
+      - task: sync
+
+  test:
+    desc: Run Backend Tests
+    cmds:
+      - >-
+        uv run --all-extras -- pytest --ignore=tests/packaging
+        {{if not .CLI_ARGS}}-n auto{{end}}
+        {{if and .CI (not .CLI_ARGS)}}--junitxml=tmp/ci-reports/junit.xml --cov=camply
+        --cov-report=xml:tmp/ci-reports/coverage/coverage.xml{{end}}
+        {{.CLI_ARGS}}
+    deps: [sync]
+
+  packaging:test:
+    summary: Verify Isolated Python Artifacts and Optional Extras
+    cmds:
+      - uv run --all-extras -- pytest tests/packaging {{if .CI}}--junitxml=tmp/ci-reports/junit.xml{{end}} {{.CLI_ARGS}}
+    env:
+      PACKAGING_PYTHON: "{{.PACKAGING_PYTHON}}"
+    deps: [sync]
+
+  fix:
+    summary: Fix Code with Linters and Formatters
+    cmds:
+      - task: fmt
+      - uv run --all-extras -- ruff check --fix {{.CLI_ARGS | default "src/camply src/hatchling tests"}}
+    deps: [sync]
+
+  lint:
+    summary: Run Formatting, Code, and Import Architecture Checks
+    cmds:
+      - task: fmt:check
+      - uv run --all-extras -- ruff check {{.CLI_ARGS | default "src/camply src/hatchling tests"}}
+      - task: imports
+        vars:
+          CLI_ARGS: ""
+    deps: [sync]
+
+  imports:
+    summary: Enforce Python Module and Optional Dependency Boundaries
+    cmds:
+      - uv run --all-extras -- lint-imports {{.CLI_ARGS}}
+    deps: [sync]
+
+  run:
+    summary: Run Command within Project (requires "--")
+    cmds:
+      - uv run --all-extras -- {{.CLI_ARGS}}
+    deps: [sync]
+
+  check:
+    summary: Run Static Type Checkers (MyPy)
+    cmds:
+      - uv run --all-extras -- mypy {{.CLI_ARGS | default .SOURCE_CODE}}
+    deps: [sync]
+
+  fmt:
+    summary: Run Code Formatters (Ruff)
+    cmds:
+      - uv run --all-extras -- ruff format {{.CLI_ARGS | default "src/camply src/hatchling tests"}}
+    deps: [sync]
+
+  fmt:check:
+    summary: Verify Backend Code Formatting (Ruff)
+    cmds:
+      - uv run --all-extras -- ruff format --check {{.CLI_ARGS | default "src/camply src/hatchling tests"}}
+    deps: [sync]
+
+  dev:
+    desc: Run Backend API in Debug Mode
+    cmds:
+      - uv run --all-extras -- gunicorn --config python:camply.server.gunicorn camply.server.app:app
+    env:
+      GUNICORN_RELOAD: "1"
+    deps: [sync, migration-upgrade]
+
+  build:
+    summary: Build the Shared camply-web Docker Image
+    cmds:
+      - task: :build
+
+  docker:
+    internal: true
+    cmds:
+      - task: :build
+
+  version:
+    summary: View / Set Project Version
+    cmd: uv version {{.CLI_ARGS}}
+    silent: true
+    env:
+      UV_LOCKED: 0
+
+  admin:provision:
+    summary: Provision an administrator by User UUID
+    cmds:
+      - uv run --all-extras -- python -m camply.server.provision {{.CLI_ARGS}}
+    deps: [sync]
+    preconditions:
+      - sh: '[[ -z "{{.CLI_ARGS}}" ]] && exit 1 || exit 0'
+        msg: User UUID is required
+
+  ########################
+  # ALEMBIC
+  ########################
+  migration:
+    desc: Run Alembic Migration (task backend:migration -- revision message)
+    cmds:
+      - uv run --all-extras -- alembic -c src/camply/db/alembic.ini revision --autogenerate -m "{{.CLI_ARGS}}"
+    deps: [sync]
+    preconditions:
+      - sh: '[[ -z "{{.CLI_ARGS}}" ]] && exit 1 || exit 0'
+        msg: Migration message is required
+
+  migration-upgrade:
+    summary: Run Alembic Migration Upgrade
+    cmds:
+      - uv run --all-extras -- alembic -c src/camply/db/alembic.ini upgrade head {{.CLI_ARGS}}
+    deps: [sync]
+
+  migration:test:
+    summary: Verify PostgreSQL upgrades in a disposable Docker container
+    cmds:
+      - CAMPLY_POSTGRES_SMOKE=1 task backend:test -- tests/db/test_postgres_migrations.py
+
+  ########################
+  # WORKER
+  ########################
+  worker:dev:
+    summary: Run Celery Worker in Development Mode
+    deps: [sync]
+    cmds:
+      - uv run --all-extras -- celery -A camply.worker.celery_app worker -l info -Q celery --concurrency=2
+
+  healthcheck:test:
+    summary: Verify CLI health probes with isolated Valkey, workers, and beat
+    cmds:
+      - CAMPLY_HEALTHCHECK_SMOKE=1 task backend:test -- tests/worker/test_healthcheck_smoke.py -s
+
+  nginx:test:
+    summary: Verify packaged Nginx proxying to HTTP and SNI-required HTTPS upstreams
+    cmds:
+      - CAMPLY_NGINX_SMOKE=1 task backend:test -- tests/cli/test_nginx_smoke.py -s
+
+  worker:beat:
+    summary: Run Celery Beat Scheduler in Development Mode
+    deps: [sync]
+    cmds:
+      - uv run --all-extras -- celery -A camply.worker.celery_app beat -l info
+
+  worker:all:
+    summary: Run Both Celery Worker and Beat in Development Mode
+    deps: [sync]
+    cmds:
+      - uv run --all-extras -- celery -A camply.worker.celery_app worker -l info -Q celery --concurrency=2 -B
+
+  maps:test-postgres:
+    summary: Verify map queries against an isolated PostgreSQL container
+    cmds:
+      - CAMPLY_MAPS_POSTGRES=1 task backend:test -- -c pyproject.toml tests/db/integration/test_search_maps_postgres.py -s
+
+  ########################
+  # INTERNAL TASKS
+  ########################
+  sync:
+    summary: Install Project Dependencies
+    internal: true
+    cmds:
+      - uv sync --locked --all-extras

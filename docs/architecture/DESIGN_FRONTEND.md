@@ -1,0 +1,31 @@
+# Frontend Architecture
+
+The web client lives in `src/frontend/` and uses React 18, TypeScript, Vite 8, Tailwind CSS, Shadcn/UI primitives, TanStack Query, React Hook Form + Zod, and MapLibre GL JS.
+
+## Key application journeys
+
+- **Explore (`/search`):** Stacks an interactive MapLibre map above a paginated list with amenity, ADA, and minimum RV-length filters. Panning or zooming debounces viewport bounds (`west`, `south`, `east`, `north`, `zoom`) to filter results in sync; an optional `Show map` / `Hide map` toggle preserves camera extent during the session. Initial unfiltered visits center roughly via `ipapi.co` (coordinates cached in memory, 2.5s timeout) without prompting for browser location.
+- **Destination details:** Campground and recreation-area pages display cached photos in an Embla carousel, an overview map, and "Know before you go" practical details without triggering live upstream enrichment requests.
+- **Dashboard & scan management (`/dashboard`, `/dashboard/scans/:scanId`):** Groups scans by destination, supports creation/editing (`ScanForm`) with campground or recreation-area coverage (`all` vs. `selected`), site preferences (type, electric, ADA accessibility, minimum RV length `1–200` ft), `Weekends` / individual-night selectors, and presents matching openings in `FoundCampsites` via an interactive availability calendar paired with deduplicated campsite cards (10 sites per page, vehicle-length and equipment badges, inline stay-chip expansion) plus a Sites × Dates availability grid view with inline stay inspection and a consolidated scan detail header with structured recreation-area coverage (`CoverageSummary`).
+- **Admin (`/admin/*`):** Provides KPI overview, user/scan management, access-request review, worker operations, audit log inspection, and Recharts metric trends (`AdminTrendsPanel`).
+
+## Key source layout
+
+| Path                                   | Responsibility                                                                                  |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `src/frontend/main.tsx`, `App.tsx`     | Root providers (`QueryClientProvider`, `AuthProvider`, `ThemeProvider`) and React Router routes |
+| `src/frontend/lib/api/`                | Axios API client, helpers, and OpenAPI-generated TypeScript schema (`task api:generate`)        |
+| `src/frontend/hooks/`                  | `useAuth`, `useScans`, `useSearch`, `useProviders`, and admin query hooks                       |
+| `src/frontend/components/ScanForm.tsx` | Scan creation/editing dialog with Zod validation and weekday/coverage/equipment pickers         |
+| `src/frontend/components/Map*.tsx`     | MapLibre GL JS integration and viewport-driven explore markers                                  |
+| `src/frontend/public/branding/`        | Light/dark outlined SVG brand marks (`CamplyLogo`)                                              |
+
+## Build and docs bundling
+
+Production frontend builds (`vite build`) compile VitePress docs under `docs/` and copy them into `dist/docs/` alongside the SPA bundle. In Python distributions, the Hatchling build hook embeds `build/frontend/` into `camply/server/static/` without staging generated files into Git-tracked source.
+
+Public map tile overrides (`VITE_MAP_TILE_URL`, `VITE_MAP_ATTRIBUTION_*`) are build-time environment variables documented in [Environment Variables](../operations/CONFIGURATION.md).
+
+## Discovery and alert experience follow-up
+
+The [current assessment](../specs/034-campsite-discovery/status.md) tracks the remaining discovery and alert work against the shipped Explore, ScanForm, Dashboard, Profile, and Found Campsites flows. It links to the original proposals and records which work packages still apply.

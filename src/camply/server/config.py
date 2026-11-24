@@ -1,0 +1,132 @@
+"""
+Backend Application Configuration via pydantic-settings.
+"""
+
+from enum import Enum
+from pathlib import Path
+from typing import ClassVar, Optional
+
+from pydantic import Field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class AuthMode(str, Enum):
+    """Owner-selected authentication: automatic login, sessions, or Auth0."""
+
+    NONE = "none"
+    SESSION = "session"
+    AUTH0 = "auth0"
+
+
+class RuntimeMode(str, Enum):
+    """Select a distributed deployment or one self-contained Python process."""
+
+    DISTRIBUTED = "distributed"
+    STANDALONE = "standalone"
+
+
+class BackendConfig(BaseSettings):
+    """Configuration for the FastAPI backend application."""
+
+    _MIN_SESSION_SECRET_LENGTH: ClassVar[int] = 32
+    """Minimum configured signing-secret length for shared-account sessions."""
+
+    model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
+        env_prefix="CAMPLY_",
+        case_sensitive=False,
+    )
+
+    # Deployment environment
+    environment: str = "local"
+    debug: bool = True
+    runtime_mode: RuntimeMode = RuntimeMode.DISTRIBUTED
+    """Execution mode, independent of authentication and environment."""
+    frontend_dir: Optional[Path] = None
+    """Built asset override; otherwise use assets bundled with the backend."""
+
+    # Authentication
+    auth_mode: AuthMode = AuthMode.NONE
+    invite_only: bool = False
+    """Require an invitation before users can manage scans."""
+    auth0_domain: Optional[str] = None
+    auth0_audience: Optional[str] = None
+    auth0_client_id: Optional[str] = None
+    admin_email: str = "admin@camply.local"
+    login_username: Optional[str] = None
+    """Shared account username for in-app session login."""
+    login_password: Optional[str] = Field(default=None, repr=False)
+    """Shared account password, supplied through environment configuration."""
+    session_secret: Optional[str] = Field(default=None, repr=False)
+    """Signing secret for session cookies; at least 32 characters."""
+    session_max_age: int = Field(default=43200, ge=1)
+    """Absolute cookie-session lifetime in seconds (12 hours by default)."""
+    session_cookie_secure: bool = True
+    """Require HTTPS for session cookies; disable explicitly for local HTTP."""
+
+    # Sentry
+    sentry_dsn: Optional[str] = None
+    sentry_traces_sample_rate: float = 0.0
+
+    # Prometheus multiprocess
+    prometheus_multiproc_dir: Optional[str] = None
+
+    # Operations & Prometheus monitoring dependencies
+    valkey_url: str = "redis://localhost:6379/0"
+    prometheus_url: str = "http://localhost:9090"
+
+    # Worker timing mirrors (heartbeat & cooldown)
+    heartbeat_interval: int = Field(
+        default=300,
+        gt=0,
+        description="Interval in seconds for periodic campsite availability discovery (defaults to 300s = 5m).",
+    )
+    """Heartbeat interval in seconds for target discovery and availability searching."""
+    target_cooldown: int = Field(
+        default=55,
+        gt=0,
+        description="How stale a target must be before re-checking in seconds.",
+    )
+    """Minimum seconds elapsed before a previously checked target is re-scanned."""
+
+    # CORS
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "https://camply.rocks",
+    ]
+    """Allowed CORS origins list."""
+    cors_origin_regex: Optional[str] = (
+        r"^(https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|100\.\d{1,3}\.\d{1,3}\.\d{1,3}|.*\.ts\.net)(:\d+)?"
+        r"|https://(?:[a-z0-9-]+\.)?camply-81r\.pages\.dev)$"
+    )
+    """Trust local/Tailscale origins and HTTPS deployments of the camply Pages project."""
+
+    @property
+    def auto_login(self) -> bool:
+        """Use the shared admin identity when automatic login is selected."""
+        return self.auth_mode == AuthMode.NONE
+
+    @property
+    def signup_enabled(self) -> bool:
+        """Offer account registration only when Auth0 handles login."""
+        return self.auth_mode == AuthMode.AUTH0
+
+    @model_validator(mode="after")
+    def validate_auth_config(self) -> "BackendConfig":
+        """Reject incomplete configuration for the selected authentication mode."""
+        if not self.auto_login and self.auth_mode == AuthMode.AUTH0:
+            if not all((self.auth0_domain, self.auth0_audience, self.auth0_client_id)):
+                raise ValueError("Auth0 requires domain, audience, and client ID")
+        if self.auth_mode == AuthMode.SESSION:
+            if not self.login_username or not self.login_password:
+                raise ValueError("Session login requires username and password")
+            if (
+                not self.session_secret
+                or len(self.session_secret) < self._MIN_SESSION_SECRET_LENGTH
+            ):
+                raise ValueError(
+                    "Session login requires a signing secret of at least 32 characters"
+                )
+        return self
+
+
+backend_config = BackendConfig()

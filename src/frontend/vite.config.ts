@@ -1,0 +1,167 @@
+import { defineConfig, type Plugin } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import path from "path";
+import fs from "fs";
+import tailwindcss from "tailwindcss";
+import autoprefixer from "autoprefixer";
+
+function syncRootBuild(): Plugin {
+  let output = "";
+  let isDistBuild = false;
+  return {
+    name: "sync-root-build",
+    apply: "build",
+    configResolved(config) {
+      output = path.resolve(config.root, config.build.outDir);
+      isDistBuild =
+        config.build.outDir === path.resolve(import.meta.dirname, "dist");
+    },
+    async closeBundle() {
+      if (process.env.CAMPLY_SKIP_DOCS_BUILD !== "1") {
+        const root = path.resolve(import.meta.dirname, "../..");
+        const { build } = await import("vitepress");
+        const previousEmbedded = process.env.CAMPLY_DOCS_EMBEDDED;
+        process.env.CAMPLY_DOCS_EMBEDDED = "1";
+        try {
+          await build(path.resolve(root, "docs"));
+        } catch (error) {
+          throw new Error("Docs build failed; the app bundle is incomplete.", {
+            cause: error,
+          });
+        } finally {
+          if (previousEmbedded === undefined) {
+            delete process.env.CAMPLY_DOCS_EMBEDDED;
+          } else {
+            process.env.CAMPLY_DOCS_EMBEDDED = previousEmbedded;
+          }
+        }
+        fs.cpSync(path.join(root, "build/docs"), path.join(output, "docs"), {
+          recursive: true,
+        });
+      }
+      if (!isDistBuild) return;
+      const dist = path.resolve(import.meta.dirname, "dist");
+      if (fs.existsSync(dist)) {
+        const out = path.resolve(import.meta.dirname, "../../build/frontend");
+        fs.rmSync(out, { recursive: true, force: true });
+        fs.mkdirSync(out, { recursive: true });
+        fs.cpSync(dist, out, { recursive: true });
+      }
+    },
+  };
+}
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react(), syncRootBuild()],
+  css: {
+    postcss: {
+      plugins: [
+        tailwindcss({
+          config: path.resolve(import.meta.dirname, "tailwind.config.js"),
+        }),
+        autoprefixer(),
+      ],
+    },
+  },
+  root: import.meta.dirname,
+  base:
+    process.env.CAMPLY_STANDALONE_BUILD === "1"
+      ? "/"
+      : process.env.GITHUB_REPOSITORY
+        ? `/${process.env.GITHUB_REPOSITORY.split("/")[1]}/`
+        : "/",
+  publicDir: "public",
+  envDir: process.env.CAMPLY_STANDALONE_BUILD === "1" ? false : undefined,
+  build: {
+    outDir: path.resolve(import.meta.dirname, "dist"),
+    emptyOutDir: true,
+    // Preserve Vite 6's browser support when upgrading the bundler.
+    target: ["es2020", "edge88", "firefox78", "chrome87", "safari14"],
+    chunkSizeWarningLimit: 1200,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "vendor-react",
+              test: /node_modules[\\/](react|react-dom|react-router-dom|@tanstack[\\/]react-query)[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "vendor-maps",
+              test: /node_modules[\\/]maplibre-gl[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "vendor-charts",
+              test: /node_modules[\\/]recharts[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "vendor-icons",
+              test: /node_modules[\\/]lucide-react[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "vendor-auth",
+              test: /node_modules[\\/]@auth0[\\/]/,
+              priority: 20,
+            },
+            {
+              name: "vendor",
+              test: /node_modules[\\/]/,
+              priority: 10,
+            },
+          ],
+        },
+      },
+    },
+  },
+  resolve: {
+    alias: {
+      "@": import.meta.dirname,
+    },
+  },
+  server: {
+    host: "0.0.0.0",
+    allowedHosts: true,
+    proxy: {
+      "/api": {
+        target: process.env.CAMPLY_API_URL || "http://localhost:8000",
+        changeOrigin: true,
+      },
+    },
+  },
+  preview: {
+    host: "0.0.0.0",
+    allowedHosts: true,
+  },
+  test: {
+    globals: true,
+    environment: "jsdom",
+    setupFiles: [path.resolve(import.meta.dirname, "test/setup.ts")],
+    testTimeout: 10000,
+    coverage: {
+      include: ["**/*.{ts,tsx}"],
+      exclude: [
+        "**/*.{test,spec,d}.ts?(x)",
+        "**/*.config.ts",
+        "dist/**",
+        "**/generated/**",
+        "test/**",
+        "tooling/**",
+      ],
+      reportsDirectory: path.resolve(
+        import.meta.dirname,
+        "../../tmp/ci-reports/coverage",
+      ),
+      reporter: [
+        "text-summary",
+        "html",
+        ["cobertura", { file: "coverage.xml" }],
+      ],
+      reportOnFailure: true,
+    },
+  },
+});

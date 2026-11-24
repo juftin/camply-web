@@ -1,0 +1,32 @@
+{{- if .Values.prometheus.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "camply.fullname" . }}-prometheus
+  labels: {{ include "camply.labels" . | nindent 4 }}
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        application: camply
+    scrape_configs:
+      - job_name: camply-backend
+        metrics_path: /metrics
+        dns_sd_configs:
+          - names: [{{ include "camply.fullname" . }}-backend-metrics.{{ .Release.Namespace }}.svc]
+            type: A
+            port: 8000
+      {{- if .Values.worker.enabled }}
+      - job_name: camply-worker
+        metrics_path: /metrics
+        dns_sd_configs:
+          - names: [{{ include "camply.fullname" . }}-worker-metrics.{{ .Release.Namespace }}.svc]
+            type: A
+            port: 8001
+      {{- end }}
+      - job_name: prometheus
+        static_configs:
+          - targets: [localhost:9090]
+{{- end }}

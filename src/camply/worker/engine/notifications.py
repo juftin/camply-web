@@ -1,0 +1,131 @@
+"""Shared async notification lookup and delivery, independent of task transports."""
+
+import datetime as dt
+import uuid as uuid_mod
+from collections.abc import Callable
+from typing import Optional
+
+import structlog
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from camply.db.models import UniqueTarget, User, UserScan
+from camply.db.notification_config import ntfy_config as ntfy_defaults
+from camply.worker.config import worker_config
+from camply.worker.notifications.base import NotificationDTO
+from camply.worker.notifications.ntfy import NtfyProvider
+from camply.worker.notifications.pushover import PushoverProvider
+from camply.worker.outbox import current_payload
+
+logger = structlog.getLogger(__name__)
+
+
+async def send_notification(  # noqa: C901, PLR0912
+    user_id: str,
+    notification: dict,
+    scan_id: Optional[str] = None,
+    *,
+    sessions: Callable[[], AsyncSession],
+    channel: str = "pushover",
+    provider_factory: Callable[[], PushoverProvider] = PushoverProvider,
+) -> dict:
+    """
+    Async implementation of Pushover notification delivery.
+    """
+    user_uuid = uuid_mod.UUID(user_id)
+
+    async with sessions() as session:
+        stmt = select(User).where(User.id == user_uuid)
+        result = await session.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if user is None:
+            logger.warning("User not found", user_id=user_id)
+            return {"status": "error", "reason": "user_not_found"}
+
+        if worker_config.invite_only and not user.is_invited:
+            return {"status": "skipped", "reason": "invitation_required"}
+
+        if not user.scanning_enabled:
+            logger.info(
+                "User scanning disabled, skipping notification", user_id=user_id
+            )
+            return {"status": "skipped", "reason": "user_suspended"}
+
+        scan = None
+        if scan_id is not None:
+            scan_uuid = uuid_mod.UUID(scan_id)
+            scan_stmt = select(UserScan).where(UserScan.id == scan_uuid)
+            scan_res = await session.execute(scan_stmt)
+            scan = scan_res.scalar_one_or_none()
+            if scan is None:
+                logger.info("Scan not found, skipping notification", scan_id=scan_id)
+                return {"status": "skipped", "reason": "scan_not_found"}
+            if scan.user_id != user_uuid:
+                logger.error("Scan owner mismatch", scan_id=scan_id, user_id=user_id)
+                return {"status": "error", "reason": "scan_owner_mismatch"}
+            if not scan.is_active:
+                logger.info("Scan inactive, skipping notification", scan_id=scan_id)
+                return {"status": "skipped", "reason": "scan_inactive"}
+
+        if channel != user.notification_provider:
+            return {"status": "skipped", "reason": "provider_changed"}
+        ntfy_config = {
+            "topic": user.ntfy_topic,
+            "server_url": ntfy_defaults.publish_server(user.ntfy_server_url),
+            "access_token": user.ntfy_access_token,
+        }
+        if channel == "pushover" and not user.pushover_token:
+            logger.info(
+                "User has no pushover_token, skipping",
+                user_id=user_id,
+            )
+            return {"status": "skipped", "reason": "no_pushover_token"}
+
+        pushover_token = user.pushover_token
+
+        try:
+            payload = NotificationDTO.model_validate(notification)
+            if scan is not None:
+                target = await session.get(UniqueTarget, scan.target_id)
+                if target is None:
+                    return {"status": "skipped", "reason": "target_not_found"}
+                if payload.metadata.get("target_id", str(target.id)) != str(target.id):
+                    return {"status": "skipped", "reason": "target_changed"}
+                current = current_payload(
+                    payload, scan, target, dt.datetime.now(dt.timezone.utc).date()
+                )
+                if current is None:
+                    return {"status": "skipped", "reason": "no_matching_openings"}
+                payload = current
+        except (ValueError, KeyError, TypeError) as exc:
+            logger.error(
+                "Invalid notification DTO", user_id=str(user_id), error=str(exc)
+            )
+            return {"status": "error", "reason": "invalid_payload"}
+
+    provider = NtfyProvider() if channel == "ntfy" else provider_factory()
+    try:
+        await provider.send_alert(
+            user_config=ntfy_config
+            if channel == "ntfy"
+            else {"user_key": pushover_token},
+            payload=payload,
+        )
+        return {
+            "status": "success",
+            "provider_name": "Recreation.gov",
+            "search_name": payload.park_name or "Campsite Alert",
+            "search_dates": (
+                f"{payload.start_date.isoformat()} → {payload.end_date.isoformat()}"
+                if payload.start_date and payload.end_date
+                else None
+            ),
+        }
+    except Exception as exc:
+        logger.error(
+            "Notification delivery failed",
+            user_id=str(user_id),
+            error_type=type(exc).__name__,
+        )
+        raise

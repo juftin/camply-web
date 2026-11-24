@@ -8,19 +8,20 @@
 
 Before modifying the system, review the relevant architectural blueprints:
 
-- 👉 **[Roadmap & Plan](docs/agents/PLAN.md)**: The definitive path forward and current phases.
-- 👉 **[Feature Checklist](docs/agents/CHECKLIST.md)**: Granular implementation tasks. (Update this before every PR!).
-- 👉 **[Developer Guide](docs/agents/DEVELOPER_GUIDE.md)**: Quickstart, workflows, and local setup.
-- 👉 **[Style Guide](docs/agents/STYLE_GUIDE.md)**: Engineering, Git, and PR standards.
-- 👉 **[Architecture Deep Dive](docs/agents/ARCHITECTURE_DEEP_DIVE.md)**: Details on the Smart De-duplicated Poller.
-- 👉 **[Database Schema](docs/agents/DESIGN_DATA.md)**: Details on the multi-tenant architecture and de-duplicated polling strategy.
-- 👉 **[Provider Architecture](docs/agents/DESIGN_PROVIDERS.md)**: The standard interface for integrating campsite booking APIs.
-- 👉 **[Notification Architecture](docs/agents/DESIGN_NOTIFICATIONS.md)**: Standarized multi-channel alerts.
-- 👉 **[API Contract & Security](docs/agents/DESIGN_API.md)**: FastAPI endpoints and Auth0/Whitelist logic.
-- 👉 **[Frontend Journey](docs/agents/DESIGN_FRONTEND.md)**: UX flows and Shadcn/UI design system.
-- 👉 **[Agentic Tooling](docs/agents/DESIGN_AGENTIC.md)**: Configuration for MCP servers (Local Dev & Agent workflows).
-- 👉 **[Configuration](docs/agents/CONFIGURATION.md)**: Environment variables and settings.
-- 👉 **[Troubleshooting](docs/agents/AGENT_TROUBLESHOOTING.md)**: Solutions for common local dev issues.
+- 👉 **[Roadmap & Plan](docs/PLAN.md)**: The definitive path forward and current phases.
+- 👉 **[Feature Checklist](docs/CHECKLIST.md)**: Granular implementation tasks. (Update this before every PR!).
+- 👉 **[Contributing Guide](docs/CONTRIBUTING.md)**: PR lifecycle, Gitmoji conventions, and quality gates.
+- 👉 **[Developer Guide](docs/development/DEVELOPER_GUIDE.md)**: Quickstart, workflows, and local setup.
+- 👉 **[Style Guide](docs/development/STYLE_GUIDE.md)**: Engineering, Git, and PR standards.
+- 👉 **[Architecture Deep Dive](docs/architecture/ARCHITECTURE_DEEP_DIVE.md)**: Details on the Smart De-duplicated Poller.
+- 👉 **[Database Schema](docs/architecture/DESIGN_DATA.md)**: Details on the multi-tenant architecture and de-duplicated polling strategy.
+- 👉 **[Provider Architecture](docs/architecture/DESIGN_PROVIDERS.md)**: The standard interface for integrating campsite booking APIs.
+- 👉 **[Notification Architecture](docs/architecture/DESIGN_NOTIFICATIONS.md)**: Standarized multi-channel alerts.
+- 👉 **[API Contract & Security](docs/architecture/DESIGN_API.md)**: FastAPI endpoints and Auth0/Whitelist logic.
+- 👉 **[Frontend Journey](docs/architecture/DESIGN_FRONTEND.md)**: UX flows and Shadcn/UI design system.
+- 👉 **[Agentic Tooling](docs/development/DESIGN_AGENTIC.md)**: Configuration for MCP servers (Local Dev & Agent workflows).
+- 👉 **[Configuration](docs/operations/CONFIGURATION.md)**: Environment variables and settings.
+- 👉 **[Troubleshooting](docs/development/AGENT_TROUBLESHOOTING.md)**: Solutions for common local dev issues.
 - 👉 **[Project Constitution](.specify/memory/constitution.md)**: Core engineering principles and governance rules.
 
 ## 🤖 Agent Lifecycle & Spec-Kit
@@ -32,29 +33,34 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
 3. **Design**: Use `/speckit.plan` to create a `plan.md` for the technical implementation.
 4. **Tasking**: Use `/speckit.tasks` to generate a `tasks.md` with granular implementation steps.
 5. **Implementation**: Mark tasks as completed in your feature's `tasks.md`.
-6. **Closing**: Update the global **[docs/agents/CHECKLIST.md](docs/agents/CHECKLIST.md)** before finalizing your PR.
+6. **Closing**: Update the global **[docs/CHECKLIST.md](docs/CHECKLIST.md)** before finalizing your PR.
 
 ## 🏗️ Directory Structure
 
-- `backend/`: FastAPI Python application (`uv` workspace).
-  - `packages/backend/`: FastAPI application & API endpoints.
-  - `packages/db/`: Database models and migrations (Alembic).
-  - `packages/providers/`: Third-party API providers (e.g., recreation.gov).
-- `frontend/`: React TypeScript application (Vite, Tailwind CSS, Shadcn/UI).
-- `cli/`: Legacy command-line interface (Deprecated - Core logic being migrated).
-- `docs/agents/`: Unified documentation and design blueprints.
-- `tests/`: System-level or shared tests.
+- `src/camply/`: One `camply` Python distribution, managed from root `pyproject.toml` and `uv.lock`.
+  - `server/`: FastAPI, standalone runtime, and installed Gunicorn configuration (`server` extra).
+  - `db/`: Models, SQLite persistence, and packaged Alembic migrations.
+  - `providers/`: Third-party booking providers.
+  - `worker/`: Shared polling engine and Celery adapters (`distributed` extra).
+- `src/frontend/`: React TypeScript application, colocated tests, public assets, Pages `functions/`, and Node `tooling/`; manifests/configuration live at root.
+- `src/camply/cli/`: The `camply` command-line entrypoint (base dependencies only; provides `--version`/`--help`, `serve`, and `db` subcommands `info`, `migrate`, `delete`, and `metadata`).
+- `docs/{development,architecture,operations,self-hosting,technical}/`: Current guides and design blueprints.
+- `docs/specs/`: Feature specifications, plans, and task tracking. Spec-Kit creation defaults and numbering use this directory; `.specify/` stays at root. Feature overrides identify the complete feature directory, and saved pointers remain checkout-local.
+- `tests/`: Python suites, installed-artifact/release regressions, and frontend visual baselines.
+- `tasks/`: Python/frontend task definitions included by root `Taskfile.yaml`; preserve task namespaces and root working directories.
+- `deploy/`: Infrastructure configuration. Root Dockerfile has backend/frontend targets; root Compose contains all services.
+- `build/`, `dist/`, `tmp/`: Ignored generated frontend/API output, distributions, and reports respectively. Build hooks map assets into archives without staging into working source.
 - `.worktrees/`: Git worktrees directory for parallel isolated development.
 
 ## ⚙️ Technology Stack & Standards
 
-- **Backend**: Python 3.12 managed by `uv`. FastAPI for web services.
+- **Backend**: Python >=3.11 managed by `uv`; Python 3.14 defaults for development, CI, Docker, and releases. Explicit compatibility checks use 3.11. FastAPI for web services.
 - **Frontend**: React 18+ with TypeScript, built via Vite. Tailwind CSS + Shadcn/UI.
 - **Database**: PostgreSQL (SQLAlchemy + Alembic).
 - **Worker**: Smart De-duplicated Poller (Celery + Valkey).
 - **Infrastructure**: Docker & Docker Compose.
 - **API**: OpenAPI with automated TypeScript client generation.
-- **Quality Gates**: `mypy`, native TypeScript 7, `ruff`, `oxlint`, `oxfmt`, `pytest`, `vitest`.
+- **Quality Gates**: `mypy`, Import Linter, native TypeScript 7, `ruff`, `oxlint`, `oxfmt`, `pytest`, `vitest`.
 
 ## 🌳 Working with Git Worktrees
 
@@ -87,6 +93,7 @@ All commands use `go-task` (`Taskfile.yaml`) for consistent execution.
   - `task fix`: Automatically fix issues with linters and formatters (`ruff`, `oxlint`, `oxfmt`).
   - `task lint`: Run linters across the codebase.
   - `task check`: Run static type checking (`mypy` for backend, `tsc` for frontend).
+  - `task backend:imports`: Enforce internal layers and optional dependency boundaries (also included in lint and pre-commit).
 
 ## 🧪 Testing Locally
 
@@ -120,4 +127,4 @@ Before creating a PR, agents and contributors must ensure the following:
 - [ ] **Linting Passes**: `task lint` is clean (run `task fix` to resolve auto-fixable issues).
 - [ ] **Architecture Aligned**: Code changes respect the `DESIGN_*.md` blueprints and `.specify/memory/constitution.md`.
 - [ ] **Database Migrations**: If database models were changed, a new Alembic migration was generated and applied (`task backend:migration -- "message"`).
-- [ ] **Documentation Updated**: If any core logic or APIs changed, `docs/agents/` and OpenAPI specifications are updated accordingly.
+- [ ] **Documentation Updated**: If core logic or APIs changed, current `docs/` guides and OpenAPI specifications are updated accordingly.

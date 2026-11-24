@@ -1,0 +1,138 @@
+# Roadmap and Plan
+
+Strategic roadmap for transitioning `camply` from a legacy CLI tool into a full-stack campsite availability web application and modern CLI.
+
+## Vision
+
+A **free, open-source, and self-hostable** campsite availability scanner. Users can create accounts, set up high-frequency scans for specific parks and dates, and receive real-time alerts via **Pushover** or **ntfy** when a spot opens up.
+
+## Core architecture and standards
+
+- **Backend**: FastAPI (Python >=3.11, Python 3.14 runtime defaults, one `camply` distribution managed by `uv`) using **Pydantic v2**.
+- **Frontend**: React (TypeScript, Vite, Tailwind CSS + **Shadcn/UI**).
+- **Database**: SQLite in the base package; PostgreSQL through the `postgres` extra for distributed deployment (SQLAlchemy + Alembic).
+- **Worker**: Shared async de-duplicated poller with Celery + Valkey adapters in distributed mode or bounded local loops in standalone.
+- **Auth**: Multi-user **Auth0** integration with optional **invite-only access** (`CAMPLY_INVITE_ONLY`). The owner selects `none` (automatic shared-account login), `session` (in-app password login), or `auth0`, independently of the environment. HTTP Basic authentication is unsupported.
+- **Licensing**: Licensed under the **GNU Affero General Public License v3.0 (AGPLv3)** to ensure camply and all derivative works stay open-source.
+- **Notifications**: Initial support for **Pushover** (extensible to Email/Discord).
+
+- **Monitoring**: **Sentry** integration enabled for error tracking and performance.
+- **Infrastructure**: **Docker Compose** + **Kubernetes** manifests.
+- **API Strategy**: OpenAPI/Swagger with automated TypeScript client generation for the frontend.
+- **Standards**:
+  - **Testing**: `pytest` (Backend) and `vitest` (Frontend) with VCR recordings for external APIs.
+  - **Typing**: Strict static analysis with `mypy` and `tsc`.
+  - **Local Dev**: Unified orchestration via `Docker Compose` and `Taskfile.yaml`.
+
+---
+
+## Python distribution boundary
+
+The backend builds one `camply` distribution with internal `server`, `db`,
+`providers`, and `worker` subpackages. Base supplies provider APIs, SQLite,
+and the population utility; optional extras supply `server`, `distributed`,
+`postgres`, and `sentry` dependencies. Server and worker bootstraps remain
+independent. API-only installs do not execute scheduled scans unless standalone mode is selected.
+Standalone provides bounded local scheduling and serves the bundled frontend from one
+Python process. Root source builds produce complete wheels and sdists; prepared
+sdists rebuild without JavaScript tooling. The base CLI provides current-provider
+discovery and foreground campground availability monitoring; see the
+[command-line guide](cli.md). Full legacy CLI parity remains tracked through
+[feature 026's deferred TODOs](specs/026-cli-parity/tasks.md#deferred-todo-registry).
+PyPI publication remains separate work.
+
+## Strategic feature requirements
+
+### 1. High-Frequency Scanning
+
+- **Sub-Minute Polling**: Architect the worker to support scan intervals as low as 30-45 seconds for highly competitive parks.
+- **Provider-Specific Intervals**: Allow different default intervals based on provider "politeness" policies.
+
+### 2. Granular Filtering
+
+- **Equipment Specifics**: Filter by RV/Trailer length and type.
+- **Site Attributes**: Filter by "Electric Only", "Full Hookups", "Pull-through", or "Pets Allowed".
+- **Specific Site Monitoring**: Allow users to watch specific campsite numbers within a facility.
+- **Minimum Stay Logic**: Only alert if a consecutive block of `X` nights is found.
+
+### 3. Discovery & UX
+
+- **Global Search**: Unified search across all providers (Recreation.gov, State Parks, etc.).
+- **Map-Based Discovery**: Explore offers MapLibre GL JS mapping across all filtered results, with bounded geographic groups and campground monitoring actions; detail maps share the keyless/configurable basemap. See the [mapping plan](specs/010-open-source-explore-maps/plan.md).
+- **Permit Monitoring**: Extend scanning logic to support Wilderness/Backcountry permits and Tours.
+
+---
+
+## Roadmap phases
+
+### Phase 1: Smart Poller & Single-Scan MVP
+
+**Goal**: Build the "Smart" engine that de-duplicates requests and proves the end-to-end flow.
+
+- [x] **DB Schema**: Design `Users` (with invitation flag), `UniqueTargets` (unique definitions), and `UserScans` (user subscriptions).
+- [x] **Sentry**: Initialize Sentry SDK for Celery worker; backend Sentry remaining.
+- [x] **Provider Engine**: Define the new `BaseProvider` ABC and migrate `recreation_dot_gov` logic.
+- [x] **Celery Worker**: Implement de-duplicated polling logic in Celery.
+- [x] **Infrastructure**: Update `docker-compose.yaml` to include Valkey and Celery worker/beat services.
+- [x] **Tooling**: Add Celery/Worker management tasks to the `taskfiles/python.yaml`.
+- [x] **OpenAPI**: Expose initial search/scan endpoints and configure client generation.
+- [x] **Pushover**: Integrate basic notification delivery.
+
+### Phase 2: User Dashboard & Auth
+
+**Goal**: Enable secure, multi-user management of scans.
+
+- [x] **Auth0**: Implement login/signup, API audience configuration, and optional invite-only enforcement.
+- [x] **Invitations**: Implement approval/revocation (`/admin/invitations` and user `is_invited` toggle), verified Auth0 identity matching, admin ntfy/Pushover alerts, and in-app `/invite-only` status updates (zero-email delivery).
+- [ ] **Scan Management**: Build a dashboard to create, pause, and delete user-specific scans.
+- [x] **Frontend Refactor**: Update `package.json` scripts and dependency management with pnpm, Oxlint, Oxfmt, Vite 8, Vitest 5, and native TypeScript 7.
+- [ ] **Dockerization**: Update `docker-compose.yaml` and `Dockerfile` for optimized frontend builds.
+- [ ] **User Config**: Secure storage for user-specific Pushover keys and notification preferences.
+- [ ] **Validation**: Ensure strict schema validation for all user-provided scan parameters.
+
+### Phase 3: Provider Parity & Advanced Filtering
+
+**Goal**: Full feature parity with the legacy CLI and advanced scanning features.
+
+- [x] **Providers**: Port verified `usedirect` and `going_to_camp` deployments (plus `ReserveAmerica`); skip `xanterra` as its campsites are moving to Recreation.gov.
+- [x] **ReserveCalifornia**: Port California State Parks availability and metadata to the current Tyler RDR API; preserve modern booking routes on the shared UseDirect ABC.
+- [x] **Shared UseDirect providers**: Implement independent metadata sync and availability for Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory (all 10 UseDirect providers verified live). Alabama State Parks (`reserve.alapark.com`, Itinio) and Maricopa County Parks (`exploremaricopacountyparks.org`, Cedar) moved off UseDirect; see [provider TODOs](specs/007-usedirect-providers/TODO.md).
+- [x] **GoingToCamp**: Re-engineer `GoingToCampProvider` on async catalog/map endpoints and register all 14 live GoingToCamp deployments (Washington, Wisconsin, Michigan, Tacoma Power, Parks Canada, BC Parks, Ontario Parks, Nova Scotia, Manitoba, Newfoundland & Labrador, Gatineau Park, Long Point, Maitland Valley, and St. Clair). Maryland DNR (ReserveAmerica/Aspira), New Brunswick (custom), Algonquin Highlands (`algonquinhighlands.ca`), and Saugeen Valley (`saugeenconservation.ca`) no longer use GoingToCamp; see [GoingToCamp TODOs](specs/023-going-to-camp/TODO.md).
+- [x] **Advanced Filters**: Implement RV length, electric hookup, and ADA accessibility filters across discovery, saved scans, poller, alerts, and UI.
+- [ ] **CLI Saved-Scan & Catalog Management**: Add optional database/server-backed CLI commands for persistent saved scan CRUD (`camply scans`) and catalog-backed cross-provider amenity/geographic search once stateless CLI parity ([spec 031](specs/031-cli-fullstack-parity/spec.md)) is complete.
+- [x] **CLI YAML Configuration (Multi-Search & Multi-Provider)**: Support a declarative YAML configuration file in the CLI for running multiple concurrent searches, spanning multiple providers, target definitions, equipment/site filters, and notification channels in a single command. [Spec 032](specs/032-cli-yaml-config/spec.md).
+- [ ] **Permits**: Add support for scanning wilderness permit and tour availability.
+
+### Phase 4: Production & Scale
+
+**Goal**: Finalize for deployment and community use.
+
+- [ ] **Rate Limiting**: Implement proxy rotation and intelligent backoff strategies.
+- [x] **Observability**: Native Admin UI monitoring backed by Prometheus for usage trends, API/worker performance, scan outcomes, and queue visibility; replaced legacy Grafana deployment as part of the [Admin UI plan](specs/002-admin-ui/plan.md).
+- [ ] **Polish**: Full mobile-responsive UI/UX with Shadcn/UI refinements.
+
+---
+
+## Interactive discussion points
+
+1. **Notification Costs**: SMS sending costs money. Should we prioritize free channels (Email, Push, Discord/Telegram) first before implementing SMS?
+2. **Provider API Limits**: Competitive services use extensive proxying to avoid getting banned. How sophisticated do we want to make our request engine initially?
+3. **Scan Limits**: Should we limit the number of active scans a user can have at once to manage server load?
+4. **Data Retention**: How long should we keep history of campsite availability data?
+
+---
+
+## Next immediate steps
+
+1. [x] **Database Design**: Create SQLAlchemy models for the Multi-User / De-duplicated architecture in `src/camply/db`.
+2. [x] **Provider Migration**: Extract search logic from `cli/` to `src/camply/providers/`.
+3. [x] **API Scaffolding**: Setup OpenAPI client generation in the frontend.
+4. [x] **API Endpoints**: FastAPI scan/search/me CRUD endpoints.
+5. [x] **Dashboard UI**: Scan management dashboard with creation, toggling, and deletion.
+6. [x] **Auth0 Integration**: Wire up JWT validation, API audience, and profile pages.
+7. [x] **Invitation Workflow**: Implement approval/revocation, verified identity matching, admin alerts, and in-app status UI.
+8. [x] **Provider Parity**: Port verified `usedirect` and `going_to_camp` deployments; skip `xanterra` (moving to Recreation.gov).
+
+## Standalone runtime delivery
+
+Optional standalone now serves built React assets and the API from one Python process with SQLite, local polling/catalog refresh, and durable notification recovery. The distributed runtime remains the default. See the [implementation tasks](specs/011-standalone-runtime/tasks.md), [developer workflow](development/DEVELOPER_GUIDE.md#local-setup), and [runtime constraints](operations/CONFIGURATION.md#runtime-selection).

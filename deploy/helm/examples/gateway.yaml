@@ -1,0 +1,18 @@
+# Requires installed Gateway API CRDs and a controller owning this GatewayClass.
+gateway:
+  enabled: true
+  className: envoy
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: camply-tls
+route:
+  enabled: true
+  hostnames: [camply.example.com]
+env:
+  CAMPLY_APP_URL: https://camply.example.com
+  CAMPLY_CORS_ORIGINS: '["https://camply.example.com"]'

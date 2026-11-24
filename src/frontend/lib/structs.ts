@@ -1,0 +1,325 @@
+import type { components } from "./api/generated/schema";
+
+// =========================================================================
+// Shared type definitions matching the backend API.
+// =========================================================================
+
+export interface SearchResult {
+  id: string;
+  entity_type: string;
+  provider_id: number;
+  provider_name: string;
+  recreation_area_id: string | null;
+  recreation_area_name: string | null;
+  campground_id: string | null;
+  campground_name: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  reservable?: boolean;
+  campsite_types?: string[];
+  has_electric?: boolean;
+  has_water?: boolean;
+  has_sewer?: boolean;
+  pets_allowed?: boolean;
+  ada_accessible?: boolean;
+  max_rv_length?: number | null;
+}
+
+export type SearchResultResponse = SearchResult;
+
+export interface SearchFacets {
+  providers: Record<string, number>;
+  states: Record<string, number>;
+  entity_types: Record<string, number>;
+}
+
+export interface SearchExploreResponse {
+  items: SearchResult[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  facets: SearchFacets;
+}
+
+export interface RecreationArea {
+  id: string;
+  provider_id: number;
+  name: string;
+  description: string | null;
+  country: string | null;
+  state: string | null;
+  longitude: number | null;
+  latitude: number | null;
+  reservable: boolean;
+  enabled: boolean;
+  url: string;
+  details?: DestinationDetails | null;
+}
+
+export type DestinationPhoto = components["schemas"]["DestinationPhoto"];
+export type DestinationDetails = components["schemas"]["DestinationDetails"];
+
+export interface ProviderFilterCapabilities {
+  preferred_types: boolean;
+  require_electric: boolean;
+  require_accessible: boolean;
+  min_rv_length: boolean;
+}
+
+export interface Provider {
+  id: number;
+  name: string;
+  description: string | null;
+  url: string;
+  enabled: boolean;
+  filter_capabilities?: ProviderFilterCapabilities;
+}
+
+export interface Campground {
+  id: string;
+  provider_id: number;
+  recreation_area_id: string | null;
+  name: string;
+  description: string | null;
+  country: string | null;
+  state: string | null;
+  longitude: number | null;
+  latitude: number | null;
+  reservable: boolean;
+  enabled: boolean;
+  url: string;
+}
+
+export interface CampgroundDetail extends Campground {
+  details?: DestinationDetails | null;
+}
+
+// ---- Auth / Profile ----
+
+export type InvitationStatus = NonNullable<
+  components["schemas"]["MeResponse"]["invitation_status"]
+>;
+
+export interface MeResponse {
+  id: string;
+  email: string;
+  is_invited: boolean;
+  is_admin: boolean;
+  scanning_enabled: boolean;
+  pushover_token: string | null;
+  notification_provider?: "pushover" | "ntfy";
+  ntfy_topic?: string | null;
+  ntfy_server_url?: string | null;
+  ntfy_subscription_url?: string;
+  ntfy_default_subscription_url?: string | null;
+  ntfy_access_token?: string | null;
+  must_change_password?: boolean;
+  invitation_status?: InvitationStatus | null;
+}
+
+export type ChangePasswordRequest =
+  components["schemas"]["ChangePasswordRequest"];
+
+export type NotificationTestResponse =
+  components["schemas"]["NotificationTestResponse"];
+
+export type UserSessionItem = components["schemas"]["UserSessionItem"];
+export type UserSessionListResponse =
+  components["schemas"]["UserSessionListResponse"];
+
+export interface MeUpdateRequest {
+  ntfy_topic?: string;
+  pushover_token?: string | null;
+  notification_provider?: "pushover" | "ntfy";
+  ntfy_server_url?: string | null;
+  ntfy_access_token?: string | null;
+}
+
+// ---- Scans ----
+
+export interface ScanCreateRequest {
+  destination_type?: "campground" | "recreation_area";
+  recreation_area_id?: string;
+  coverage_mode?: "all" | "selected";
+  campground_ids?: string[];
+  provider_id: number;
+  campground_id?: string;
+  start_date: string; // YYYY-MM-DD
+  end_date: string; // YYYY-MM-DD
+  min_stay_length?: number;
+  preferred_types?: string[];
+  require_electric?: boolean;
+  require_accessible?: boolean;
+  min_rv_length?: number | null;
+  allowed_weekdays?: number[];
+}
+
+export type ScanUpdateRequest = components["schemas"]["ScanUpdateRequest"];
+
+export interface ScanResultItem {
+  provider_id?: number;
+  campground_id?: string;
+  campground_name?: string;
+  last_checked_at?: string | null;
+  is_stale?: boolean;
+  campsite_id: string;
+  campsite_name: string;
+  available_dates: string[];
+  campsite_type?: string | null;
+  is_electric?: boolean | null;
+  is_accessible?: boolean | null;
+  permitted_equipment?: string[];
+  max_vehicle_length?: number | null;
+  booking_url?: string;
+}
+
+export interface ScanResponse {
+  destination_type?: "campground" | "recreation_area";
+  destination_name?: string;
+  recreation_area_id?: string | null;
+  coverage_mode?: "all" | "selected" | null;
+  campground_ids?: string[];
+  selected_campgrounds?: { id: string; name: string }[];
+  eligible_campground_count?: number;
+  unavailable_selection_count?: number;
+  matching_campground_count?: number;
+  destination_available?: boolean;
+  coverage_status?: string;
+  checked_campground_count?: number;
+  failed_campground_count?: number;
+  pending_campground_count?: number;
+  last_full_checked_at?: string | null;
+  row_version?: number;
+  id: string;
+  provider_id: number;
+  campground_id: string | null;
+  campground_name: string | null;
+  recreation_area_name: string;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  min_stay_length: number;
+  preferred_types: string[];
+  require_electric: boolean;
+  require_accessible?: boolean;
+  min_rv_length?: number | null;
+  allowed_weekdays?: number[];
+  last_checked_at: string | null;
+  found_count: number;
+  created_at: string;
+}
+
+export interface ScanListResponse {
+  scans: ScanResponse[];
+  total: number;
+}
+
+export interface ScanDetailResponse extends ScanResponse {
+  campgrounds?: {
+    provider_id: number;
+    campground_id: string;
+    campground_name: string;
+    eligible: boolean;
+    target_id?: string | null;
+    outcome: string;
+    last_checked_at?: string | null;
+    unavailable_reason?: string | null;
+  }[];
+  results: ScanResultItem[];
+}
+
+// ---- Error responses ----
+
+export interface ApiError {
+  detail: string | { error: string; message: string };
+}
+
+// ---- Admin UI ----
+
+export type AdminOverviewResponse =
+  components["schemas"]["AdminOverviewResponse"];
+export type AdminUserItem = components["schemas"]["AdminUserItem"];
+export type AdminUserListResponse =
+  components["schemas"]["AdminUserListResponse"];
+export type AdminUserDetailResponse =
+  components["schemas"]["AdminUserDetailResponse"];
+export type AdminUserCreateRequest =
+  components["schemas"]["AdminUserCreateRequest"];
+export type AdminUserUpdateRequest =
+  components["schemas"]["AdminUserUpdateRequest"];
+export type AdminAccessRequestItem =
+  components["schemas"]["AdminAccessRequestItem"];
+export type AdminAccessRequestListResponse =
+  components["schemas"]["AdminAccessRequestListResponse"];
+export type AdminAccessRequestUpdateRequest =
+  components["schemas"]["AdminAccessRequestUpdateRequest"];
+export type AdminScanItem = Omit<
+  components["schemas"]["AdminScanItem"],
+  keyof ScanResponse
+> &
+  Omit<
+    ScanResponse,
+    | "recreation_area_name"
+    | "min_stay_length"
+    | "preferred_types"
+    | "require_electric"
+  >;
+export type AdminScanListResponse = { scans: AdminScanItem[]; total: number };
+export type AdminScanDetailResponse =
+  components["schemas"]["AdminScanDetailResponse"];
+export type AdminScanUpdateRequest =
+  components["schemas"]["AdminScanUpdateRequest"];
+export type AdminTargetSubscriberItem =
+  components["schemas"]["AdminTargetSubscriberItem"];
+export type AdminTargetDetailResponse =
+  components["schemas"]["AdminTargetDetailResponse"];
+export type AdminAuditEventItem = components["schemas"]["AdminAuditEventItem"];
+export type AdminAuditListResponse =
+  components["schemas"]["AdminAuditListResponse"];
+export type AdminWorkerItem = components["schemas"]["AdminWorkerItem"];
+export type AdminDiscoveryMetadata =
+  components["schemas"]["AdminDiscoveryMetadata"];
+export type AdminOperationsResponse =
+  components["schemas"]["AdminOperationsResponse"];
+export type AdminTaskTelemetryItem =
+  components["schemas"]["AdminTaskTelemetryItem"];
+export type AdminOperationsTasksResponse =
+  components["schemas"]["AdminOperationsTasksResponse"];
+export type AdminOperationsTaskDetail =
+  components["schemas"]["AdminOperationsTaskDetail"];
+export type AdminSyncProvidersResponse =
+  components["schemas"]["AdminSyncProvidersResponse"];
+export type TrendPoint = components["schemas"]["TrendPoint"];
+export type TrendSeries = components["schemas"]["TrendSeries"];
+export type TrendMetric = components["schemas"]["TrendMetric"];
+export type AdminTrendsResponse = components["schemas"]["AdminTrendsResponse"];
+
+export type SearchMapSummary =
+  components["schemas"]["SearchMapSummaryResponse"];
+export type SearchMapResponse = components["schemas"]["SearchMapResponse"];
+export type SearchMapMembers =
+  components["schemas"]["SearchMapMembersResponse"];
+export type SearchMapGroup = components["schemas"]["SearchMapGroup"];
+
+export type MapSearchResult = components["schemas"]["SearchResultResponse"];
+
+export interface MonitoringCampgroundsResponse {
+  items: {
+    id: string;
+    provider_id: number;
+    recreation_area_id: string;
+    name: string;
+    state?: string | null;
+    city?: string | null;
+  }[];
+  total: number;
+  eligible_total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+  catalog_revision: number;
+}

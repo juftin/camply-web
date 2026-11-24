@@ -1,127 +1,355 @@
----
-name: CI
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-permissions:
-  contents: read
-  actions: write
+name: ci
 
 on:
-  push:
-    branches: [main]
   pull_request:
-    branches: [main]
+  workflow_call:
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
-  cancel-in-progress: true
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+  pull-requests: write
 
 jobs:
-  # ── Backend ──────────────────────────────────────────────────────────────
-
-  backend-checks:
-    name: Backend ${{ matrix.name }}
-    runs-on: ubuntu-latest
+  backend:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
+    concurrency:
+      group: ci-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: Lint
-            cmd: task backend:lint
-          - name: Type Check
-            cmd: task backend:check
-          - name: Tests
-            cmd: task backend:test
+          - name: backend - format
+            task: backend:fmt:check
+            install: backend
+            annotations_ruff: true
+
+          - name: backend - lint
+            task: backend:lint
+            install: backend
+            annotations_ruff: true
+
+          - name: backend - type check
+            task: backend:check
+            install: backend
+            problem_matcher: mypy
+
+          - name: backend - test - 3.11
+            task: backend:test
+            install: backend
+            python: "3.11"
+
+          - name: backend - test - 3.12
+            task: backend:test
+            install: backend
+            python: "3.12"
+
+          - name: backend - test - 3.13
+            task: backend:test
+            install: backend
+            python: "3.13"
+            problem_matcher: pytest
+            coverage_comment: true
+
+          - name: backend - test - 3.14
+            task: backend:test
+            install: backend
+            python: "3.14"
+
+          - name: backend - packaging test
+            task: backend:packaging:test
+            install: all
+            report_name: backend-packaging-tests
     steps:
-      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
-      - uses: ./.github/actions/setup-backend
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: ${{ matrix.name }}
-        run: ${{ matrix.cmd }}
-
-  backend-docker:
-    name: Backend Docker Build
-    needs: [backend-checks]
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
-      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
-      - name: Build backend image
-        uses: docker/bake-action@6614cfa25eff9a0b2b2697efb0b6159e7680d584 # v7.2.0
+        uses: ./.github/actions/taskfile
         with:
-          files: ./docker-compose.yaml
-          targets: backend
-          push: false
-          set: |
-            *.cache-from=type=gha,scope=backend
-            *.cache-to=type=gha,mode=max,scope=backend
+          task: ${{ matrix.task }}
+          install: ${{ matrix.install || 'none' }}
+          annotations-ruff: ${{ matrix.annotations_ruff || false }}
+          problem-matcher: ${{ matrix.problem_matcher }}
+          report-name: ${{ matrix.python && format('backend-tests-python-{0}', matrix.python) || matrix.report_name }}
+          coverage-comment: ${{ matrix.coverage_comment && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork || false }}
+          coverage-title: Backend
         env:
-          BACKEND_VERSION: ci-${{ github.sha }}
+          UV_PYTHON: ${{ matrix.python || '' }}
 
-  # ── Frontend ─────────────────────────────────────────────────────────────
-
-  frontend-checks:
-    name: Frontend ${{ matrix.name }}
-    runs-on: ubuntu-latest
+  frontend:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
+    concurrency:
+      group: ci-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: Lint
-            cmd: task frontend:lint
-          - name: Type Check
-            cmd: task frontend:check
-          - name: Tests
-            cmd: task frontend:test
+          - name: frontend - format
+            task: frontend:fmt:check
+            install: frontend
+
+          - name: frontend - lint
+            task: frontend:lint
+            install: frontend
+
+          - name: frontend - type check
+            task: frontend:check
+            install: frontend
+
+          - name: frontend - test
+            task: frontend:test
+            install: frontend
     steps:
-      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
-      - uses: ./.github/actions/setup-frontend
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: ${{ matrix.name }}
-        run: ${{ matrix.cmd }}
-
-  api-contract:
-    name: API Contract
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0
-      - uses: ./.github/actions/setup-backend
-      - uses: ./.github/actions/setup-frontend
-      - run: task api:check
-
-  admin-smoke:
-    name: Admin Live Smoke
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0
-      - uses: ./.github/actions/setup-backend
-      - uses: ./.github/actions/setup-frontend
-      - run: task frontend:browser:install
-      - run: task admin:smoke
-
-  frontend-docker:
-    name: Frontend Docker Build
-    needs: [frontend-checks]
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
-      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
-      - name: Build frontend image
-        uses: docker/bake-action@6614cfa25eff9a0b2b2697efb0b6159e7680d584 # v7.2.0
+        uses: ./.github/actions/taskfile
         with:
-          files: ./docker-compose.yaml
-          targets: frontend
-          push: false
-          set: |
-            *.cache-from=type=gha,scope=frontend
-            *.cache-to=type=gha,mode=max,scope=frontend
-            frontend.args.CAMPLY_API_URL=
+          task: ${{ matrix.task }}
+          install: ${{ matrix.install || 'none' }}
+          report-name: ${{ matrix.task == 'frontend:test' && 'frontend-tests' || '' }}
+          coverage-comment: ${{ matrix.task == 'frontend:test' && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork || false }}
+          coverage-title: Frontend
+          coverage-path-prefix: src/frontend/
+
+  verify:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: ci-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: pre-commit
+            task: pre-commit
+            install: all
+            fetch_depth: "0"
+
+          - name: mcp - bundle verify
+            task: mcp:verify
+            install: none
+
+          - name: docs - check
+            task: docs:check
+            install: all
+
+          - name: frontend - Pages integration
+            task: frontend:pages:check
+            install: frontend
+
+          - name: helm - chart test
+            task: helm:test
+            install: backend
+
+          - name: release - verification
+            task: release:test
+            install: all
+
+          - name: api - contract check
+            task: api:check
+            install: all
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: ${{ matrix.fetch_depth || '1' }}
+      - name: ${{ matrix.name }}
+        uses: ./.github/actions/taskfile
+        with:
+          task: ${{ matrix.task }}
+          install: ${{ matrix.install || 'none' }}
+
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: ci-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend - docker build
+            task: build
+            buildx: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: ${{ matrix.name }}
+        uses: ./.github/actions/taskfile
+        with:
+          task: ${{ matrix.task }}
+          buildx: ${{ matrix.buildx || false }}
+
+  smoke:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: ci-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: search - postgres smoke
+            task: search:smoke
+            install: backend
+
+          - name: maps - browser verification
+            task: maps:verify
+            install: all
+            playwright_cache: true
+
+          - name: admin - live smoke
+            task: admin:smoke
+            install: all
+            playwright_cache: true
+
+          - name: standalone - smoke
+            task: standalone:test
+            install: all
+            playwright_cache: true
+
+          - name: helm - cluster smoke
+            task: helm:smoke
+            install: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: ${{ matrix.name }}
+        uses: ./.github/actions/taskfile
+        with:
+          task: ${{ matrix.task }}
+          install: ${{ matrix.install || 'none' }}
+          playwright-cache: ${{ matrix.playwright_cache || false }}
+
+  snapshots:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
+    timeout-minutes: 15
+    concurrency:
+      group: ci-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ui - visual snapshots
+            task: snapshot:check
+            install: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: ${{ matrix.name }}
+        uses: ./.github/actions/taskfile
+        with:
+          task: ${{ matrix.task }}
+          install: ${{ matrix.install || 'none' }}
+
+      - name: Upload Snapshot Reports and Visual Diffs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ui-snapshots-report
+          path: |
+            tmp/snapshots/REPORT.md
+            tmp/snapshots/report.html
+            tmp/snapshots/diffs/
+            tmp/snapshots/current/
+            tmp/snapshots/before/
+          if-no-files-found: ignore
+
+  status-start:
+    name: ci - status (start)
+    if: github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    continue-on-error: true
+    concurrency:
+      group: ci-status-comment-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout status action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions/ci-status-comment
+      - name: Update CI status comment
+        uses: ./.github/actions/ci-status-comment
+        with:
+          stage: running
+
+  status-checks:
+    name: ci - status (checks)
+    needs: [frontend, verify, build]
+    if: always() && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    continue-on-error: true
+    concurrency:
+      group: ci-status-comment-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout status action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions/ci-status-comment
+      - name: Update CI status comment
+        uses: ./.github/actions/ci-status-comment
+        with:
+          stage: checks
+
+  status-final:
+    name: ci - status (final)
+    needs: [backend, frontend, verify, build, smoke, snapshots]
+    if: always() && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    continue-on-error: true
+    concurrency:
+      group: ci-status-comment-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout status action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions/ci-status-comment
+      - name: Update CI status comment
+        uses: ./.github/actions/ci-status-comment
+        with:
+          stage: complete
+
+  verification:
+    name: verification
+    needs: [backend, frontend, verify, build, smoke, snapshots]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify all CI jobs succeeded
         env:
-          FRONTEND_VERSION: ci-${{ github.sha }}
+          NEEDS_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          failed=$(printf '%s' "$NEEDS_RESULTS" | jq -r 'to_entries[] | select(.value.result != "success") | "\(.key): \(.value.result)"')
+          if [ -n "$failed" ]; then
+            echo "The following CI jobs did not succeed:"
+            echo "$failed"
+            exit 1
+          fi
+          echo "All CI jobs succeeded."

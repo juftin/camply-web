@@ -1,0 +1,479 @@
+import {
+  Component,
+  type ReactNode,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  Map as LibreMap,
+  Marker,
+  Popup,
+  NavigationControl,
+  AttributionControl,
+  type MapEventType,
+  setWorkerUrl,
+} from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
+import { Button } from "@/components/ui/button";
+import {
+  basemapConfig,
+  displayLatitude,
+  fitLocations,
+  nearestLongitude,
+  viewportBounds,
+  type GeoBounds,
+  type MapCamera,
+  type MapPin,
+} from "@/lib/maps";
+
+setWorkerUrl(workerUrl);
+
+interface MapLocation {
+  lat: number;
+  lng: number;
+  label?: string;
+  type?: "recreation-area" | "campground";
+  id?: string;
+}
+interface MapComponentProps {
+  latitude?: number;
+  longitude?: number;
+  label?: string;
+  primaryType?: MapLocation["type"];
+  additionalLocations?: MapLocation[];
+  zoom?: number;
+  className?: string;
+  pins?: MapPin[];
+  bounds?: GeoBounds | null;
+  fitKey?: string;
+  fitMaxZoom?: number;
+  camera?: MapCamera | null;
+  onMove?: (bounds: GeoBounds, camera: MapCamera, initial?: boolean) => void;
+}
+
+const MapCanvas = ({
+  latitude,
+  longitude,
+  label,
+  primaryType = "recreation-area",
+  additionalLocations = [],
+  zoom = 12,
+  className = "h-64 rounded-lg border",
+  pins,
+  bounds,
+  fitKey,
+  fitMaxZoom = 12,
+  camera,
+  onMove,
+}: MapComponentProps) => {
+  const tooltipId = useId();
+  const container = useRef<HTMLDivElement>(null);
+  const movement = useRef(onMove);
+  movement.current = onMove;
+  const initial = useRef(camera);
+  const [map, setMap] = useState<LibreMap | null>(null);
+  const [error, setError] = useState("");
+  const [tileError, setTileError] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [idle, setIdle] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const lastFit = useRef<string | null>(null);
+  const locations = useMemo<MapPin[]>(
+    () =>
+      pins ?? [
+        ...(latitude !== undefined && longitude !== undefined
+          ? [
+              {
+                id: "primary",
+                lat: latitude,
+                lng: longitude,
+                label: label || "Location",
+                type: primaryType,
+              },
+            ]
+          : []),
+        ...additionalLocations.map((p, i) => ({
+          ...p,
+          id: p.id ?? `related-${i}`,
+          label: p.label || "Campground",
+        })),
+      ],
+    [pins, latitude, longitude, label, primaryType, additionalLocations],
+  );
+  const locationsKey = JSON.stringify(
+    locations.map((p) => [p.id, p.lat, p.lng]),
+  );
+  const target = bounds === undefined ? fitLocations(locations) : bounds;
+  const key = fitKey ?? locationsKey;
+  const initialFitKey = useRef(key);
+
+  useEffect(() => {
+    if (!container.current) return;
+    let instance: LibreMap | undefined;
+    try {
+      const config = basemapConfig();
+      setReady(false);
+      setIdle(false);
+      const credit = document.createElement("a");
+      credit.href = config.link;
+      credit.textContent = config.text;
+      credit.target = "_blank";
+      credit.rel = "noopener noreferrer";
+      instance = new LibreMap({
+        container: container.current,
+        center: initial.current
+          ? [initial.current.lng, initial.current.lat]
+          : [0, 20],
+        zoom: initial.current?.zoom ?? 2,
+        minZoom: 0,
+        maxZoom: 19,
+        maxPitch: 0,
+        dragRotate: false,
+        renderWorldCopies: true,
+        attributionControl: false,
+        fadeDuration: 0,
+        style: {
+          version: 8,
+          sources: {
+            basemap: {
+              type: "raster",
+              tiles: [config.url],
+              tileSize: 256,
+              minzoom: 0,
+              maxzoom: config.maxNativeZoom,
+              attribution: credit.outerHTML,
+            },
+          },
+          layers: [
+            {
+              id: "basemap",
+              type: "raster",
+              source: "basemap",
+              paint: { "raster-fade-duration": 0 },
+            },
+          ],
+        },
+        transformRequest: (url) => ({
+          url,
+          credentials: "same-origin",
+          referrerPolicy: "strict-origin",
+        }),
+      });
+      instance.touchZoomRotate.disableRotation();
+      instance.addControl(
+        new NavigationControl({ showCompass: false }),
+        "top-left",
+      );
+      instance.addControl(
+        new AttributionControl({ compact: false }),
+        "bottom-right",
+      );
+      const emit = (event?: MapEventType["moveend"]) => {
+        if (!instance || lastFit.current === null) return;
+        const b = instance.getBounds(),
+          c = instance.getCenter();
+        if (!b) return;
+        const camera = { lat: c.lat, lng: c.lng, zoom: instance.getZoom() };
+        const initialMovement =
+          !event?.originalEvent &&
+          (!initial.current ||
+            (camera.lat === initial.current.lat &&
+              camera.lng === initial.current.lng &&
+              camera.zoom === initial.current.zoom &&
+              lastFit.current === initialFitKey.current));
+        initial.current = camera;
+        initialFitKey.current = lastFit.current;
+        movement.current?.(
+          viewportBounds(b.getWest(), b.getSouth(), b.getEast(), b.getNorth()),
+          camera,
+          initialMovement,
+        );
+      };
+      const failure = (event: MapEventType["error"]) => {
+        if ("sourceId" in event && event.sourceId === "basemap")
+          setTileError(true);
+        else setError(event.error.message || "Map could not load.");
+      };
+      const loaded = () => setReady(true);
+      const markBusy = () => setIdle(false);
+      const markIdle = () => setIdle(true);
+      const contextLost = () =>
+        setError("The map graphics context was lost. Please retry the map.");
+      instance.on("load", loaded);
+      instance.on("movestart", markBusy);
+      instance.on("dataloading", markBusy);
+      instance.on("idle", markIdle);
+      instance.on("webglcontextlost", contextLost);
+      instance.on("move", emit);
+      instance.on("moveend", emit);
+      instance.on("error", failure);
+      const observer = new ResizeObserver(() => instance?.resize());
+      observer.observe(container.current);
+      lastFit.current = initial.current ? initialFitKey.current : null;
+      setMap(instance);
+      if (initial.current) emit();
+      setError("");
+      setTileError(false);
+      return () => {
+        observer.disconnect();
+        instance?.off("load", loaded);
+        instance?.off("movestart", markBusy);
+        instance?.off("dataloading", markBusy);
+        instance?.off("idle", markIdle);
+        instance?.off("webglcontextlost", contextLost);
+        instance?.off("move", emit);
+        instance?.off("moveend", emit);
+        instance?.off("error", failure);
+        instance?.remove();
+        instance = undefined;
+      };
+    } catch (failure) {
+      instance?.remove();
+      instance = undefined;
+      setError(
+        failure instanceof Error
+          ? failure.message
+          : "Map could not initialize.",
+      );
+    }
+    // The map owns one instance; changing locations updates its layers below.
+  }, [attempt]);
+
+  useEffect(() => {
+    if (!map) return;
+    const markers: {
+      marker: Marker;
+      lat: number;
+      lng: number;
+      dispose: () => void;
+    }[] = [];
+    for (const pin of locations) {
+      if (
+        !Number.isFinite(pin.lat) ||
+        !Number.isFinite(pin.lng) ||
+        Math.abs(pin.lat) > 90 ||
+        Math.abs(pin.lng) > 180
+      )
+        continue;
+      const element: HTMLElement = document.createElement(
+        pin.onSelect ? "button" : "div",
+      );
+      element.className = "camply-map-marker";
+      element.setAttribute("aria-label", pin.label);
+      if (element instanceof HTMLButtonElement) element.type = "button";
+      else {
+        element.setAttribute("role", "img");
+        element.tabIndex = 0;
+      }
+      const icon = document.createElement("span");
+      icon.className = `camply-map-pin ${pin.count ? "camply-map-group" : pin.type === "campground" ? "camply-map-camp" : "camply-map-area"}`;
+      icon.textContent = pin.count
+        ? String(pin.count)
+        : pin.type === "campground"
+          ? "⛺"
+          : "▲";
+      icon.setAttribute("aria-hidden", "true");
+      element.appendChild(icon);
+      const content = document.createElement("div");
+      content.setAttribute("role", "tooltip");
+      content.id = `${tooltipId}-${markers.length}`;
+      const name = document.createElement("strong");
+      name.textContent = pin.label;
+      content.appendChild(name);
+      if (pin.description) {
+        const details = document.createElement("p");
+        details.textContent = pin.description;
+        content.appendChild(details);
+      }
+      const popup = new Popup({
+        closeButton: false,
+        closeOnClick: false,
+        focusAfterOpen: false,
+        offset: 22,
+        maxWidth: "min(240px, calc(50vw - 40px))",
+        className: "camply-map-tooltip",
+      }).setDOMContent(content);
+      let hovered = false;
+      let focused = false;
+      const hidePopup = () => {
+        popup.remove();
+        element.removeAttribute("aria-describedby");
+      };
+      const showPopup = () => {
+        element.setAttribute("aria-describedby", content.id);
+        popup
+          .setLngLat([
+            nearestLongitude(pin.lng, map.getCenter().lng),
+            displayLatitude(pin.lat),
+          ])
+          .addTo(map);
+      };
+      const enter = () => {
+        hovered = true;
+        showPopup();
+      };
+      const leave = () => {
+        hovered = false;
+        if (!focused) hidePopup();
+      };
+      const focus = () => {
+        focused = true;
+        showPopup();
+      };
+      const blur = () => {
+        focused = false;
+        if (!hovered) hidePopup();
+      };
+      const dismiss = (event: KeyboardEvent) => {
+        if (event.key === "Escape") hidePopup();
+      };
+      element.addEventListener("mouseenter", enter);
+      element.addEventListener("mouseleave", leave);
+      element.addEventListener("focus", focus);
+      element.addEventListener("blur", blur);
+      element.addEventListener("keydown", dismiss);
+      const activate = (event: MouseEvent) => {
+        event.stopPropagation();
+        pin.onSelect?.();
+      };
+      const keyboard = (event: KeyboardEvent) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          pin.onSelect?.();
+        }
+      };
+      if (pin.onSelect) {
+        element.addEventListener("click", activate);
+        element.addEventListener("keydown", keyboard);
+      }
+      const marker = new Marker({ element, anchor: "center" })
+        .setLngLat([
+          nearestLongitude(pin.lng, map.getCenter().lng),
+          displayLatitude(pin.lat),
+        ])
+        .addTo(map);
+      markers.push({
+        marker,
+        lat: pin.lat,
+        lng: pin.lng,
+        dispose: () => {
+          element.removeEventListener("click", activate);
+          element.removeEventListener("keydown", keyboard);
+          element.removeEventListener("mouseenter", enter);
+          element.removeEventListener("mouseleave", leave);
+          element.removeEventListener("focus", focus);
+          element.removeEventListener("blur", blur);
+          element.removeEventListener("keydown", dismiss);
+          hidePopup();
+          marker.remove();
+        },
+      });
+    }
+    const reposition = () => {
+      for (const { marker, lat, lng } of markers)
+        marker.setLngLat([
+          nearestLongitude(lng, map.getCenter().lng),
+          displayLatitude(lat),
+        ]);
+    };
+    map.on("moveend", reposition);
+    return () => {
+      map.off("moveend", reposition);
+      markers.forEach(({ dispose }) => dispose());
+    };
+  }, [map, locations, tooltipId]);
+
+  useEffect(() => {
+    if (!map || !target || lastFit.current === key) return;
+    lastFit.current = key;
+    const east = target.east < target.west ? target.east + 360 : target.east;
+    if (target.west === target.east && target.south === target.north)
+      map.jumpTo({
+        center: [target.west, displayLatitude(target.south)],
+        zoom,
+      });
+    else
+      map.fitBounds(
+        [
+          [target.west, displayLatitude(target.south)],
+          [east, displayLatitude(target.north)],
+        ],
+        { padding: 28, maxZoom: fitMaxZoom, animate: false },
+      );
+  }, [map, target, key, zoom, fitMaxZoom]);
+
+  return (
+    <div className="space-y-2">
+      {!ready && !error && !tileError && <p role="status">Loading map…</p>}
+      {error && (
+        <div role="alert" className="rounded border p-3 text-sm">
+          {error}{" "}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setMap(null);
+              setAttempt((n) => n + 1);
+            }}
+          >
+            Retry map
+          </Button>
+        </div>
+      )}
+      {tileError && (
+        <div role="status" className="rounded border p-3 text-sm">
+          Basemap tiles could not load. Locations and list results remain
+          available.{" "}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setTileError(false);
+              map?.refreshTiles("basemap");
+            }}
+          >
+            Retry tiles
+          </Button>
+        </div>
+      )}
+      <div
+        ref={container}
+        aria-label="Interactive campground map"
+        data-map-idle={idle ? "true" : "false"}
+        className={`camply-map relative z-0 ${className}`}
+      />
+    </div>
+  );
+};
+
+class MapBoundary extends Component<
+  { children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? (
+      <div role="alert">
+        Map could not render.{" "}
+        <Button onClick={() => this.setState({ failed: false })}>
+          Retry map
+        </Button>
+      </div>
+    ) : (
+      this.props.children
+    );
+  }
+}
+export const MapComponent = (props: MapComponentProps) => (
+  <MapBoundary>
+    <MapCanvas {...props} />
+  </MapBoundary>
+);

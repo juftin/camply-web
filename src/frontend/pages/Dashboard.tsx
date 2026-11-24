@@ -1,0 +1,380 @@
+import { useState, useCallback } from "react";
+import {
+  Plus,
+  Loader2,
+  Frown,
+  LogOut,
+  Settings,
+  AlertTriangle,
+  ChevronDown,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { ScanCard } from "@/components/ScanCard";
+import { ScanForm } from "@/components/ScanForm";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  useScans,
+  useUpdateScan,
+  useDeleteScan,
+  getApiErrorMessage,
+} from "@/hooks/useScans";
+import type { ScanResponse } from "@/lib/structs";
+import { toTitleCase } from "@/lib/utils";
+
+export function Dashboard() {
+  const {
+    user,
+    isReady,
+    isLoading: authLoading,
+    updatePushoverToken,
+    signOut,
+    autoLogin,
+  } = useAuth();
+
+  const {
+    data: scanList,
+    isLoading: scansLoading,
+    error: scansError,
+    refetch: refetchScans,
+  } = useScans();
+
+  const updateScan = useUpdateScan();
+  const deleteScan = useDeleteScan();
+
+  const [showSettings, setShowSettings] = useState(false);
+  const [pushoverToken, setPushoverToken] = useState(
+    user?.pushover_token ?? "",
+  );
+  const [pushoverSaving, setPushoverSaving] = useState(false);
+  const [pushoverError, setPushoverError] = useState<string | null>(null);
+  const [pushoverSuccess, setPushoverSuccess] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // ---- Handlers (must be before early returns) ----
+  const handleToggleActive = useCallback(
+    async (scanId: string, isActive: boolean) => {
+      setActionError(null);
+      if (isActive && user?.scanning_enabled === false) {
+        setActionError(
+          "Cannot resume scan: automated scanning is suspended for your account.",
+        );
+        return;
+      }
+      try {
+        await updateScan.mutateAsync({
+          scanId,
+          payload: { is_active: isActive },
+        });
+      } catch (err) {
+        setActionError(getApiErrorMessage(err));
+      }
+    },
+    [updateScan, user?.scanning_enabled],
+  );
+
+  const handleDelete = useCallback(
+    async (scanId: string) => {
+      await deleteScan.mutateAsync(scanId);
+    },
+    [deleteScan],
+  );
+
+  // ---- Navigation guard: not ready yet ----
+  if (authLoading || !isReady) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const handleSavePushover = async () => {
+    setPushoverSaving(true);
+    setPushoverError(null);
+    setPushoverSuccess(false);
+    try {
+      await updatePushoverToken(pushoverToken || null);
+      setPushoverSuccess(true);
+      setTimeout(() => setPushoverSuccess(false), 3000);
+    } catch (err) {
+      setPushoverError(getApiErrorMessage(err));
+    } finally {
+      setPushoverSaving(false);
+    }
+  };
+
+  const scans = scanList?.scans ?? [];
+  const activeScans = scans.filter((s) => s.is_active);
+  const foundCount = scans.reduce((acc, s) => acc + s.found_count, 0);
+  const campgroundGroups = new Map<string, ScanResponse[]>();
+  for (const scan of scans) {
+    const destinationId =
+      scan.destination_type === "recreation_area"
+        ? scan.recreation_area_id
+        : scan.campground_id;
+    const key = `${scan.provider_id}:${scan.destination_type ?? "campground"}:${destinationId}`;
+    const group = campgroundGroups.get(key) ?? [];
+    group.push(scan);
+    campgroundGroups.set(key, group);
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
+      {/* ---- Header ---- */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">
+            Welcome back, {user?.email ? user.email.split("@")[0] : "camper"} 🏕️
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSettings(!showSettings)}
+          >
+            <Settings className="h-4 w-4 mr-1" />
+            Settings
+          </Button>
+          {!autoLogin && (
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-1" />
+              Sign Out
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* ---- Suspension Alert ---- */}
+      {user?.scanning_enabled === false && (
+        <div className="mb-6 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-4 text-amber-900 dark:text-amber-200 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-sm">
+              Scanning Privileges Suspended
+            </p>
+            <p className="text-xs text-amber-800 dark:text-amber-300 mt-0.5">
+              Automated campsite scanning has been suspended for your account.
+              You can view past results and edit settings, but background
+              pollers will not monitor these targets and you cannot activate new
+              scans. Contact support or an administrator to re-enable scanning.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Action Error Alert ---- */}
+      {actionError && (
+        <div className="mb-6 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive flex items-center justify-between text-sm">
+          <span>{actionError}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActionError(null)}
+          >
+            Dismiss
+          </Button>
+        </div>
+      )}
+
+      {/* ---- Stats ---- */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-2xl">{scans.length}</CardTitle>
+            <CardDescription>Total Scans</CardDescription>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-2xl">{activeScans.length}</CardTitle>
+            <CardDescription>Active</CardDescription>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-2xl">{foundCount}</CardTitle>
+            <CardDescription>Sites Found</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+
+      {/* ---- Settings panel ---- */}
+      {showSettings && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="text-lg">Notification Settings</CardTitle>
+            <CardDescription>
+              Configure your Pushover integration for real-time alerts.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="pushover_token">Pushover User Key</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="pushover_token"
+                  placeholder="Enter your Pushover user key"
+                  value={pushoverToken}
+                  onChange={(e) => setPushoverToken(e.target.value)}
+                />
+                <Button onClick={handleSavePushover} disabled={pushoverSaving}>
+                  {pushoverSaving ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </div>
+            {pushoverError && (
+              <p className="text-sm text-destructive">{pushoverError}</p>
+            )}
+            {pushoverSuccess && (
+              <p className="text-sm text-green-600">Pushover token saved!</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Don't have a Pushover key?{" "}
+              <a
+                href="https://pushover.net/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-foreground"
+              >
+                Sign up at pushover.net
+              </a>
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ---- Scans list ---- */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">Your Scans</h2>
+        {user?.scanning_enabled !== false ? (
+          <ScanForm onSuccess={() => refetchScans()} />
+        ) : (
+          <Button
+            disabled
+            variant="outline"
+            size="sm"
+            title="Scanning is suspended for your account"
+          >
+            <Plus className="h-4 w-4 mr-1" /> Create Scan (Suspended)
+          </Button>
+        )}
+      </div>
+
+      {scansLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : scansError ? (
+        <div className="rounded-md bg-destructive/10 p-6 text-center">
+          <p className="text-destructive font-medium">Failed to load scans</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {getApiErrorMessage(scansError)}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            onClick={() => refetchScans()}
+          >
+            Retry
+          </Button>
+        </div>
+      ) : scans.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <Frown className="h-12 w-12 text-muted-foreground mb-3" />
+            <h3 className="text-lg font-medium mb-1">No scans yet</h3>
+            <p className="text-muted-foreground mb-4 max-w-sm">
+              Create your first scan to start monitoring campsite availability.
+            </p>
+            {user?.scanning_enabled !== false ? (
+              <ScanForm
+                onSuccess={() => refetchScans()}
+                trigger={
+                  <Button>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Create Scan
+                  </Button>
+                }
+              />
+            ) : (
+              <Button disabled variant="outline">
+                <Plus className="h-4 w-4 mr-1" /> Create Scan (Suspended)
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {[...campgroundGroups].map(([key, group]) => {
+            const campground = group[0];
+            const withOpenings = group.filter(
+              (scan) => scan.found_count > 0,
+            ).length;
+            return (
+              <details
+                key={key}
+                className="group rounded-lg border bg-card text-card-foreground"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold break-words">
+                      {toTitleCase(
+                        campground.destination_name ||
+                          campground.campground_name ||
+                          campground.recreation_area_name ||
+                          "Unknown Destination",
+                      )}
+                    </h3>
+                    {campground.recreation_area_name &&
+                      campground.campground_name && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {toTitleCase(campground.recreation_area_name)}
+                        </p>
+                      )}
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span>
+                        {group.length} scan{group.length !== 1 ? "s" : ""}
+                      </span>
+                      <Badge variant={withOpenings ? "success" : "secondary"}>
+                        {withOpenings} scan{withOpenings !== 1 ? "s" : ""} with
+                        openings
+                      </Badge>
+                    </div>
+                  </div>
+                  <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="grid gap-4 border-t p-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.map((scan) => (
+                    <ScanCard
+                      key={scan.id}
+                      scan={scan}
+                      onToggleActive={handleToggleActive}
+                      onDelete={handleDelete}
+                      toggling={
+                        updateScan.isPending &&
+                        updateScan.variables?.scanId === scan.id
+                      }
+                    />
+                  ))}
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

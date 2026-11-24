@@ -12,22 +12,24 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Install task runner
-      shell: bash
-      run: |
-        curl -sL https://taskfile.dev/install.sh | sh -s -- -d -b "$HOME/.local/bin" v3.41.0
-        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-    - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+    - name: task - install task runner
+      uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
       with:
-        package_json_file: ./frontend/package.json
+        version: 3.x
+        repo-token: ${{ github.token }}
 
-    - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+    - name: pnpm - setup package manager
+      uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      with:
+        package_json_file: ./package.json
+
+    - name: node - setup node runtime
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version: ${{ inputs.node-version }}
         cache: pnpm
-        cache-dependency-path: ./frontend/pnpm-lock.yaml
+        cache-dependency-path: ./pnpm-lock.yaml
 
-    - name: Install frontend dependencies
+    - name: frontend - install dependencies
       shell: bash
       run: task frontend:install

@@ -1,0 +1,58 @@
+{{- $root := . -}}
+{{- range $role := list "frontend" "backend" "worker" "postgresql" "valkey" "prometheus" -}}
+{{- $config := index $root.Values $role -}}
+{{- if or (eq $role "backend") $config.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "camply.fullname" $root }}-{{ $role }}
+  labels: {{ include "camply.labels" $root | nindent 4 }}
+  {{- with $config.service }}
+  annotations: {{ toYaml .annotations | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if has $role (list "frontend" "backend") }}
+  type: {{ $config.service.type }}
+  {{- else }}
+  type: ClusterIP
+  {{- end }}
+  selector: {{ include "camply.selector" (dict "root" $root "role" $role) | nindent 4 }}
+  ports:
+    - name: {{ if eq $role "worker" }}metrics{{ else }}http{{ end }}
+      {{- if has $role (list "frontend" "backend") }}
+      port: {{ $config.service.port }}
+      targetPort: http
+      {{- else if eq $role "worker" }}
+      port: 8001
+      targetPort: metrics
+      {{- else if eq $role "postgresql" }}
+      port: {{ $root.Values.database.port }}
+      targetPort: 5432
+      {{- else if eq $role "valkey" }}
+      port: 6379
+      targetPort: 6379
+      {{- else }}
+      port: 9090
+      targetPort: 9090
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- range $role := list "backend" "worker" -}}
+{{- if or (eq $role "backend") $root.Values.worker.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "camply.fullname" $root }}-{{ $role }}-metrics
+  labels: {{ include "camply.labels" $root | nindent 4 }}
+    camply.io/metrics: "true"
+spec:
+  clusterIP: None
+  selector: {{ include "camply.selector" (dict "root" $root "role" $role) | nindent 4 }}
+  ports:
+    - name: metrics
+      port: {{ if eq $role "backend" }}8000{{ else }}8001{{ end }}
+      targetPort: {{ if eq $role "backend" }}http{{ else }}metrics{{ end }}
+{{- end }}
+{{- end }}

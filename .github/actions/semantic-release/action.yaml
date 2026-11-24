@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+
+name: Semantic Release
+description: Install the locked release tools and run Camply's Gitmoji release
+
+inputs:
+  github_token:
+    description: GitHub App installation token with release permissions
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install release dependencies
+      shell: bash
+      run: npm --prefix "$GITHUB_ACTION_PATH" ci
+
+    - name: Verify npm package signatures
+      shell: bash
+      run: npm --prefix "$GITHUB_ACTION_PATH" audit signatures
+
+    - name: Publish semantic release
+      shell: bash
+      run: |
+        "$GITHUB_ACTION_PATH/node_modules/.bin/semantic-release"
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        GIT_AUTHOR_NAME: github-actions[bot]
+        GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
+        GIT_COMMITTER_NAME: github-actions[bot]
+        GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com

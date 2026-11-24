@@ -1,5 +1,0 @@
-allowBuilds:
-  "@nestjs/core": false
-  "@openapitools/openapi-generator-cli": false
-  browser-tabs-lock: false
-  esbuild: true

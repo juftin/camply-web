@@ -1,14 +1,14 @@
 <!--
 <sync_impact_report>
-- Version change: N/A → 1.0.0
-- List of modified principles: All initialized from template.
-- Added sections: Technology Stack & Constraints, Development Workflow & Quality Gates.
+- Version change: 2.0.0 → 3.0.0
+- List of modified principles: IV replaces mandatory nested project roots with root manifests and src/camply plus src/frontend, preserving internal/optional dependency boundaries.
+- Added sections: None; technology constraints now require Python >=3.11 with 3.14 defaults.
 - Removed sections: None.
 - Templates requiring updates:
     - .specify/templates/plan-template.md (✅ updated/verified)
     - .specify/templates/spec-template.md (✅ updated/verified)
     - .specify/templates/tasks-template.md (✅ updated/verified)
-- Follow-up TODOs: None.
+- Follow-up TODOs: Feature 013 implements the root layout, complete artifacts, and associated workflow checks.
 </sync_impact_report>
 -->
 
@@ -30,7 +30,7 @@ Developer experience and environment consistency are critical for maintainabilit
 
 ### IV. Monorepos & Separation of Concerns
 
-The project structure MUST maintain clear boundaries between `backend/`, `frontend/`, and the legacy `cli/`. Shared logic MUST be extracted into internal packages within the `backend/packages/` workspace to ensure reusability and testability without tight coupling.
+The project MUST maintain root Python and JavaScript manifests with clear source boundaries between `src/camply/` and `src/frontend/`. Python MUST publish one `camply` distribution from `src/camply/`, with internal `cli`, `server`, `db`, `providers`, and `worker` subpackages and packaged runtime resources. Providers and SQLite persistence MUST work without optional server, distributed-worker, PostgreSQL, or Sentry dependencies. Internal imports MUST preserve these dependency boundaries; server and worker bootstraps MUST remain independent. Prepared application distributions MUST include the frontend; editable Python development MUST remain independent of JavaScript tooling.
 
 ### V. Automated Verification
 
@@ -38,7 +38,7 @@ Software correctness MUST be empirically verified. Every new feature or bug fix 
 
 ## Technology Stack & Constraints
 
-- **Backend**: Python 3.9+ managed by `uv`. FastAPI for web services. SQLAlchemy/Alembic for persistence.
+- **Backend**: Python >=3.11 managed by `uv`; development, primary CI, Docker, and release defaults use Python 3.14, with explicit Python 3.11 compatibility verification. FastAPI for web services. SQLAlchemy/Alembic for persistence.
 - **Frontend**: React 18+ with TypeScript, built via Vite. Tailwind CSS for styling.
 - **Infrastructure**: Docker & Docker Compose for local development and orchestration.
 - **Task Orchestration**: `go-task` (Taskfile) is the unified entry point for all project commands.
@@ -58,4 +58,4 @@ This Constitution serves as the foundational authority for engineering standards
 2. **Amendments**: Any contributor may propose amendments. Changes require a version increment (MAJOR for principle removals, MINOR for additions, PATCH for clarifications) and a Sync Impact Report.
 3. **Compliance**: Compliance is verified during Peer Review and via automated CI gates. Complexity introduced by violating a principle MUST be explicitly justified in the Implementation Plan.
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-22
+**Version**: 3.0.0 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-10-29

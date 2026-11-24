@@ -1,0 +1,576 @@
+"""
+Tests for Admin Router endpoints (user, scan, target, overview, and audit).
+"""
+
+from __future__ import annotations
+
+import datetime as dt
+import uuid
+from typing import Generator
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import select
+
+from camply.db.models import (
+    AdminAuditEvent,
+    ScanResult,
+    UniqueTarget,
+    User,
+    UserScan,
+)
+from camply.server.app import app
+from camply.server.auth import CurrentUser, resolve_current_user
+from tests.server.conftest import maker
+
+
+@pytest.fixture
+def admin_user_data() -> dict:
+    u_id = uuid.uuid4()
+    return {
+        "id": u_id,
+        "email": f"admin_test_{u_id.hex[:6]}@camply.local",
+        "is_admin": True,
+        "scanning_enabled": True,
+        "is_invited": True,
+    }
+
+
+@pytest.fixture
+def regular_user_data() -> dict:
+    u_id = uuid.uuid4()
+    return {
+        "id": u_id,
+        "email": f"regular_test_{u_id.hex[:6]}@camply.local",
+        "is_admin": False,
+        "scanning_enabled": True,
+        "is_invited": True,
+    }
+
+
+@pytest.fixture
+def override_admin(admin_user_data: dict) -> Generator[CurrentUser, None, None]:
+    curr = CurrentUser(
+        id=admin_user_data["id"],
+        email=admin_user_data["email"],
+        is_invited=True,
+        is_admin=True,
+        scanning_enabled=True,
+    )
+    app.dependency_overrides[resolve_current_user] = lambda: curr
+    yield curr
+    app.dependency_overrides.pop(resolve_current_user, None)
+
+
+@pytest.fixture
+def override_non_admin(regular_user_data: dict) -> Generator[CurrentUser, None, None]:
+    curr = CurrentUser(
+        id=regular_user_data["id"],
+        email=regular_user_data["email"],
+        is_invited=True,
+        is_admin=False,
+        scanning_enabled=True,
+    )
+    app.dependency_overrides[resolve_current_user] = lambda: curr
+    yield curr
+    app.dependency_overrides.pop(resolve_current_user, None)
+
+
+class TestAdminAuthorization:
+    """Test that all admin endpoints reject non-admin access with 403."""
+
+    endpoints = [
+        ("GET", "/api/admin/overview", None),
+        ("GET", "/api/admin/users", None),
+        (
+            "POST",
+            "/api/admin/users",
+            {"email": "new@example.test", "password": "password123"},
+        ),
+        ("GET", f"/api/admin/users/{uuid.uuid4()}", None),
+        ("PATCH", f"/api/admin/users/{uuid.uuid4()}", {"scanning_enabled": False}),
+        ("GET", "/api/admin/scans", None),
+        ("GET", f"/api/admin/scans/{uuid.uuid4()}", None),
+        ("PATCH", f"/api/admin/scans/{uuid.uuid4()}", {"is_active": False}),
+        ("GET", f"/api/admin/targets/{uuid.uuid4()}", None),
+        ("GET", "/api/admin/audit", None),
+    ]
+
+    def test_non_admin_forbidden_on_all_endpoints(
+        self, test_client: TestClient, override_non_admin: CurrentUser
+    ) -> None:
+        for method, path, json_data in self.endpoints:
+            if method == "GET":
+                resp = test_client.get(path)
+            elif method == "POST":
+                resp = test_client.post(path, json=json_data)
+            elif method == "PATCH":
+                resp = test_client.patch(path, json=json_data)
+            assert resp.status_code == 403, f"{method} {path} did not return 403"
+            assert resp.json()["detail"]["error"] == "ERR_ADMIN_REQUIRED"
+
+
+class TestAdminEndpoints:
+    """Test functionality of all admin endpoints."""
+
+    @pytest.mark.asyncio
+    async def test_admin_overview_and_staleness(
+        self, test_client: TestClient, override_admin: CurrentUser
+    ) -> None:
+        # Seed test data for overview
+        async with maker() as session:
+            admin_u = User(
+                id=override_admin.id,
+                email=override_admin.email,
+                is_admin=True,
+                scanning_enabled=True,
+            )
+            suspended_u = User(
+                id=uuid.uuid4(),
+                email="over_susp@example.com",
+                is_admin=False,
+                scanning_enabled=False,
+            )
+            active_u = User(
+                id=uuid.uuid4(),
+                email="over_act@example.com",
+                is_admin=False,
+                scanning_enabled=True,
+            )
+            session.add_all([admin_u, suspended_u, active_u])
+
+            # Target 1: active and recently checked
+            t1 = UniqueTarget(
+                provider_id=1,
+                campground_id="cg_1",
+                start_date=dt.date(2026, 11, 1),
+                end_date=dt.date(2026, 11, 3),
+                last_checked_at=dt.datetime.now(tz=dt.timezone.utc),
+            )
+            # Target 2: active subscriber but never checked and old -> overdue
+            t2 = UniqueTarget(
+                provider_id=1,
+                campground_id="cg_1",
+                start_date=dt.date(2026, 11, 5),
+                end_date=dt.date(2026, 11, 7),
+                created_at=dt.datetime.now(tz=dt.timezone.utc)
+                - dt.timedelta(seconds=1000),
+            )
+            # Target 3: only suspended subscriber -> dormant
+            t3 = UniqueTarget(
+                provider_id=1,
+                campground_id="cg_1",
+                start_date=dt.date(2026, 11, 9),
+                end_date=dt.date(2026, 11, 11),
+                created_at=dt.datetime.now(tz=dt.timezone.utc)
+                - dt.timedelta(seconds=1000),
+            )
+            session.add_all([t1, t2, t3])
+            await session.flush()
+
+            # Scans
+            s1 = UserScan(user_id=active_u.id, target_id=t1.id, is_active=True)
+            s2 = UserScan(user_id=active_u.id, target_id=t2.id, is_active=True)
+            s3 = UserScan(user_id=suspended_u.id, target_id=t3.id, is_active=True)
+            session.add_all([s1, s2, s3])
+            await session.commit()
+
+        resp = test_client.get("/api/admin/overview")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total_users"] >= 3
+        assert data["scanning_enabled_users"] >= 2
+        assert data["total_scans"] >= 3
+        assert data["saved_active_scans"] >= 3
+        assert data["eligible_scans"] >= 2
+        assert data["eligible_targets"] >= 2
+        assert data["overdue_targets"] >= 1
+
+    @pytest.mark.asyncio
+    async def test_admin_users_search_filter_redaction_and_patch(
+        self, test_client: TestClient, override_admin: CurrentUser
+    ) -> None:
+        user_id = uuid.uuid4()
+        user_email = f"searchable_{user_id.hex[:6]}@example.com"
+
+        async with maker() as session:
+            u = User(
+                id=user_id,
+                email=user_email,
+                pushover_token="secret_token_123",
+                scanning_enabled=True,
+                is_invited=True,
+            )
+            session.add(u)
+            await session.commit()
+
+        # 1. Search by email
+        resp = test_client.get(f"/api/admin/users?search={user_email[:12]}")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] >= 1
+        matched = [x for x in data["users"] if x["id"] == str(user_id)]
+        assert len(matched) == 1
+        assert matched[0]["has_pushover_token"] is True
+        assert "secret_token_123" not in str(resp.json())  # redaction check
+
+        # 2. Get user detail
+        detail_resp = test_client.get(f"/api/admin/users/{user_id}")
+        assert detail_resp.status_code == 200
+        assert detail_resp.json()["has_pushover_token"] is True
+        assert "secret_token_123" not in str(detail_resp.json())
+
+        # 3. Patch scanning_enabled and verify audit
+        patch_resp = test_client.patch(
+            f"/api/admin/users/{user_id}",
+            json={"scanning_enabled": False},
+        )
+        assert patch_resp.status_code == 200
+        assert patch_resp.json()["scanning_enabled"] is False
+
+        # Verify DB and audit event
+        async with maker() as session:
+            u_check = (
+                await session.execute(select(User).where(User.id == user_id))
+            ).scalar_one()
+            assert u_check.scanning_enabled is False
+
+            audit_res = await session.execute(
+                select(AdminAuditEvent).where(
+                    AdminAuditEvent.subject_id == user_id,
+                    AdminAuditEvent.action == "user.scanning_enabled",
+                )
+            )
+            audit = audit_res.scalar_one()
+            assert audit.actor_id == override_admin.id
+            assert audit.prev_value is True
+            assert audit.new_value is False
+
+    @pytest.mark.asyncio
+    async def test_admin_scans_management_and_target_detail(
+        self, test_client: TestClient, override_admin: CurrentUser
+    ) -> None:
+        user_id = uuid.uuid4()
+        target_id = uuid.uuid4()
+        scan_id = uuid.uuid4()
+
+        async with maker() as session:
+            admin_u = User(
+                id=override_admin.id,
+                email=override_admin.email,
+                is_admin=True,
+                scanning_enabled=True,
+            )
+            u = User(
+                id=user_id,
+                email=f"scan_admin_{user_id.hex[:6]}@example.com",
+                scanning_enabled=True,
+            )
+            t = UniqueTarget(
+                id=target_id,
+                provider_id=1,
+                campground_id="cg_1",
+                start_date=dt.date(2026, 12, 10),
+                end_date=dt.date(2026, 12, 12),
+            )
+            s = UserScan(
+                id=scan_id,
+                user_id=u.id,
+                target_id=t.id,
+                is_active=True,
+            )
+            res = ScanResult(
+                target_id=t.id,
+                campsite_id="site_admin_1",
+                available_dates=["2026-12-10"],
+            )
+            session.add_all([admin_u, u, t, s, res])
+            await session.commit()
+
+        # 1. List admin scans
+        list_resp = test_client.get(f"/api/admin/scans?owner_id={user_id}")
+        assert list_resp.status_code == 200
+        assert list_resp.json()["total"] == 1
+        item = list_resp.json()["scans"][0]
+        assert item["id"] == str(scan_id)
+        assert item["is_active"] is True
+        assert item["is_eligible"] is True
+
+        # 2. Get scan detail
+        detail_resp = test_client.get(f"/api/admin/scans/{scan_id}")
+        assert detail_resp.status_code == 200
+        assert detail_resp.json()["id"] == str(scan_id)
+        assert len(detail_resp.json()["results"]) == 1
+        assert detail_resp.json()["results"][0]["campsite_id"] == "site_admin_1"
+
+        # 3. Patch scan is_active=False
+        pause_resp = test_client.patch(
+            f"/api/admin/scans/{scan_id}",
+            json={"is_active": False},
+        )
+        assert pause_resp.status_code == 200
+        assert pause_resp.json()["is_active"] is False
+        assert pause_resp.json()["is_eligible"] is False
+
+        # 4. Suspend user then attempt to resume scan -> expect 403
+        async with maker() as session:
+            user_row = (
+                await session.execute(select(User).where(User.id == user_id))
+            ).scalar_one()
+            user_row.scanning_enabled = False
+            await session.commit()
+
+        resume_forbidden = test_client.patch(
+            f"/api/admin/scans/{scan_id}",
+            json={"is_active": True},
+        )
+        assert resume_forbidden.status_code == 403
+        assert resume_forbidden.json()["detail"]["error"] == "ERR_SCANNING_DISABLED"
+
+        # 5. Target detail
+        t_resp = test_client.get(f"/api/admin/targets/{target_id}")
+        assert t_resp.status_code == 200
+        t_data = t_resp.json()
+        assert t_data["id"] == str(target_id)
+        assert t_data["total_subscribers"] == 1
+        assert t_data["eligible_subscribers"] == 0
+        assert t_data["status"] == "dormant"
+        assert len(t_data["subscribers"]) == 1
+
+        # 6. Audit list endpoint
+        audit_resp = test_client.get("/api/admin/audit")
+        assert audit_resp.status_code == 200
+        assert audit_resp.json()["total"] >= 1
+        latest = audit_resp.json()["events"][0]
+        assert latest["actor_email"] == override_admin.email
+
+
+def test_overview_frontend_contract(
+    test_client: TestClient, override_admin: CurrentUser
+) -> None:
+    """Overview includes every displayed count and the actual overdue threshold."""
+    from camply.server.config import backend_config
+
+    data = test_client.get("/api/admin/overview").json()
+    assert (
+        data["suspended_users"] == data["total_users"] - data["scanning_enabled_users"]
+    )
+    assert data["dormant_targets"] == data["total_targets"] - data["eligible_targets"]
+    assert data["heartbeat_interval_seconds"] == backend_config.heartbeat_interval
+    assert data["heartbeat_interval_seconds"] == 300
+    assert data["target_cooldown_seconds"] == backend_config.target_cooldown
+    assert (
+        data["overdue_threshold_seconds"]
+        == backend_config.target_cooldown + 2 * backend_config.heartbeat_interval
+    )
+
+
+@pytest.mark.asyncio
+async def test_target_status_filter_and_subscriber_pagination(
+    test_client: TestClient, override_admin: CurrentUser
+) -> None:
+    """Overdue links select overdue targets, retaining paginated subscribers."""
+    now = dt.datetime.now(tz=dt.timezone.utc)
+    async with maker() as session:
+        user = User(email=f"filter-{uuid.uuid4()}@example.test", scanning_enabled=True)
+        session.add(user)
+        targets = [
+            UniqueTarget(
+                provider_id=1,
+                campground_id="cg_1",
+                start_date=dt.date(2027, 1, day),
+                end_date=dt.date(2027, 1, day + 1),
+                created_at=now - dt.timedelta(seconds=1000),
+                last_checked_at=checked,
+            )
+            for day, checked in [(1, None), (3, now)]
+        ]
+        session.add_all(targets)
+        await session.flush()
+        session.add_all(
+            [
+                UserScan(user_id=user.id, target_id=target.id, is_active=True)
+                for target in targets
+            ]
+        )
+        await session.commit()
+        overdue_id, active_id = [str(target.id) for target in targets]
+        user_id = str(user.id)
+    overdue = test_client.get(
+        f"/api/admin/scans?owner_id={user_id}&target_status=overdue"
+    ).json()
+    assert {scan["target_id"] for scan in overdue["scans"]} == {overdue_id}
+    active = test_client.get(
+        f"/api/admin/scans?owner_id={user_id}&target_status=active"
+    ).json()
+    assert {scan["target_id"] for scan in active["scans"]} == {active_id}
+    target = test_client.get(f"/api/admin/targets/{active_id}?limit=1&offset=1").json()
+    assert target["status"] == "active"
+    assert target["subscribers_total"] == 1
+    assert target["subscribers"] == []
+
+
+async def _seed_admin_area_fixture() -> tuple[str, str, str, str]:
+    """Seed a synthetic area scan with overdue and checked targets plus one result."""
+    from camply.db.coverage import definition_hash, reconcile_coverage
+    from camply.db.models import Campground, RecreationArea, ScanResult
+
+    now = dt.datetime.now(tz=dt.timezone.utc)
+    area_id = f"admin-area-{uuid.uuid4().hex[:8]}"
+    cg1_id = f"admin-cg1-{uuid.uuid4().hex[:8]}"
+    cg2_id = f"admin-cg2-{uuid.uuid4().hex[:8]}"
+    async with maker() as session:
+        user = User(
+            email=f"area-admin-{uuid.uuid4()}@example.test",
+            scanning_enabled=True,
+        )
+        area = RecreationArea(
+            id=area_id, provider_id=1, name="Admin Park", enabled=True
+        )
+        cg1 = Campground(
+            id=cg1_id,
+            provider_id=1,
+            recreation_area_id=area_id,
+            name="Admin Camp 1",
+            enabled=True,
+            reservable=True,
+        )
+        cg2 = Campground(
+            id=cg2_id,
+            provider_id=1,
+            recreation_area_id=area_id,
+            name="Admin Camp 2",
+            enabled=True,
+            reservable=True,
+        )
+        session.add_all([user, area, cg1, cg2])
+        await session.flush()
+        area_scan = UserScan(
+            user_id=user.id,
+            provider_id=1,
+            destination_type="recreation_area",
+            recreation_area_id=area_id,
+            destination_name="Admin Park",
+            coverage_mode="selected",
+            selected_campgrounds=[
+                {"id": cg1_id, "name": "Admin Camp 1"},
+                {"id": cg2_id, "name": "Admin Camp 2"},
+            ],
+            start_date=dt.date(2027, 7, 1),
+            end_date=dt.date(2027, 7, 4),
+            min_stay_length=1,
+            is_active=True,
+            coverage=[],
+            definition_hash=definition_hash(
+                provider_id=1,
+                destination_type="recreation_area",
+                destination_id=area_id,
+                start_date=dt.date(2027, 7, 1),
+                end_date=dt.date(2027, 7, 4),
+                coverage_mode="selected",
+                selected_ids=[cg1_id, cg2_id],
+            ),
+        )
+        session.add(area_scan)
+        await session.flush()
+        await session.refresh(area_scan, ["coverage"])
+        await reconcile_coverage(session, area_scan)
+        await session.flush()
+        target_by_cg = {
+            link.target.campground_id: link.target for link in area_scan.coverage
+        }
+        target_by_cg[cg1_id].created_at = now - dt.timedelta(seconds=1000)
+        target_by_cg[cg1_id].last_checked_at = None
+        target_by_cg[cg2_id].last_checked_at = now
+        session.add(
+            ScanResult(
+                target_id=target_by_cg[cg1_id].id,
+                campsite_id="site-a",
+                campsite_name="Site A",
+                available_dates=["2027-07-01"],
+            )
+        )
+        await session.commit()
+        return str(user.id), str(area_scan.id), cg2_id, str(target_by_cg[cg2_id].id)
+
+
+@pytest.mark.asyncio
+async def test_admin_area_scans_disabled_subscribers_and_prometheus_gauge(
+    test_client: TestClient,
+    override_admin: CurrentUser,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Admin endpoints & Prometheus gauges accurately reflect area scans and disabled members."""
+    from types import SimpleNamespace
+
+    from camply.db.models import Campground
+    from camply.server._prometheus import ELIGIBLE_TARGETS, refresh_db_gauges
+
+    monkeypatch.setattr("camply.db.config.db", SimpleNamespace(get_session=maker))
+    user_id, scan_id, cg2_id, cg2_target_id = await _seed_admin_area_fixture()
+
+    listed = test_client.get(
+        f"/api/admin/scans?owner_id={user_id}&target_status=overdue"
+    ).json()
+    assert len(listed["scans"]) == 1
+    row = listed["scans"][0]
+    assert row["id"] == scan_id
+    assert row["destination_type"] == "recreation_area"
+    assert row["destination_name"] == "Admin Park"
+    assert row["coverage_mode"] == "selected"
+    assert row["eligible_campground_count"] == 2
+    assert row["found_count"] == 1
+
+    detail = test_client.get(f"/api/admin/scans/{scan_id}").json()
+    assert len(detail["campgrounds"]) == 2
+    assert len(detail["results"]) == 1
+    assert detail["results"][0]["campground_name"] == "Admin Camp 1"
+
+    await refresh_db_gauges()
+    before_gauge = ELIGIBLE_TARGETS._value.get()
+
+    # Disable cg2 in catalog: target detail retains total subscriber link while eligible=0
+    # and Prometheus gauge excludes the disabled member target.
+    async with maker() as session:
+        cg2_row = await session.get(Campground, (cg2_id, 1))
+        assert cg2_row is not None
+        cg2_row.enabled = False
+        await session.commit()
+
+    target_detail = test_client.get(f"/api/admin/targets/{cg2_target_id}").json()
+    assert target_detail["subscribers_total"] == 1
+    assert len(target_detail["subscribers"]) == 1
+
+    await refresh_db_gauges()
+    after_gauge = ELIGIBLE_TARGETS._value.get()
+    assert after_gauge == before_gauge - 1
+
+
+@pytest.mark.asyncio
+async def test_admin_scans_expose_criteria_and_filter_results_by_weekdays(
+    test_client: TestClient,
+    override_admin: CurrentUser,
+) -> None:
+    """Admin scan list & detail serialize allowed_weekdays/preferred_types/row_version and filter results."""
+    user_id, scan_id, _, _ = await _seed_admin_area_fixture()
+    async with maker() as session:
+        scan = await session.get(UserScan, uuid.UUID(scan_id))
+        assert scan is not None
+        # 2027-07-01 is a Thursday (weekday=3); restrict to Friday (weekday=4) to filter out Site A.
+        scan.allowed_weekdays = [4]
+        scan.preferred_types = ["Standard Electric"]
+        await session.commit()
+
+    listed = test_client.get(f"/api/admin/scans?owner_id={user_id}").json()
+    assert len(listed["scans"]) == 1
+    row = listed["scans"][0]
+    assert row["allowed_weekdays"] == [4]
+    assert row["preferred_types"] == ["Standard Electric"]
+    assert row["row_version"] == scan.row_version
+    assert row["found_count"] == 0
+
+    detail = test_client.get(f"/api/admin/scans/{scan_id}").json()
+    assert detail["allowed_weekdays"] == [4]
+    assert detail["preferred_types"] == ["Standard Electric"]
+    assert detail["found_count"] == 0
+    assert detail["results"] == []

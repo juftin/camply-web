@@ -1,0 +1,80 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/juftin/camply-web/main/docs/cli-yaml-config.schema.json
+
+# Run with: camply campsites --yaml-config camply.yaml
+# Edit the target IDs and date windows for the campsites you want to watch.
+
+# Required YAML format version. This example uses version 2.
+version: 2
+
+# Optional settings shared by all searches. The values below are the built-in
+# defaults. A search can override any setting here. A list override replaces the
+# whole shared list, and [] clears it.
+defaults:
+  # Occupied weekdays to match. Use names or abbreviations, such as [Fri, Sat].
+  # An empty list allows every day when weekends is false.
+  days: []
+  # Add Friday and Saturday nights to the selected weekdays.
+  weekends: false
+  # Match this exact number of consecutive nights at one campsite (minimum 1).
+  nights: 1
+
+  # Allow any campsite type with []. Options are TENT, RV, CABIN, and OTHER.
+  campsite_types: []
+  # Require an electric hookup.
+  electric: false
+  # Require an ADA-accessible site.
+  accessible: false
+  # Minimum compatible RV or trailer length in feet (1–200).
+  # The default applies no length filter, so leave this key omitted.
+  # rv_length: 28
+
+  # Minutes between availability checks (minimum 5).
+  interval: 10
+  # Push channels. [] prints results to the terminal only.
+  # ntfy requires NTFY_TOPIC. NTFY_SERVER_URL and NTFY_ACCESS_TOKEN are optional.
+  # pushover requires PUSHOVER_USER_KEY and PUSHOVER_APP_TOKEN.
+  notifications: []
+
+# At least one search is required. Each search needs a unique name, a provider,
+# one or more campground or recreation-area IDs, and at least one date window.
+searches:
+  # Required name used in results, diagnostics, and notifications.
+  - name: yosemite
+    # Required provider name or alias. Run `camply providers` for the list.
+    provider: RecreationDotGov
+    # Campground IDs from `camply campgrounds`. Quote IDs to retain leading zeros.
+    # The default [] lets recreation_areas determine the targets.
+    campgrounds: ["232450"]
+    # Recreation-area IDs from `camply recreation-areas`. [] selects no areas.
+    # When both lists are populated, the explicit campgrounds take precedence.
+    recreation_areas: []
+    # Specific campsite IDs or names within the targets. [] allows every site.
+    campsites: []
+    # Required date windows in YYYY-MM-DD format. Add entries to watch more dates.
+    dates:
+      - start_date: "2027-05-07" # Inclusive check-in date.
+        end_date: "2027-05-10" # Exclusive checkout date.
+      - start_date: "2027-05-17"
+        end_date: "2027-05-20"
+        # Clear both inherited filters to allow every night in this range.
+        days: []
+        weekends: false
+    # Inherited by this search's date ranges. Together these allow Fri–Sun.
+    days: [Sun]
+    weekends: true
+    # By default, alert history is in memory. Set a unique JSON file per search
+    # to keep it across runs. Relative paths start beside this YAML file.
+    # state_file: yosemite-state.json
+
+  - name: california-state-park
+    provider: ReserveCalifornia
+    campgrounds: ["327"]
+    dates:
+      - start_date: "2027-05-14"
+        end_date: "2027-05-17"
+    # Uncomment to poll this search every 15 minutes instead of inheriting 10.
+    # interval: 15
+    # Uncomment to keep this search console-only if you enable shared alerts.
+    # notifications: []
+    # Uncomment to clear a shared minimum RV length for this search.
+    # rv_length: null

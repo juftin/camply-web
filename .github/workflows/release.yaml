@@ -1,0 +1,116 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+  pages: write
+  id-token: write
+  pull-requests: write
+  actions: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: ci
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      pull-requests: write
+    uses: ./.github/workflows/ci.yaml
+
+  docs:
+    name: docs - publish documentation
+    needs: [ci]
+    if: github.repository == 'juftin/camply-web'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: checkout - repository source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: frontend - setup toolchain
+        uses: ./.github/actions/setup-frontend
+      - name: docs - build documentation
+        env:
+          VITEPRESS_BASE: /camply-web/
+        run: task docs:build
+      - name: pages - publish to github pages
+        id: deployment
+        uses: ./.github/actions/github-pages
+        with:
+          path: build/docs
+
+  release:
+    name: release - semantic release
+    needs: [ci]
+    if: github.repository == 'juftin/camply-web'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      published: ${{ steps.result.outputs.published }}
+    steps:
+      - name: checkout - release source and history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: backend - setup toolchain
+        uses: ./.github/actions/setup-backend
+      - name: frontend - setup toolchain
+        uses: ./.github/actions/setup-frontend
+      - name: auth - generate release token with renovate app
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          permission-contents: write
+          # Moving major tags across workflow changes requires this permission.
+          permission-workflows: write
+      - name: release - execute semantic release
+        uses: ./.github/actions/semantic-release
+        with:
+          github_token: ${{ steps.app-token.outputs.token }}
+      - name: release - report whether release was published
+        id: result
+        run: |
+          if test -f .release-published; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  publish-main:
+    name: publish - main without release
+    needs: [release]
+    if: needs.release.outputs.published == 'false'
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: ./.github/workflows/publish.yaml

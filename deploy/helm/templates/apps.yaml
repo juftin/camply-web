@@ -1,0 +1,114 @@
+{{- $root := . -}}
+{{- range $role := list "frontend" "backend" "worker" "beat" -}}
+{{- $config := index $root.Values $role -}}
+{{- if or (eq $role "backend") $config.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "camply.fullname" $root }}-{{ $role }}
+  labels:
+    {{- include "camply.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $role }}
+  annotations: {{ mergeOverwrite (deepCopy $root.Values.annotations) (deepCopy $config.annotations) | toYaml | nindent 4 }}
+spec:
+  replicas: {{ if eq $role "beat" }}1{{ else }}{{ $config.replicas }}{{ end }}
+  strategy:
+    type: {{ if eq $role "beat" }}Recreate{{ else }}RollingUpdate{{ end }}
+  selector:
+    matchLabels: {{ include "camply.selector" (dict "root" $root "role" $role) | nindent 6 }}
+  template:
+    metadata:
+      labels: {{ include "camply.selector" (dict "root" $root "role" $role) | nindent 8 }}
+      annotations:
+        {{- mergeOverwrite (deepCopy $root.Values.podAnnotations) (deepCopy $config.podAnnotations) (dict "camply/migration-job" (include "camply.migrationName" $root) "checksum/startup" ($root.Files.Get "files/wait.py" | sha256sum)) | toYaml | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      {{- if ne $role "frontend" }}
+      serviceAccountName: {{ include "camply.fullname" $root }}-migration-wait
+      {{- end }}
+      securityContext: {{ toYaml $config.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ $root.Values.terminationGracePeriodSeconds }}
+      {{- include "camply.scheduling" $root | nindent 6 }}
+      {{- if ne $role "frontend" }}
+      initContainers:
+        - name: wait-for-migrations
+          image: {{ include "camply.image" $root }}
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          command: [python, /startup/wait.py]
+          args:
+            - --namespace
+            - {{ $root.Release.Namespace | quote }}
+            - --job
+            - {{ include "camply.migrationName" $root }}
+            - --timeout
+            - {{ $root.Values.migrations.waitTimeoutSeconds | quote }}
+            {{- if or (eq $role "worker") (eq $role "beat") }}
+            - --background
+            - --api-url
+            - http://{{ include "camply.fullname" $root }}-backend:{{ $root.Values.backend.service.port }}/api/health
+            {{- end }}
+          env: {{ include "camply.env" (dict "root" $root "role" $role "config" $config) | nindent 12 }}
+          envFrom: {{ concat $root.Values.envFrom $config.envFrom | toYaml | nindent 12 }}
+          securityContext: {{ toYaml $root.Values.securityContext | nindent 12 }}
+          resources: {{ toYaml $root.Values.migrations.resources | nindent 12 }}
+          volumeMounts:
+            - {name: startup, mountPath: /startup, readOnly: true}
+            - {name: migration-api, mountPath: /var/run/camply-migration, readOnly: true}
+      {{- end }}
+      containers:
+        - name: {{ $role }}
+          image: {{ include "camply.image" $root }}
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          args: {{ toYaml $config.args | nindent 12 }}
+          env: {{ include "camply.env" (dict "root" $root "role" $role "config" $config) | nindent 12 }}
+          envFrom: {{ concat $root.Values.envFrom $config.envFrom | toYaml | nindent 12 }}
+          securityContext: {{ toYaml $root.Values.securityContext | nindent 12 }}
+          resources: {{ toYaml $config.resources | nindent 12 }}
+          {{- if eq $role "frontend" }}
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, 'kill -QUIT 1; while kill -0 1 2>/dev/null; do sleep 1; done']
+          {{- end }}
+          ports:
+            - name: {{ if or (eq $role "frontend") (eq $role "backend") }}http{{ else }}metrics{{ end }}
+              containerPort: {{ if eq $role "frontend" }}8080{{ else if eq $role "backend" }}8000{{ else }}8001{{ end }}
+          {{- $check := dict -}}
+          {{- if or (eq $role "frontend") (eq $role "backend") -}}
+          {{- $path := ternary "/healthz" "/api/health" (eq $role "frontend") -}}
+          {{- $check = dict "httpGet" (dict "path" $path "port" "http") -}}
+          {{- else if eq $role "worker" -}}
+          {{- $check = dict "exec" (dict "command" (list "camply" "serve" "healthcheck" "worker" "--timeout" "5")) -}}
+          {{- else -}}
+          {{- $check = dict "exec" (dict "command" (list "camply" "serve" "healthcheck" "beat")) -}}
+          {{- end }}
+          {{- $liveness := deepCopy $check -}}
+          {{- if eq $role "backend" -}}
+          {{- $liveness = dict "httpGet" (dict "path" "/api/ping" "port" "http") -}}
+          {{- end }}
+          {{- include "camply.probe" (dict "name" "startupProbe" "default" (merge (dict "periodSeconds" 5 "timeoutSeconds" 10 "failureThreshold" 60) (deepCopy $check)) "override" (get $config.probes "startup")) | nindent 10 }}
+          {{- include "camply.probe" (dict "name" "livenessProbe" "default" (merge (dict "periodSeconds" 30 "timeoutSeconds" 10 "failureThreshold" 6) $liveness) "override" (get $config.probes "liveness")) | nindent 10 }}
+          {{- include "camply.probe" (dict "name" "readinessProbe" "default" (merge (dict "periodSeconds" 10 "timeoutSeconds" 10 "failureThreshold" 3) (deepCopy $check)) "override" (get $config.probes "readiness")) | nindent 10 }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if ne $role "frontend" }}
+        - name: startup
+          configMap:
+            name: {{ include "camply.fullname" $root }}-startup
+        - name: migration-api
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  expirationSeconds: 3600
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - {key: ca.crt, path: ca.crt}
+        {{- end }}
+{{- end }}
+{{- end }}

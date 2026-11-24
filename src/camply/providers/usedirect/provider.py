@@ -1,0 +1,335 @@
+"""Shared async UseDirect / Tyler RDR provider implementation.
+
+Attributes
+----------
+_GRID_DAYS : int
+    Maximum number of requested nights per availability grid.
+_REQUEST_INTERVAL : float
+    Minimum interval between requests within a provider instance.
+_STATE_CODE_LENGTH : int
+    Length of a normalized state or territory code.
+"""
+
+import asyncio
+import time
+from abc import ABC
+from datetime import date, timedelta
+from typing import Any, ClassVar
+
+import httpx2
+import structlog
+from pydantic import TypeAdapter
+from sqlalchemy import update
+
+from camply.db.config import db
+from camply.db.models import Campground, Provider, RecreationArea
+from camply.providers.base import BaseProvider, CampgroundCapabilities
+from camply.providers.dto import (
+    CampgroundSearchResult,
+    CampsiteDTO,
+    ProviderSearchQuery,
+    ProviderSearchResult,
+    RecreationAreaSearchResult,
+)
+from camply.providers.usedirect.models.api import AvailabilityResponse, SearchFilters
+from camply.providers.usedirect.models.metadata import Facility, Place
+from camply.providers.utils import normalize_name
+
+logger = structlog.getLogger(__name__)
+
+_GRID_DAYS = 30
+_REQUEST_INTERVAL = 1.0
+_STATE_CODE_LENGTH = 2
+
+
+class UseDirectProvider(BaseProvider, ABC):
+    """Share async RDR scanning and independent catalog ingestion.
+
+    Subclasses supply the inherited abstract provider identity and these
+    deployment attributes. Booking methods may be overridden for different
+    application routes, such as California's modern park/facility paths.
+
+    Attributes
+    ----------
+    api_url : str
+        Complete RDR API root, including the deployment-specific path.
+    booking_url : str
+        Public booking application root without a trailing slash.
+    state_code : str
+        Two-letter state or territory fallback for catalog locations.
+    country_code : str
+        ISO country code; US by default and AU for Northern Territory.
+    booking_path_params : bool
+        Whether the booking application accepts hash-based park routes.
+    """
+
+    api_url: ClassVar[str]
+    booking_url: ClassVar[str]
+    state_code: ClassVar[str]
+    country_code: ClassVar[str] = "US"
+    booking_path_params: ClassVar[bool] = True
+
+    def __init__(self) -> None:
+        """Reuse the base retry client and pace provider requests."""
+        super().__init__()
+        self._request_lock = asyncio.Lock()
+        self._last_request = 0.0
+        self._filters: SearchFilters | None = None
+
+    async def _request(
+        self, method: str, path: str, *, payload: dict[str, Any] | None = None
+    ) -> httpx2.Response:
+        """Perform paced async requests through the base retry transport."""
+        async with self._request_lock:
+            delay = _REQUEST_INTERVAL - (time.monotonic() - self._last_request)
+            if delay > 0:
+                await asyncio.sleep(delay)
+            self._last_request = time.monotonic()
+            response = await self.async_client.request(
+                method, f"{self.api_url}/{path}", json=payload, timeout=30.0
+            )
+            response.raise_for_status()
+            return response
+
+    async def find_availabilities(
+        self, park_id: str, start_date: date, end_date: date
+    ) -> list[CampsiteDTO]:
+        """Scan a facility from arrival through the night before check-out.
+
+        The grid endpoint uses inclusive dates and sometimes pads its
+        response beyond the requested interval. Each response is clipped
+        to its requested window before merging real UnitIds.
+        """
+        if end_date <= start_date:
+            raise ValueError("Check-out must be after arrival")
+        facility_id = int(park_id)
+        if self._filters is None:
+            response = await self._request("GET", "search/filters")
+            self._filters = SearchFilters.model_validate_json(response.content)
+        campsites: dict[str, CampsiteDTO] = {}
+        current = start_date
+        while current < end_date:
+            window_end = min(current + timedelta(days=_GRID_DAYS), end_date)
+            response = await self._request(
+                "POST",
+                "search/grid",
+                payload={
+                    "FacilityId": facility_id,
+                    "StartDate": current.strftime("%m-%d-%Y"),
+                    "EndDate": (window_end - timedelta(days=1)).strftime("%m-%d-%Y"),
+                    "WebOnly": True,
+                    "InSeasonOnly": True,
+                    "UnitSort": "orderby",
+                },
+            )
+            parsed = AvailabilityResponse.model_validate_json(response.content)
+            if parsed.NightsActual == 0:
+                raise ValueError(
+                    f"{self.provider.name} rejected the scan: {parsed.Message}"
+                )
+            facility = parsed.Facility
+            if facility is not None:
+                if facility.FacilityId != facility_id:
+                    raise ValueError(
+                        f"{self.provider.name} returned a different facility"
+                    )
+                for dto in facility.to_dtos(
+                    filters=self._filters, start_date=current, end_date=window_end
+                ):
+                    if dto.campsite_id in campsites:
+                        existing = campsites[dto.campsite_id]
+                        existing.available_dates = sorted(
+                            set(existing.available_dates + dto.available_dates)
+                        )
+                        existing.metadata["minimum_stays"].update(
+                            dto.metadata["minimum_stays"]
+                        )
+                    else:
+                        campsites[dto.campsite_id] = dto
+            current = window_end
+        return list(campsites.values())
+
+    async def search_upstream(
+        self, query: ProviderSearchQuery
+    ) -> list[ProviderSearchResult]:
+        """Fetch current park/facility catalogs and filter bookable campgrounds."""
+        response = await self._request("GET", "fd/places")
+        places = TypeAdapter(list[Place]).validate_json(response.content)
+        parks = {
+            p.PlaceId: p
+            for p in places
+            if p.Name and p.Name.strip() and p.IsWebViewable is not False
+        }
+        results: list[ProviderSearchResult] = []
+        if query.entity_type != "campground":
+            for area in parks.values():
+                result_area = RecreationAreaSearchResult(
+                    provider_id=self.provider.id,
+                    provider_name=self.provider.name,
+                    recreation_area_id=str(area.PlaceId),
+                    recreation_area_name=normalize_name(area.Name) or "",
+                    city=area.City,
+                    state=self._metadata_state(area),
+                    country=self.country_code,
+                    latitude=area.Latitude,
+                    longitude=area.Longitude,
+                    booking_url=self.get_rec_area_url(str(area.PlaceId)),
+                )
+                if result_area.matches(query):
+                    results.append(result_area)
+        if query.entity_type == "recreation_area":
+            return results
+        response = await self._request("GET", "fd/facilities")
+        facilities = TypeAdapter(list[Facility]).validate_json(response.content)
+        for facility in facilities:
+            park = parks.get(facility.PlaceId)
+            if (
+                park is None
+                or park.AllowWebBooking is not True
+                or not facility.Name
+                or not facility.Name.strip()
+                or facility.AllowWebBooking is not True
+            ):
+                continue
+            result = CampgroundSearchResult(
+                provider_id=self.provider.id,
+                provider_name=self.provider.name,
+                campground_id=str(facility.FacilityId),
+                campground_name=normalize_name(facility.Name) or facility.Name,
+                recreation_area_id=str(park.PlaceId),
+                recreation_area_name=normalize_name(park.Name),
+                city=park.City,
+                state=self._metadata_state(park),
+                country=self.country_code,
+                latitude=park.Latitude,
+                longitude=park.Longitude,
+                booking_url=self.get_campground_url(
+                    str(facility.FacilityId), rec_area_id=str(park.PlaceId)
+                ),
+            )
+            if result.matches(query):
+                results.append(result)
+        return results
+
+    async def sync_metadata(self) -> None:
+        """Refresh parks, campgrounds, and search using the ingestion workflow."""
+        await self.populate_database()
+
+    async def enrich_metadata(self) -> None:
+        """Refresh cached destination photos and practical information separately."""
+        from camply.providers.usedirect.enrichment import enrich_metadata
+
+        await enrich_metadata(self)
+
+    async def populate_database(self) -> None:
+        """Fetch metadata before opening a transaction and upsert provider rows."""
+        places_response = await self._request("GET", "fd/places")
+        places: list[Place] = TypeAdapter(list[Place]).validate_json(
+            places_response.content
+        )
+        facilities_response = await self._request("GET", "fd/facilities")
+        facilities: list[Facility] = TypeAdapter(list[Facility]).validate_json(
+            facilities_response.content
+        )
+        places_by_id = {p.PlaceId: p for p in places if p.Name and p.Name.strip()}
+        async with db.get_session() as session:
+            async with session.begin():
+                if await session.get(Provider, self.provider.id) is None:
+                    raise RuntimeError(
+                        f"Provider {self.provider.name} (ID {self.provider.id}) not found in database. "
+                        "Run database migrations before syncing provider metadata."
+                    )
+                await session.execute(
+                    update(Campground)
+                    .where(Campground.provider_id == self.provider.id)
+                    .values(enabled=False, reservable=False)
+                )
+                await session.execute(
+                    update(RecreationArea)
+                    .where(RecreationArea.provider_id == self.provider.id)
+                    .values(enabled=False, reservable=False)
+                )
+                for place in places_by_id.values():
+                    await session.merge(
+                        RecreationArea(
+                            id=str(place.PlaceId),
+                            provider_id=self.provider.id,
+                            name=normalize_name(place.Name),
+                            description=place.Description,
+                            city=place.City,
+                            state=self._metadata_state(place),
+                            country=self.country_code,
+                            longitude=place.Longitude,
+                            latitude=place.Latitude,
+                            reservable=place.AllowWebBooking is True
+                            and place.IsWebViewable is not False,
+                            enabled=place.IsWebViewable is not False,
+                        )
+                    )
+                await session.flush()
+                existing_caps = await self._existing_campground_capabilities(session)
+                for facility in facilities:
+                    parent_place = places_by_id.get(facility.PlaceId)
+                    if (
+                        parent_place is None
+                        or not facility.Name
+                        or not facility.Name.strip()
+                    ):
+                        continue
+                    caps = existing_caps.get(
+                        str(facility.FacilityId), CampgroundCapabilities()
+                    )
+                    await session.merge(
+                        Campground(
+                            id=str(facility.FacilityId),
+                            provider_id=self.provider.id,
+                            recreation_area_id=str(facility.PlaceId),
+                            name=normalize_name(facility.Name),
+                            description=facility.Description,
+                            city=parent_place.City,
+                            state=self._metadata_state(parent_place),
+                            country=self.country_code,
+                            longitude=parent_place.Longitude,
+                            latitude=parent_place.Latitude,
+                            reservable=facility.AllowWebBooking is True
+                            and parent_place.AllowWebBooking is True
+                            and parent_place.IsWebViewable is not False,
+                            enabled=parent_place.IsWebViewable is not False,
+                            **caps.as_columns(),
+                        )
+                    )
+                await session.flush()
+                await self.populate_search_table(session, commit=False)
+                await session.execute(
+                    update(Provider)
+                    .where(Provider.id == self.provider.id)
+                    .values(catalog_revision=Provider.catalog_revision + 1)
+                )
+        logger.info(
+            "Refreshed UseDirect metadata",
+            provider=self.provider.name,
+            parks=len(places_by_id),
+            facilities=len(facilities),
+        )
+
+    @classmethod
+    def _metadata_state(cls, place: Place) -> str:
+        """Normalize state codes, using the deployment fallback for missing names."""
+        state = (place.State or "").strip().upper()
+        return state if len(state) == _STATE_CODE_LENGTH else cls.state_code
+
+    @classmethod
+    def get_rec_area_url(cls, rec_area_id: str) -> str:
+        """Open a park when hash routes are supported; otherwise open search."""
+        if not cls.booking_path_params:
+            return cls.booking_url
+        return f"{cls.booking_url}/#!park/{rec_area_id}"
+
+    @classmethod
+    def get_campground_url(
+        cls, campground_id: str, *, rec_area_id: str | None = None
+    ) -> str:
+        """Open a facility with park context when supported by the booking app."""
+        if rec_area_id is None or not cls.booking_path_params:
+            return cls.booking_url
+        return f"{cls.booking_url}/#!park/{rec_area_id}/{campground_id}"
