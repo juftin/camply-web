@@ -2,10 +2,10 @@
 
 ## Project Overview
 
-**`camply`**, the campsite finder ⛺️, is a tool to help you book a campsite online. It is transitioning from a legacy v1 CLI tool into **camply v2**: a modern, full-stack, community-facing web application and redesigned CLI.
+**`camply`**, the campsite finder ⛺️, is a tool to help you book a campsite online. This repository (`github.com/juftin/camply-web`) is where **camply v2** is being developed—evolving camply from its original CLI tool into a full-stack web application alongside a redesigned CLI.
 
-- **Repository & v2 Cutover**: Active development happens in `github.com/juftin/camply-web`, with the goal of moving the codebase back to `github.com/juftin/camply` as **camply v2**. The final step once we have a stable release will be renaming `camply-web` everywhere to `camply`—until then, keep `camply-web` in package names, install commands, and repository links.
-- **Breaking Changes Welcome**: Because this is a major v2 release, do not preserve legacy v1 behavior or CLI flags out of habit. We have the opportunity to drop unmaintained features, improve CLI options and ergonomics, and make breaking changes wherever they result in a cleaner, better product.
+- **Moving back to `juftin/camply`**: Once v2 is ready for a stable release, this codebase will move back to `github.com/juftin/camply`, and renaming `camply-web` to `camply` everywhere will be the final step. Until then, keep `camply-web` in package names, install commands, and repository links.
+- **Design for v2, not v1**: Because v2 is a major release, favor a cleaner design over backwards compatibility. Do not preserve legacy v1 behavior, flags, or unmaintained features out of habit—simplify, reshape, or drop them when it makes camply better.
 
 ## 📚 Key Documentation & Pointers
 
