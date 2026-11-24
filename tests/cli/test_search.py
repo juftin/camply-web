@@ -158,6 +158,7 @@ def _install_availability(monkeypatch: pytest.MonkeyPatch, record: Transcript) -
         ["providers", "--help"],
         ["recreation-areas", "--help"],
         ["campgrounds", "--help"],
+        ["list-campsites", "--help"],
         ["campsites", "--help"],
     ],
 )
@@ -435,7 +436,6 @@ def test_invalid_inputs_fail_before_provider_io(
 @pytest.mark.parametrize(
     "args",
     [
-        ["list-campsites"],
         ["configure"],
         ["test-notifications"],
         ["tui"],
@@ -996,12 +996,29 @@ def test_discovery_limit_option_and_truncation_probe(transcript: Transcript) -> 
 def test_interval_minutes_validation_and_conversion(
     transcript: Transcript, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Verify --interval requires an integer >= 5 minutes and converts to seconds."""
+    """Verify --interval requires an integer >= 5 minutes, rejects --once, and converts to seconds."""
     for bad in ("4", "0", "-5", "5.5"):
         bad_int = CliRunner().invoke(
             cli, ["campsites", "--campground", "001", *_DATES, "--interval", bad]
         )
         assert bad_int.exit_code == 2
+        assert transcript.constructed == []
+
+    for once_flag in ("--once", "--search-once"):
+        conflict = CliRunner().invoke(
+            cli,
+            [
+                "campsites",
+                "--campground",
+                "001",
+                *_DATES,
+                "--interval",
+                "7",
+                once_flag,
+            ],
+        )
+        assert conflict.exit_code == 2
+        assert "--interval" in conflict.stderr
         assert transcript.constructed == []
 
     seen_intervals: list[float | None] = []
@@ -1021,11 +1038,149 @@ def test_interval_minutes_validation_and_conversion(
             *_DATES,
             "--interval",
             "7",
-            "--search-once",
+            "--stop-on-match",
         ],
     )
     assert int_res.exit_code == 0, int_res.output
     assert seen_intervals == [420.0]
+
+
+def test_once_alias_and_stop_on_match_lifecycle(
+    transcript: Transcript, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify --once alias, --stop-on-match exit on first match, and mode conflict errors."""
+    import json
+
+    # Contradictory mode flags fail before provider IO
+    for once_flag in ("--once", "--search-once"):
+        conflict = CliRunner().invoke(
+            cli,
+            ["campsites", "--campground", "001", *_DATES, once_flag, "--stop-on-match"],
+        )
+        assert conflict.exit_code == 2
+        assert "--stop-on-match" in conflict.stderr
+        assert transcript.constructed == []
+
+    # --once works identically to --search-once, including with --json
+    once_json = CliRunner().invoke(
+        cli, ["campsites", "--campground", "001", *_DATES, "--once", "--json"]
+    )
+    assert once_json.exit_code == 0, once_json.output
+    assert len(json.loads(once_json.stdout)) == 4
+    assert len(transcript.checks) == 1
+
+    # --stop-on-match polls past empty cycles and exits 0 once a stay matches
+    transcript.checks.clear()
+    responses = [
+        [],
+        [
+            CampsiteDTO(
+                campsite_id="site-01",
+                campsite_name="Site One",
+                campsite_type=CampsiteType.TENT,
+                capacity=4,
+                available_dates=[date(2027, 7, 9), date(2027, 7, 10)],
+                is_electric=False,
+                is_accessible=False,
+            )
+        ],
+        [],
+    ]
+    call_idx = 0
+
+    async def delayed_match(
+        _: BaseProvider, identifier: str, start: date, end: date
+    ) -> list[CampsiteDTO]:
+        nonlocal call_idx
+        transcript.checks.append((identifier, start, end))
+        data = responses[call_idx]
+        call_idx += 1
+        return data
+
+    monkeypatch.setattr(PROVIDERS[1], "find_availabilities", delayed_match)
+    stop_res = CliRunner().invoke(
+        cli, ["campsites", "--campground", "001", *_DATES, "--stop-on-match"]
+    )
+    assert stop_res.exit_code == 0, stop_res.output
+    assert len(transcript.checks) == 2
+    assert "No matching campsite stays" in stop_res.stdout
+    assert "2 Reservable Campsites Matching Search Preferences" in stop_res.stdout
+
+
+def test_continuous_watch_retries_transient_error_and_stops_on_date_expiry(
+    transcript: Transcript, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Continuous watches survive transient errors and stop cleanly once all dates pass."""
+    # 1. Transient failure on cycle 1 recovers on cycle 2 and exits via --stop-on-match
+    attempts = 0
+
+    async def flaky_then_open(
+        _: BaseProvider, identifier: str, start: date, end: date
+    ) -> list[CampsiteDTO]:
+        nonlocal attempts
+        attempts += 1
+        transcript.checks.append((identifier, start, end))
+        if attempts == 1:
+            raise RuntimeError("transient-secret-url")
+        return [
+            CampsiteDTO(
+                campsite_id="site-01",
+                campsite_name="Site One",
+                campsite_type=CampsiteType.TENT,
+                capacity=4,
+                available_dates=[date(2027, 7, 9)],
+                is_electric=False,
+                is_accessible=False,
+            )
+        ]
+
+    monkeypatch.setattr(PROVIDERS[1], "find_availabilities", flaky_then_open)
+    recovered = CliRunner().invoke(
+        cli, ["campsites", "--campground", "001", *_DATES, "--stop-on-match"]
+    )
+    assert recovered.exit_code == 0, recovered.output
+    assert attempts == 2
+    assert "Provider request failed (RuntimeError); retrying" in recovered.stderr
+    assert "transient-secret-url" not in recovered.output + recovered.stderr
+    assert "1 Reservable Campsites Matching Search Preferences" in recovered.stdout
+
+    # 2. Single-pass --once still fails non-zero on provider error
+    transcript.checks.clear()
+    attempts = 0
+    once_fail = CliRunner().invoke(
+        cli, ["campsites", "--campground", "001", *_DATES, "--once"]
+    )
+    assert once_fail.exit_code == 1
+    assert attempts == 1
+
+    # 3. Continuous watch stops cleanly with exit 0 once clock rolls past all eligible dates
+    clock_days = iter(
+        [
+            date(2027, 7, 1),  # normalize_request
+            date(2027, 7, 1),  # initial has_remaining_stays
+            date(2027, 7, 1),  # check_availability window start
+            date(2027, 7, 1),  # check_availability _stays
+            date(2027, 7, 1),  # check_availability delivery
+            date(2027, 7, 15),  # post-cycle has_remaining_stays -> expired!
+        ]
+    )
+
+    def advancing_today() -> date:
+        return next(clock_days, date(2027, 7, 15))
+
+    async def empty_check(
+        _: BaseProvider, identifier: str, start: date, end: date
+    ) -> list[CampsiteDTO]:
+        transcript.checks.append((identifier, start, end))
+        return []
+
+    transcript.checks.clear()
+    monkeypatch.setattr(core, "utc_today", advancing_today)
+    monkeypatch.setattr(PROVIDERS[1], "find_availabilities", empty_check)
+    expired = CliRunner().invoke(cli, ["campsites", "--campground", "001", *_DATES])
+    assert expired.exit_code == 0, expired.output
+    assert len(transcript.checks) == 1
+    assert "All requested booking dates have passed; stopping watch." in expired.stdout
 
 
 def test_search_once_and_json_output(transcript: Transcript) -> None:

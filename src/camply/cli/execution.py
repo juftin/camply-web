@@ -67,6 +67,8 @@ def run(operation: Callable[[], Awaitable[_T]]) -> _T:
     except (KeyboardInterrupt, asyncio.CancelledError) as exc:
         logger.debug("Handling Exit Request")
         raise click.Abort() from exc
+    except click.ClickException:
+        raise
     except ValidationError as exc:
         raise click.ClickException(
             "Provider returned invalid data (ValidationError); try again later."

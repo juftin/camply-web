@@ -225,6 +225,50 @@ class GoingToCampProvider(BaseProvider, ABC):
         ]
         return eligible_resources, relevant_booking
 
+    async def list_campsites(self, park_id: str) -> list[CampsiteDTO]:
+        """List eligible overnight resources for a resource location without date queries."""
+        try:
+            resource_location_id = int(park_id)
+        except ValueError as exc:
+            raise ValueError(
+                f"{self.provider.name} rejected the catalog lookup: invalid campground {park_id}"
+            ) from exc
+
+        filters = await self._ensure_filters()
+        location = filters.resource_locations.get(resource_location_id)
+        if location is None:
+            raise ValueError(
+                f"{self.provider.name} rejected the catalog lookup: unknown campground {park_id}"
+            )
+        if location.rootMapId is None:
+            return []
+        eligible_resources, relevant_booking = await self._load_facility_plan(
+            resource_location_id, filters
+        )
+        if not eligible_resources or not relevant_booking:
+            return []
+        return [
+            dto
+            for resource in eligible_resources.values()
+            if (
+                dto := resource.to_dto(
+                    filters=filters,
+                    available_dates=set(),
+                    booking_category_names=sorted(
+                        {
+                            bc.display_name
+                            for bc in relevant_booking
+                            if resource.resourceCategoryId
+                            in bc.allowedResourceCategoryIds
+                            and bc.display_name
+                        }
+                    ),
+                    allow_empty_dates=True,
+                )
+            )
+            is not None
+        ]
+
     async def find_availabilities(
         self, park_id: str, start_date: date, end_date: date
     ) -> list[CampsiteDTO]:

@@ -38,7 +38,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] Separate CLI commands/groups into dedicated modules, centralize reusable options and share discovery/output/execution helpers while preserving lazy imports and command behavior.
 - [x] Add `camply` v1-style Rich CLI logging (`CAMPLY` log level, welcome/exit banners, debug diagnostics, `CAMPLY_LOG_HANDLER=python` fallback, and stdout/stderr stream separation), log provider/discovery/availability results in classic `camply` emoji hierarchy (`⛰`, `🏕`, `📅`, `🔗`) without truncation, and verify CLI terminal screenshots in Chromium and `pytest`.
 - [x] Stabilize snapshot capture by waiting for visible image/font readiness, cover delayed lazy-image loading without network-idle waits, and refresh the complete desktop light profile baseline from macOS CI.
-- [ ] Brainstorm CLI lifecycle and `--continuous` / `--search-forever` / `--search-once`; intended default is search forever. Deferred TODO implementation is outside the initial release gate.
+- [x] Finalize CLI parity and modern ergonomics: add `camply list-campsites` and provider site-catalog APIs across all 26 providers (`D01`), refine watch lifecycle (`--once` / `--search-once`, `--stop-on-match`, transient-error retry resilience, and automatic date-expiry stop; drop legacy `--continuous` / `--search-forever`, `D11`), replace `--notify-first-try` with `--max-notifications` and overflow summary alerts (`D12`), add zero-dependency `webhook`, `discord`, `slack`, and `telegram` CLI notification channels (with YAML schema support), and explicitly drop legacy `tui` (`D08`), `rich-click` (`D09`), and `configure`/`.camply` (`D10`).
 
 ## Destination enrichment research (027)
 

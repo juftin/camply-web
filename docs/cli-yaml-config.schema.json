@@ -102,17 +102,34 @@
           "title": "Interval",
           "type": "integer"
         },
+        "stop_on_match": {
+          "default": false,
+          "title": "Stop On Match",
+          "type": "boolean"
+        },
         "notifications": {
           "items": {
             "examples": [
               "pushover",
-              "ntfy"
+              "ntfy",
+              "webhook",
+              "discord",
+              "slack",
+              "telegram"
             ],
-            "pattern": "^\\s*(?:[pP][uU][sS][hH][oO][vV][eE][rR]|[nN][tT][fF][yY])\\s*$",
+            "pattern": "^\\s*(?:[pP][uU][sS][hH][oO][vV][eE][rR]|[nN][tT][fF][yY]|[wW][eE][bB][hH][oO][oO][kK]|[dD][iI][sS][cC][oO][rR][dD]|[sS][lL][aA][cC][kK]|[tT][eE][lL][eE][gG][rR][aA][mM])\\s*$",
             "type": "string"
           },
           "title": "Notifications",
           "type": "array"
+        },
+        "max_notifications": {
+          "default": 5,
+          "description": "Maximum notifications per channel per check cycle before collapsing overflow into a summary.",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Max Notifications",
+          "type": "integer"
         }
       },
       "title": "SearchDefaults",
@@ -210,17 +227,34 @@
           "title": "Interval",
           "type": "integer"
         },
+        "stop_on_match": {
+          "default": false,
+          "title": "Stop On Match",
+          "type": "boolean"
+        },
         "notifications": {
           "items": {
             "examples": [
               "pushover",
-              "ntfy"
+              "ntfy",
+              "webhook",
+              "discord",
+              "slack",
+              "telegram"
             ],
-            "pattern": "^\\s*(?:[pP][uU][sS][hH][oO][vV][eE][rR]|[nN][tT][fF][yY])\\s*$",
+            "pattern": "^\\s*(?:[pP][uU][sS][hH][oO][vV][eE][rR]|[nN][tT][fF][yY]|[wW][eE][bB][hH][oO][oO][kK]|[dD][iI][sS][cC][oO][rR][dD]|[sS][lL][aA][cC][kK]|[tT][eE][lL][eE][gG][rR][aA][mM])\\s*$",
             "type": "string"
           },
           "title": "Notifications",
           "type": "array"
+        },
+        "max_notifications": {
+          "default": 5,
+          "description": "Maximum notifications per channel per check cycle before collapsing overflow into a summary.",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Max Notifications",
+          "type": "integer"
         },
         "name": {
           "description": "Unique within the file.",

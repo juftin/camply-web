@@ -24,6 +24,8 @@ from yaml.nodes import MappingNode, ScalarNode
 
 from camply.cli.discovery import normalize_ids
 from camply.cli.notifications import (
+    DEFAULT_MAX_NOTIFICATIONS,
+    MAX_NOTIFICATIONS_LIMIT,
     ChannelName,
     CLINotificationConfig,
     resolve_notification_config,
@@ -166,7 +168,14 @@ class SearchDefaults(_WeekdayFilters):
         default=None, json_schema_extra=_omit_schema_default
     )
     interval: int = Field(default=10, ge=5)
+    stop_on_match: bool = False
     notifications: list[Channel] = Field(default_factory=list)
+    max_notifications: int = Field(
+        default=DEFAULT_MAX_NOTIFICATIONS,
+        ge=1,
+        le=MAX_NOTIFICATIONS_LIMIT,
+        description="Maximum notifications per channel per check cycle before collapsing overflow into a summary.",
+    )
 
     @field_validator("rv_length")
     @classmethod
@@ -255,7 +264,8 @@ _HINTS = {
     "dates": "provide at least one date window",
     "start_date": "use a valid calendar date in YYYY-MM-DD form",
     "end_date": "use a valid calendar date in YYYY-MM-DD form",
-    "notifications": "choose pushover or ntfy",
+    "notifications": "choose pushover, ntfy, webhook, discord, slack, or telegram",
+    "max_notifications": "use a whole number from 1 to 100",
     "campsite_types": "choose TENT, RV, CABIN, or OTHER",
 }
 
@@ -336,6 +346,8 @@ class PreparedSearch:
     interval_seconds: int
     notifications: CLINotificationConfig
     state_file: Path | None
+    max_notifications: int = DEFAULT_MAX_NOTIFICATIONS
+    stop_on_match: bool = False
 
     @property
     def label(self) -> str:
@@ -409,6 +421,8 @@ def _prepare_search(
         search.interval * 60,
         notifications,
         state_file,
+        max_notifications=search.max_notifications,
+        stop_on_match=search.stop_on_match,
     )
 
 

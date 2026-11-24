@@ -98,3 +98,104 @@ async def test_target_resolution_retries_after_its_own_interval(tmp_path, monkey
     assert resolve.await_count == 2
     check.assert_awaited_once()
     provider_client.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_batch_stop_on_match_exits_cleanly_after_match(tmp_path, monkeypatch):
+    from datetime import date
+
+    from camply.core.search import AvailabilityStay
+    from camply.providers.dto import CampgroundSearchResult
+
+    path = tmp_path / "trips.yaml"
+    path.write_text(
+        json.dumps(
+            {
+                "version": 2,
+                "defaults": {"stop_on_match": True, "max_notifications": 2},
+                "searches": [SEARCH],
+            }
+        )
+    )
+    searches = prepare_searches(path)
+    assert searches[0].stop_on_match is True
+    assert searches[0].max_notifications == 2
+
+    provider_client = AsyncMock()
+    monkeypatch.setattr(
+        searches[0].provider_class,
+        "__init__",
+        lambda self: setattr(self, "async_client", provider_client),
+    )
+    target = CampgroundSearchResult(
+        provider_id=1,
+        provider_name="Recreation.gov",
+        campground_id="001",
+        campground_name="Pine Camp",
+        booking_url="https://example.invalid/001",
+    )
+    stay = AvailabilityStay(
+        campground=target,
+        campsite_id="10",
+        campsite_name="Site 10",
+        arrival=date(2030, 6, 1),
+        checkout=date(2030, 6, 2),
+        booking_url="https://example.invalid/site/10",
+    )
+    monkeypatch.setattr(
+        "camply.cli.campsite_batch.resolve_targets", AsyncMock(return_value=[target])
+    )
+    check = AsyncMock(side_effect=[[], [stay]])
+    monkeypatch.setattr("camply.cli.campsite_batch.check_availability", check)
+    sleep = AsyncMock()
+    monkeypatch.setattr("camply.cli.campsite_batch.asyncio.sleep", sleep)
+
+    outcomes = await execute_batch(searches, once=False, json_output=False)
+    assert outcomes == [
+        {
+            "name": "trip",
+            "provider": "RecreationDotGov",
+            "status": "ok",
+            "stays": [],
+        }
+    ]
+    assert check.await_count == 2
+    sleep.assert_awaited_once()
+    provider_client.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_batch_date_expiry_exits_ok_even_after_transient_error(
+    tmp_path, monkeypatch
+):
+    from datetime import date
+
+    from camply.core import search as core
+
+    path = tmp_path / "trips.yaml"
+    path.write_text(json.dumps({"version": 2, "searches": [SEARCH]}))
+    searches = prepare_searches(path)
+
+    provider_client = AsyncMock()
+    monkeypatch.setattr(
+        searches[0].provider_class,
+        "__init__",
+        lambda self: setattr(self, "async_client", provider_client),
+    )
+    monkeypatch.setattr(
+        "camply.cli.campsite_batch.resolve_targets",
+        AsyncMock(side_effect=RuntimeError("transient error")),
+    )
+    days = iter([date(2030, 6, 1), date(2030, 6, 10)])
+    monkeypatch.setattr(core, "utc_today", lambda: next(days, date(2030, 6, 10)))
+
+    outcomes = await execute_batch(searches, once=False, json_output=False)
+    assert outcomes == [
+        {
+            "name": "trip",
+            "provider": "RecreationDotGov",
+            "status": "ok",
+            "stays": [],
+        }
+    ]
+    provider_client.aclose.assert_awaited_once()

@@ -27,20 +27,18 @@ Original broader implementation tasks T010–T012 and T013–T019 are superseded
 
 ## Deferred TODO registry
 
-All entries below are TODOs; do not implement yet.
+Status of the D01–D13 legacy inventory items across specs 031, 032, and the modern CLI completion:
 
-- [ ] D01 TODO: `list-campsites` and supporting site catalogs.
-- [ ] D02 TODO: Search by campsite ID and site-to-parent resolution.
-- [ ] D03 TODO: All external CLI notifications including Pushover, activation/recipient credentials, full provider parity, adapters and test-notifications. Initial CLI is console-only.
-- [ ] D04 TODO: Full campground parity, missing providers/catalogs and broader GoingToCamp deployment mappings.
-- [ ] D05 TODO: YAML files, aliases, schema/defaults, environment expansion and precedence.
-- [ ] D06 TODO: Permits and non-camping inventory, including legacy ticket/tour/timed-entry variants.
-- [ ] D07 TODO: Equipment filtering and equipment lookup/category/length capabilities.
-- [ ] D08 TODO: TUI.
-- [ ] D09 TODO: Rich-click.
-- [ ] D10 TODO: Configure command and legacy `.camply` import/write behavior.
-- [ ] D11 TODO: Brainstorm `--continuous` / `--search-forever` / `--search-once`; intended default is search forever. Flags, cron, stopping behavior, pacing and notification suppression remain open.
-- [ ] D12 TODO: `--notify-first-try` and legacy notification caps.
-- [ ] D13 TODO: `--offline-search`, `--offline-search-path`, persistent JSON history/import and cross-process duplicate suppression.
-
-Bring each TODO into scope explicitly before creating detailed implementation tasks or acceptance gates for it.
+- [x] D01 Implemented: `camply list-campsites` and provider site-catalog APIs across all 26 providers (Recreation.gov, UseDirect, GoingToCamp, ReserveAmerica) with `--search`, site-attribute filters, `--limit`, and `--json`.
+- [x] D02 Implemented (spec 031): `--campsite` ID/name filtering within selected `--campground` / `--rec-area` targets.
+- [x] D03 Implemented (spec 031 + modern channels): `pushover`, `ntfy`, `webhook`, `discord`, `slack`, and `telegram` channels with `camply test-notifications`, env-var credentials, and secret redaction. Legacy `email`, `twilio`, `pushbullet`, `apprise`, and `silent` channels intentionally dropped.
+- [x] D04 Completed for verified live providers: all 26 current providers (Recreation.gov, 10 UseDirect, 14 GoingToCamp, ReserveAmerica); retired/migrated legacy providers (Yellowstone/Xanterra, Alabama, Maricopa) closed out.
+- [x] D05 Implemented (spec 032): `version: 2` multi-search/multi-provider `--yaml-config` with strict validation, shared defaults, JSON Schema, and per-search overrides.
+- [ ] D06 TODO (roadmap): Permits and non-camping inventory (tracked separately in `docs/PLAN.md`).
+- [x] D07 Implemented (spec 031): `--campsite-type`, `--electric`, `--accessible`, `--rv-length` and provider capability validation.
+- [x] D08 Dropped (intentional): Legacy Trogon TUI dropped; `camply serve` provides the full interactive web UI.
+- [x] D09 Dropped (intentional): `rich-click` dropped; plain Click + `CamplyRichHandler` avoids extra dependency bloat.
+- [x] D10 Dropped (intentional): `configure` wizard and implicit `~/.camply` dotenv file dropped to keep the CLI stateless with explicit env vars and `camply.yaml`.
+- [x] D11 Implemented (redesigned): Continuous watch is the default with transient-error retries and automatic date-expiry stop; `--once` (alias `--search-once`) for single-pass checks, `--stop-on-match` to stop on first match, and `--interval` (>= 5 min). Legacy `--continuous` and `--search-forever` intentionally dropped.
+- [x] D12 Implemented (redesigned): Replaced `--notify-first-try` and hidden 5/20 caps with explicit `--max-notifications` (1–100, default 5; also in YAML) and automatic overflow summary alerts.
+- [x] D13 Implemented (spec 031/032): Stateless in-memory deduplication plus explicit JSON `--state-file` / YAML `state_file` persistence; legacy pickle state dropped.

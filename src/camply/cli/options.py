@@ -146,10 +146,30 @@ def notifications(*, required: bool = False) -> Callable[[_F], _F]:
     """Select external notification channels for availability or test delivery."""
     return click.option(
         "--notifications",
-        type=click.Choice(["pushover", "ntfy"], case_sensitive=False),
+        type=click.Choice(
+            ["pushover", "ntfy", "webhook", "discord", "slack", "telegram"],
+            case_sensitive=False,
+        ),
         multiple=True,
         required=required,
-        help="External notification channel (pushover, ntfy); repeat to combine.",
+        help=(
+            "External notification channel (pushover, ntfy, webhook, discord, slack, telegram); "
+            "repeat to combine."
+        ),
+    )
+
+
+def max_notifications() -> Callable[[_F], _F]:
+    """Cap notifications sent per channel per check cycle, summarizing overflow."""
+    return click.option(
+        "--max-notifications",
+        type=click.IntRange(min=1, max=100),
+        default=5,
+        show_default=True,
+        help=(
+            "Maximum notifications per channel per check cycle (1-100); "
+            "excess stays are collapsed into a summary alert."
+        ),
     )
 
 
@@ -166,10 +186,22 @@ def state_file() -> Callable[[_F], _F]:
 def search_once() -> Callable[[_F], _F]:
     """Run a single availability check cycle and exit."""
     return click.option(
+        "--once",
         "--search-once",
+        "search_once",
         is_flag=True,
         default=False,
         help="Check availability once and exit.",
+    )
+
+
+def stop_on_match() -> Callable[[_F], _F]:
+    """Stop continuous polling as soon as a check finds qualifying stays."""
+    return click.option(
+        "--stop-on-match",
+        is_flag=True,
+        default=False,
+        help="Exit after the first check cycle that finds matching stays.",
     )
 
 

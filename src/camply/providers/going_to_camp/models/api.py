@@ -415,9 +415,12 @@ class Resource(BaseModel):
         filters: CatalogFilters,
         available_dates: set[date],
         booking_category_names: list[str] | None = None,
+        allow_empty_dates: bool = False,
     ) -> CampsiteDTO | None:
-        """Convert an eligible resource with available nights into ``CampsiteDTO``."""
-        if not self.is_eligible(filters) or not available_dates:
+        """Convert an eligible resource into ``CampsiteDTO``."""
+        if not self.is_eligible(filters) or (
+            not allow_empty_dates and not available_dates
+        ):
             return None
         assert self.resourceId is not None
         assert self.resourceCategoryId is not None
