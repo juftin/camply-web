@@ -34,6 +34,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from camply.db.models import AccessRequest, User, UserSession
 from camply.db.models.access_request import AccessRequestStatus
+from camply.server.api_protection import enforce_account_quota
 from camply.server.config import AuthMode, backend_config
 from camply.server.dependencies import SessionDep
 from camply.server.metrics import USERS_CREATED_TOTAL
@@ -855,6 +856,7 @@ async def resolve_current_user(
             session_id = db_session.id
         else:
             user = await _get_or_create_admin_user(session)
+        await enforce_account_quota(request, user.id, is_admin=user.is_admin)
         return CurrentUser(
             id=user.id,
             email=user.email,
@@ -875,6 +877,7 @@ async def resolve_current_user(
 
     # --- Auth0 mode ---
     auth0_user = await _resolve_auth0_user(credentials=credentials, session=session)
+    await enforce_account_quota(request, auth0_user.id, is_admin=auth0_user.is_admin)
     return CurrentUser(
         id=auth0_user.id,
         email=auth0_user.email,

@@ -375,13 +375,13 @@ def test_multi_session_listing_and_individual_revocation(
     password = "SyntheticPassword123!"
     _create_user_with_password(email, password)
 
-    client_a = TestClient(app)
-    client_b = TestClient(app)
+    client_a = TestClient(app, client=("203.0.113.10", 50000))
+    client_b = TestClient(app, client=("198.51.100.42", 50000))
 
     long_ua = "BrowserA/" + ("x" * 600)
     resp_a = client_a.post(
         "/api/login",
-        headers={"User-Agent": long_ua, "X-Forwarded-For": "203.0.113.10, 10.0.0.1"},
+        headers={"User-Agent": long_ua, "X-Forwarded-For": "192.0.2.1"},
         json={"username": email, "password": password},
     )
     assert resp_a.status_code == 200
@@ -389,7 +389,7 @@ def test_multi_session_listing_and_individual_revocation(
 
     resp_b = client_b.post(
         "/api/login",
-        headers={"User-Agent": "BrowserB/2.0", "X-Forwarded-For": "198.51.100.42"},
+        headers={"User-Agent": "BrowserB/2.0", "X-Forwarded-For": "192.0.2.2"},
         json={"username": email, "password": password},
     )
     assert resp_b.status_code == 200

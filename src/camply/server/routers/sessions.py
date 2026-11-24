@@ -37,19 +37,6 @@ session_router = APIRouter(tags=["auth"])
 
 _SESSION_PRUNE_GRACE_DAYS: int = 7
 _MAX_USER_AGENT_LENGTH: int = 512
-_MAX_IP_ADDRESS_LENGTH: int = 64
-
-
-def _extract_client_ip(request: Request) -> str | None:
-    """Derive client IP from the first X-Forwarded-For hop or request peer."""
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        first_hop = forwarded_for.split(",", 1)[0].strip()
-        if first_hop:
-            return first_hop[:_MAX_IP_ADDRESS_LENGTH]
-    if request.client and request.client.host:
-        return request.client.host[:_MAX_IP_ADDRESS_LENGTH]
-    return None
 
 
 async def _create_user_session(
@@ -69,7 +56,7 @@ async def _create_user_session(
     db_session = UserSession(
         user_id=user.id,
         user_agent=user_agent,
-        ip_address=_extract_client_ip(request),
+        ip_address=request.state.camply_client_ip,
         created_at=now,
         expires_at=now + datetime.timedelta(seconds=backend_config.session_max_age),
     )

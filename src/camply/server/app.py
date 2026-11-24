@@ -3,7 +3,7 @@ camply-backend FastAPI Application
 """
 
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 
 import structlog
 
@@ -20,7 +20,13 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import Response
 
 from camply.server.__about__ import __application__, __version__
+from camply.server.api_protection import (
+    PROXY_CLIENT_IP_HEADER,
+    PROXY_SECRET_HEADER,
+    ApiProtectionMiddleware,
+)
 from camply.server.config import RuntimeMode, backend_config
+from camply.server.rate_limits import MemoryRateLimits, ValkeyRateLimits
 from camply.server.routers.access import access_router
 from camply.server.routers.admin import admin_router
 from camply.server.routers.auth_config import auth_config_router
@@ -49,6 +55,7 @@ if backend_config.sentry_dsn:
         ) from exc
     from sentry_sdk.integrations.fastapi import FastApiIntegration
     from sentry_sdk.integrations.starlette import StarletteIntegration
+    from sentry_sdk.scrubber import DEFAULT_DENYLIST, EventScrubber
 
     sentry_sdk.init(
         dsn=backend_config.sentry_dsn,
@@ -58,6 +65,9 @@ if backend_config.sentry_dsn:
             FastApiIntegration(),
         ],
         environment=backend_config.environment,
+        event_scrubber=EventScrubber(
+            denylist=[*DEFAULT_DENYLIST, PROXY_SECRET_HEADER, PROXY_CLIENT_IP_HEADER]
+        ),
     )
     logger.info("Sentry initialized for FastAPI backend")
 
@@ -69,30 +79,32 @@ if backend_config.sentry_dsn:
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     """Own standalone resources and supervised tasks only while the app is serving."""
-    if backend_config.runtime_mode != RuntimeMode.STANDALONE:
-        yield
-        return
-    from camply.db.config import db
-    from camply.server.services import local_operations
-    from camply.server.standalone import validate_standalone
-    from camply.worker.runtime import LocalRunner
+    async with AsyncExitStack() as resources:
+        resources.push_async_callback(application.state.api_rate_limits.close)
+        if backend_config.runtime_mode != RuntimeMode.STANDALONE:
+            yield
+            return
+        from camply.db.config import db
+        from camply.server.services import local_operations
+        from camply.server.standalone import validate_standalone
+        from camply.worker.runtime import LocalRunner
 
-    validate_standalone(backend_config, db)
-    db.open()
-    local = LocalRunner(
-        db,
-        heartbeat=backend_config.heartbeat_interval,
-        cooldown=backend_config.target_cooldown,
-        invite_only=backend_config.invite_only,
-    )
-    local_operations.runner = local
-    try:
-        await local.start()
-        yield
-    finally:
-        await local.close()
-        local_operations.runner = None
-        await db.close()
+        validate_standalone(backend_config, db)
+        db.open()
+        local = LocalRunner(
+            db,
+            heartbeat=backend_config.heartbeat_interval,
+            cooldown=backend_config.target_cooldown,
+            invite_only=backend_config.invite_only,
+        )
+        local_operations.runner = local
+        try:
+            await local.start()
+            yield
+        finally:
+            await local.close()
+            local_operations.runner = None
+            await db.close()
 
 
 app = FastAPI(
@@ -102,6 +114,11 @@ app = FastAPI(
     docs_url="/api/docs",
     openapi_url="/api/openapi.json",
     redoc_url=None,
+)
+app.state.api_rate_limits = (
+    ValkeyRateLimits(backend_config.valkey_url)
+    if backend_config.rate_limit_storage == "valkey"
+    else MemoryRateLimits()
 )
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -113,6 +130,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(ApiProtectionMiddleware, config=backend_config)
 
 if backend_config.runtime_mode == RuntimeMode.DISTRIBUTED:
     from camply.server.metrics import (

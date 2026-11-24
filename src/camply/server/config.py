@@ -4,10 +4,13 @@ Backend Application Configuration via pydantic-settings.
 
 from enum import Enum
 from pathlib import Path
-from typing import ClassVar, Optional
+from typing import ClassVar, Literal, Optional
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+RateLimitStorage = Literal["memory", "valkey"]
+MIN_API_PROXY_SECRET_LENGTH = 32
 
 
 class AuthMode(str, Enum):
@@ -34,6 +37,7 @@ class BackendConfig(BaseSettings):
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_prefix="CAMPLY_",
         case_sensitive=False,
+        hide_input_in_errors=True,
     )
 
     # Deployment environment
@@ -43,6 +47,11 @@ class BackendConfig(BaseSettings):
     """Execution mode, independent of authentication and environment."""
     frontend_dir: Optional[Path] = None
     """Built asset override; otherwise use assets bundled with the backend."""
+
+    # API protection
+    api_proxy_required: bool = False
+    api_proxy_secret: str | None = Field(default=None, repr=False)
+    api_rate_limit_storage: RateLimitStorage | None = None
 
     # Authentication
     auth_mode: AuthMode = AuthMode.NONE
@@ -109,6 +118,42 @@ class BackendConfig(BaseSettings):
     def signup_enabled(self) -> bool:
         """Offer account registration only when Auth0 handles login."""
         return self.auth_mode == AuthMode.AUTH0
+
+    @property
+    def rate_limit_storage(self) -> RateLimitStorage:
+        """Use Valkey for a protected distributed backend and memory for direct use."""
+        if self.api_rate_limit_storage is not None:
+            return self.api_rate_limit_storage
+        if self.api_proxy_required and self.runtime_mode == RuntimeMode.DISTRIBUTED:
+            return "valkey"
+        return "memory"
+
+    @field_validator("api_rate_limit_storage", mode="before")
+    @classmethod
+    def empty_rate_limit_storage(cls, value: object) -> object:
+        """Treat an empty deployment override as automatic selection."""
+        return None if value == "" else value
+
+    @model_validator(mode="after")
+    def validate_api_protection(self) -> "BackendConfig":
+        """Reject unsafe hosted configuration before serving requests."""
+        if self.api_proxy_required:
+            secret = self.api_proxy_secret or ""
+            if len(secret) < MIN_API_PROXY_SECRET_LENGTH or not all(
+                "!" <= char <= "~" for char in secret
+            ):
+                raise ValueError(
+                    "CAMPLY_API_PROXY_SECRET must have at least 32 visible ASCII characters"
+                )
+            if self.runtime_mode == RuntimeMode.DISTRIBUTED and (
+                self.rate_limit_storage != "valkey"
+            ):
+                raise ValueError("Protected distributed API protection requires Valkey")
+            if self.auto_login:
+                raise ValueError(
+                    "Protected API deployments require CAMPLY_AUTH_MODE=session or auth0"
+                )
+        return self
 
     @model_validator(mode="after")
     def validate_auth_config(self) -> "BackendConfig":

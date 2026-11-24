@@ -2,6 +2,8 @@
 Tests for the ``/api/search`` endpoint.
 """
 
+from unittest.mock import AsyncMock, patch
+
 from fastapi.testclient import TestClient
 
 
@@ -97,6 +99,28 @@ class TestSearchExplore:
 
 class TestSearchBounds:
     """Bound live-search requests without changing successful response shapes."""
+
+    def test_explore_caps_offset_and_available_pages(
+        self, test_client: TestClient
+    ) -> None:
+        """Bound deep offsets and advertise only pages the client can request."""
+        with patch(
+            "camply.server.routers.search.Search.search",
+            new=AsyncMock(return_value=([], 80_000, {})),
+        ) as search:
+            accepted = test_client.get(
+                "/api/search/explore", params={"page": 2501, "page_size": 20}
+            )
+            rejected = test_client.get(
+                "/api/search/explore", params={"page": 502, "page_size": 100}
+            )
+
+        assert accepted.status_code == 200
+        assert accepted.json()["total"] == 80_000
+        assert accepted.json()["total_pages"] == 2501
+        assert rejected.status_code == 422
+        search.assert_awaited_once()
+        assert search.await_args.kwargs["offset"] == 50_000
 
     def test_search_limit_bounds(self, test_client: TestClient) -> None:
         """Reject limits that exceed the supported autocomplete range."""

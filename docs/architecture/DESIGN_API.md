@@ -26,6 +26,14 @@ When `CAMPLY_INVITE_ONLY=true`, `/api/scans` routes require `is_invited=true`. U
 | `/api/admin/*`                                                          | Admin                   | User/scan management, access-request review, audit logs, Celery/standalone operations, and Prometheus trends                                                                                                        |
 | `/api/ping`, `/api/health`                                              | Public                  | Liveness (`/api/ping`) and DB + runtime readiness (`/api/health`, returns `503` when unhealthy)                                                                                                                     |
 
+## API abuse protection
+
+For hosted Pages deployments, the browser calls its own origin's `/api` routes. Pages authenticates to the HTTPS backend with a server-only credential and passes a client address derived at the edge. With `CAMPLY_API_PROXY_REQUIRED=true`, the API verifies that transport before processing every API path, including API docs and schema. Exact liveness and readiness requests are exempt for infrastructure probes. Pages denies access to database readiness. Existing user authentication and authorization still govern private endpoints. Scripts can call anonymous frontend routes and are subject to the same limits as browsers.
+
+The API applies separate rate limits for discovery, login, access requests, verified account writes, and operations that trigger external work. An exceeded limit returns HTTP 429 with `Retry-After`. Protected distributed deployments use shared Valkey counters and return HTTP 503 when accounting is unavailable. Standalone can use bounded process-local accounting. Requests larger than 128 KiB receive HTTP 413 before API parsing. Explore offsets above 50,000 receive HTTP 422 before search. Keep readiness and metrics behind private infrastructure routes at backend ingress.
+
+See the [API protection configuration](../operations/CONFIGURATION.md#api-abuse-protection) for settings, default limits and deployment steps.
+
 ## Standalone static serving
 
 When `CAMPLY_RUNTIME_MODE=standalone`, FastAPI serves bundled frontend assets at `/` and static docs at `/docs/`. API misses under `/api/*` never fall back to SPA HTML, missing `/docs/*` paths return `404`, and `/metrics` is disabled.

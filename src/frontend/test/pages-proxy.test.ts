@@ -3,7 +3,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { onRequest } from "../functions/api/[[path]]";
 
 const origin = "https://camply.example.test";
-const env = { CAMPLY_API_ORIGIN: "https://api.example.test" };
+const env = {
+  CAMPLY_API_ORIGIN: "https://api.example.test",
+  CAMPLY_API_PROXY_SECRET: "synthetic-proxy-secret-for-unit-tests",
+};
+const edgeHeaders = { "CF-Connecting-IP": "203.0.113.20" };
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -23,7 +27,12 @@ describe("Cloudflare Pages API proxy", () => {
       env,
       request: new Request(`${origin}/api/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Origin: origin },
+        headers: {
+          ...edgeHeaders,
+          "Content-Type": "application/json",
+          Origin: origin,
+          "Sec-Fetch-Site": "same-origin",
+        },
         body: JSON.stringify({ username: "synthetic", password: "synthetic" }),
       }),
     });
@@ -51,6 +60,7 @@ describe("Cloudflare Pages API proxy", () => {
       request: new Request(`${origin}/api/scans/synthetic?notify=false`, {
         method: "PATCH",
         headers: {
+          ...edgeHeaders,
           Cookie:
             "camply_session=synthetic-session; camply_csrf=synthetic-csrf",
           "X-CSRF-Token": "synthetic-csrf",
@@ -95,7 +105,9 @@ describe("Cloudflare Pages API proxy", () => {
         new Response('{"detail":"Sign in required"}', { status: 401 }),
       );
     vi.stubGlobal("fetch", fetchMock);
-    const request = new Request(`${origin}/api/scans/`);
+    const request = new Request(`${origin}/api/scans/`, {
+      headers: edgeHeaders,
+    });
     const redirect = await onRequest({ env, request });
     expect(redirect.status).toBe(307);
     expect(redirect.headers.get("Location")).toBe(
@@ -105,6 +117,24 @@ describe("Cloudflare Pages API proxy", () => {
     const denied = await onRequest({ env, request });
     expect(denied.status).toBe(401);
     expect(await denied.json()).toEqual({ detail: "Sign in required" });
+  });
+
+  it("keeps the frontend scheme and port in rewritten redirects", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(null, {
+          status: 307,
+          headers: { Location: "/api/scans" },
+        }),
+      ),
+    );
+    const frontend = "http://localhost:8788";
+    const response = await onRequest({
+      env: { ...env, CAMPLY_API_ORIGIN: "https://api.example.test:9443" },
+      request: new Request(`${frontend}/api/scans/`, { headers: edgeHeaders }),
+    });
+    expect(response.headers.get("Location")).toBe(`${frontend}/api/scans`);
   });
 
   it.each([
@@ -119,13 +149,143 @@ describe("Cloudflare Pages API proxy", () => {
       const fetchMock = vi.fn();
       vi.stubGlobal("fetch", fetchMock);
       const response = await onRequest({
-        env: { CAMPLY_API_ORIGIN },
-        request: new Request(`${origin}/api/me`),
+        env: { ...env, CAMPLY_API_ORIGIN },
+        request: new Request(`${origin}/api/me`, { headers: edgeHeaders }),
       });
       expect(response.status).toBe(503);
       expect(fetchMock).not.toHaveBeenCalled();
     },
   );
+
+  it("sets private trust headers from runtime bindings and the Cloudflare edge", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json(
+        { detail: "Too many requests" },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": "42",
+            "X-Camply-Proxy-Secret": env.CAMPLY_API_PROXY_SECRET,
+            "X-Camply-Client-IP": edgeHeaders["CF-Connecting-IP"],
+          },
+        },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await onRequest({
+      env,
+      request: new Request(`${origin}/api/search`, {
+        headers: {
+          ...edgeHeaders,
+          "X-Camply-Proxy-Secret": "browser-supplied-secret",
+          "X-Camply-Client-IP": "198.51.100.1",
+          Forwarded: "for=198.51.100.2",
+          "X-Forwarded-For": "198.51.100.3",
+          "X-Real-IP": "198.51.100.4",
+        },
+      }),
+    });
+    const { headers } = fetchMock.mock.calls[0][0] as Request;
+    expect(headers.get("X-Camply-Proxy-Secret")).toBe(
+      env.CAMPLY_API_PROXY_SECRET,
+    );
+    expect(headers.get("X-Camply-Client-IP")).toBe(
+      edgeHeaders["CF-Connecting-IP"],
+    );
+    expect(headers.has("Forwarded")).toBe(false);
+    expect(headers.has("X-Forwarded-For")).toBe(false);
+    expect(headers.has("X-Real-IP")).toBe(false);
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("42");
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.has("X-Camply-Proxy-Secret")).toBe(false);
+    expect(response.headers.has("X-Camply-Client-IP")).toBe(false);
+  });
+
+  it.each([undefined, "", "short", `${env.CAMPLY_API_PROXY_SECRET}\n`])(
+    "fails closed without a valid gateway secret (%s)",
+    async (CAMPLY_API_PROXY_SECRET) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      const response = await onRequest({
+        env: { ...env, CAMPLY_API_PROXY_SECRET },
+        request: new Request(`${origin}/api/me`, { headers: edgeHeaders }),
+      });
+      expect(response.status).toBe(503);
+      expect(response.headers.get("Cache-Control")).toBe("no-store");
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not use caller-supplied client IP headers as a fallback", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await onRequest({
+      env,
+      request: new Request(`${origin}/api/me`, {
+        headers: {
+          "X-Camply-Client-IP": "203.0.113.20",
+          "X-Forwarded-For": "203.0.113.21",
+        },
+      }),
+    });
+    expect(response.status).toBe(503);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each(["/api/health", "/api/health/?ready=true", "/api/%68ealth"])(
+    "keeps database readiness on the backend (%s)",
+    async (path) => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      const response = await onRequest({
+        env,
+        request: new Request(`${origin}${path}`, { headers: edgeHeaders }),
+      });
+      expect(response.status).toBe(404);
+      expect(response.headers.get("Cache-Control")).toBe("no-store");
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("continues to proxy the lightweight liveness endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await onRequest({
+      env,
+      request: new Request(`${origin}/api/ping`, {
+        headers: {
+          ...edgeHeaders,
+          "X-Camply-Proxy-Secret": "browser-supplied-secret",
+          "X-Camply-Client-IP": "198.51.100.1",
+        },
+      }),
+    });
+    expect(response.status).toBe(200);
+    const forwarded = fetchMock.mock.calls[0][0] as Request;
+    expect(forwarded.url).toBe(`${env.CAMPLY_API_ORIGIN}/api/ping`);
+    expect(forwarded.headers.has("X-Camply-Proxy-Secret")).toBe(false);
+    expect(forwarded.headers.has("X-Camply-Client-IP")).toBe(false);
+  });
+
+  it.each([
+    ["Origin", "https://other.example.test"],
+    ["Origin", "null"],
+    ["Sec-Fetch-Site", "cross-site"],
+    ["Sec-Fetch-Site", "same-site"],
+  ])("rejects cross-origin browser context (%s %s)", async (header, value) => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await onRequest({
+      env,
+      request: new Request(`${origin}/api/search`, {
+        headers: { ...edgeHeaders, [header]: value },
+      }),
+    });
+    expect(response.status).toBe(403);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
   it("returns a gateway error without exposing upstream connection details", async () => {
     vi.stubGlobal(
@@ -134,7 +294,7 @@ describe("Cloudflare Pages API proxy", () => {
     );
     const response = await onRequest({
       env,
-      request: new Request(`${origin}/api/me`),
+      request: new Request(`${origin}/api/me`, { headers: edgeHeaders }),
     });
     expect(response.status).toBe(502);
     expect(await response.text()).not.toContain("private upstream details");

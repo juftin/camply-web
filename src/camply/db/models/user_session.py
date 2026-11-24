@@ -36,7 +36,7 @@ class UserSession(Base):
     user_agent: Mapped[str | None] = mapped_column(String(512), nullable=True)
     """Truncated User-Agent header recorded when the session was issued."""
     ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    """Client IP address (or first forwarded hop) recorded on login."""
+    """Validated client IP address recorded on login."""
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         default=partial(datetime.datetime.now, tz=datetime.timezone.utc),
