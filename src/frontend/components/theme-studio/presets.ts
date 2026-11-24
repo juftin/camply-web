@@ -19,15 +19,6 @@ export interface ThemePreset {
   palette: ThemePalette;
 }
 
-export interface FontPairing {
-  id: string;
-  name: string;
-  vibe: string;
-  googleFontsHref: string | null;
-  headingStack: string | null;
-  bodyStack: string | null;
-}
-
 export interface QuickPrimarySwatch {
   id: string;
   name: string;
@@ -401,116 +392,6 @@ export const QUICK_SURFACE_MOODS: readonly QuickSurfaceMood[] = [
       border: "208 15% 21.5%",
       input: "208 15% 21.5%",
     },
-  },
-];
-
-export const FONT_PAIRINGS: readonly FontPairing[] = [
-  {
-    id: "system",
-    name: "System Default",
-    vibe: "Current app stack",
-    googleFontsHref: null,
-    headingStack: null,
-    bodyStack: null,
-  },
-  {
-    id: "field-guide",
-    name: "Field Guide",
-    vibe: "Fraunces serif + Plus Jakarta Sans",
-    googleFontsHref:
-      "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap",
-    headingStack: '"Fraunces", Georgia, serif',
-    bodyStack: '"Plus Jakarta Sans", system-ui, sans-serif',
-  },
-  {
-    id: "national-park",
-    name: "National Park",
-    vibe: "Bitter slab + Source Sans 3",
-    googleFontsHref:
-      "https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap",
-    headingStack: '"Bitter", Georgia, serif',
-    bodyStack: '"Source Sans 3", system-ui, sans-serif',
-  },
-  {
-    id: "trailhead",
-    name: "Trailhead",
-    vibe: "Bricolage Grotesque + DM Sans",
-    googleFontsHref:
-      "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap",
-    headingStack: '"Bricolage Grotesque", system-ui, sans-serif',
-    bodyStack: '"DM Sans", system-ui, sans-serif',
-  },
-  {
-    id: "cabin-editorial",
-    name: "Cabin Editorial",
-    vibe: "Newsreader + Inter",
-    googleFontsHref:
-      "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,600;6..72,700&display=swap",
-    headingStack: '"Newsreader", Georgia, serif',
-    bodyStack: '"Inter", system-ui, sans-serif',
-  },
-  {
-    id: "outdoor-magazine",
-    name: "Outdoor Magazine",
-    vibe: "Lora serif + Work Sans",
-    googleFontsHref:
-      "https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=Work+Sans:wght@400;500;600;700&display=swap",
-    headingStack: '"Lora", Georgia, serif',
-    bodyStack: '"Work Sans", system-ui, sans-serif',
-  },
-  {
-    id: "friendly-modern",
-    name: "Friendly Modern",
-    vibe: "Outfit + Nunito Sans",
-    googleFontsHref:
-      "https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap",
-    headingStack: '"Outfit", system-ui, sans-serif',
-    bodyStack: '"Nunito Sans", system-ui, sans-serif',
-  },
-  {
-    id: "alpine-slab",
-    name: "Alpine Slab",
-    vibe: "Arvo slab + Karla",
-    googleFontsHref:
-      "https://fonts.googleapis.com/css2?family=Arvo:wght@700&family=Karla:wght@400;500;600;700&display=swap",
-    headingStack: '"Arvo", Georgia, serif',
-    bodyStack: '"Karla", system-ui, sans-serif',
-  },
-  {
-    id: "swiss-poster",
-    name: "Swiss Poster",
-    vibe: "Archivo + Inter",
-    googleFontsHref:
-      "https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Inter:wght@400;500;600;700&display=swap",
-    headingStack: '"Archivo", system-ui, sans-serif',
-    bodyStack: '"Inter", system-ui, sans-serif',
-  },
-  {
-    id: "woodland-book",
-    name: "Woodland Book",
-    vibe: "Merriweather + Open Sans",
-    googleFontsHref:
-      "https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Open+Sans:wght@400;500;600;700&display=swap",
-    headingStack: '"Merriweather", Georgia, serif',
-    bodyStack: '"Open Sans", system-ui, sans-serif',
-  },
-  {
-    id: "topo-utility",
-    name: "Topo Utility",
-    vibe: "Space Grotesk + IBM Plex Sans",
-    googleFontsHref:
-      "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap",
-    headingStack: '"Space Grotesk", system-ui, sans-serif',
-    bodyStack: '"IBM Plex Sans", system-ui, sans-serif',
-  },
-  {
-    id: "map-coordinates",
-    name: "Map Coordinates",
-    vibe: "JetBrains Mono + Plus Jakarta Sans",
-    googleFontsHref:
-      "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap",
-    headingStack: '"JetBrains Mono", ui-monospace, monospace',
-    bodyStack: '"Plus Jakarta Sans", system-ui, sans-serif',
   },
 ];
 

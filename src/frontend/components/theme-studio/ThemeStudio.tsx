@@ -41,7 +41,6 @@ import {
   type ThemeTokens,
 } from "./colorUtils";
 import {
-  FONT_PAIRINGS,
   QUICK_PRIMARY_SWATCHES,
   QUICK_SURFACE_MOODS,
   THEME_CATEGORIES,
@@ -50,13 +49,21 @@ import {
   type QuickSurfaceMood,
   type ThemeCategory,
 } from "./presets";
+import {
+  BODY_FONT_OPTIONS,
+  FONT_CATEGORIES,
+  FONT_OPTIONS,
+  FONT_PAIRINGS,
+  resolveTypography,
+  type FontCategory,
+} from "./fonts";
 
 const STORAGE_STATE_KEY = "camply-theme-studio-state-v1";
 const STORAGE_SAVED_KEY = "camply-theme-studio-saved-v1";
 const STYLE_ELEMENT_ID = "camply-theme-studio-style";
 const FONT_LINK_ELEMENT_ID = "camply-theme-studio-font";
 
-type StudioTab = "presets" | "customize" | "saved" | "export";
+type StudioTab = "presets" | "customize" | "fonts" | "saved" | "export";
 type DockSide = "right" | "left";
 
 interface SavedTheme {
@@ -169,6 +176,10 @@ function clonePalette(palette: ThemePalette): ThemePalette {
     dark: { ...palette.dark },
     radius: palette.radius,
     fontId: palette.fontId,
+    customHeadingFontId: palette.customHeadingFontId,
+    customBodyFontId: palette.customBodyFontId,
+    headingTracking: palette.headingTracking,
+    fontScale: palette.fontScale,
     mapPins: palette.mapPins ? { ...palette.mapPins } : undefined,
   };
 }
@@ -498,6 +509,10 @@ export function ThemeStudio() {
     ThemeCategory | "All"
   >("All");
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [selectedFontCategory, setSelectedFontCategory] = React.useState<
+    FontCategory | "All"
+  >("All");
+  const [fontSearchQuery, setFontSearchQuery] = React.useState("");
   const [comparingStock, setComparingStock] = React.useState(false);
   const [saveName, setSaveName] = React.useState("");
   const [copiedTarget, setCopiedTarget] = React.useState<string | null>(null);
@@ -522,11 +537,18 @@ export function ThemeStudio() {
     [state.activePresetId],
   );
 
-  const activeFont = React.useMemo(
+  const activeTypography = React.useMemo(
     () =>
-      FONT_PAIRINGS.find((font) => font.id === effectivePalette.fontId) ??
-      FONT_PAIRINGS[0],
-    [effectivePalette.fontId],
+      resolveTypography(
+        effectivePalette.fontId,
+        effectivePalette.customHeadingFontId,
+        effectivePalette.customBodyFontId,
+      ),
+    [
+      effectivePalette.fontId,
+      effectivePalette.customHeadingFontId,
+      effectivePalette.customBodyFontId,
+    ],
   );
 
   // Inject live CSS overrides into <head>.
@@ -542,28 +564,28 @@ export function ThemeStudio() {
 
     styleEl.textContent = buildRuntimeStyleSheet(
       effectivePalette,
-      activeFont.headingStack,
-      activeFont.bodyStack,
+      activeTypography.headingFont.stack,
+      activeTypography.bodyFont.stack,
     );
-  }, [effectivePalette, activeFont]);
+  }, [effectivePalette, activeTypography]);
 
   // Dynamically load optional Google Font stylesheet only when a non-system font is picked.
   React.useEffect(() => {
     const existing = document.getElementById(
       FONT_LINK_ELEMENT_ID,
     ) as HTMLLinkElement | null;
-    if (!activeFont.googleFontsHref) {
+    if (!activeTypography.googleFontsHref) {
       if (existing) existing.remove();
       return;
     }
     const linkEl = existing ?? document.createElement("link");
     linkEl.id = FONT_LINK_ELEMENT_ID;
     linkEl.rel = "stylesheet";
-    linkEl.href = activeFont.googleFontsHref;
+    linkEl.href = activeTypography.googleFontsHref;
     if (!existing) {
       document.head.appendChild(linkEl);
     }
-  }, [activeFont]);
+  }, [activeTypography]);
 
   // Persist current workbench state.
   React.useEffect(() => {
@@ -593,7 +615,14 @@ export function ThemeStudio() {
     setState((prev) => ({
       ...prev,
       activePresetId: preset.id,
-      palette: clonePalette(preset.palette),
+      palette: {
+        ...clonePalette(preset.palette),
+        fontId: prev.palette.fontId,
+        customHeadingFontId: prev.palette.customHeadingFontId,
+        customBodyFontId: prev.palette.customBodyFontId,
+        headingTracking: prev.palette.headingTracking,
+        fontScale: prev.palette.fontScale,
+      },
       macro: { ...DEFAULT_MACRO_ADJUSTMENTS },
       isDirty: false,
     }));
@@ -612,7 +641,14 @@ export function ThemeStudio() {
       return {
         ...prev,
         activePresetId: nextPreset.id,
-        palette: clonePalette(nextPreset.palette),
+        palette: {
+          ...clonePalette(nextPreset.palette),
+          fontId: prev.palette.fontId,
+          customHeadingFontId: prev.palette.customHeadingFontId,
+          customBodyFontId: prev.palette.customBodyFontId,
+          headingTracking: prev.palette.headingTracking,
+          fontScale: prev.palette.fontScale,
+        },
         macro: { ...DEFAULT_MACRO_ADJUSTMENTS },
         isDirty: false,
       };
@@ -758,7 +794,31 @@ export function ThemeStudio() {
     setComparingStock(false);
     setState((prev) => ({
       ...prev,
-      palette: { ...prev.palette, fontId },
+      palette: {
+        ...prev.palette,
+        fontId,
+        customHeadingFontId: undefined,
+        customBodyFontId: undefined,
+      },
+      isDirty: true,
+    }));
+  };
+
+  const updateCustomFonts = (
+    patch: Partial<
+      Pick<
+        ThemePalette,
+        | "customHeadingFontId"
+        | "customBodyFontId"
+        | "headingTracking"
+        | "fontScale"
+      >
+    >,
+  ) => {
+    setComparingStock(false);
+    setState((prev) => ({
+      ...prev,
+      palette: { ...prev.palette, ...patch },
       isDirty: true,
     }));
   };
@@ -820,8 +880,14 @@ export function ThemeStudio() {
       "Custom Earthy");
 
   const cssExportText = React.useMemo(
-    () => buildCssExport(effectivePalette, currentLabel),
-    [effectivePalette, currentLabel],
+    () =>
+      buildCssExport(effectivePalette, currentLabel, {
+        label: activeTypography.label,
+        headingStack: activeTypography.headingFont.stack,
+        bodyStack: activeTypography.bodyFont.stack,
+        googleFontsHref: activeTypography.googleFontsHref,
+      }),
+    [effectivePalette, currentLabel, activeTypography],
   );
 
   const jsonExportText = React.useMemo(
@@ -829,6 +895,12 @@ export function ThemeStudio() {
       JSON.stringify(
         {
           name: currentLabel,
+          typography: {
+            label: activeTypography.label,
+            headingFont: activeTypography.headingFont.name,
+            bodyFont: activeTypography.bodyFont.name,
+            googleFontsHref: activeTypography.googleFontsHref,
+          },
           palette: effectivePalette,
           swatches: {
             lightPrimary: hslStringToHex(effectivePalette.light.primary),
@@ -841,7 +913,7 @@ export function ThemeStudio() {
         null,
         2,
       ),
-    [currentLabel, effectivePalette],
+    [currentLabel, effectivePalette, activeTypography],
   );
 
   const copyText = async (text: string, label: string) => {
@@ -902,6 +974,20 @@ export function ThemeStudio() {
       preset.name.toLowerCase().includes(normalizedQuery) ||
       preset.tagline.toLowerCase().includes(normalizedQuery) ||
       preset.category.toLowerCase().includes(normalizedQuery)
+    );
+  });
+
+  const normalizedFontQuery = fontSearchQuery.trim().toLowerCase();
+  const filteredFontPairings = FONT_PAIRINGS.filter((pairing) => {
+    const matchesCategory =
+      selectedFontCategory === "All" ||
+      pairing.category === selectedFontCategory;
+    if (!matchesCategory) return false;
+    if (!normalizedFontQuery) return true;
+    return (
+      pairing.name.toLowerCase().includes(normalizedFontQuery) ||
+      pairing.vibe.toLowerCase().includes(normalizedFontQuery) ||
+      pairing.category.toLowerCase().includes(normalizedFontQuery)
     );
   });
 
@@ -1334,20 +1420,24 @@ export function ThemeStudio() {
         role="tablist"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
+          gridTemplateColumns: "repeat(5, 1fr)",
           borderBottom: "1px solid #262a30",
           background: "#14171c",
           padding: "4px",
-          gap: "4px",
+          gap: "3px",
         }}
       >
         {(
           [
             { id: "presets", label: "Presets", icon: Sparkles },
-            { id: "customize", label: "Tune", icon: Sliders },
+            { id: "customize", label: "Colors", icon: Sliders },
+            { id: "fonts", label: "Fonts", icon: Type },
             {
               id: "saved",
-              label: `Saved${savedThemes.length > 0 ? ` (${savedThemes.length})` : ""}`,
+              label:
+                savedThemes.length > 0
+                  ? `Saved (${savedThemes.length})`
+                  : "Saved",
               icon: Heart,
             },
             { id: "export", label: "Export", icon: Copy },
@@ -1365,18 +1455,19 @@ export function ThemeStudio() {
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "5px",
-                padding: "6px 4px",
+                gap: "4px",
+                padding: "6px 3px",
                 borderRadius: "7px",
                 border: "none",
                 background: isActive ? "#262c36" : "transparent",
                 color: isActive ? "#ffffff" : "#9ca3af",
-                fontSize: "11.5px",
+                fontSize: "11px",
                 fontWeight: isActive ? 600 : 500,
                 cursor: "pointer",
+                whiteSpace: "nowrap",
               }}
             >
-              <Icon size={12} />
+              <Icon size={11} />
               <span>{label}</span>
             </button>
           );
@@ -1965,7 +2056,7 @@ export function ThemeStudio() {
               </label>
             </section>
 
-            {/* Border Radius & Typography */}
+            {/* Border Radius */}
             <section
               style={{
                 padding: "10px",
@@ -1973,7 +2064,7 @@ export function ThemeStudio() {
                 background: "#181c22",
                 border: "1px solid #282d36",
                 display: "grid",
-                gap: "10px",
+                gap: "8px",
               }}
             >
               <div
@@ -1985,94 +2076,39 @@ export function ThemeStudio() {
                   letterSpacing: "0.04em",
                 }}
               >
-                Corners & Typography
+                Corner Radius ({effectivePalette.radius})
               </div>
-
-              <div style={{ display: "grid", gap: "5px" }}>
-                <span style={{ fontSize: "11.5px", color: "#d1d5db" }}>
-                  Corner Radius ({effectivePalette.radius})
-                </span>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: "5px",
-                  }}
-                >
-                  {RADIUS_OPTIONS.map((opt) => {
-                    const active = effectivePalette.radius === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => updateRadius(opt.value)}
-                        style={{
-                          padding: "5px 6px",
-                          fontSize: "11px",
-                          borderRadius: "6px",
-                          border: active
-                            ? "1px solid #e98f23"
-                            : "1px solid #2e343e",
-                          background: active ? "#332411" : "#14171c",
-                          color: active ? "#fcd34d" : "#cbd5e1",
-                          cursor: "pointer",
-                          fontWeight: active ? 600 : 500,
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gap: "5px" }}>
-                <span
-                  style={{
-                    fontSize: "11.5px",
-                    color: "#d1d5db",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "5px",
-                  }}
-                >
-                  <Type size={12} />
-                  Font Pairing Preview
-                </span>
-                <div style={{ display: "grid", gap: "5px" }}>
-                  {FONT_PAIRINGS.map((font) => {
-                    const active = effectivePalette.fontId === font.id;
-                    return (
-                      <button
-                        key={font.id}
-                        type="button"
-                        onClick={() => updateFont(font.id)}
-                        style={{
-                          textAlign: "left",
-                          padding: "6px 9px",
-                          borderRadius: "7px",
-                          border: active
-                            ? "1px solid #e98f23"
-                            : "1px solid #2e343e",
-                          background: active ? "#272018" : "#14171c",
-                          color: "#f3f4f6",
-                          cursor: "pointer",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: "8px",
-                        }}
-                      >
-                        <span style={{ fontSize: "11.5px", fontWeight: 600 }}>
-                          {font.name}
-                        </span>
-                        <span style={{ fontSize: "10.5px", color: "#9ca3af" }}>
-                          {font.vibe}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "5px",
+                }}
+              >
+                {RADIUS_OPTIONS.map((opt) => {
+                  const active = effectivePalette.radius === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => updateRadius(opt.value)}
+                      style={{
+                        padding: "5px 6px",
+                        fontSize: "11px",
+                        borderRadius: "6px",
+                        border: active
+                          ? "1px solid #e98f23"
+                          : "1px solid #2e343e",
+                        background: active ? "#332411" : "#14171c",
+                        color: active ? "#fcd34d" : "#cbd5e1",
+                        cursor: "pointer",
+                        fontWeight: active ? 600 : 500,
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
             </section>
 
@@ -2200,6 +2236,366 @@ export function ThemeStudio() {
                 );
               })}
             </section>
+          </div>
+        )}
+
+        {/* ── FONTS TAB ── */}
+        {activeTab === "fonts" && (
+          <div style={{ display: "grid", gap: "12px" }}>
+            {/* Active font + Custom Mix & Match */}
+            <section
+              style={{
+                padding: "10px",
+                borderRadius: "9px",
+                background: "#181c22",
+                border: "1px solid #282d36",
+                display: "grid",
+                gap: "10px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "8px",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "11.5px",
+                    fontWeight: 700,
+                    color: "#e5e7eb",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  Mix & Match Fonts
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateFont("system");
+                    updateCustomFonts({
+                      headingTracking: "0em",
+                      fontScale: 100,
+                    });
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    fontSize: "11px",
+                    padding: "2px 7px",
+                    borderRadius: "5px",
+                    border: "1px solid #323741",
+                    background: "#14171c",
+                    color: "#cbd5e1",
+                    cursor: "pointer",
+                  }}
+                >
+                  <RotateCcw size={11} />
+                  System
+                </button>
+              </div>
+
+              <label style={{ display: "grid", gap: "4px", fontSize: "11px" }}>
+                <span style={{ color: "#9ca3af" }}>
+                  Headings ({FONT_OPTIONS.length} options)
+                </span>
+                <select
+                  aria-label="Heading font family"
+                  value={activeTypography.headingFont.id}
+                  onChange={(e) =>
+                    updateCustomFonts({
+                      customHeadingFontId: e.target.value,
+                    })
+                  }
+                  style={{
+                    width: "100%",
+                    fontSize: "12px",
+                    padding: "6px 8px",
+                    borderRadius: "6px",
+                    border: "1px solid #323741",
+                    background: "#0f1115",
+                    color: "#f3f4f6",
+                  }}
+                >
+                  {FONT_OPTIONS.map((font) => (
+                    <option key={font.id} value={font.id}>
+                      {font.name} ({font.style})
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label style={{ display: "grid", gap: "4px", fontSize: "11px" }}>
+                <span style={{ color: "#9ca3af" }}>
+                  Body Copy ({BODY_FONT_OPTIONS.length} options)
+                </span>
+                <select
+                  aria-label="Body font family"
+                  value={activeTypography.bodyFont.id}
+                  onChange={(e) =>
+                    updateCustomFonts({
+                      customBodyFontId: e.target.value,
+                    })
+                  }
+                  style={{
+                    width: "100%",
+                    fontSize: "12px",
+                    padding: "6px 8px",
+                    borderRadius: "6px",
+                    border: "1px solid #323741",
+                    background: "#0f1115",
+                    color: "#f3f4f6",
+                  }}
+                >
+                  {BODY_FONT_OPTIONS.map((font) => (
+                    <option key={font.id} value={font.id}>
+                      {font.name} ({font.style})
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "8px",
+                }}
+              >
+                <div style={{ display: "grid", gap: "4px" }}>
+                  <span style={{ fontSize: "10.5px", color: "#9ca3af" }}>
+                    Heading Tracking
+                  </span>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(3, 1fr)",
+                      gap: "4px",
+                    }}
+                  >
+                    {(
+                      [
+                        { label: "Tight", value: "-0.025em" },
+                        { label: "Normal", value: "0em" },
+                        { label: "Airy", value: "0.02em" },
+                      ] as const
+                    ).map((opt) => {
+                      const active =
+                        (effectivePalette.headingTracking ?? "0em") ===
+                        opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() =>
+                            updateCustomFonts({ headingTracking: opt.value })
+                          }
+                          style={{
+                            padding: "4px 2px",
+                            fontSize: "10.5px",
+                            borderRadius: "5px",
+                            border: active
+                              ? "1px solid #e98f23"
+                              : "1px solid #2e343e",
+                            background: active ? "#332411" : "#14171c",
+                            color: active ? "#fcd34d" : "#cbd5e1",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gap: "4px" }}>
+                  <span style={{ fontSize: "10.5px", color: "#9ca3af" }}>
+                    Text Scale
+                  </span>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(3, 1fr)",
+                      gap: "4px",
+                    }}
+                  >
+                    {(
+                      [
+                        { label: "94%", value: 94 },
+                        { label: "100%", value: 100 },
+                        { label: "106%", value: 106 },
+                      ] as const
+                    ).map((opt) => {
+                      const active =
+                        (effectivePalette.fontScale ?? 100) === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() =>
+                            updateCustomFonts({ fontScale: opt.value })
+                          }
+                          style={{
+                            padding: "4px 2px",
+                            fontSize: "10.5px",
+                            borderRadius: "5px",
+                            border: active
+                              ? "1px solid #e98f23"
+                              : "1px solid #2e343e",
+                            background: active ? "#332411" : "#14171c",
+                            color: active ? "#fcd34d" : "#cbd5e1",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Search & filter curated pairings */}
+            <div style={{ position: "relative" }}>
+              <Search
+                size={13}
+                style={{
+                  position: "absolute",
+                  left: "9px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#9ca3af",
+                  pointerEvents: "none",
+                }}
+              />
+              <input
+                type="text"
+                aria-label="Filter font pairings"
+                value={fontSearchQuery}
+                onChange={(e) => setFontSearchQuery(e.target.value)}
+                placeholder={`Search ${FONT_PAIRINGS.length} curated pairings (serif, slab, mono)...`}
+                style={{
+                  width: "100%",
+                  fontSize: "11.5px",
+                  padding: "6px 28px 6px 28px",
+                  borderRadius: "7px",
+                  border: "1px solid #2e343e",
+                  background: "#0f1115",
+                  color: "#f3f4f6",
+                }}
+              />
+              {fontSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setFontSearchQuery("")}
+                  aria-label="Clear font search"
+                  style={{
+                    position: "absolute",
+                    right: "6px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "transparent",
+                    border: "none",
+                    color: "#9ca3af",
+                    cursor: "pointer",
+                    display: "flex",
+                    padding: "2px",
+                  }}
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
+              {(["All", ...FONT_CATEGORIES] as const).map((cat) => {
+                const active = selectedFontCategory === cat;
+                const count =
+                  cat === "All"
+                    ? FONT_PAIRINGS.length
+                    : FONT_PAIRINGS.filter((p) => p.category === cat).length;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedFontCategory(cat)}
+                    style={{
+                      fontSize: "10.5px",
+                      padding: "3px 8px",
+                      borderRadius: "9999px",
+                      border: active
+                        ? "1px solid #e98f23"
+                        : "1px solid #2e343e",
+                      background: active ? "#332411" : "#1a1e25",
+                      color: active ? "#fcd34d" : "#cbd5e1",
+                      cursor: "pointer",
+                      fontWeight: active ? 600 : 500,
+                    }}
+                  >
+                    {cat} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "grid", gap: "6px" }}>
+              {filteredFontPairings.map((pairing) => {
+                const active =
+                  !effectivePalette.customHeadingFontId &&
+                  !effectivePalette.customBodyFontId &&
+                  effectivePalette.fontId === pairing.id;
+                return (
+                  <button
+                    key={pairing.id}
+                    type="button"
+                    onClick={() => updateFont(pairing.id)}
+                    style={{
+                      textAlign: "left",
+                      padding: "8px 10px",
+                      borderRadius: "8px",
+                      border: active
+                        ? "1.5px solid #e98f23"
+                        : "1px solid #2a2f38",
+                      background: active ? "#272018" : "#181b21",
+                      color: "#f3f4f6",
+                      cursor: "pointer",
+                      display: "grid",
+                      gap: "3px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "6px",
+                      }}
+                    >
+                      <span style={{ fontSize: "12px", fontWeight: 650 }}>
+                        {pairing.name}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          color: active ? "#fcd34d" : "#9ca3af",
+                        }}
+                      >
+                        {pairing.category}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: "11px", color: "#9ca3af" }}>
+                      {pairing.vibe}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 

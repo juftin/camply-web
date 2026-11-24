@@ -9,6 +9,7 @@ import {
   hslStringToHex,
 } from "./colorUtils";
 import { QUICK_PRIMARY_SWATCHES, THEME_PRESETS } from "./presets";
+import { FONT_OPTIONS, FONT_PAIRINGS, resolveTypography } from "./fonts";
 import { ThemeStudio } from "./ThemeStudio";
 
 const mockThemeContext = {
@@ -112,5 +113,28 @@ describe("ThemeStudio component", () => {
 
     fireEvent.click(screen.getByText("A/B Stock"));
     expect(styleEl?.textContent).toContain("--primary: 221.2 83.2% 53.3%;");
+
+    fireEvent.click(screen.getByRole("tab", { name: "Fonts" }));
+    fireEvent.click(screen.getByText("National Park"));
+    const fontLink = document.getElementById(
+      "camply-theme-studio-font",
+    ) as HTMLLinkElement | null;
+    expect(fontLink).not.toBeNull();
+    expect(fontLink?.href).toContain("Bitter");
+    expect(styleEl?.textContent).toContain('"Bitter"');
+  });
+
+  it("resolves every curated font pairing to valid catalog options", () => {
+    const ids = new Set(FONT_OPTIONS.map((font) => font.id));
+    for (const pairing of FONT_PAIRINGS) {
+      expect(ids.has(pairing.headingFontId)).toBe(true);
+      expect(ids.has(pairing.bodyFontId)).toBe(true);
+      const resolved = resolveTypography(pairing.id);
+      if (pairing.id !== "system") {
+        expect(resolved.googleFontsHref).toContain(
+          "https://fonts.googleapis.com/css2?",
+        );
+      }
+    }
   });
 });

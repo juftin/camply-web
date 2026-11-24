@@ -32,6 +32,10 @@ export interface ThemePalette {
   dark: ThemeTokens;
   radius: string;
   fontId: string;
+  customHeadingFontId?: string;
+  customBodyFontId?: string;
+  headingTracking?: string;
+  fontScale?: number;
   mapPins?: MapPinColors;
 }
 
@@ -463,10 +467,18 @@ export function generateEarthyPalette(): ThemePalette {
   };
 }
 
+export interface ExportFontInfo {
+  label: string;
+  headingStack: string | null;
+  bodyStack: string | null;
+  googleFontsHref: string | null;
+}
+
 /** Generate the exact CSS block ready to paste into src/frontend/index.css. */
 export function buildCssExport(
   palette: ThemePalette,
   themeName?: string,
+  fontInfo?: ExportFontInfo,
 ): string {
   const formatBlock = (tokens: ThemeTokens, includeRadius: boolean) => {
     const lines = ALL_TOKEN_KEYS.map((key) => `    --${key}: ${tokens[key]};`);
@@ -481,7 +493,31 @@ export function buildCssExport(
     ? `\n\n/* Optional map pin colors */\n.camply-map-camp {\n  background: ${palette.mapPins.camp};\n}\n.camply-map-area {\n  background: ${palette.mapPins.area};\n}\n.camply-map-group {\n  background: ${palette.mapPins.group};\n}`
     : "";
 
-  return `${header}@layer base {\n  :root {\n${formatBlock(palette.light, true)}\n  }\n\n  .dark {\n${formatBlock(palette.dark, false)}\n  }\n}${mapBlock}`;
+  const fontLines: string[] = [];
+  if (fontInfo?.googleFontsHref) {
+    fontLines.push(`/* Font pairing: ${fontInfo.label} */`);
+    fontLines.push(
+      `/* Add to index.html: <link rel="stylesheet" href="${fontInfo.googleFontsHref}" /> */`,
+    );
+  }
+  if (fontInfo?.bodyStack) {
+    fontLines.push(`body {\n  font-family: ${fontInfo.bodyStack};\n}`);
+  }
+  if (fontInfo?.headingStack || palette.headingTracking) {
+    const decls: string[] = [];
+    if (fontInfo?.headingStack) {
+      decls.push(`  font-family: ${fontInfo.headingStack};`);
+    }
+    if (palette.headingTracking && palette.headingTracking !== "0em") {
+      decls.push(`  letter-spacing: ${palette.headingTracking};`);
+    }
+    if (decls.length > 0) {
+      fontLines.push(`h1, h2, h3, h4, h5, h6 {\n${decls.join("\n")}\n}`);
+    }
+  }
+  const fontBlock = fontLines.length > 0 ? `\n\n${fontLines.join("\n")}` : "";
+
+  return `${header}@layer base {\n  :root {\n${formatBlock(palette.light, true)}\n  }\n\n  .dark {\n${formatBlock(palette.dark, false)}\n  }\n}${mapBlock}${fontBlock}`;
 }
 
 /** Build the runtime <style> sheet injected into <head> for instant live theming. */
@@ -501,10 +537,27 @@ export function buildRuntimeStyleSheet(
     ? `\n.camply-map-camp { background: ${palette.mapPins.camp} !important; }\n.camply-map-area { background: ${palette.mapPins.area} !important; }\n.camply-map-group { background: ${palette.mapPins.group} !important; }\n`
     : "";
 
-  const fontCss =
-    fontHeadingStack || fontBodyStack
-      ? `\nbody { ${fontBodyStack ? `font-family: ${fontBodyStack};` : ""} }\nh1, h2, h3, h4, h5, h6 { ${fontHeadingStack ? `font-family: ${fontHeadingStack};` : ""} }\n`
-      : "";
+  const fontRules: string[] = [];
+  if (palette.fontScale && palette.fontScale !== 100) {
+    fontRules.push(`html { font-size: ${palette.fontScale}%; }`);
+  }
+  if (fontBodyStack) {
+    fontRules.push(`body { font-family: ${fontBodyStack}; }`);
+  }
+  if (
+    fontHeadingStack ||
+    (palette.headingTracking && palette.headingTracking !== "0em")
+  ) {
+    const headingDecls: string[] = [];
+    if (fontHeadingStack) {
+      headingDecls.push(`font-family: ${fontHeadingStack};`);
+    }
+    if (palette.headingTracking && palette.headingTracking !== "0em") {
+      headingDecls.push(`letter-spacing: ${palette.headingTracking};`);
+    }
+    fontRules.push(`h1, h2, h3, h4, h5, h6 { ${headingDecls.join(" ")} }`);
+  }
+  const fontCss = fontRules.length > 0 ? `\n${fontRules.join("\n")}\n` : "";
 
   return `:root {\n${lightVars}\n  --radius: ${palette.radius};\n}\n\n.dark {\n${darkVars}\n  --radius: ${palette.radius};\n}${mapCss}${fontCss}`;
 }
