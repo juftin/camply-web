@@ -556,6 +556,7 @@ try {
   report.webgl_failure_recovery =
     "passed: unavailable/lost contexts keep list usable; retry rebuilds the renderer";
   const publicSettings = {
+    CAMPLY_SKIP_DOCS_BUILD: "1",
     VITE_MAP_TILE_URL: "/fixture-tiles/{z}/{x}/{y}.png",
     VITE_MAP_ATTRIBUTION_TEXT: "Synthetic map credit",
     VITE_MAP_ATTRIBUTION_URL: "https://example.test/license",
