@@ -79,6 +79,7 @@ const MapCanvas = ({
   const [error, setError] = useState("");
   const [tileError, setTileError] = useState(false);
   const [ready, setReady] = useState(false);
+  const [idle, setIdle] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const lastFit = useRef<string | null>(null);
   const locations = useMemo<MapPin[]>(
@@ -116,6 +117,7 @@ const MapCanvas = ({
     try {
       const config = basemapConfig();
       setReady(false);
+      setIdle(false);
       const credit = document.createElement("a");
       credit.href = config.link;
       credit.textContent = config.text;
@@ -197,9 +199,14 @@ const MapCanvas = ({
         else setError(event.error.message || "Map could not load.");
       };
       const loaded = () => setReady(true);
+      const markBusy = () => setIdle(false);
+      const markIdle = () => setIdle(true);
       const contextLost = () =>
         setError("The map graphics context was lost. Please retry the map.");
       instance.on("load", loaded);
+      instance.on("movestart", markBusy);
+      instance.on("dataloading", markBusy);
+      instance.on("idle", markIdle);
       instance.on("webglcontextlost", contextLost);
       instance.on("move", emit);
       instance.on("moveend", emit);
@@ -214,6 +221,9 @@ const MapCanvas = ({
       return () => {
         observer.disconnect();
         instance?.off("load", loaded);
+        instance?.off("movestart", markBusy);
+        instance?.off("dataloading", markBusy);
+        instance?.off("idle", markIdle);
         instance?.off("webglcontextlost", contextLost);
         instance?.off("move", emit);
         instance?.off("moveend", emit);
@@ -434,6 +444,7 @@ const MapCanvas = ({
       <div
         ref={container}
         aria-label="Interactive campground map"
+        data-map-idle={idle ? "true" : "false"}
         className={`camply-map relative z-0 ${className}`}
       />
     </div>
