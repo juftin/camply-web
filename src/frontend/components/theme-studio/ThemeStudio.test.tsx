@@ -8,7 +8,7 @@ import {
   hexToHslString,
   hslStringToHex,
 } from "./colorUtils";
-import { THEME_PRESETS } from "./presets";
+import { QUICK_PRIMARY_SWATCHES, THEME_PRESETS } from "./presets";
 import { ThemeStudio } from "./ThemeStudio";
 
 const mockThemeContext = {
@@ -58,6 +58,14 @@ describe("ThemeStudio color utilities", () => {
         ),
       ).toBeGreaterThanOrEqual(4.5);
     }
+    for (const swatch of QUICK_PRIMARY_SWATCHES) {
+      expect(
+        contrastRatio(swatch.lightPrimary, swatch.lightPrimaryFg),
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(swatch.darkPrimary, swatch.darkPrimaryFg),
+      ).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it("applies macro adjustments and exports valid index.css blocks", () => {
@@ -66,6 +74,7 @@ describe("ThemeStudio color utilities", () => {
       hueShift: 30,
       saturationScale: 85,
       warmth: 40,
+      cardContrast: 50,
     });
     expect(shifted.primary).not.toBe(base.light.primary);
 

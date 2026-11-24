@@ -242,29 +242,37 @@ export interface MacroAdjustments {
   hueShift: number;
   saturationScale: number;
   warmth: number;
+  cardContrast: number;
 }
 
 export const DEFAULT_MACRO_ADJUSTMENTS: MacroAdjustments = {
   hueShift: 0,
   saturationScale: 100,
   warmth: 0,
+  cardContrast: 0,
 };
 
 /**
  * Apply non-destructive macro adjustments (hue shift on brand/accent, saturation scale,
- * and surface warmth shift) on top of a base token map.
+ * surface warmth shift, and card/border contrast) on top of a base token map.
  */
 export function applyMacroAdjustments(
   tokens: ThemeTokens,
   adjustments: MacroAdjustments,
 ): ThemeTokens {
-  const { hueShift, saturationScale, warmth } = adjustments;
-  if (hueShift === 0 && saturationScale === 100 && warmth === 0) {
+  const { hueShift, saturationScale, warmth, cardContrast = 0 } = adjustments;
+  if (
+    hueShift === 0 &&
+    saturationScale === 100 &&
+    warmth === 0 &&
+    cardContrast === 0
+  ) {
     return tokens;
   }
 
   const next = { ...tokens };
   const satFactor = saturationScale / 100;
+  const isDarkTheme = parseHslString(tokens.background).l < 50;
 
   for (const key of ALL_TOKEN_KEYS) {
     const parsed = parseHslString(tokens[key]);
@@ -306,6 +314,24 @@ export function applyMacroAdjustments(
       }
     }
 
+    // Card contrast increases or flattens separation between page, cards, and borders
+    if (cardContrast !== 0) {
+      const strength = cardContrast / 100;
+      if (key === "background") {
+        l = isDarkTheme
+          ? clamp(l - strength * 3, 4, 18)
+          : clamp(l - strength * 3.5, 90, 100);
+      } else if (key === "card" || key === "popover") {
+        l = isDarkTheme
+          ? clamp(l + strength * 4, 7, 22)
+          : clamp(l + strength * 2.5, 94, 100);
+      } else if (key === "border" || key === "input") {
+        l = isDarkTheme
+          ? clamp(l + strength * 7, 14, 34)
+          : clamp(l - strength * 7, 70, 93);
+      }
+    }
+
     next[key] = formatHslString({ h, s, l });
   }
 
@@ -319,12 +345,14 @@ export function applyMacroAdjustments(
 
 /** Generate a randomized outdoor/earthy theme palette (both light and dark). */
 export function generateEarthyPalette(): ThemePalette {
-  // Curated natural hue bands: pine/spruce (140-195), olive/moss (75-125), terracotta/ochre (15-42), slate-fjord (198-218)
+  // Curated natural & editorial hue bands
   const bands: Array<[number, number, [number, number], [number, number]]> = [
-    [145, 192, [34, 62], [20, 32]], // spruce / evergreen
-    [78, 122, [28, 48], [24, 34]], // moss / olive
-    [16, 40, [48, 72], [36, 46]], // terracotta / ochre / redwood
-    [198, 214, [26, 44], [28, 38]], // glacier mineral slate
+    [145, 192, [34, 65], [18, 30]], // spruce / evergreen / coastal kelp
+    [76, 122, [26, 46], [22, 32]], // moss / olive / fern
+    [10, 38, [48, 72], [32, 42]], // terracotta / ochre / redwood / copper
+    [195, 226, [30, 56], [24, 34]], // lake cobalt / glacier / dusk indigo
+    [330, 355, [34, 52], [28, 38]], // huckleberry / desert sunset plum
+    [22, 34, [24, 42], [20, 30]], // espresso / bark / leather
   ];
   const band = bands[Math.floor(Math.random() * bands.length)];
   const primaryHue = round1(band[0] + Math.random() * (band[1] - band[0]));

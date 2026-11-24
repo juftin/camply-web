@@ -13,6 +13,7 @@ import {
   PanelLeft,
   PanelRight,
   RotateCcw,
+  Search,
   Sliders,
   Sparkles,
   Sun,
@@ -41,8 +42,12 @@ import {
 } from "./colorUtils";
 import {
   FONT_PAIRINGS,
+  QUICK_PRIMARY_SWATCHES,
+  QUICK_SURFACE_MOODS,
   THEME_CATEGORIES,
   THEME_PRESETS,
+  type QuickPrimarySwatch,
+  type QuickSurfaceMood,
   type ThemeCategory,
 } from "./presets";
 
@@ -177,7 +182,7 @@ function loadPersistedState(): PersistedState {
         return {
           activePresetId: parsed.activePresetId ?? DEFAULT_PRESET.id,
           palette: clonePalette(parsed.palette),
-          macro: parsed.macro ?? { ...DEFAULT_MACRO_ADJUSTMENTS },
+          macro: { ...DEFAULT_MACRO_ADJUSTMENTS, ...parsed.macro },
           isDirty: Boolean(parsed.isDirty),
           isOpen: Boolean(parsed.isOpen),
           dockSide: parsed.dockSide === "left" ? "left" : "right",
@@ -492,6 +497,7 @@ export function ThemeStudio() {
   const [selectedCategory, setSelectedCategory] = React.useState<
     ThemeCategory | "All"
   >("All");
+  const [searchQuery, setSearchQuery] = React.useState("");
   const [comparingStock, setComparingStock] = React.useState(false);
   const [saveName, setSaveName] = React.useState("");
   const [copiedTarget, setCopiedTarget] = React.useState<string | null>(null);
@@ -679,6 +685,57 @@ export function ThemeStudio() {
     }));
   };
 
+  const applyQuickPrimary = (swatch: QuickPrimarySwatch) => {
+    setComparingStock(false);
+    setState((prev) => {
+      const baseLight = applyMacroAdjustments(prev.palette.light, prev.macro);
+      const baseDark = applyMacroAdjustments(prev.palette.dark, prev.macro);
+      return {
+        ...prev,
+        palette: {
+          ...prev.palette,
+          light: {
+            ...baseLight,
+            primary: swatch.lightPrimary,
+            "primary-foreground": swatch.lightPrimaryFg,
+            ring: swatch.lightPrimary,
+          },
+          dark: {
+            ...baseDark,
+            primary: swatch.darkPrimary,
+            "primary-foreground": swatch.darkPrimaryFg,
+            ring: swatch.darkPrimary,
+          },
+          mapPins: {
+            camp: swatch.hex,
+            area: prev.palette.mapPins?.area ?? "#be6f29",
+            group: prev.palette.mapPins?.group ?? "#273b3e",
+          },
+        },
+        macro: { ...DEFAULT_MACRO_ADJUSTMENTS },
+        isDirty: true,
+      };
+    });
+  };
+
+  const applyQuickSurface = (mood: QuickSurfaceMood) => {
+    setComparingStock(false);
+    setState((prev) => {
+      const baseLight = applyMacroAdjustments(prev.palette.light, prev.macro);
+      const baseDark = applyMacroAdjustments(prev.palette.dark, prev.macro);
+      return {
+        ...prev,
+        palette: {
+          ...prev.palette,
+          light: { ...baseLight, ...mood.light },
+          dark: { ...baseDark, ...mood.dark },
+        },
+        macro: { ...DEFAULT_MACRO_ADJUSTMENTS },
+        isDirty: true,
+      };
+    });
+  };
+
   const updateMacro = (patch: Partial<MacroAdjustments>) => {
     setComparingStock(false);
     setState((prev) => ({
@@ -835,10 +892,18 @@ export function ThemeStudio() {
     }
   };
 
-  const filteredPresets =
-    selectedCategory === "All"
-      ? THEME_PRESETS
-      : THEME_PRESETS.filter((preset) => preset.category === selectedCategory);
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredPresets = THEME_PRESETS.filter((preset) => {
+    const matchesCategory =
+      selectedCategory === "All" || preset.category === selectedCategory;
+    if (!matchesCategory) return false;
+    if (!normalizedQuery) return true;
+    return (
+      preset.name.toLowerCase().includes(normalizedQuery) ||
+      preset.tagline.toLowerCase().includes(normalizedQuery) ||
+      preset.category.toLowerCase().includes(normalizedQuery)
+    );
+  });
 
   const activeModeTokens =
     userTheme === "dark" ? effectivePalette.dark : effectivePalette.light;
@@ -1329,17 +1394,73 @@ export function ThemeStudio() {
         {/* ── PRESETS TAB ── */}
         {activeTab === "presets" && (
           <div style={{ display: "grid", gap: "10px" }}>
+            {/* Search & count */}
+            <div style={{ position: "relative" }}>
+              <Search
+                size={13}
+                style={{
+                  position: "absolute",
+                  left: "9px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#9ca3af",
+                  pointerEvents: "none",
+                }}
+              />
+              <input
+                type="text"
+                aria-label="Filter theme presets"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Search ${THEME_PRESETS.length} themes (e.g. pine, warm, retro, blue)...`}
+                style={{
+                  width: "100%",
+                  fontSize: "11.5px",
+                  padding: "6px 28px 6px 28px",
+                  borderRadius: "7px",
+                  border: "1px solid #2e343e",
+                  background: "#0f1115",
+                  color: "#f3f4f6",
+                }}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear preset search"
+                  style={{
+                    position: "absolute",
+                    right: "6px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "transparent",
+                    border: "none",
+                    color: "#9ca3af",
+                    cursor: "pointer",
+                    display: "flex",
+                    padding: "2px",
+                  }}
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
             <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
               {(["All", ...THEME_CATEGORIES] as const).map((cat) => {
                 const active = selectedCategory === cat;
+                const count =
+                  cat === "All"
+                    ? THEME_PRESETS.length
+                    : THEME_PRESETS.filter((p) => p.category === cat).length;
                 return (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => setSelectedCategory(cat)}
                     style={{
-                      fontSize: "11px",
-                      padding: "3px 9px",
+                      fontSize: "10.5px",
+                      padding: "3px 8px",
                       borderRadius: "9999px",
                       border: active
                         ? "1px solid #e98f23"
@@ -1350,11 +1471,26 @@ export function ThemeStudio() {
                       fontWeight: active ? 600 : 500,
                     }}
                   >
-                    {cat}
+                    {cat} ({count})
                   </button>
                 );
               })}
             </div>
+
+            {filteredPresets.length === 0 && (
+              <div
+                style={{
+                  padding: "18px 12px",
+                  textAlign: "center",
+                  fontSize: "12px",
+                  color: "#9ca3af",
+                  borderRadius: "8px",
+                  border: "1px dashed #2e343e",
+                }}
+              >
+                No themes matched &ldquo;{searchQuery}&rdquo;.
+              </div>
+            )}
 
             <div style={{ display: "grid", gap: "8px" }}>
               {filteredPresets.map((preset) => {
@@ -1560,6 +1696,114 @@ export function ThemeStudio() {
               </div>
             </div>
 
+            {/* Mix & Match Remixers */}
+            <section
+              style={{
+                padding: "10px",
+                borderRadius: "9px",
+                background: "#181c22",
+                border: "1px solid #282d36",
+                display: "grid",
+                gap: "10px",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "11.5px",
+                  fontWeight: 700,
+                  color: "#e5e7eb",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                Mix & Match Remix
+              </div>
+
+              <div style={{ display: "grid", gap: "6px" }}>
+                <span style={{ fontSize: "11px", color: "#9ca3af" }}>
+                  Swap primary accent (updates light & dark):
+                </span>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(7, 1fr)",
+                    gap: "5px",
+                  }}
+                >
+                  {QUICK_PRIMARY_SWATCHES.map((swatch) => (
+                    <button
+                      key={swatch.id}
+                      type="button"
+                      onClick={() => applyQuickPrimary(swatch)}
+                      title={swatch.name}
+                      aria-label={`Use ${swatch.name} primary`}
+                      style={{
+                        height: "24px",
+                        borderRadius: "6px",
+                        border: "1px solid rgba(255,255,255,0.22)",
+                        background: swatch.hex,
+                        cursor: "pointer",
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: "6px" }}>
+                <span style={{ fontSize: "11px", color: "#9ca3af" }}>
+                  Swap paper / surface mood:
+                </span>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: "5px",
+                  }}
+                >
+                  {QUICK_SURFACE_MOODS.map((mood) => (
+                    <button
+                      key={mood.id}
+                      type="button"
+                      onClick={() => applyQuickSurface(mood)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "5px 7px",
+                        borderRadius: "6px",
+                        border: "1px solid #2e343e",
+                        background: "#14171c",
+                        color: "#e5e7eb",
+                        fontSize: "10.5px",
+                        fontWeight: 500,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "11px",
+                          height: "11px",
+                          borderRadius: "3px",
+                          background: mood.swatch,
+                          border: "1px solid rgba(128,128,128,0.45)",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {mood.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+
             {/* Quick Harmonizer */}
             <section
               style={{
@@ -1685,6 +1929,36 @@ export function ThemeStudio() {
                   value={state.macro.warmth}
                   onChange={(e) =>
                     updateMacro({ warmth: Number(e.target.value) })
+                  }
+                  style={{ accentColor: "#e98f23", width: "100%" }}
+                />
+              </label>
+
+              <label
+                style={{ display: "grid", gap: "4px", fontSize: "11.5px" }}
+              >
+                <div
+                  style={{ display: "flex", justifyContent: "space-between" }}
+                >
+                  <span style={{ color: "#d1d5db" }}>
+                    Card & Border Separation
+                  </span>
+                  <span style={{ color: "#9ca3af" }}>
+                    {state.macro.cardContrast === 0
+                      ? "Preset"
+                      : state.macro.cardContrast > 0
+                        ? `Crisp +${state.macro.cardContrast}`
+                        : `Flat ${state.macro.cardContrast}`}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={-100}
+                  max={100}
+                  step={5}
+                  value={state.macro.cardContrast}
+                  onChange={(e) =>
+                    updateMacro({ cardContrast: Number(e.target.value) })
                   }
                   style={{ accentColor: "#e98f23", width: "100%" }}
                 />
