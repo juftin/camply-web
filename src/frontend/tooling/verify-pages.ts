@@ -135,7 +135,7 @@ async function main(): Promise<void> {
     assert.equal(docs.status, 200);
     const docsHtml = await docs.text();
     assert.match(docsHtml, /Find your next campsite/);
-    assert.match(docsHtml, /href="\/"[^>]*>[\s\S]*?Back to App/);
+    assert.match(docsHtml, /href="\/"[^>]*>[\s\S]*?Back to camply/);
     for (const route of [
       "/docs/using-camply/",
       "/docs/assets/camply.svg",

@@ -9,14 +9,14 @@ defineProps<{
   <div v-if="variant === 'sidebar'" class="sidebar-back-container">
     <a href="/" class="sidebar-back-link" target="_self">
       <span class="sidebar-back-arrow" aria-hidden="true">←</span>
-      <span>Back to App</span>
+      <span>Back to camply</span>
     </a>
   </div>
 
   <!-- Mobile screen variant: in the mobile navigation menu -->
   <div v-else-if="variant === 'mobile'" class="mobile-back-container">
     <a href="/" class="mobile-back-button" target="_self">
-      <span>Back to App</span>
+      <span>Back to camply</span>
       <span class="mobile-back-icon" aria-hidden="true">→</span>
     </a>
   </div>
@@ -24,7 +24,7 @@ defineProps<{
   <!-- Navbar variant: prominent button in top navigation bar -->
   <div v-else class="nav-back-container">
     <a href="/" class="nav-back-button" target="_self">
-      <span>Back to App</span>
+      <span>Back to camply</span>
       <svg
         class="nav-back-icon"
         xmlns="http://www.w3.org/2000/svg"

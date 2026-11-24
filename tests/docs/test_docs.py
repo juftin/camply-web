@@ -263,9 +263,9 @@ class DocumentationTests(unittest.TestCase):
         (ROOT / "build/docs/index.html").exists(), "Run task docs:build first"
     )
     def test_standalone_build_omits_back_to_app(self) -> None:
-        """Standalone documentation builds hide the Back to App navigation controls."""
+        """Standalone documentation builds hide the Back to camply navigation controls."""
         html = (ROOT / "build/docs/index.html").read_text(encoding="utf-8")
-        self.assertNotIn("Back to App", html)
+        self.assertNotIn("Back to camply", html)
         self.assertNotIn("nav-back-button", html)
         self.assertNotIn("sidebar-back-link", html)
         self.assertNotIn("mobile-back-button", html)
