@@ -11,14 +11,28 @@ import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-# Must create the multiprocess directory BEFORE prometheus_client is first
-# imported — the library checks the env var at import time.
-_multiproc_dir = os.environ.get(
-    "CAMPLY_PROMETHEUS_MULTIPROC_DIR",
-    os.environ.get("PROMETHEUS_MULTIPROC_DIR"),
-)
+
+def _resolve_multiproc_dir() -> str | None:
+    """Return the configured Prometheus multiprocess directory, if non-empty."""
+    return (
+        os.environ.get("CAMPLY_PROMETHEUS_MULTIPROC_DIR")
+        or os.environ.get("PROMETHEUS_MULTIPROC_DIR")
+        or os.environ.get("prometheus_multiproc_dir")
+        or None
+    )
+
+
+# Must configure the multiprocess directory BEFORE prometheus_client is first
+# imported — the library checks env key presence at import time.
+_multiproc_dir = _resolve_multiproc_dir()
 if _multiproc_dir:
+    if not os.environ.get("PROMETHEUS_MULTIPROC_DIR"):
+        os.environ["PROMETHEUS_MULTIPROC_DIR"] = _multiproc_dir
     os.makedirs(_multiproc_dir, exist_ok=True)
+else:
+    for _env_key in ("PROMETHEUS_MULTIPROC_DIR", "prometheus_multiproc_dir"):
+        if os.environ.get(_env_key) == "":
+            os.environ.pop(_env_key, None)
 
 import prometheus_client  # noqa: E402
 import structlog  # noqa: E402
@@ -291,10 +305,7 @@ def get_metrics_response() -> Response:
     workers when PROMETHEUS_MULTIPROC_DIR is configured; falls back to
     the default global registry otherwise.
     """
-    multiproc_dir = os.environ.get(
-        "CAMPLY_PROMETHEUS_MULTIPROC_DIR",
-        os.environ.get("PROMETHEUS_MULTIPROC_DIR"),
-    )
+    multiproc_dir = _resolve_multiproc_dir()
     if multiproc_dir:
         registry = prometheus_client.CollectorRegistry()
         MultiProcessCollector(registry)

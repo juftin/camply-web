@@ -16,26 +16,27 @@ import time
 from typing import Any
 
 import structlog
-from celery.signals import task_postrun, task_prerun
+from celery.signals import task_postrun, task_prerun, worker_process_shutdown
 
-# Must create the multiprocess directory BEFORE prometheus_client is first
-# imported — the library checks the env var at import time.
-_multiproc_dir = os.environ.get(
-    "CAMPLY_PROMETHEUS_MULTIPROC_DIR",
-    os.environ.get("PROMETHEUS_MULTIPROC_DIR"),
+# Must configure the multiprocess directory BEFORE prometheus_client is first
+# imported — the library checks env key presence at import time.
+_multiproc_dir = (
+    os.environ.get("CAMPLY_PROMETHEUS_MULTIPROC_DIR")
+    or os.environ.get("PROMETHEUS_MULTIPROC_DIR")
+    or os.environ.get("prometheus_multiproc_dir")
+    or None
 )
 if _multiproc_dir:
+    if not os.environ.get("PROMETHEUS_MULTIPROC_DIR"):
+        os.environ["PROMETHEUS_MULTIPROC_DIR"] = _multiproc_dir
     os.makedirs(_multiproc_dir, exist_ok=True)
-    # Clean stale .db files from previous runs to prevent metric accumulation
-    for fname in os.listdir(_multiproc_dir):
-        if fname.endswith(".db"):
-            try:
-                os.remove(os.path.join(_multiproc_dir, fname))
-            except OSError:
-                pass
+else:
+    for _env_key in ("PROMETHEUS_MULTIPROC_DIR", "prometheus_multiproc_dir"):
+        if os.environ.get(_env_key) == "":
+            os.environ.pop(_env_key, None)
 
 import prometheus_client  # noqa: E402
-from prometheus_client import Counter, Gauge, Histogram  # noqa: E402
+from prometheus_client import Counter, Gauge, Histogram, multiprocess  # noqa: E402
 from prometheus_client.multiprocess import MultiProcessCollector  # noqa: E402
 
 logger = structlog.getLogger(__name__)
@@ -151,9 +152,49 @@ def _on_task_postrun(
         )
 
 
+@worker_process_shutdown.connect
+def _on_worker_process_shutdown(pid: int | None = None, **kwargs: Any) -> None:
+    """Clean up live-gauge multiprocess files when a prefork child exits."""
+    if _multiproc_dir:
+        try:
+            multiprocess.mark_process_dead(pid or os.getpid(), path=_multiproc_dir)
+        except OSError:
+            pass
+
+
 # ---------------------------------------------------------------------------
 # Metrics HTTP server
 # ---------------------------------------------------------------------------
+
+
+def _is_pid_alive(pid: int) -> bool:
+    """Return True when a process with the given PID exists."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def _cleanup_stale_multiproc_files(multiproc_dir: str) -> None:
+    """Remove Prometheus multiprocess .db files left behind by dead processes."""
+    current_pid = os.getpid()
+    for fname in os.listdir(multiproc_dir):
+        if not fname.endswith(".db"):
+            continue
+        pid_text = fname[:-3].rsplit("_", 1)[-1]
+        try:
+            pid = int(pid_text)
+        except ValueError:
+            continue
+        if pid <= 0 or pid == current_pid or _is_pid_alive(pid):
+            continue
+        try:
+            os.remove(os.path.join(multiproc_dir, fname))
+        except OSError:
+            pass
 
 
 def start_metrics_server(port: int = 8001) -> None:
@@ -167,6 +208,7 @@ def start_metrics_server(port: int = 8001) -> None:
     """
     try:
         if _multiproc_dir:
+            _cleanup_stale_multiproc_files(_multiproc_dir)
             registry = prometheus_client.CollectorRegistry()
             MultiProcessCollector(registry)
             prometheus_client.start_http_server(port, addr="0.0.0.0", registry=registry)

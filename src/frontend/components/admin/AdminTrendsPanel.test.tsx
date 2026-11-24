@@ -413,3 +413,45 @@ it("disambiguates series sharing the same instance using worker or source instea
     }),
   ).not.toBeInTheDocument();
 });
+
+it("formats numeric provider ID '1' as Recreation.gov", async () => {
+  vi.mocked(api.getAdminTrends).mockResolvedValue({
+    group: "provider",
+    range: "24h",
+    step_seconds: 900,
+    start_time: "2026-10-09T00:00:00Z",
+    end_time: "2026-10-09T01:00:00Z",
+    timezone: "UTC",
+    available: true,
+    metrics: [
+      {
+        metric_id: "provider_checks_volume",
+        title: "Booking Provider Checks",
+        description: "Checks per minute.",
+        unit: "checks/min",
+        chart_type: "line",
+        series: [
+          {
+            name: "Provider Checks (provider=1, status=success)",
+            labels: { provider: "1", status: "success" },
+            points: [{ timestamp: "2026-10-09T00:00:00Z", value: 3 }],
+          },
+        ],
+      },
+    ],
+  });
+  render(
+    <MemoryRouter
+      initialEntries={["/admin/operations?tab=provider&provider_view=table"]}
+    >
+      <QueryClientProvider client={queryClient}>
+        <AdminTrendsPanel group="provider" />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+  expect(
+    await screen.findByRole("columnheader", {
+      name: "Recreation.gov · success (checks / minute)",
+    }),
+  ).toBeInTheDocument();
+});

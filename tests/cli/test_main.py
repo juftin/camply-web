@@ -1,5 +1,6 @@
 """Verify the Camply CLI entrypoint reports its program name and version."""
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -676,3 +677,51 @@ def test_db_cli_sqlite_lifecycle(
     assert deleted.exit_code == 0, deleted.output
     assert deleted.output == "SQLite database file deleted.\n"
     assert not sqlite_file.exists()
+
+
+def test_worker_startup_cleans_only_stale_or_preexec_multiproc_files(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Worker startup removes dead/pre-exec .db files while sparing other live PIDs."""
+    from camply.cli.serve import _cleanup_worker_multiproc_dir
+
+    live_other = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(10)"])
+    try:
+        dead_file = tmp_path / "counter_999999.db"
+        preexec_self = tmp_path / f"counter_{os.getpid()}.db"
+        other_live_file = tmp_path / f"counter_{live_other.pid}.db"
+        dead_file.write_bytes(b"dead")
+        preexec_self.write_bytes(b"preexec")
+        other_live_file.write_bytes(b"other-live")
+
+        monkeypatch.setenv("PROMETHEUS_MULTIPROC_DIR", str(tmp_path))
+        _cleanup_worker_multiproc_dir()
+
+        assert not dead_file.exists()
+        assert not preexec_self.exists()
+        assert other_live_file.exists()
+    finally:
+        live_other.terminate()
+        live_other.wait(timeout=5)
+
+
+def test_beat_sync_providers_strips_multiproc_env(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Beat's one-shot celery call strips Prometheus multiprocess env vars when set."""
+    dispatch = Mock(return_value=subprocess.CompletedProcess([], 0))
+    execute = Mock(side_effect=SystemExit(0))
+    monkeypatch.setenv("CAMPLY_BEAT_HEALTH_FILE", str(tmp_path / "beat.json"))
+    monkeypatch.setenv("PROMETHEUS_MULTIPROC_DIR", str(tmp_path))
+    monkeypatch.setenv("CAMPLY_PROMETHEUS_MULTIPROC_DIR", str(tmp_path))
+    monkeypatch.setattr("subprocess.run", dispatch)
+    monkeypatch.setattr("os.execv", execute)
+
+    result = CliRunner().invoke(cli, ["serve", "beat", "--sync-providers"])
+
+    assert result.exit_code == 0, result.output
+    sub_env = dispatch.call_args.kwargs["env"]
+    assert "PROMETHEUS_MULTIPROC_DIR" not in sub_env
+    assert "CAMPLY_PROMETHEUS_MULTIPROC_DIR" not in sub_env

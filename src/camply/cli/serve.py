@@ -12,7 +12,11 @@ from pathlib import Path
 import click
 
 from camply.cli.healthcheck import beat_health_path, healthcheck
-from camply.cli.runtime import require_modules
+from camply.cli.runtime import (
+    env_without_prometheus_multiproc,
+    require_modules,
+    resolve_prometheus_multiproc_dir,
+)
 
 
 def _executable(name: str, *, hint: str) -> str:
@@ -156,6 +160,42 @@ def serve_beat(sync_providers: bool, args: tuple[str, ...]) -> None:
     )
 
 
+def _is_pid_alive(pid: int) -> bool:
+    """Return True when a process with the given PID exists."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def _cleanup_worker_multiproc_dir() -> None:
+    """Remove stale Prometheus multiprocess files before starting a worker process."""
+    multiproc_dir = resolve_prometheus_multiproc_dir()
+    if not multiproc_dir or not os.path.isdir(multiproc_dir):
+        return
+    current_pid = os.getpid()
+    for fname in os.listdir(multiproc_dir):
+        if not fname.endswith(".db"):
+            continue
+        pid_text = fname[:-3].rsplit("_", 1)[-1]
+        try:
+            pid = int(pid_text)
+        except ValueError:
+            continue
+        if pid <= 0:
+            continue
+        # os.execv replaces current_pid, so any pre-exec file for it is also stale.
+        if pid != current_pid and _is_pid_alive(pid):
+            continue
+        try:
+            os.remove(os.path.join(multiproc_dir, fname))
+        except OSError:
+            pass
+
+
 def _worker_process(
     command: str, args: tuple[str, ...], *, sync_providers: bool = False
 ) -> None:
@@ -172,23 +212,27 @@ def _worker_process(
         os.environ["CAMPLY_BEAT_HEALTH_FILE"] = str(path)
     if sync_providers:
         try:
-            subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "celery",
-                    "-A",
-                    "camply.worker.celery_app",
-                    "call",
-                    "catalog.sync_all",
-                    "--expires=600",
-                ],
-                check=True,
-            )
+            call_args = [
+                sys.executable,
+                "-m",
+                "celery",
+                "-A",
+                "camply.worker.celery_app",
+                "call",
+                "catalog.sync_all",
+                "--expires=600",
+            ]
+            clean_env = env_without_prometheus_multiproc()
+            if clean_env is not None:
+                subprocess.run(call_args, check=True, env=clean_env)
+            else:
+                subprocess.run(call_args, check=True)
         except subprocess.CalledProcessError as exc:
             raise click.ClickException(
                 f"Could not enqueue provider sync (exit status {exc.returncode})."
             ) from exc
+    if command == "worker":
+        _cleanup_worker_multiproc_dir()
     os.execv(
         sys.executable,
         [

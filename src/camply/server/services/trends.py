@@ -36,6 +36,19 @@ CACHE_TTL_SECONDS = 30.0
 MAX_SERIES_PER_METRIC = 20
 
 
+def _promql_label_matcher(label: str, value: Optional[str]) -> str:
+    """Build a PromQL exact-match selector with escaped string contents."""
+    if not value:
+        return ""
+    escaped = (
+        value.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+    )
+    return f'{{{label}="{escaped}"}}'
+
+
 def _parse_step_and_range(range_param: str) -> tuple[int, int, str]:
     """
     Map range parameter to (duration_seconds, step_seconds, step_string).
@@ -319,7 +332,7 @@ async def get_admin_trends(
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "sum(rate(camply_total_search_requests[1m]))",
+                        f"sum(rate(camply_total_search_requests[{step_str}]))",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -339,14 +352,12 @@ async def get_admin_trends(
 
             elif norm_group == "api":
                 # Metric 1: API Requests per sec by Endpoint
-                ep_filter = (
-                    f'{{endpoint="{endpoint_filter}"}}' if endpoint_filter else ""
-                )
+                ep_filter = _promql_label_matcher("endpoint", endpoint_filter)
                 try:
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        f"sum(rate(camply_http_requests_total{ep_filter}[1m])) by (endpoint)",
+                        f"sum(rate(camply_http_requests_total{ep_filter}[{step_str}])) by (endpoint)",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -373,7 +384,7 @@ async def get_admin_trends(
                     res_2xx = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        'sum(rate(camply_http_requests_total{status=~"2.."}[5m])) / sum(rate(camply_http_requests_total[5m])) * 100',
+                        f'sum(rate(camply_http_requests_total{{status=~"2.."}}[{step_str}])) / sum(rate(camply_http_requests_total[{step_str}])) * 100',
                         start_ts,
                         end_ts,
                         step_sec,
@@ -381,7 +392,7 @@ async def get_admin_trends(
                     res_5xx = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        'sum(rate(camply_http_requests_total{status=~"5.."}[5m])) / sum(rate(camply_http_requests_total[5m])) * 100',
+                        f'sum(rate(camply_http_requests_total{{status=~"5.."}}[{step_str}])) / sum(rate(camply_http_requests_total[{step_str}])) * 100',
                         start_ts,
                         end_ts,
                         step_sec,
@@ -389,7 +400,7 @@ async def get_admin_trends(
                     res_4xx = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        'sum(rate(camply_http_requests_total{status=~"4.."}[5m])) / sum(rate(camply_http_requests_total[5m])) * 100',
+                        f'sum(rate(camply_http_requests_total{{status=~"4.."}}[{step_str}])) / sum(rate(camply_http_requests_total[{step_str}])) * 100',
                         start_ts,
                         end_ts,
                         step_sec,
@@ -417,7 +428,7 @@ async def get_admin_trends(
                     res_p50 = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "histogram_quantile(0.50, sum(rate(camply_http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+                        f"histogram_quantile(0.50, sum(rate(camply_http_request_duration_seconds_bucket[{step_str}])) by (le)) * 1000",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -425,7 +436,7 @@ async def get_admin_trends(
                     res_p95 = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "histogram_quantile(0.95, sum(rate(camply_http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+                        f"histogram_quantile(0.95, sum(rate(camply_http_request_duration_seconds_bucket[{step_str}])) by (le)) * 1000",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -433,7 +444,7 @@ async def get_admin_trends(
                     res_p99 = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "histogram_quantile(0.99, sum(rate(camply_http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+                        f"histogram_quantile(0.99, sum(rate(camply_http_request_duration_seconds_bucket[{step_str}])) by (le)) * 1000",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -461,7 +472,7 @@ async def get_admin_trends(
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        'sum(rate(camply_http_requests_total{status=~"5.."}[5m])) by (endpoint)',
+                        f'sum(rate(camply_http_requests_total{{status=~"5.."}}[{step_str}])) by (endpoint)',
                         start_ts,
                         end_ts,
                         step_sec,
@@ -485,14 +496,12 @@ async def get_admin_trends(
 
             elif norm_group == "worker":
                 # Metric 1: Task Executions
-                task_filter = (
-                    f'{{task_name="{task_name_filter}"}}' if task_name_filter else ""
-                )
+                task_filter = _promql_label_matcher("task_name", task_name_filter)
                 try:
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        f"sum(rate(camply_celery_tasks_total{task_filter}[1m])) by (task_name) * 60",
+                        f"sum(rate(camply_celery_tasks_total{task_filter}[{step_str}])) by (task_name) * 60",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -519,7 +528,7 @@ async def get_admin_trends(
                     res_success = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        'sum(rate(camply_celery_tasks_total{status="success"}[5m])) / sum(rate(camply_celery_tasks_total[5m])) * 100',
+                        f'sum(rate(camply_celery_tasks_total{{status="success"}}[{step_str}])) / sum(rate(camply_celery_tasks_total[{step_str}])) * 100',
                         start_ts,
                         end_ts,
                         step_sec,
@@ -527,7 +536,7 @@ async def get_admin_trends(
                     res_fail = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        'sum(rate(camply_celery_tasks_total{status="failure"}[5m])) / sum(rate(camply_celery_tasks_total[5m])) * 100',
+                        f'sum(rate(camply_celery_tasks_total{{status="failure"}}[{step_str}])) / sum(rate(camply_celery_tasks_total[{step_str}])) * 100',
                         start_ts,
                         end_ts,
                         step_sec,
@@ -535,7 +544,7 @@ async def get_admin_trends(
                     res_retry = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        'sum(rate(camply_celery_tasks_total{status="retry"}[5m])) / sum(rate(camply_celery_tasks_total[5m])) * 100',
+                        f'sum(rate(camply_celery_tasks_total{{status="retry"}}[{step_str}])) / sum(rate(camply_celery_tasks_total[{step_str}])) * 100',
                         start_ts,
                         end_ts,
                         step_sec,
@@ -565,7 +574,7 @@ async def get_admin_trends(
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "sum(rate(camply_application_outcomes_total[5m])) by (outcome) * 60",
+                        f"sum(rate(camply_application_outcomes_total[{step_str}])) by (outcome) * 60",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -590,7 +599,7 @@ async def get_admin_trends(
                     res_p50 = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "histogram_quantile(0.50, sum(rate(camply_celery_task_duration_seconds_bucket[5m])) by (le)) * 1000",
+                        f"histogram_quantile(0.50, sum(rate(camply_celery_task_duration_seconds_bucket[{step_str}])) by (le)) * 1000",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -598,7 +607,7 @@ async def get_admin_trends(
                     res_p95 = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "histogram_quantile(0.95, sum(rate(camply_celery_task_duration_seconds_bucket[5m])) by (le)) * 1000",
+                        f"histogram_quantile(0.95, sum(rate(camply_celery_task_duration_seconds_bucket[{step_str}])) by (le)) * 1000",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -606,7 +615,7 @@ async def get_admin_trends(
                     res_p99 = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "histogram_quantile(0.99, sum(rate(camply_celery_task_duration_seconds_bucket[5m])) by (le)) * 1000",
+                        f"histogram_quantile(0.99, sum(rate(camply_celery_task_duration_seconds_bucket[{step_str}])) by (le)) * 1000",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -634,7 +643,7 @@ async def get_admin_trends(
                     res_disc = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "sum(rate(camply_targets_discovered_total[1m])) * 60",
+                        f"sum(rate(camply_targets_discovered_total[{step_str}])) * 60",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -642,7 +651,7 @@ async def get_admin_trends(
                     res_enq = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "sum(rate(camply_targets_enqueued_total[1m])) * 60",
+                        f"sum(rate(camply_targets_enqueued_total[{step_str}])) * 60",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -668,7 +677,7 @@ async def get_admin_trends(
                     res_stored = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "sum(rate(camply_scan_results_stored_total[1m])) * 60",
+                        f"sum(rate(camply_scan_results_stored_total[{step_str}])) * 60",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -676,7 +685,7 @@ async def get_admin_trends(
                     res_notif = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "sum(rate(camply_notifications_sent_total[1m])) * 60",
+                        f"sum(rate(camply_notifications_sent_total[{step_str}])) * 60",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -704,7 +713,7 @@ async def get_admin_trends(
                     res_acq = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        'sum(rate(camply_lock_contention_total{outcome="acquired"}[5m])) / sum(rate(camply_lock_contention_total[5m])) * 100',
+                        f'sum(rate(camply_lock_contention_total{{outcome="acquired"}}[{step_str}])) / sum(rate(camply_lock_contention_total[{step_str}])) * 100',
                         start_ts,
                         end_ts,
                         step_sec,
@@ -712,7 +721,7 @@ async def get_admin_trends(
                     res_skip = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        'sum(rate(camply_lock_contention_total{outcome="skipped"}[5m])) / sum(rate(camply_lock_contention_total[5m])) * 100',
+                        f'sum(rate(camply_lock_contention_total{{outcome="skipped"}}[{step_str}])) / sum(rate(camply_lock_contention_total[{step_str}])) * 100',
                         start_ts,
                         end_ts,
                         step_sec,
@@ -738,7 +747,7 @@ async def get_admin_trends(
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        "sum(rate(camply_targets_checked_total[1m])) * 60",
+                        f"sum(rate(camply_targets_checked_total[{step_str}])) * 60",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -758,14 +767,12 @@ async def get_admin_trends(
 
             elif norm_group == "provider":
                 # Metric 1: Booking Provider Errors
-                p_filter = (
-                    f'{{provider="{provider_filter}"}}' if provider_filter else ""
-                )
+                p_filter = _promql_label_matcher("provider", provider_filter)
                 try:
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        f"sum(rate(camply_campground_api_errors_total{p_filter}[5m])) by (provider)",
+                        f"sum(rate(camply_campground_api_errors_total{p_filter}[{step_str}])) by (provider) or (sum(rate(camply_provider_checks_total{p_filter}[{step_str}])) by (provider) * 0)",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -790,7 +797,7 @@ async def get_admin_trends(
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        f"sum(rate(camply_campground_api_errors_total{p_filter}[5m])) / sum(rate(camply_provider_checks_total{p_filter}[5m])) * 100",
+                        f"(sum(rate(camply_campground_api_errors_total{p_filter}[{step_str}])) or (sum(rate(camply_provider_checks_total{p_filter}[{step_str}])) * 0)) / sum(rate(camply_provider_checks_total{p_filter}[{step_str}])) * 100",
                         start_ts,
                         end_ts,
                         step_sec,
@@ -813,7 +820,7 @@ async def get_admin_trends(
                     res = await _query_prometheus_range(
                         client,
                         backend_config.prometheus_url,
-                        f"sum(rate(camply_provider_checks_total{p_filter}[5m])) by (provider, status) * 60",
+                        f"sum(rate(camply_provider_checks_total{p_filter}[{step_str}])) by (provider, status) * 60",
                         start_ts,
                         end_ts,
                         step_sec,
