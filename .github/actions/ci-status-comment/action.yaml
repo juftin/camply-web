@@ -1,0 +1,92 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+
+name: Update CI Status Comment
+description: Post or update a sticky pull request comment summarizing CI workflow progress
+
+inputs:
+  stage:
+    description: Workflow checkpoint stage (running, checks, or complete)
+    default: running
+
+runs:
+  using: composite
+  steps:
+    - name: Render CI status table
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        STAGE: ${{ inputs.stage }}
+        COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        RUN_NUMBER: ${{ github.run_number }}
+      run: |
+        set -euo pipefail
+        gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+          | jq -rs \
+              --arg stage "$STAGE" \
+              --arg sha "${COMMIT_SHA:0:7}" \
+              --arg run_url "$RUN_URL" \
+              --arg run_num "$RUN_NUMBER" '
+              [.[].jobs[] | select((.name | startswith("ci - status") | not) and .name != "verification")]
+              | sort_by(.name) as $jobs
+              | ($jobs | map(select(.conclusion == "success")) | length) as $passed
+              | ($jobs | map(select(.conclusion == "failure" or .conclusion == "timed_out")) | length) as $failed
+              | ($jobs | map(select(.conclusion == "cancelled")) | length) as $cancelled
+              | ($jobs | map(select(.conclusion == "skipped")) | length) as $skipped
+              | ($jobs | map(select(.status != "completed")) | length) as $pending
+              | def icon:
+                  if .conclusion == "success" then "✅"
+                  elif (.conclusion == "failure" or .conclusion == "timed_out") then "❌"
+                  elif .conclusion == "cancelled" then "🚫"
+                  elif .conclusion == "skipped" then "⏭️"
+                  elif .status == "in_progress" then "⏳"
+                  else "🕒"
+                  end;
+                def status_label:
+                  if .conclusion != null then .conclusion
+                  elif .status == "in_progress" then "in progress"
+                  else (.status // "queued")
+                  end;
+                def fmt_dur:
+                  if (.started_at != null and .completed_at != null) then
+                    ((.completed_at | fromdateiso8601) - (.started_at | fromdateiso8601)) as $s
+                    | if $s < 0 then "—"
+                      elif $s >= 60 then "\(($s / 60) | floor)m \($s % 60)s"
+                      else "\($s)s"
+                      end
+                  else "—"
+                  end;
+                (if $stage == "complete" then
+                  if $failed > 0 then "### ❌ CI Status — \($failed) failed, \($passed) passed"
+                  elif $cancelled > 0 then "### 🚫 CI Status — Cancelled (\($passed) passed)"
+                  else "### ✅ CI Status — All \($passed) checks passed"
+                  end
+                else
+                  "### ⏳ CI Status — In progress (\($passed) passed"
+                  + (if $failed > 0 then ", \($failed) failed" else "" end)
+                  + ", \($pending) running/queued)"
+                end) as $heading
+              | [
+                  $heading,
+                  "",
+                  "<details>",
+                  "<summary>Show \($jobs | length) jobs</summary>",
+                  "",
+                  "| Job | Status | Duration |",
+                  "| :--- | :--- | ---: |"
+                ]
+                + ($jobs | map("| [\(.name)](\(.html_url)) | \(icon) \(status_label) | \(fmt_dur) |"))
+                + [
+                  "",
+                  "</details>",
+                  "",
+                  "_Commit `\($sha)` · [Workflow run #\($run_num)](\($run_url))_"
+                ]
+              | join("\n")
+            ' > "$RUNNER_TEMP/ci-status-comment.md"
+
+    - name: Update CI status comment
+      uses: mshick/add-pr-comment@ec328af66588ab8f77cdeb2c264f14aba45bbf59 # v3.12.0
+      with:
+        message-id: camply-ci-status
+        message-path: ${{ runner.temp }}/ci-status-comment.md

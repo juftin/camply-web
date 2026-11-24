@@ -79,14 +79,41 @@ class DocumentationTests(unittest.TestCase):
         deploy = release["jobs"]["docs"]
         self.assertIn("ci", deploy["needs"])
         self.assertEqual(deploy["if"], "github.repository == 'juftin/camply-web'")
+        self.assertEqual(deploy["permissions"]["actions"], "read")
         self.assertEqual(deploy["permissions"]["pages"], "write")
         self.assertEqual(deploy["permissions"]["id-token"], "write")
         self.assertEqual(deploy["environment"]["name"], "github-pages")
         self.assertEqual(
             deploy["environment"]["url"], "${{ steps.deployment.outputs.page_url }}"
         )
+        build_step = next(
+            s for s in deploy["steps"] if s.get("run") == "task docs:build"
+        )
+        self.assertEqual(build_step["env"]["VITEPRESS_BASE"], "/camply-web/")
         publish = next(s for s in deploy["steps"] if s.get("id") == "deployment")
+        self.assertEqual(publish["uses"], "./.github/actions/github-pages")
         self.assertEqual(publish["with"]["path"], "build/docs")
+        action = yaml.safe_load(
+            (ROOT / ".github/actions/github-pages/action.yaml").read_text()
+        )
+        self.assertEqual(
+            action["outputs"]["page_url"]["value"],
+            "${{ steps.deployment.outputs.page_url }}",
+        )
+        action_steps = action["runs"]["steps"]
+        upload_idx = next(
+            i for i, s in enumerate(action_steps) if s.get("id") == "upload"
+        )
+        wait_idx = next(
+            i
+            for i, s in enumerate(action_steps)
+            if "artifacts?name=github-pages" in s.get("run", "")
+        )
+        deploy_idx = next(
+            i for i, s in enumerate(action_steps) if s.get("id") == "deployment"
+        )
+        self.assertLess(upload_idx, wait_idx)
+        self.assertLess(wait_idx, deploy_idx)
         ci = yaml.safe_load((ROOT / ".github/workflows/ci.yaml").read_text())
         tasks = [
             item.get("task")
@@ -231,6 +258,19 @@ class DocumentationTests(unittest.TestCase):
             "has-active", pages["technical/index.html"]["Technical & Architectural"]
         )
         self.assertIn("has-active", pages["reference.html"]["Technical Reference"])
+
+    @unittest.skipUnless(
+        (ROOT / "build/docs/index.html").exists(), "Run task docs:build first"
+    )
+    def test_standalone_build_omits_back_to_app(self) -> None:
+        """Standalone documentation builds hide the Back to camply navigation controls."""
+        html = (ROOT / "build/docs/index.html").read_text(encoding="utf-8")
+        self.assertNotIn("Back to camply", html)
+        self.assertNotIn("nav-back-button", html)
+        self.assertNotIn("sidebar-back-link", html)
+        self.assertNotIn("mobile-back-button", html)
+        vite_config = (ROOT / "src/frontend/vite.config.ts").read_text(encoding="utf-8")
+        self.assertIn('process.env.CAMPLY_DOCS_EMBEDDED = "1"', vite_config)
 
     @unittest.skipUnless(
         (ROOT / "build/docs/index.html").exists(), "Run task docs:build first"

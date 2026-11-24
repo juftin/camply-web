@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+
+name: Deploy to GitHub Pages
+description: Upload a built site and deploy it to GitHub Pages
+
+inputs:
+  path:
+    description: Directory to publish
+    required: true
+
+outputs:
+  page_url:
+    description: URL of the deployed site
+    value: ${{ steps.deployment.outputs.page_url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Configure Pages
+      uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+    - name: Upload Pages artifact
+      id: upload
+      uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+      with:
+        path: ${{ inputs.path }}
+
+    - name: Wait for Pages artifact
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        ARTIFACT_ID: ${{ steps.upload.outputs.artifact_id }}
+      run: |
+        for _ in $(seq 1 15); do
+          if gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?name=github-pages" \
+            --jq ".artifacts | any(.id == (${ARTIFACT_ID:-0} | tonumber))" 2>/dev/null | grep -qx true; then
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "::warning::Timed out waiting for github-pages artifact ${ARTIFACT_ID} to appear in Actions API; attempting deployment anyway."
+
+    - name: Deploy to Pages
+      id: deployment
+      uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

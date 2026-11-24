@@ -200,6 +200,13 @@ tasks:
     cmds:
       - task: frontend:snapshot:update
 
+  snapshot:docker:
+    summary: Run UI Visual Snapshots in the CI Playwright Docker container (e.g. -- --update or -- --check)
+    cmds:
+      - task: frontend:snapshot:docker
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
   snapshot:report:
     summary: Generate a before/after gallery linked to saved screenshots
     cmds:

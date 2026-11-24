@@ -1,4 +1,8 @@
-import { defineConfig } from "vitepress";
+import { defineConfig, type DefaultTheme } from "vitepress";
+
+interface CamplyThemeConfig extends DefaultTheme.Config {
+  showBackToApp?: boolean;
+}
 
 const sidebar = [
   {
@@ -93,8 +97,9 @@ function normalizeBase(rawBase: string | undefined): string {
 }
 
 const base = normalizeBase(process.env.VITEPRESS_BASE);
+const showBackToApp = process.env.CAMPLY_DOCS_EMBEDDED === "1";
 
-export default defineConfig({
+export default defineConfig<CamplyThemeConfig>({
   title: "camply docs",
   description: "Find a campsite. Get notified when a stay opens up.",
   base,
@@ -128,6 +133,7 @@ export default defineConfig({
     ],
   ],
   themeConfig: {
+    showBackToApp,
     logo: {
       light: "/branding/camply-horizontal.svg",
       dark: "/branding/camply-horizontal-dark.svg",

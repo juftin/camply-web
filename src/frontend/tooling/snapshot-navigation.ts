@@ -1,5 +1,45 @@
 import type { Page } from "@playwright/test";
 
+/** Wait for visible MapLibre maps to finish loading and painting raster tiles. */
+async function waitForRenderedMaps(page: Page): Promise<void> {
+  const hasVisibleTrackedMap = await page.evaluate(() =>
+    Array.from(
+      document.querySelectorAll<HTMLElement>(".camply-map[data-map-idle]"),
+    ).some((element) => {
+      const style = getComputedStyle(element);
+      return (
+        element.getClientRects().length > 0 &&
+        style.visibility !== "hidden" &&
+        style.visibility !== "collapse"
+      );
+    }),
+  );
+  if (!hasVisibleTrackedMap) return;
+  await page.waitForFunction(
+    () =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>(".camply-map[data-map-idle]"),
+      )
+        .filter((element) => {
+          const style = getComputedStyle(element);
+          return (
+            element.getClientRects().length > 0 &&
+            style.visibility !== "hidden" &&
+            style.visibility !== "collapse"
+          );
+        })
+        .every((element) => element.dataset.mapIdle === "true"),
+    undefined,
+    { timeout: 10000 },
+  );
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+}
+
 /** Decode layout images before capture without waiting for unrelated requests. */
 export async function waitForSnapshotAssets(page: Page): Promise<void> {
   await page.evaluate(() => {
@@ -55,6 +95,7 @@ export async function waitForSnapshotAssets(page: Page): Promise<void> {
         .map((image) => image.decode()),
     );
   });
+  await waitForRenderedMaps(page);
 }
 
 /** Wait for map snapshot content without depending on background network traffic. */
@@ -95,4 +136,5 @@ export async function navigateToSnapshot(
   await page
     .getByText("Updating map locations…", { exact: true })
     .waitFor({ state: "hidden" });
+  await waitForRenderedMaps(page);
 }

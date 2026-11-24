@@ -25,6 +25,7 @@ jobs:
   ci:
     name: ci
     permissions:
+      actions: read
       contents: read
       id-token: write
       pull-requests: write
@@ -37,6 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
+      actions: read
       contents: read
       pages: write
       id-token: write
@@ -52,10 +54,12 @@ jobs:
       - name: frontend - setup toolchain
         uses: ./.github/actions/setup-frontend
       - name: docs - build documentation
+        env:
+          VITEPRESS_BASE: /camply-web/
         run: task docs:build
       - name: pages - publish to github pages
         id: deployment
-        uses: juftin/actions/github-pages@5a54b64fe07d8de40f92676cae6b56c565ec28b2 # v1.4.0
+        uses: ./.github/actions/github-pages
         with:
           path: build/docs
 
@@ -88,16 +92,8 @@ jobs:
           permission-contents: write
           # Moving major tags across workflow changes requires this permission.
           permission-workflows: write
-      - name: node - setup node runtime
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: lts/*
-      - name: npm - install npm 10 for semantic release lockfile compatibility
-        # Match the shared action's Node installation so it retains npm 10.
-        # npm 11 rejects the shared action's release lockfile.
-        run: npm install --global npm@10.9.9
       - name: release - execute semantic release
-        uses: juftin/actions/semantic-release@5a54b64fe07d8de40f92676cae6b56c565ec28b2 # v1.4.0
+        uses: ./.github/actions/semantic-release
         with:
           github_token: ${{ steps.app-token.outputs.token }}
       - name: release - report whether release was published

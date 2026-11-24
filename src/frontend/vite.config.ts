@@ -19,12 +19,20 @@ function syncRootBuild(): Plugin {
     async closeBundle() {
       const root = path.resolve(import.meta.dirname, "../..");
       const { build } = await import("vitepress");
+      const previousEmbedded = process.env.CAMPLY_DOCS_EMBEDDED;
+      process.env.CAMPLY_DOCS_EMBEDDED = "1";
       try {
         await build(path.resolve(root, "docs"));
       } catch (error) {
         throw new Error("Docs build failed; the app bundle is incomplete.", {
           cause: error,
         });
+      } finally {
+        if (previousEmbedded === undefined) {
+          delete process.env.CAMPLY_DOCS_EMBEDDED;
+        } else {
+          process.env.CAMPLY_DOCS_EMBEDDED = previousEmbedded;
+        }
       }
       fs.cpSync(path.join(root, "build/docs"), path.join(output, "docs"), {
         recursive: true,
@@ -132,5 +140,26 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: [path.resolve(import.meta.dirname, "test/setup.ts")],
     testTimeout: 10000,
+    coverage: {
+      include: ["**/*.{ts,tsx}"],
+      exclude: [
+        "**/*.{test,spec,d}.ts?(x)",
+        "**/*.config.ts",
+        "dist/**",
+        "**/generated/**",
+        "test/**",
+        "tooling/**",
+      ],
+      reportsDirectory: path.resolve(
+        import.meta.dirname,
+        "../../tmp/ci-reports/coverage",
+      ),
+      reporter: [
+        "text-summary",
+        "html",
+        ["cobertura", { file: "coverage.xml" }],
+      ],
+      reportOnFailure: true,
+    },
   },
 });

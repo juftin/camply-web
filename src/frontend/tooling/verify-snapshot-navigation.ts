@@ -29,7 +29,7 @@ async function main(): Promise<void> {
         body: `<!doctype html><div id="root"></div><script>
           fetch('/background');
           setTimeout(() => {
-            document.querySelector('#root').innerHTML = '<main aria-busy="true"><section aria-label="Search results"></section></main><div class="camply-map"><canvas></canvas></div><p role="status">Loading map…</p><p role="status">Updating map locations…</p>';
+            document.querySelector('#root').innerHTML = '<main aria-busy="true"><section aria-label="Search results"></section></main><div class="camply-map" data-map-idle="false"><canvas></canvas></div><p role="status">Loading map…</p><p role="status">Updating map locations…</p>';
           }, 100);
           setTimeout(() => {
             document.querySelector('main').setAttribute('aria-busy', 'false');
@@ -39,6 +39,9 @@ async function main(): Promise<void> {
             document.querySelector('.camply-map').innerHTML += '<button class="camply-map-marker">3 places</button>';
             document.querySelectorAll('[role="status"]').forEach(element => element.remove());
           }, 350);
+          setTimeout(() => {
+            document.querySelector('.camply-map').setAttribute('data-map-idle', 'true');
+          }, 500);
         </script>`,
       }),
     );
@@ -47,6 +50,20 @@ async function main(): Promise<void> {
     // Immediate assertions ensure navigation waited for the delayed UI.
     assert.equal(await page.locator("main").getAttribute("aria-busy"), "false");
     assert.equal(await page.locator(".camply-map-marker").count(), 1);
+    assert.equal(
+      await page.locator(".camply-map").getAttribute("data-map-idle"),
+      "true",
+    );
+    await page.evaluate(() => {
+      const map = document.querySelector(".camply-map");
+      map?.setAttribute("data-map-idle", "false");
+      setTimeout(() => map?.setAttribute("data-map-idle", "true"), 150);
+    });
+    await waitForSnapshotAssets(page);
+    assert.equal(
+      await page.locator(".camply-map").getAttribute("data-map-idle"),
+      "true",
+    );
     await expect(
       page.getByRole("region", { name: "Search results" }),
     ).toHaveText("Upper Pines Campground");

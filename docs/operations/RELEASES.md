@@ -2,11 +2,11 @@
 
 CI, semantic-release, container image, Helm chart, PyPI, and documentation publishing pipeline for `camply-web`.
 
-Releases use the Gitmoji/semantic-release infrastructure from [cookiecutter-python](https://github.com/juftin/cookiecutter-python), with [juftin/actions/semantic-release](https://github.com/juftin/actions/tree/v1.4.0/semantic-release) pinned to v1.4.0. The workflow pins npm 10.9.9 because npm 11 rejects that action's lockfile; its dependency installation and registry signature verification have been verified with npm 10.
+The release workflow uses the repository's `.github/actions/semantic-release` action. The action installs its own locked dependencies and verifies npm registry signatures using the Node runtime from `setup-frontend`. The root `package.json` defines the release branches and Gitmoji plugins.
 
 ## Flow
 
-Every push to `main` starts `.github/workflows/release.yaml`. It calls the entire existing CI workflow, including lint, types, tests, OpenAPI drift, live smoke checks, snapshot gallery verification, visual snapshots, and Docker builds. After all checks succeed, semantic-release analyzes commits and creates a release when appropriate. Publication runs only in `juftin/camply-web`; pull requests and manually dispatched CI runs only validate changes.
+Every push to `main` starts `.github/workflows/release.yaml`. It calls the entire CI workflow, including lint, types, tests, OpenAPI drift, live smoke checks, snapshot gallery verification, visual snapshots, and Docker builds. CI jobs check out the repository before calling `.github/actions/taskfile`. After all checks succeed, semantic-release analyzes commits and creates a release when appropriate. Publication runs only in `juftin/camply-web`. Pull requests and manually dispatched CI runs validate changes.
 
 `.github/workflows/publish.yaml` listens for native `release: published` events. It validates the stable full-version tag, checks out that exact tag, stamps the application version, and publishes the shared `camply-web` image, the versioned `camply-web` Helm chart, and the `camply-web` Python package on PyPI. When semantic-release finishes without a release, `release.yaml` calls this same publisher at the successful main SHA to update the SHA and `latest` image/chart tags. Release-producing commits build images once, through the release event. The exec success hook writes a runner-local marker used to skip the main fallback.
 
@@ -26,6 +26,14 @@ flowchart LR
     Main --> Latest[SHA and latest images]
     Latest --> MainCharts[SHA and latest OCI charts]
 ```
+
+## CI test reports
+
+Open the workflow run's **Summary** from the pull request's **Checks** tab or the repository's **Actions** tab. Backend Python, backend packaging, and frontend test jobs publish JUnit test summaries and failure annotations via `mikepenz/action-junit-report`.
+
+The **Artifacts** list provides downloadable JUnit reports for each Python version, backend packaging, and frontend tests, even when tests fail or run on fork pull requests. The frontend artifact includes a browsable HTML coverage report (`coverage/index.html`) alongside Cobertura XML (`coverage/coverage.xml`). On same-repository pull requests, CI posts and updates matching coverage and test-count comments for both backend (Python 3.13) and frontend via `MishaKav/pytest-coverage-comment`, plus a live CI status comment (`mshick/add-pr-comment`) that updates across workflow stages.
+
+Run `CI=true task frontend:test` or `CI=true task backend:test` locally to produce the corresponding reports in `tmp/ci-reports`. The **frontend - Pages integration** check exercises the built frontend and its API proxy against a local stand-in backend.
 
 The release preparation hook runs `task release:prepare RELEASE_VERSION=1.2.3` and `task dist`. Preparation stamps the `camply-web` backend distribution, updates `uv.lock`, and sets the frontend package version. Those changes exist only in the runner; development version files remain unchanged in Git. The publisher repeats version preparation at the full release tag so installed application metadata matches the image version. Tags identify the exact source commit.
 
@@ -60,7 +68,7 @@ hosting, rollout, and database migrations remain separate operator tasks.
 
 Every frontend and Python distribution build includes the documentation in the static bundle under `/docs/`, linked from the app footer. VitePress generates the site during frontend compilation; deployed Python and Nginx instances serve the prepared HTML, search index, and assets without it. The primary documentation URL is <https://camply.rocks/docs/>.
 
-The main-branch workflow also publishes a GitHub Pages mirror after CI succeeds, independently of whether semantic-release creates an application release. It builds with `task docs:build` and publishes `build/docs` with the pinned `juftin/actions/github-pages` action, following [cookiecutter-python](https://github.com/juftin/cookiecutter-python/blob/main/.github/workflows/release.yaml). Pull requests build and verify the site with `task docs:check`.
+The main-branch workflow also publishes a GitHub Pages mirror after CI succeeds, independently of whether semantic-release creates an application release. It builds with `task docs:build` and publishes `build/docs` with the repository's `.github/actions/github-pages` action. Pull requests build and verify the site with `task docs:check`.
 
 The mirror is available at <https://juftin.com/camply-web/>. Before its first deployment, a repository administrator must select **Settings → Pages → Build and deployment → Source: GitHub Actions**. Publishing uses the `github-pages` environment and job-scoped `pages: write` / `id-token: write` permissions with the standard `GITHUB_TOKEN`; no extra secret is needed. If setup is missing, enable Pages and rerun the failed documentation job. The app's bundled docs require no Pages configuration.
 
@@ -75,7 +83,7 @@ The default [semantic-release-gitmoji rules](https://github.com/momocow/semantic
 | 🐛 / `:bug:`, 🚑 / `:ambulance:`, 🔒 / `:lock:`     | Patch                    |
 | Documentation, tests, CI changes, and other Gitmoji | No release by themselves |
 
-The highest bump wins. Squash-merged PR titles must retain the appropriate Gitmoji. With no existing release tags, the first qualifying release is **1.0.0**, regardless of the development package versions. Subsequent full-version Git tags are `v1.0.1`, `v1.1.0`, etc. After release success, [semantic-release-major-tag](https://github.com/doteric/semantic-release-major-tag), already bundled with the shared action, creates or updates the matching Git alias (`v1`, `v2`, etc.) to the released commit. Only stable releases on `main` are configured; the plugin's default behavior excludes prereleases.
+The highest bump wins. Squash-merged PR titles must retain the appropriate Gitmoji. With no existing release tags, the first qualifying release is **1.0.0**, regardless of the development package versions. Subsequent full-version Git tags are `v1.0.1`, `v1.1.0`, etc. After a stable release on `main`, [semantic-release-major-tag](https://github.com/doteric/semantic-release-major-tag) creates or updates the matching Git alias (`v1`, `v2`, etc.) to the released commit.
 
 ## Images
 
