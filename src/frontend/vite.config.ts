@@ -17,26 +17,28 @@ function syncRootBuild(): Plugin {
         config.build.outDir === path.resolve(import.meta.dirname, "dist");
     },
     async closeBundle() {
-      const root = path.resolve(import.meta.dirname, "../..");
-      const { build } = await import("vitepress");
-      const previousEmbedded = process.env.CAMPLY_DOCS_EMBEDDED;
-      process.env.CAMPLY_DOCS_EMBEDDED = "1";
-      try {
-        await build(path.resolve(root, "docs"));
-      } catch (error) {
-        throw new Error("Docs build failed; the app bundle is incomplete.", {
-          cause: error,
-        });
-      } finally {
-        if (previousEmbedded === undefined) {
-          delete process.env.CAMPLY_DOCS_EMBEDDED;
-        } else {
-          process.env.CAMPLY_DOCS_EMBEDDED = previousEmbedded;
+      if (process.env.CAMPLY_SKIP_DOCS_BUILD !== "1") {
+        const root = path.resolve(import.meta.dirname, "../..");
+        const { build } = await import("vitepress");
+        const previousEmbedded = process.env.CAMPLY_DOCS_EMBEDDED;
+        process.env.CAMPLY_DOCS_EMBEDDED = "1";
+        try {
+          await build(path.resolve(root, "docs"));
+        } catch (error) {
+          throw new Error("Docs build failed; the app bundle is incomplete.", {
+            cause: error,
+          });
+        } finally {
+          if (previousEmbedded === undefined) {
+            delete process.env.CAMPLY_DOCS_EMBEDDED;
+          } else {
+            process.env.CAMPLY_DOCS_EMBEDDED = previousEmbedded;
+          }
         }
+        fs.cpSync(path.join(root, "build/docs"), path.join(output, "docs"), {
+          recursive: true,
+        });
       }
-      fs.cpSync(path.join(root, "build/docs"), path.join(output, "docs"), {
-        recursive: true,
-      });
       if (!isDistBuild) return;
       const dist = path.resolve(import.meta.dirname, "dist");
       if (fs.existsSync(dist)) {

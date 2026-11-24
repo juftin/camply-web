@@ -108,7 +108,25 @@ tasks:
     status:
       - test -d "${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
     cmds:
-      - pnpm exec playwright install --with-deps chromium
+      - pnpm exec playwright install chromium
+      - task: browser:deps
+    deps: [install]
+
+  browser:deps:
+    summary: Install Linux system dependencies for Chromium when shared libraries are missing
+    cmds:
+      - cmd: |
+          if [ "$(uname -s)" = "Linux" ]; then
+            browsers_dir="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
+            if ! command -v ldd >/dev/null 2>&1 \
+              || [ -z "$(find "$browsers_dir" -maxdepth 4 -type f \( -name chrome -o -name chrome-headless-shell \) 2>/dev/null)" ] \
+              || ! ldd_out="$(find "$browsers_dir" -maxdepth 4 -type f \( -name chrome -o -name chrome-headless-shell \) -exec ldd {} + 2>&1)" \
+              || printf '%s\n' "$ldd_out" | grep "not found" >/dev/null; then
+              pnpm exec playwright install-deps chromium
+            else
+              echo "All Chromium shared libraries are already installed; skipping playwright install-deps."
+            fi
+          fi
     deps: [install]
 
   snapshot:docker:
