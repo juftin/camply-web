@@ -146,6 +146,26 @@ async def test_windows_pagination_and_exact_status(
 
 
 @pytest.mark.asyncio
+async def test_campsite_listing_uses_supported_grid(
+    provider: ReserveAmericaProvider,
+) -> None:
+    """List site metadata with the supported grid length and no availability dates."""
+
+    def handler(req: httpx2.Request) -> httpx2.Response:
+        if req.url.path == "/explore/search-results":
+            return httpx2.Response(200)
+        assert req.url.path == "/jaxrs-json/products/CO/1"
+        assert req.url.params["gal"] == "14"
+        return httpx2.Response(200, json=page([site()]))
+
+    install_http(provider, handler)
+    results = await provider.list_campsites("CO_1")
+    assert [(result.campsite_id, result.available_dates) for result in results] == [
+        ("CO_1_42", [])
+    ]
+
+
+@pytest.mark.asyncio
 async def test_auth_refresh(provider: ReserveAmericaProvider) -> None:
     """Expired anonymous tokens refresh once and are URL decoded for A1Data."""
     boots = 0

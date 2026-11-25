@@ -351,6 +351,16 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Pass full test and quality workflows, including a final backend rerun after independent-review fixes.
 - [x] Keep provider extension methods public: `search_upstream` is the abstract discovery contract.
 
+### Provider availability cassettes (034)
+
+- [x] Add strict offline replay for 40 confirmed searches across 20 providers, with provider-specific equipment cases and a [single-scenario refresh guide](development/PROVIDER_CASSETTES.md).
+- [ ] Record the 12 remaining searches once the six deferred providers have bookable inventory and enable strict coverage for all 26 providers. See the [seasonal recording TODOs](specs/034-provider-availability-cassettes/tasks.md#seasonal-recording-todos).
+
+### Provider metadata cassettes (035)
+
+- [x] Add recorded discovery, enrichment, catalog sync, and campsite listing coverage for the supported provider families. Document [metadata fixture refresh](development/PROVIDER_CASSETTES.md#metadata-recordings).
+- [x] Verify recreation-area expansion excludes recorded facilities without online booking, and replay staged RIDB archives through both enrichment and catalog sync before replacement.
+
 ### Dependency Maintenance
 
 - [x] Consolidate verified Renovate dependency upgrades into a single release PR, excluding risky or incompatible upgrades (Python 3.15, Postgres 18, React 19, Tailwind CSS v4, TypeScript 7, Lucide React 1.x, @types/node 26, and major Redis/Hookform bumps).

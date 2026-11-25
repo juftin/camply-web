@@ -144,7 +144,7 @@ class ReserveAmericaProvider(BaseProvider):
         probe_day = datetime.now(tz=timezone.utc).date() + timedelta(days=1)
         records = await self._pages(
             f"products/{contract}/{facility}",
-            {"gad": probe_day.isoformat(), "gal": 1},
+            {"gad": probe_day.isoformat(), "gal": _GRID_DAYS},
             Site,
         )
         unique: dict[int, Site] = {}

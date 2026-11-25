@@ -1,0 +1,47 @@
+interactions:
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://azstateparks.com/reserve/images/Arizona/ParkImages/Facility/64.jpg
+    response:
+      body:
+        string: ""
+      headers:
+        content-type:
+          - text/html
+      status:
+        code: 404
+        message: Not Found
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://azrdr.usedirect.com/azrdr/rdr/fd/placeinfo/additional-place-info/13
+    response:
+      body:
+        string:
+          '{"PlaceId":13,"Website":"https://azstateparks.com/lost-dutchman/","ParkHeadquartersHours":"6
+          a.m. to 8 p.m. daily","DayUseParkHours":"","BackCountyTrailCampOfficeHours":null,"TrailerMaxLength":"0","CamperMotorHomeMaxLength":"172","DisplayMaxTrailerLengthOnWeb":true}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://azstateparks.com/reserve/images/Arizona/ParkImages/Place/13.jpg
+    response:
+      body:
+        string: !!binary |
+          /9j/4R/GRXhpZgAASUkqAAgAAAAPAAABAwABAAAAgAc=
+      headers:
+        content-type:
+          - image/jpeg
+      status:
+        code: 200
+        message: OK
+version: 1

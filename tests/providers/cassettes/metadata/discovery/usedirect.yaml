@@ -1,0 +1,145 @@
+interactions:
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://california-rdr.prod.cali.rd12.recreation-management.tylerapp.com/rdr/fd/places
+    response:
+      body:
+        string:
+          '[{"PlaceId":690,"Name":"Pfeiffer Big Sur SP","Description":"Pfeiffer
+          Big Sur State Park","City":"BIG SUR","State":"CA","Latitude":36.25305556,"Longitude":-121.7811111,"AllowWebBooking":true,"IsWebViewable":true}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://california-rdr.prod.cali.rd12.recreation-management.tylerapp.com/rdr/fd/facilities
+    response:
+      body:
+        string:
+          '[{"FacilityId":609,"PlaceId":690,"Name":"Group Sites A & B","Description":"Group
+          Sites A & B","AllowWebBooking":false},{"FacilityId":611,"PlaceId":690,"Name":"South
+          Camp (sites 1-78)","Description":"South Camp (sites 1-78)","AllowWebBooking":true},{"FacilityId":612,"PlaceId":690,"Name":"Weyland
+          Camp (sites 79-130)","Description":"Weyland Camp (sites 79-130)","AllowWebBooking":true},{"FacilityId":767,"PlaceId":690,"Name":"Main
+          Camp (sites 131-188)","Description":"Main Camp (sites 131-188)","AllowWebBooking":true},{"FacilityId":2092,"PlaceId":690,"Name":"Day
+          Use Lot 3","Description":"Day Use Lot 3","AllowWebBooking":false},{"FacilityId":2093,"PlaceId":690,"Name":"Day
+          Use Lot 4","Description":"Day Use Lot 4","AllowWebBooking":false}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://california-rdr.prod.cali.rd12.recreation-management.tylerapp.com/rdr/fd/places
+    response:
+      body:
+        string:
+          '[{"PlaceId":690,"Name":"Pfeiffer Big Sur SP","Description":"Pfeiffer
+          Big Sur State Park","City":"BIG SUR","State":"CA","Latitude":36.25305556,"Longitude":-121.7811111,"AllowWebBooking":true,"IsWebViewable":true}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://california-rdr.prod.cali.rd12.recreation-management.tylerapp.com/rdr/fd/facilities
+    response:
+      body:
+        string:
+          '[{"FacilityId":609,"PlaceId":690,"Name":"Group Sites A & B","Description":"Group
+          Sites A & B","AllowWebBooking":false},{"FacilityId":611,"PlaceId":690,"Name":"South
+          Camp (sites 1-78)","Description":"South Camp (sites 1-78)","AllowWebBooking":true},{"FacilityId":612,"PlaceId":690,"Name":"Weyland
+          Camp (sites 79-130)","Description":"Weyland Camp (sites 79-130)","AllowWebBooking":true},{"FacilityId":767,"PlaceId":690,"Name":"Main
+          Camp (sites 131-188)","Description":"Main Camp (sites 131-188)","AllowWebBooking":true},{"FacilityId":2092,"PlaceId":690,"Name":"Day
+          Use Lot 3","Description":"Day Use Lot 3","AllowWebBooking":false},{"FacilityId":2093,"PlaceId":690,"Name":"Day
+          Use Lot 4","Description":"Day Use Lot 4","AllowWebBooking":false}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://california-rdr.prod.cali.rd12.recreation-management.tylerapp.com/rdr/fd/places
+    response:
+      body:
+        string:
+          '[{"PlaceId":690,"Name":"Pfeiffer Big Sur SP","Description":"Pfeiffer
+          Big Sur State Park","City":"BIG SUR","State":"CA","Latitude":36.25305556,"Longitude":-121.7811111,"AllowWebBooking":true,"IsWebViewable":true}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://california-rdr.prod.cali.rd12.recreation-management.tylerapp.com/rdr/fd/places
+    response:
+      body:
+        string:
+          '[{"PlaceId":690,"Name":"Pfeiffer Big Sur SP","Description":"Pfeiffer
+          Big Sur State Park","City":"BIG SUR","State":"CA","Latitude":36.25305556,"Longitude":-121.7811111,"AllowWebBooking":true,"IsWebViewable":true}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://california-rdr.prod.cali.rd12.recreation-management.tylerapp.com/rdr/fd/places
+    response:
+      body:
+        string:
+          '[{"PlaceId":690,"Name":"Pfeiffer Big Sur SP","Description":"Pfeiffer
+          Big Sur State Park","City":"BIG SUR","State":"CA","Latitude":36.25305556,"Longitude":-121.7811111,"AllowWebBooking":true,"IsWebViewable":true}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://california-rdr.prod.cali.rd12.recreation-management.tylerapp.com/rdr/fd/facilities
+    response:
+      body:
+        string:
+          '[{"FacilityId":609,"PlaceId":690,"Name":"Group Sites A & B","Description":"Group
+          Sites A & B","AllowWebBooking":false},{"FacilityId":611,"PlaceId":690,"Name":"South
+          Camp (sites 1-78)","Description":"South Camp (sites 1-78)","AllowWebBooking":true},{"FacilityId":612,"PlaceId":690,"Name":"Weyland
+          Camp (sites 79-130)","Description":"Weyland Camp (sites 79-130)","AllowWebBooking":true},{"FacilityId":767,"PlaceId":690,"Name":"Main
+          Camp (sites 131-188)","Description":"Main Camp (sites 131-188)","AllowWebBooking":true},{"FacilityId":2092,"PlaceId":690,"Name":"Day
+          Use Lot 3","Description":"Day Use Lot 3","AllowWebBooking":false},{"FacilityId":2093,"PlaceId":690,"Name":"Day
+          Use Lot 4","Description":"Day Use Lot 4","AllowWebBooking":false}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+version: 1

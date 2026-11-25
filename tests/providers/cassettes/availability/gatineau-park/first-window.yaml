@@ -1,0 +1,250 @@
+interactions:
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://reservations.ncc-ccn.gc.ca/api/resourceLocation
+    response:
+      body:
+        string: '[{"resourceLocationId":-2147483647,"transactionLocationId":-2147483647,"rootMapId":-2147483636,"region":"Qu\u00e9bec","country":"Canada","resourceCategoryIds":[-2147483647,-2147483644,-2147483646,-2147483648,-2147483645],"localizedValues":[{"cultureName":"en-CA","shortName":"Winter","fullName":"Winter","city":"Sainte-C\u00e9cile-de-Masham"},{"cultureName":"fr-CA","shortName":"Hiver","fullName":"Hiver","city":"Sainte-C\u00e9cile-de-Masham"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://reservations.ncc-ccn.gc.ca/api/bookingcategories
+    response:
+      body:
+        string:
+          '[{"bookingCategoryId":3,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483644],"localizedValues":[{"cultureName":"en-CA","name":"Winter
+          Group Campsites"},{"cultureName":"fr-CA","name":"Camping de groupe d''hiver"}]},{"bookingCategoryId":0,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483648],"localizedValues":[{"cultureName":"en-CA","name":"Winter
+          Campsites"},{"cultureName":"fr-CA","name":"Camping d''hiver"}]},{"bookingCategoryId":2,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483643],"localizedValues":[{"cultureName":"en-CA","name":"Canoe
+          Camping"},{"cultureName":"fr-CA","name":"Canot-camping"}]},{"bookingCategoryId":4,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483642,-2147483641],"localizedValues":[{"cultureName":"en-CA","name":"Summer
+          Campsites"},{"cultureName":"fr-CA","name":"Camping d''\u00e9t\u00e9"}]},{"bookingCategoryId":5,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483640],"localizedValues":[{"cultureName":"en-CA","name":"Summer
+          Group Campsites"},{"cultureName":"fr-CA","name":"Camping de groupe d''\u00e9t\u00e9"}]},{"bookingCategoryId":1,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483647,-2147483646,-2147483645,-2147483636],"localizedValues":[{"cultureName":"en-CA","name":"Ready-to-Camp
+          Units"},{"cultureName":"fr-CA","name":"Pr\u00eat-\u00e0-camper"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://reservations.ncc-ccn.gc.ca/api/resourcecategory
+    response:
+      body:
+        string:
+          '[{"resourceCategoryId":-2147483645,"resourceType":0,"localizedValues":[{"cultureName":"en-CA","name":"Cabin"},{"cultureName":"fr-CA","name":"Refuge"}]},{"resourceCategoryId":-2147483642,"resourceType":0,"localizedValues":[{"cultureName":"en-CA","name":"Overflow"},{"cultureName":"fr-CA","name":"Camping
+          d''appoint"}]},{"resourceCategoryId":-2147483647,"resourceType":0,"localizedValues":[{"cultureName":"en-CA","name":"Four
+          Season Tent"},{"cultureName":"fr-CA","name":"Tente 4 saisons"}]},{"resourceCategoryId":-2147483646,"resourceType":0,"localizedValues":[{"cultureName":"en-CA","name":"Yurt"},{"cultureName":"fr-CA","name":"Yourte"}]},{"resourceCategoryId":-2147483641,"resourceType":0,"localizedValues":[{"cultureName":"en-CA","name":"Campsite"},{"cultureName":"fr-CA","name":"Emplacement
+          de camping"}]},{"resourceCategoryId":-2147483648,"resourceType":0,"localizedValues":[{"cultureName":"en-CA","name":"Winter
+          Campsite"},{"cultureName":"fr-CA","name":"Emplacement de camping d''hiver"}]},{"resourceCategoryId":-2147483640,"resourceType":0,"localizedValues":[{"cultureName":"en-CA","name":"Group
+          Campsite"},{"cultureName":"fr-CA","name":"Camping de groupe"}]},{"resourceCategoryId":-2147483644,"resourceType":0,"localizedValues":[{"cultureName":"en-CA","name":"Winter
+          Group Campsite"},{"cultureName":"fr-CA","name":"Camping de groupe d''hiver"}]},{"resourceCategoryId":-2147483643,"resourceType":0,"localizedValues":[{"cultureName":"en-CA","name":"Canoe
+          Camping"},{"cultureName":"fr-CA","name":"Canot-camping"}]},{"resourceCategoryId":-2147483636,"resourceType":0,"localizedValues":[{"cultureName":"en-CA","name":"Mini-Chalet"},{"cultureName":"fr-CA","name":"Mini-Chalet"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://reservations.ncc-ccn.gc.ca/api/equipment
+    response:
+      body:
+        string:
+          '[{"equipmentCategoryId":-32768,"localizedValues":[{"cultureName":"en-CA","name":"Equipment"},{"cultureName":"fr-CA","name":"\u00c9quipement"}],"subEquipmentCategories":[{"subEquipmentCategoryId":-32768,"localizedValues":[{"cultureName":"en-CA","name":"Tent"},{"cultureName":"fr-CA","name":"Tente"}]},{"subEquipmentCategoryId":-32767,"localizedValues":[{"cultureName":"en-CA","name":"Trailer
+          up to 6.5m"},{"cultureName":"fr-CA","name":"Roulotte / v\u00e9hicule r\u00e9cr\u00e9atif de moins de 6,5 m\u00e8tres"}]},{"subEquipmentCategoryId":-32766,"localizedValues":[{"cultureName":"en-CA","name":"Trailer/Motorhome
+          over 6.5m"},{"cultureName":"fr-CA","name":"Roulotte / v\u00e9hicule r\u00e9cr\u00e9atif de plus de 6,5 m\u00e8tres"}]}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://reservations.ncc-ccn.gc.ca/api/attribute/filterable
+    response:
+      body:
+        string:
+          '{"-32737":{"attributeDefinitionId":-32737,"localizedValues":[{"cultureName":"en-CA","displayName":"Distance
+          from Parking (m)"},{"cultureName":"fr-CA","displayName":"Distance du stationnement (m)"}]},"-32741":{"attributeDefinitionId":-32741,"localizedValues":[{"cultureName":"en-CA","displayName":"Maximum
+          Tents"},{"cultureName":"fr-CA","displayName":"Capacit\u00e9 maximale (tentes)"}]},"-32768":{"attributeDefinitionId":-32768,"localizedValues":[{"cultureName":"en-CA","displayName":"Service
+          Type"},{"cultureName":"fr-CA","displayName":"Type de service"}],"values":[{"enumValue":0,"localizedValues":[{"cultureName":"en-CA","displayName":"Walk-in"},{"cultureName":"fr-CA","displayName":"Acc\u00e8s
+          pietonnier"}]},{"enumValue":1,"localizedValues":[{"cultureName":"en-CA","displayName":"Unserviced"},{"cultureName":"fr-CA","displayName":"Sans
+          service"}]},{"enumValue":2,"localizedValues":[{"cultureName":"en-CA","displayName":"Serviced"},{"cultureName":"fr-CA","displayName":"Avec
+          service"}]}]},"-32762":{"attributeDefinitionId":-32762,"localizedValues":[{"cultureName":"en-CA","displayName":"Privacy"},{"cultureName":"fr-CA","displayName":"Intimit\u00e9"}],"values":[{"enumValue":0,"localizedValues":[{"cultureName":"en-CA","displayName":"Isolated"},{"cultureName":"fr-CA","displayName":"Isol\u00e9"}]},{"enumValue":1,"localizedValues":[{"cultureName":"en-CA","displayName":"Semi-private"},{"cultureName":"fr-CA","displayName":"Semi-priv\u00e9"}]},{"enumValue":2,"localizedValues":[{"cultureName":"en-CA","displayName":"Minimal
+          Privacy"},{"cultureName":"fr-CA","displayName":"Peu isol\u00e9"}]}]},"-32752":{"attributeDefinitionId":-32752,"localizedValues":[{"cultureName":"en-CA","displayName":"Conditions"},{"cultureName":"fr-CA","displayName":"Conditions"}],"values":[{"enumValue":0,"localizedValues":[{"cultureName":"en-CA","displayName":"Noisy"},{"cultureName":"fr-CA","displayName":"Bruyant"}]},{"enumValue":1,"localizedValues":[{"cultureName":"en-CA","displayName":"Windy"},{"cultureName":"fr-CA","displayName":"Venteux"}]},{"enumValue":2,"localizedValues":[{"cultureName":"en-CA","displayName":"Poor
+          Drainage"},{"cultureName":"fr-CA","displayName":"Mauvais drainage"}]},{"enumValue":3,"localizedValues":[{"cultureName":"en-CA","displayName":"Above
+          Avg. Vehicular Traffic"},{"cultureName":"fr-CA","displayName":"Trafic automobile"}]},{"enumValue":4,"localizedValues":[{"cultureName":"en-CA","displayName":"Above
+          Avg. Pedestrian Traffic"},{"cultureName":"fr-CA","displayName":"Trafic pi\u00e9tonnier"}]},{"enumValue":5,"localizedValues":[{"cultureName":"en-CA","displayName":"Poison
+          Ivy"},{"cultureName":"fr-CA","displayName":"Herbe \u00e0 puce"}]},{"enumValue":6,"localizedValues":[{"cultureName":"en-CA","displayName":"Corner
+          Site"},{"cultureName":"fr-CA","displayName":"Emplacement en coin"}]},{"enumValue":7,"localizedValues":[{"cultureName":"en-CA","displayName":"Split
+          Level Site"},{"cultureName":"fr-CA","displayName":"Emplacement multi-niveaux"}]},{"enumValue":8,"localizedValues":[{"cultureName":"en-CA","displayName":"View
+          Site"},{"cultureName":"fr-CA","displayName":"Vue panoramique"}]},{"enumValue":9,"localizedValues":[{"cultureName":"en-CA","displayName":"Partial
+          View Site"},{"cultureName":"fr-CA","displayName":"Vue partielle"}]}]},"-32751":{"attributeDefinitionId":-32751,"localizedValues":[{"cultureName":"en-CA","displayName":"Ground
+          Cover"},{"cultureName":"fr-CA","displayName":"Base du sol"}],"values":[{"enumValue":0,"localizedValues":[{"cultureName":"en-CA","displayName":"Gravel"},{"cultureName":"fr-CA","displayName":"Gravier"}]},{"enumValue":1,"localizedValues":[{"cultureName":"en-CA","displayName":"Sand"},{"cultureName":"fr-CA","displayName":"Sable"}]},{"enumValue":2,"localizedValues":[{"cultureName":"en-CA","displayName":"Grass"},{"cultureName":"fr-CA","displayName":"Gazon"}]},{"enumValue":3,"localizedValues":[{"cultureName":"en-CA","displayName":"Gravel
+          and Grass"},{"cultureName":"fr-CA","displayName":"Gravier et gazon"}]},{"enumValue":4,"localizedValues":[{"cultureName":"en-CA","displayName":"Soil"},{"cultureName":"fr-CA","displayName":"Sol"}]},{"enumValue":5,"localizedValues":[{"cultureName":"en-CA","displayName":"Rocks"},{"cultureName":"fr-CA","displayName":"Roches"}]}]},"-32747":{"attributeDefinitionId":-32747,"localizedValues":[{"cultureName":"en-CA","displayName":"Stairs"},{"cultureName":"fr-CA","displayName":"Escaliers"}],"values":[{"enumValue":0,"localizedValues":[{"cultureName":"en-CA","displayName":"Yes"},{"cultureName":"fr-CA","displayName":"Oui"}]},{"enumValue":1,"localizedValues":[{"cultureName":"en-CA","displayName":"No"},{"cultureName":"fr-CA","displayName":"Non"}]}]},"-32746":{"attributeDefinitionId":-32746,"localizedValues":[{"cultureName":"en-CA","displayName":"Showers"},{"cultureName":"fr-CA","displayName":"Douches"}],"values":[{"enumValue":0,"localizedValues":[{"cultureName":"en-CA","displayName":"Yes"},{"cultureName":"fr-CA","displayName":"Oui"}]},{"enumValue":1,"localizedValues":[{"cultureName":"en-CA","displayName":"No"},{"cultureName":"fr-CA","displayName":"Non"}]}]},"-32745":{"attributeDefinitionId":-32745,"localizedValues":[{"cultureName":"en-CA","displayName":"Picnic
+          Table"},{"cultureName":"fr-CA","displayName":"Table de pique-nique"}],"values":[{"enumValue":0,"localizedValues":[{"cultureName":"en-CA","displayName":"Yes"},{"cultureName":"fr-CA","displayName":"Oui"}]},{"enumValue":1,"localizedValues":[{"cultureName":"en-CA","displayName":"No"},{"cultureName":"fr-CA","displayName":"Non"}]}]},"-32756":{"attributeDefinitionId":-32756,"localizedValues":[{"cultureName":"en-CA","displayName":"Firepit"},{"cultureName":"fr-CA","displayName":"Foyer"}],"values":[{"enumValue":0,"localizedValues":[{"cultureName":"en-CA","displayName":"Firepit"},{"cultureName":"fr-CA","displayName":"Foyer"}]},{"enumValue":1,"localizedValues":[{"cultureName":"en-CA","displayName":"Fire
+          Ring with Grill"},{"cultureName":"fr-CA","displayName":"Trou de feu avec grille"}]},{"enumValue":2,"localizedValues":[{"cultureName":"en-CA","displayName":"BBQ"},{"cultureName":"fr-CA","displayName":"BBQ"}]}]},"-32748":{"attributeDefinitionId":-32748,"localizedValues":[{"cultureName":"en-CA","displayName":"Firepit
+          Location"},{"cultureName":"fr-CA","displayName":"Emplacement du foyer"}],"values":[{"enumValue":0,"localizedValues":[{"cultureName":"en-CA","displayName":"Back
+          Centre"},{"cultureName":"fr-CA","displayName":"Centre arri\u00e8re"}]},{"enumValue":1,"localizedValues":[{"cultureName":"en-CA","displayName":"Back
+          Left"},{"cultureName":"fr-CA","displayName":"Arri\u00e8re droit"}]},{"enumValue":2,"localizedValues":[{"cultureName":"en-CA","displayName":"Back
+          Right"},{"cultureName":"fr-CA","displayName":"Arri\u00e8re gauche"}]},{"enumValue":3,"localizedValues":[{"cultureName":"en-CA","displayName":"Centre"},{"cultureName":"fr-CA","displayName":"Centre"}]},{"enumValue":4,"localizedValues":[{"cultureName":"en-CA","displayName":"Centre
+          Left"},{"cultureName":"fr-CA","displayName":"Centre gauche"}]},{"enumValue":5,"localizedValues":[{"cultureName":"en-CA","displayName":"Centre
+          Right"},{"cultureName":"fr-CA","displayName":"Centre droit"}]},{"enumValue":6,"localizedValues":[{"cultureName":"en-CA","displayName":"Front
+          Centre"},{"cultureName":"fr-CA","displayName":"Avant centre"}]},{"enumValue":7,"localizedValues":[{"cultureName":"en-CA","displayName":"Front
+          Left"},{"cultureName":"fr-CA","displayName":"Avant gauche"}]},{"enumValue":8,"localizedValues":[{"cultureName":"en-CA","displayName":"Front
+          Right"},{"cultureName":"fr-CA","displayName":"Avant droit"}]}]},"-32761":{"attributeDefinitionId":-32761,"localizedValues":[{"cultureName":"en-CA","displayName":"Site
+          Shade"},{"cultureName":"fr-CA","displayName":"Ombrage"}],"values":[{"enumValue":0,"localizedValues":[{"cultureName":"en-CA","displayName":"Full
+          Shade"},{"cultureName":"fr-CA","displayName":"Compl\u00e8tement ombrag\u00e9"}]},{"enumValue":1,"localizedValues":[{"cultureName":"en-CA","displayName":"Full
+          Sun"},{"cultureName":"fr-CA","displayName":"Ensoleill\u00e9"}]},{"enumValue":2,"localizedValues":[{"cultureName":"en-CA","displayName":"Partial
+          Shade"},{"cultureName":"fr-CA","displayName":"Partiellement ombrag\u00e9"}]}]},"-32736":{"attributeDefinitionId":-32736,"localizedValues":[{"cultureName":"en-CA","displayName":"Equipment
+          Allowed"},{"cultureName":"fr-CA","displayName":"\u00c9quipement autoris\u00e9"}],"values":[{"enumValue":0,"localizedValues":[{"cultureName":"en-CA","displayName":"Tent"},{"cultureName":"fr-CA","displayName":"Tente"}]}]},"-32765":{"attributeDefinitionId":-32765,"localizedValues":[{"cultureName":"en-CA","displayName":"Restrictions"},{"cultureName":"fr-CA","displayName":"Restrictions"}],"values":[{"enumValue":0,"localizedValues":[{"cultureName":"en-CA","displayName":"No
+          Vehicles"},{"cultureName":"fr-CA","displayName":"V\u00e9hicules interdits"}]},{"enumValue":1,"localizedValues":[{"cultureName":"en-CA","displayName":"No
+          Tents"},{"cultureName":"fr-CA","displayName":"Tentes interdites"}]},{"enumValue":2,"localizedValues":[{"cultureName":"en-CA","displayName":"Wheelchair
+          Only"},{"cultureName":"fr-CA","displayName":"Fauteuil roulant seulement"}]},{"enumValue":3,"localizedValues":[{"cultureName":"en-CA","displayName":"No
+          Pets, except for service dogs."},{"cultureName":"fr-CA","displayName":"Animaux domestiques interdits, except\u00e9
+          les chiens d\u2019assistance."}]},{"enumValue":4,"localizedValues":[{"cultureName":"en-CA","displayName":"Walk-in"},{"cultureName":"fr-CA","displayName":"Acc\u00e8s
+          pietonnier"}]},{"enumValue":5,"localizedValues":[{"cultureName":"en-CA","displayName":"No Drinking Water on Site"},{"cultureName":"fr-CA","displayName":"Pas
+          d''eau potable sur place"}]}]},"-32764":{"attributeDefinitionId":-32764,"localizedValues":[{"cultureName":"en-CA","displayName":"Wheelchair
+          Accessible"},{"cultureName":"fr-CA","displayName":"Accessible en fauteuil roulant"}],"values":[{"enumValue":0,"localizedValues":[{"cultureName":"en-CA","displayName":"Yes"},{"cultureName":"fr-CA","displayName":"Oui"}]},{"enumValue":1,"localizedValues":[{"cultureName":"en-CA","displayName":"No"},{"cultureName":"fr-CA","displayName":"Non"}]}]}}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://reservations.ncc-ccn.gc.ca/api/resourcelocation/resources?resourceLocationId=-2147483647
+    response:
+      body:
+        string:
+          '{"-2147483281":{"resourceId":-2147483281,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483648,"resourceModel":0,"minCapacity":2,"maxCapacity":6,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"A1"},{"cultureName":"en-CA","name":"A1"}],"allowedEquipment":[{"equipmentCategoryId":-32768,"subEquipmentCategoryId":-32768}],"definedAttributes":[{"attributeDefinitionId":-32768,"value":null,"values":[1]},{"attributeDefinitionId":-32748,"value":null,"values":[3]},{"attributeDefinitionId":-32751,"value":null,"values":[2]},{"attributeDefinitionId":-32756,"value":null,"values":[1]},{"attributeDefinitionId":-32761,"value":null,"values":[1]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32762,"value":null,"values":[1]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32764,"value":null,"values":[1]}]},"-2147483275":{"resourceId":-2147483275,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483648,"resourceModel":0,"minCapacity":2,"maxCapacity":6,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"A2"},{"cultureName":"en-CA","name":"A2"}],"allowedEquipment":[{"equipmentCategoryId":-32768,"subEquipmentCategoryId":-32768}],"definedAttributes":[{"attributeDefinitionId":-32748,"value":null,"values":[0]},{"attributeDefinitionId":-32768,"value":null,"values":[1]},{"attributeDefinitionId":-32751,"value":null,"values":[2]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32762,"value":null,"values":[1]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32761,"value":null,"values":[1]},{"attributeDefinitionId":-32756,"value":null,"values":[1]},{"attributeDefinitionId":-32764,"value":null,"values":[1]}]},"-2147483282":{"resourceId":-2147483282,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483648,"resourceModel":0,"minCapacity":2,"maxCapacity":6,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"A4"},{"cultureName":"en-CA","name":"A4"}],"allowedEquipment":[{"equipmentCategoryId":-32768,"subEquipmentCategoryId":-32768}],"definedAttributes":[{"attributeDefinitionId":-32751,"value":null,"values":[2]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32748,"value":null,"values":[3]},{"attributeDefinitionId":-32756,"value":null,"values":[1]},{"attributeDefinitionId":-32761,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[1]},{"attributeDefinitionId":-32762,"value":null,"values":[2]},{"attributeDefinitionId":-32764,"value":null,"values":[1]}]},"-2147483272":{"resourceId":-2147483272,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483648,"resourceModel":0,"minCapacity":2,"maxCapacity":6,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"A5"},{"cultureName":"en-CA","name":"A5"}],"allowedEquipment":[{"equipmentCategoryId":-32768,"subEquipmentCategoryId":-32768}],"definedAttributes":[{"attributeDefinitionId":-32761,"value":null,"values":[2]},{"attributeDefinitionId":-32748,"value":null,"values":[4]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32762,"value":null,"values":[1]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32768,"value":null,"values":[1]},{"attributeDefinitionId":-32756,"value":null,"values":[1]},{"attributeDefinitionId":-32751,"value":null,"values":[2]},{"attributeDefinitionId":-32764,"value":null,"values":[1]}]},"-2147483218":{"resourceId":-2147483218,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483645,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"D9"},{"cultureName":"en-CA","name":"D9"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483217":{"resourceId":-2147483217,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483645,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"D11"},{"cultureName":"en-CA","name":"D11"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483216":{"resourceId":-2147483216,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483645,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"D12"},{"cultureName":"en-CA","name":"D12"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483215":{"resourceId":-2147483215,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483645,"resourceModel":0,"minCapacity":2,"maxCapacity":3,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"D21"},{"cultureName":"en-CA","name":"D21"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483214":{"resourceId":-2147483214,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483645,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"D24"},{"cultureName":"en-CA","name":"D24"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483213":{"resourceId":-2147483213,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483645,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"D26"},{"cultureName":"en-CA","name":"D26"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483212":{"resourceId":-2147483212,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483645,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"E9"},{"cultureName":"en-CA","name":"E9"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483211":{"resourceId":-2147483211,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483645,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"E85"},{"cultureName":"en-CA","name":"E85"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483210":{"resourceId":-2147483210,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483645,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"E90"},{"cultureName":"en-CA","name":"E90"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483209":{"resourceId":-2147483209,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483645,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"en-CA","name":"E92"},{"cultureName":"fr-CA","name":"E92"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483279":{"resourceId":-2147483279,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483647,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"en-CA","name":"A3"},{"cultureName":"fr-CA","name":"A3"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32768,"value":null,"values":[2]},{"attributeDefinitionId":-32762,"value":null,"values":[1]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32751,"value":null,"values":[0]},{"attributeDefinitionId":-32761,"value":null,"values":[2]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32764,"value":null,"values":[1]}]},"-2147483276":{"resourceId":-2147483276,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483647,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"A8"},{"cultureName":"en-CA","name":"A8"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32762,"value":null,"values":[1]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32768,"value":null,"values":[2]},{"attributeDefinitionId":-32751,"value":null,"values":[0]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32761,"value":null,"values":[1]},{"attributeDefinitionId":-32764,"value":null,"values":[1]}]},"-2147483278":{"resourceId":-2147483278,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483645,"resourceModel":0,"minCapacity":2,"maxCapacity":16,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"Refuge
+          Philippe"},{"cultureName":"en-CA","name":"Philippe Cabin"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32762,"value":null,"values":[0]},{"attributeDefinitionId":-32761,"value":null,"values":[2]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32746,"value":null,"values":[1]},{"attributeDefinitionId":-32756,"value":null,"values":[2]},{"attributeDefinitionId":-32768,"value":null,"values":[1]},{"attributeDefinitionId":-32751,"value":null,"values":[2]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32764,"value":null,"values":[1]}]},"-2147483274":{"resourceId":-2147483274,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483645,"resourceModel":0,"minCapacity":2,"maxCapacity":6,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"Refuge
+          des Pins"},{"cultureName":"en-CA","name":"The Pines Cabin"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32768,"value":null,"values":[1]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32751,"value":null,"values":[0]},{"attributeDefinitionId":-32756,"value":null,"values":[2]},{"attributeDefinitionId":-32761,"value":null,"values":[0]},{"attributeDefinitionId":-32762,"value":null,"values":[0]},{"attributeDefinitionId":-32746,"value":null,"values":[1]},{"attributeDefinitionId":-32764,"value":null,"values":[1]}]},"-2147483268":{"resourceId":-2147483268,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483646,"resourceModel":0,"minCapacity":2,"maxCapacity":6,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"Yourte
+          Wanakiwin"},{"cultureName":"en-CA","name":"Wanakiwin Yurt"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32761,"value":null,"values":[0]},{"attributeDefinitionId":-32764,"value":null,"values":[0]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32751,"value":null,"values":[3]},{"attributeDefinitionId":-32768,"value":null,"values":[2]},{"attributeDefinitionId":-32762,"value":null,"values":[0]},{"attributeDefinitionId":-32745,"value":null,"values":[0]}]},"-2147483284":{"resourceId":-2147483284,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483646,"resourceModel":0,"minCapacity":2,"maxCapacity":6,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"Yourte
+          du lac Taylor"},{"cultureName":"en-CA","name":"Taylor Lake Yurt"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32751,"value":null,"values":[0]},{"attributeDefinitionId":-32761,"value":null,"values":[0]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32768,"value":null,"values":[1]},{"attributeDefinitionId":-32762,"value":null,"values":[0]},{"attributeDefinitionId":-32764,"value":null,"values":[1]}]},"-2147483273":{"resourceId":-2147483273,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483646,"resourceModel":0,"minCapacity":2,"maxCapacity":6,"maxStay":null,"localizedValues":[{"cultureName":"en-CA","name":"Ohomisi
+          Yurt"},{"cultureName":"fr-CA","name":"Yourte Ohomisi"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32751,"value":null,"values":[0]},{"attributeDefinitionId":-32761,"value":null,"values":[0]},{"attributeDefinitionId":-32762,"value":null,"values":[0]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32768,"value":null,"values":[1]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32764,"value":null,"values":[1]}]},"-2147483283":{"resourceId":-2147483283,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483647,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"en-CA","name":"E4"},{"cultureName":"fr-CA","name":"E4"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32751,"value":null,"values":[0]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32761,"value":null,"values":[0]},{"attributeDefinitionId":-32762,"value":null,"values":[1]},{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483280":{"resourceId":-2147483280,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483647,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"E5"},{"cultureName":"en-CA","name":"E5"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32762,"value":null,"values":[0]},{"attributeDefinitionId":-32751,"value":null,"values":[0]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32761,"value":null,"values":[0]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483271":{"resourceId":-2147483271,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483647,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"E7"},{"cultureName":"en-CA","name":"E7"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32761,"value":null,"values":[0]},{"attributeDefinitionId":-32762,"value":null,"values":[0]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32751,"value":null,"values":[0]},{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483277":{"resourceId":-2147483277,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483647,"resourceModel":0,"minCapacity":2,"maxCapacity":4,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"E8"},{"cultureName":"en-CA","name":"E8"}],"allowedEquipment":[],"definedAttributes":[{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32747,"value":null,"values":[0]},{"attributeDefinitionId":-32751,"value":null,"values":[0]},{"attributeDefinitionId":-32761,"value":null,"values":[0]},{"attributeDefinitionId":-32762,"value":null,"values":[0]},{"attributeDefinitionId":-32764,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[2]}]},"-2147483285":{"resourceId":-2147483285,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483644,"resourceModel":0,"minCapacity":2,"maxCapacity":20,"maxStay":null,"localizedValues":[{"cultureName":"en-CA","name":"GR4"},{"cultureName":"fr-CA","name":"GR4"}],"allowedEquipment":[{"equipmentCategoryId":-32768,"subEquipmentCategoryId":-32768}],"definedAttributes":[{"attributeDefinitionId":-32741,"value":20.0,"values":[]},{"attributeDefinitionId":-32751,"value":null,"values":[2]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32748,"value":null,"values":[2]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32762,"value":null,"values":[0]},{"attributeDefinitionId":-32756,"value":null,"values":[2]},{"attributeDefinitionId":-32761,"value":null,"values":[1]},{"attributeDefinitionId":-32768,"value":null,"values":[1]}]},"-2147483270":{"resourceId":-2147483270,"resourceLocationId":-2147483647,"resourceCategoryId":-2147483644,"resourceModel":0,"minCapacity":2,"maxCapacity":20,"maxStay":null,"localizedValues":[{"cultureName":"fr-CA","name":"GR5"},{"cultureName":"en-CA","name":"GR5"}],"allowedEquipment":[{"equipmentCategoryId":-32768,"subEquipmentCategoryId":-32768}],"definedAttributes":[{"attributeDefinitionId":-32741,"value":20.0,"values":[]},{"attributeDefinitionId":-32762,"value":null,"values":[0]},{"attributeDefinitionId":-32745,"value":null,"values":[0]},{"attributeDefinitionId":-32761,"value":null,"values":[1]},{"attributeDefinitionId":-32756,"value":null,"values":[2]},{"attributeDefinitionId":-32748,"value":null,"values":[0]},{"attributeDefinitionId":-32751,"value":null,"values":[2]},{"attributeDefinitionId":-32765,"value":null,"values":[3]},{"attributeDefinitionId":-32768,"value":null,"values":[1]}]}}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://reservations.ncc-ccn.gc.ca/api/availability/map?mapId=-2147483636&bookingCategoryId=0&startDate=2027-01-11&endDate=2027-01-12&getDailyAvailability=true&isReserving=true
+    response:
+      body:
+        string: '{"mapId":-2147483636,"resourceAvailabilities":{},"mapLinkAvailabilities":{"-2147483635":[0,0],"-2147483632":[1,1]}}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://reservations.ncc-ccn.gc.ca/api/availability/map?mapId=-2147483635&bookingCategoryId=0&startDate=2027-01-11&endDate=2027-01-12&getDailyAvailability=true&isReserving=true
+    response:
+      body:
+        string: '{"mapId":-2147483635,"resourceAvailabilities":{},"mapLinkAvailabilities":{"-2147483633":[0,0],"-2147483625":[1,1]}}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://reservations.ncc-ccn.gc.ca/api/availability/map?mapId=-2147483633&bookingCategoryId=0&startDate=2027-01-11&endDate=2027-01-12&getDailyAvailability=true&isReserving=true
+    response:
+      body:
+        string: '{"mapId":-2147483633,"resourceAvailabilities":{"-2147483285":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483282":[{"availability":0,"remainingQuota":null},{"availability":0,"remainingQuota":null}],"-2147483281":[{"availability":0,"remainingQuota":null},{"availability":0,"remainingQuota":null}],"-2147483279":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483278":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483276":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483275":[{"availability":0,"remainingQuota":null},{"availability":0,"remainingQuota":null}],"-2147483274":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483272":[{"availability":0,"remainingQuota":null},{"availability":0,"remainingQuota":null}],"-2147483270":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483268":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}]},"mapLinkAvailabilities":{}}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://reservations.ncc-ccn.gc.ca/api/availability/map?mapId=-2147483636&bookingCategoryId=1&startDate=2027-01-11&endDate=2027-01-12&getDailyAvailability=true&isReserving=true
+    response:
+      body:
+        string: '{"mapId":-2147483636,"resourceAvailabilities":{},"mapLinkAvailabilities":{"-2147483635":[6,6],"-2147483632":[1,1]}}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://reservations.ncc-ccn.gc.ca/api/availability/map?mapId=-2147483636&bookingCategoryId=3&startDate=2027-01-11&endDate=2027-01-12&getDailyAvailability=true&isReserving=true
+    response:
+      body:
+        string: '{"mapId":-2147483636,"resourceAvailabilities":{},"mapLinkAvailabilities":{"-2147483635":[0,0],"-2147483632":[1,1]}}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://reservations.ncc-ccn.gc.ca/api/availability/map?mapId=-2147483635&bookingCategoryId=3&startDate=2027-01-11&endDate=2027-01-12&getDailyAvailability=true&isReserving=true
+    response:
+      body:
+        string: '{"mapId":-2147483635,"resourceAvailabilities":{},"mapLinkAvailabilities":{"-2147483633":[0,0],"-2147483625":[1,1]}}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://reservations.ncc-ccn.gc.ca/api/availability/map?mapId=-2147483633&bookingCategoryId=3&startDate=2027-01-11&endDate=2027-01-12&getDailyAvailability=true&isReserving=true
+    response:
+      body:
+        string: '{"mapId":-2147483633,"resourceAvailabilities":{"-2147483285":[{"availability":0,"remainingQuota":null},{"availability":0,"remainingQuota":null}],"-2147483282":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483281":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483279":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483278":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483276":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483275":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483274":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483272":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}],"-2147483270":[{"availability":0,"remainingQuota":null},{"availability":0,"remainingQuota":null}],"-2147483268":[{"availability":5,"remainingQuota":null},{"availability":5,"remainingQuota":null}]},"mapLinkAvailabilities":{}}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+version: 1

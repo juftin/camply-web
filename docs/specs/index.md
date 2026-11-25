@@ -78,3 +78,7 @@ This catalog indexes all feature specifications, technical implementation plans,
   - [Plan](031-cli-fullstack-parity/plan.md) | [Tasks](031-cli-fullstack-parity/tasks.md) | [Data Model](031-cli-fullstack-parity/data-model.md) | [Requirements Checklist](031-cli-fullstack-parity/checklists/requirements.md)
 - **[032: CLI YAML Configuration](032-cli-yaml-config/spec.md)**
   - [Plan](032-cli-yaml-config/plan.md) | [Tasks](032-cli-yaml-config/tasks.md) | [Data Model](032-cli-yaml-config/data-model.md) | [CLI Contract](032-cli-yaml-config/contracts/cli.md) | [Validation](032-cli-yaml-config/quickstart.md) | [Requirements Checklist](032-cli-yaml-config/checklists/requirements.md)
+- **[034: Provider Availability Cassettes](034-provider-availability-cassettes/spec.md)**
+  - [Plan](034-provider-availability-cassettes/plan.md) | [Tasks](034-provider-availability-cassettes/tasks.md) | [Verification](034-provider-availability-cassettes/quickstart.md) | [Requirements Checklist](034-provider-availability-cassettes/checklists/requirements.md)
+- **[035: Provider Metadata Cassettes](035-provider-metadata-cassettes/spec.md)**
+  - [Plan](035-provider-metadata-cassettes/plan.md) | [Tasks](035-provider-metadata-cassettes/tasks.md) | [Verification](035-provider-metadata-cassettes/quickstart.md)
