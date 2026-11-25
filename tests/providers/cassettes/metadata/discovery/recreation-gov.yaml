@@ -1,0 +1,219 @@
+interactions:
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://www.recreation.gov/api/search?q=Jumbo+Rocks&fq=entity_type%3Acampground&start=0&size=50
+    response:
+      body:
+        string:
+          '{"results":[{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"272300","entity_type":"campground","name":"JUMBO
+          ROCKS CAMPGROUND","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Twentynine
+          Palms","state_code":"California","country_code":"United States","latitude":33.9922222,"longitude":-116.0625},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232470","entity_type":"campground","name":"SHEEP
+          PASS GROUP","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Joshua
+          Tree","state_code":"California","country_code":"United States","latitude":33.9991667,"longitude":-116.1180556},{"addresses":[{"state_code":"CA","country_code":""},{"state_code":"","country_code":""}],"entity_id":"10056207","entity_type":"campground","name":"Ryan
+          Campground","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Joshua
+          Tree","state_code":"California","country_code":"United States","latitude":33.98314,"longitude":-116.15451},{"addresses":[{"state_code":"CA","country_code":""},{"state_code":"CA","country_code":""}],"entity_id":"10053779","entity_type":"campground","name":"Indian
+          Cove Group","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Joshua
+          Tree","state_code":"California","country_code":"United States","latitude":34.09302,"longitude":-116.15752},{"addresses":[{"state_code":"CA","country_code":"USA"},{"state_code":"CA","country_code":""}],"entity_id":"232472","entity_type":"campground","name":"INDIAN
+          COVE CAMPGROUND","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Joshua
+          Tree","state_code":"California","country_code":"United States","latitude":34.12,"longitude":-116.1558333},{"addresses":[{"state_code":"CA","country_code":"USA"},{"state_code":"CA","country_code":""}],"entity_id":"232473","entity_type":"campground","name":"BLACK
+          ROCK CAMPGROUND","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Yucca
+          Valley","state_code":"California","country_code":"United States","latitude":34.0716667,"longitude":-116.3891667},{"addresses":[{"state_code":"CA","country_code":"USA"},{"state_code":"CA","country_code":""}],"entity_id":"234723","entity_type":"campground","name":"BLACK
+          ROCK EQUESTRIAN CAMPGROUND","parent_id":"2782","parent_name":"Joshua Tree
+          National Park","reservable":true,"city":"Yucca Valley","state_code":"California","country_code":"United
+          States","latitude":34.0716667,"longitude":-116.3891667},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"272299","entity_type":"campground","name":"COTTONWOOD
+          CAMPGROUND (CA)","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Indio","state_code":"California","country_code":"United
+          States","latitude":33.75,"longitude":-115.825},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232471","entity_type":"campground","name":"COTTONWOOD
+          GROUP","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Indio","state_code":"California","country_code":"United
+          States","latitude":33.75,"longitude":-115.825},{"entity_id":"10192122","entity_type":"campground","name":"Pinyon
+          Flat Campground (San Bernardino National Forest)","parent_id":"1071","parent_name":"San
+          Bernardino National Forest","reservable":true,"city":"Mountain Center","state_code":"California","country_code":"United
+          States","latitude":33.584877,"longitude":-116.456766},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"234530","entity_type":"campground","name":"RIBBONWOOD
+          EQUESTRIAN CG","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Mountain
+          Center","state_code":"California","country_code":"United States","latitude":33.5761111,"longitude":-116.4547222},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232020","entity_type":"campground","name":"BLACK
+          MOUNTAIN (SAN BERNARDINO)","parent_id":"1071","parent_name":"San Bernardino
+          National Forest","reservable":true,"city":"Palm Springs","state_code":"California","country_code":"United
+          States","latitude":33.8341667,"longitude":-116.7388889},{"entity_id":"10192037","entity_type":"campground","name":"Dark
+          Canyon Campground","parent_id":"1071","parent_name":"San Bernardino National
+          Forest","reservable":true,"city":"Idyllwild","state_code":"California","country_code":"United
+          States","latitude":33.803978,"longitude":-116.732053},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"231972","entity_type":"campground","name":"JUNIPER
+          SPRINGS GROUP CAMP","parent_id":"1071","parent_name":"San Bernardino National
+          Forest","reservable":true,"city":"Angelus Oaks","state_code":"California","country_code":"United
+          States","latitude":34.219802,"longitude":-116.716847},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"231973","entity_type":"campground","name":"MARION
+          MOUNTAIN","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Idyllwild","state_code":"California","country_code":"United
+          States","latitude":33.7916667,"longitude":-116.7319444},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"231969","entity_type":"campground","name":"FERN
+          BASIN","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Idyllwild","state_code":"California","country_code":"United
+          States","latitude":33.7886111,"longitude":-116.7377778},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232022","entity_type":"campground","name":"BOULDER
+          BASIN","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Idyllwild","state_code":"California","country_code":"United
+          States","latitude":33.8263889,"longitude":-116.7538889},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232030","entity_type":"campground","name":"COON
+          CREEK GROUP CAMPGROUND","parent_id":"1071","parent_name":"San Bernardino National
+          Forest","reservable":true,"city":"Angelus Oaks","state_code":"California","country_code":"United
+          States","latitude":34.150014,"longitude":-116.771205},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"233685","entity_type":"campground","name":"WILD
+          HORSE EQUESTRIAN FAMILY","parent_id":"1071","parent_name":"San Bernardino
+          National Forest","reservable":true,"city":"Angelus Oaks","state_code":"California","country_code":"United
+          States","latitude":34.155262,"longitude":-116.781601},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232100","entity_type":"campground","name":"SKYLINE","parent_id":"1071","parent_name":"San
+          Bernardino National Forest","reservable":true,"city":"Angelus Oaks","state_code":"California","country_code":"United
+          States","latitude":34.15393,"longitude":-116.782637},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232295","entity_type":"campground","name":"HEART
+          BAR CAMPGROUND","parent_id":"1071","parent_name":"San Bernardino National
+          Forest","reservable":true,"city":"Angelus Oaks","state_code":"California","country_code":"United
+          States","latitude":34.159537,"longitude":-116.785641},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232057","entity_type":"campground","name":"HEART
+          BAR EQUESTRIAN","parent_id":"1071","parent_name":"San Bernardino National
+          Forest","reservable":true,"city":"Angelus Oaks","state_code":"California","country_code":"United
+          States","latitude":34.159537,"longitude":-116.785641},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232351","entity_type":"campground","name":"GREEN
+          SPOT EQUESTRIAN GROUP CAMP","parent_id":"1071","parent_name":"San Bernardino
+          National Forest","reservable":true,"city":"Big Bear City","state_code":"California","country_code":"United
+          States","latitude":34.225776,"longitude":-116.810463},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232068","entity_type":"campground","name":"LOBO
+          GROUP","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Angelus
+          Oaks","state_code":"California","country_code":"United States","latitude":34.176131,"longitude":-116.861995},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"233681","entity_type":"campground","name":"OSO
+          GROUP","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Angelus
+          Oaks","state_code":"California","country_code":"United States","latitude":34.175705,"longitude":-116.862455},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"231976","entity_type":"campground","name":"SAN
+          GORGONIO","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Angelus
+          Oaks","state_code":"California","country_code":"United States","latitude":34.173161,"longitude":-116.868362},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"231975","entity_type":"campground","name":"BARTON
+          FLATS","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Angelus
+          Oaks","state_code":"California","country_code":"United States","latitude":34.17055,"longitude":-116.874553},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232031","entity_type":"campground","name":"COUNCIL","parent_id":"1071","parent_name":"San
+          Bernardino National Forest","reservable":true,"city":"Angelus Oaks","state_code":"California","country_code":"United
+          States","latitude":34.171543,"longitude":-116.882146},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"231967","entity_type":"campground","name":"BUTTERCUP
+          GROUP CAMP","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Big
+          Bear Lake","state_code":"California","country_code":"United States","latitude":34.235479,"longitude":-116.880603},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232286","entity_type":"campground","name":"PINEKNOT","parent_id":"1071","parent_name":"San
+          Bernardino National Forest","reservable":true,"city":"Big Bear Lake","state_code":"California","country_code":"United
+          States","latitude":34.235875,"longitude":-116.886078},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"231974","entity_type":"campground","name":"TANGLEWOOD
+          GROUP CAMP","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Big
+          Bear City","state_code":"California","country_code":"United States","latitude":34.29285,"longitude":-116.864235},{"addresses":[{"state_code":"CA","country_code":"UNITED
+          STATES"},{"state_code":"","country_code":""}],"entity_id":"232250","entity_type":"campground","name":"SERRANO","parent_id":"1071","parent_name":"San
+          Bernardino National Forest","reservable":true,"city":"Big Bear City","state_code":"California","country_code":"United
+          States","latitude":34.262663,"longitude":-116.911628},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"231966","entity_type":"campground","name":"BOULDER
+          GROUP CAMP","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Big
+          Bear Lake","state_code":"California","country_code":"United States","latitude":34.22365685,"longitude":-116.9445452},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"231965","entity_type":"campground","name":"BLUFF
+          MESA GROUP CAMP","parent_id":"1071","parent_name":"San Bernardino National
+          Forest","reservable":true,"city":"Big Bear City","state_code":"California","country_code":"United
+          States","latitude":34.223418,"longitude":-116.971633},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"231970","entity_type":"campground","name":"GRAYS
+          PEAK GROUP CAMP","parent_id":"1071","parent_name":"San Bernardino National
+          Forest","reservable":true,"city":"Fawnskin","state_code":"California","country_code":"United
+          States","latitude":34.273467,"longitude":-116.970668},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232249","entity_type":"campground","name":"HANNA
+          FLAT","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Fawnskin","state_code":"California","country_code":"United
+          States","latitude":34.287924,"longitude":-116.974157},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"233952","entity_type":"campground","name":"SHADY
+          COVE GROUP CAMPGROUND","parent_id":"1071","parent_name":"San Bernardino National
+          Forest","reservable":true,"city":"Running Springs","state_code":"California","country_code":"United
+          States","latitude":34.207894,"longitude":-117.043617},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"231971","entity_type":"campground","name":"IRONWOOD
+          GROUP CAMP","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Big
+          Bear City","state_code":"California","country_code":"United States","latitude":34.304141,"longitude":-117.013193},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"231964","entity_type":"campground","name":"Big
+          Pine Equestrian Group Campground","parent_id":"1071","parent_name":"San Bernardino
+          National Forest","reservable":true,"city":"Fawnskin","state_code":"California","country_code":"United
+          States","latitude":34.319623,"longitude":-117.013057},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"234736","entity_type":"campground","name":"OAK
+          GROVE CAMPGROUND","parent_id":"1062","parent_name":"Cleveland National Forest","reservable":true,"city":"Warner
+          Springs","state_code":"California","country_code":"United States","latitude":33.386525,"longitude":-116.7913694},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232054","entity_type":"campground","name":"GREEN
+          VALLEY","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Green
+          Valley Lake","state_code":"California","country_code":"United States","latitude":34.244873,"longitude":-117.063833},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232386","entity_type":"campground","name":"CRAB
+          FLATS","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Big
+          Bear City","state_code":"California","country_code":"United States","latitude":34.263451,"longitude":-117.086627},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"234000","entity_type":"campground","name":"TENT
+          PEG GROUP","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Big
+          Bear City","state_code":"California","country_code":"United States","latitude":34.262011,"longitude":-117.100292},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"233993","entity_type":"campground","name":"FISHERMANS
+          GROUP","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Running
+          Springs","state_code":"California","country_code":"United States","latitude":34.2467083,"longitude":-117.1108222},{"entity_id":"10192067","entity_type":"campground","name":"Horse
+          Springs Campground (San Bernardino National Forest)","parent_id":"1071","parent_name":"San
+          Bernardino National Forest","reservable":true,"city":"Green Valley Lake","state_code":"California","country_code":"United
+          States","latitude":34.352222,"longitude":-117.068889},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"234719","entity_type":"campground","name":"DRIPPING
+          SPRINGS CAMPGROUND (CA)","parent_id":"1062","parent_name":"Cleveland National
+          Forest","reservable":true,"city":"Temecula","state_code":"California","country_code":"United
+          States","latitude":33.4638889,"longitude":-116.9708333},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"233303","entity_type":"campground","name":"FRY
+          CREEK CAMPGROUND","parent_id":"1062","parent_name":"Cleveland National Forest","reservable":true,"city":"Palomar
+          Mountain","state_code":"California","country_code":"United States","latitude":33.345,"longitude":-116.88},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"233300","entity_type":"campground","name":"OBSERVATORY
+          CAMPGROUND","parent_id":"1062","parent_name":"Cleveland National Forest","reservable":true,"city":"Palomar
+          Mountain","state_code":"California","country_code":"United States","latitude":33.3416667,"longitude":-116.8786111},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"231949","entity_type":"campground","name":"Crestline
+          Group Campground","parent_id":"1062","parent_name":"Cleveland National Forest","reservable":true,"city":"Palomar
+          Mountain","state_code":"California","country_code":"United States","latitude":33.3127778,"longitude":-116.8647222},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232296","entity_type":"campground","name":"NORTH
+          SHORE (CA)","parent_id":"1071","parent_name":"San Bernardino National Forest","reservable":true,"city":"Lake
+          Arrowhead","state_code":"California","country_code":"United States","latitude":34.266668,"longitude":-117.168046}],"total":250,"start":0}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://www.recreation.gov/api/search?q=&fq=entity_type%3Acampground&fq=entity_id%3A272300&start=0&size=50
+    response:
+      body:
+        string:
+          '{"results":[{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"272300","entity_type":"campground","name":"JUMBO
+          ROCKS CAMPGROUND","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Twentynine
+          Palms","state_code":"California","country_code":"United States","latitude":33.9922222,"longitude":-116.0625}],"total":1,"start":0}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://www.recreation.gov/api/search?q=&fq=entity_type%3Arecarea&fq=entity_id%3A2782&start=0&size=50
+    response:
+      body:
+        string:
+          '{"results":[{"entity_id":"2782","entity_type":"recarea","name":"Joshua
+          Tree National Park","reservable":true,"city":"Desert Center","state_code":"California","country_code":"United
+          States","latitude":33.914185,"longitude":-115.839812}],"total":1,"start":0}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://www.recreation.gov/api/search?q=&fq=entity_type%3Arecarea&fq=entity_id%3A2782&start=0&size=50
+    response:
+      body:
+        string:
+          '{"results":[{"entity_id":"2782","entity_type":"recarea","name":"Joshua
+          Tree National Park","reservable":true,"city":"Desert Center","state_code":"California","country_code":"United
+          States","latitude":33.914185,"longitude":-115.839812}],"total":1,"start":0}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://www.recreation.gov/api/search?q=&fq=entity_type%3Acampground&fq=parent_asset_id%3A2782&start=0&size=50
+    response:
+      body:
+        string:
+          '{"results":[{"addresses":[{"state_code":"CA","country_code":"USA"},{"state_code":"CA","country_code":""}],"entity_id":"232473","entity_type":"campground","name":"BLACK
+          ROCK CAMPGROUND","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Yucca
+          Valley","state_code":"California","country_code":"United States","latitude":34.0716667,"longitude":-116.3891667},{"addresses":[{"state_code":"CA","country_code":"USA"},{"state_code":"CA","country_code":""}],"entity_id":"234723","entity_type":"campground","name":"BLACK
+          ROCK EQUESTRIAN CAMPGROUND","parent_id":"2782","parent_name":"Joshua Tree
+          National Park","reservable":true,"city":"Yucca Valley","state_code":"California","country_code":"United
+          States","latitude":34.0716667,"longitude":-116.3891667},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"272299","entity_type":"campground","name":"COTTONWOOD
+          CAMPGROUND (CA)","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Indio","state_code":"California","country_code":"United
+          States","latitude":33.75,"longitude":-115.825},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232471","entity_type":"campground","name":"COTTONWOOD
+          GROUP","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Indio","state_code":"California","country_code":"United
+          States","latitude":33.75,"longitude":-115.825},{"addresses":[{"state_code":"CA","country_code":"USA"},{"state_code":"CA","country_code":""}],"entity_id":"232472","entity_type":"campground","name":"INDIAN
+          COVE CAMPGROUND","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Joshua
+          Tree","state_code":"California","country_code":"United States","latitude":34.12,"longitude":-116.1558333},{"addresses":[{"state_code":"CA","country_code":""},{"state_code":"CA","country_code":""}],"entity_id":"10053779","entity_type":"campground","name":"Indian
+          Cove Group","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Joshua
+          Tree","state_code":"California","country_code":"United States","latitude":34.09302,"longitude":-116.15752},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"272300","entity_type":"campground","name":"JUMBO
+          ROCKS CAMPGROUND","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Twentynine
+          Palms","state_code":"California","country_code":"United States","latitude":33.9922222,"longitude":-116.0625},{"addresses":[{"state_code":"CA","country_code":""},{"state_code":"","country_code":""}],"entity_id":"10056207","entity_type":"campground","name":"Ryan
+          Campground","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Joshua
+          Tree","state_code":"California","country_code":"United States","latitude":33.98314,"longitude":-116.15451},{"addresses":[{"state_code":"CA","country_code":"USA"}],"entity_id":"232470","entity_type":"campground","name":"SHEEP
+          PASS GROUP","parent_id":"2782","parent_name":"Joshua Tree National Park","reservable":true,"city":"Joshua
+          Tree","state_code":"California","country_code":"United States","latitude":33.9991667,"longitude":-116.1180556}],"total":9,"start":0}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+version: 1

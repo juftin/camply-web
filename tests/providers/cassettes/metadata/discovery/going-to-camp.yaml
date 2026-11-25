@@ -1,0 +1,289 @@
+interactions:
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/transactionlocation
+    response:
+      body:
+        string:
+          '[{"transactionLocationId":-2147483630,"isDisabled":false,"regionCode":"98277","rootMapId":-2147483283,"localizedValues":[{"cultureName":"en-US","shortName":"Deception
+          Pass","fullName":"Deception Pass State Park","city":"Oak Harbor"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/resourceLocation
+    response:
+      body:
+        string:
+          '[{"resourceLocationId":-2147483624,"transactionLocationId":-2147483630,"rootMapId":-2147483388,"region":"Washington","country":"USA","resourceCategoryIds":[-2147483648,-2147483647,-2147483646,-2147483643,-2147483639,-2147483638,-2147483624],"localizedValues":[{"cultureName":"en-US","shortName":"Deception
+          Pass","fullName":"Deception Pass State Park","city":"Oak Harbor"}]},{"resourceLocationId":-2147483498,"transactionLocationId":-2147483630,"rootMapId":-2147483283,"region":"Washington","country":"USA","resourceCategoryIds":[-2147483632],"localizedValues":[{"cultureName":"en-US","shortName":"Retreat
+          Center - Cornet Bay","fullName":"Retreat Center - Cornet Bay","city":"Oak
+          Harbor"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/bookingcategories
+    response:
+      body:
+        string:
+          '[{"bookingCategoryId":52,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483623],"localizedValues":[{"cultureName":"en-US","name":"Group
+          Vacation Rentals"}]},{"bookingCategoryId":0,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483648,-2147483647,-2147483640,-2147483639,-2147483634],"localizedValues":[{"cultureName":"en-US","name":"Campsite"}]},{"bookingCategoryId":1,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483646,-2147483645,-2147483644,-2147483642,-2147483633,-2147483624],"localizedValues":[{"cultureName":"en-US","name":"Roofed"}]},{"bookingCategoryId":2,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483637,-2147483636],"localizedValues":[{"cultureName":"en-US","name":"Houses"}]},{"bookingCategoryId":4,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483643],"localizedValues":[{"cultureName":"en-US","name":"Group"}]},{"bookingCategoryId":5,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483641],"localizedValues":[{"cultureName":"en-US","name":"Marina"}]},{"bookingCategoryId":3,"bookingModel":1,"isDisabled":false,"allowedResourceCategoryIds":[-2147483638,-2147483621],"localizedValues":[{"cultureName":"en-US","name":"Facility"}]},{"bookingCategoryId":12,"bookingModel":2,"isDisabled":false,"allowedResourceCategoryIds":[-2147483628],"localizedValues":[{"cultureName":"en-US","name":"Annual
+          Marina"}]},{"bookingCategoryId":7,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483632],"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/resourcecategory
+    response:
+      body:
+        string:
+          '[{"resourceCategoryId":-2147483648,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Campsite"}]},{"resourceCategoryId":-2147483647,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Overflow"}]},{"resourceCategoryId":-2147483646,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Cabin"}]},{"resourceCategoryId":-2147483645,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Yurt"}]},{"resourceCategoryId":-2147483644,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Platform
+          Tent"}]},{"resourceCategoryId":-2147483643,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Group
+          Camp"}]},{"resourceCategoryId":-2147483642,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Adirondack"}]},{"resourceCategoryId":-2147483639,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Marine
+          Trail"}]},{"resourceCategoryId":-2147483638,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Day
+          Use Facility"}]},{"resourceCategoryId":-2147483637,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Vacation
+          House"}]},{"resourceCategoryId":-2147483636,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"ELC"}]},{"resourceCategoryId":-2147483635,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Rental"}]},{"resourceCategoryId":-2147483634,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Equestrian"}]},{"resourceCategoryId":-2147483633,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Teepee"}]},{"resourceCategoryId":-2147483640,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Boat
+          In"}]},{"resourceCategoryId":-2147483632,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center"}]},{"resourceCategoryId":-2147483631,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center Day Use"}]},{"resourceCategoryId":-2147483630,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Cama
+          Beach Cabin"}]},{"resourceCategoryId":-2147483627,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center - Add-ons DayUse"}]},{"resourceCategoryId":-2147483629,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center Add-Ons Overnight"}]},{"resourceCategoryId":-2147483641,"resourceType":1,"localizedValues":[{"cultureName":"en-US","name":"Marina"}]},{"resourceCategoryId":-2147483628,"resourceType":1,"localizedValues":[{"cultureName":"en-US","name":"Annual
+          Marina"}]},{"resourceCategoryId":-2147483626,"resourceType":1,"localizedValues":[{"cultureName":"en-US","name":"Mooring
+          Buoy"}]},{"resourceCategoryId":-2147483625,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Cama
+          Beach Cabin Category"}]},{"resourceCategoryId":-2147483624,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Deluxe
+          Cabin"}]},{"resourceCategoryId":-2147483623,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Group
+          Vacation Rental"}]},{"resourceCategoryId":-2147483622,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Conference
+          Day-Use Facility"}]},{"resourceCategoryId":-2147483621,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Day
+          Use Facility - Kopachuck Hall"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/transactionlocation
+    response:
+      body:
+        string:
+          '[{"transactionLocationId":-2147483630,"isDisabled":false,"regionCode":"98277","rootMapId":-2147483283,"localizedValues":[{"cultureName":"en-US","shortName":"Deception
+          Pass","fullName":"Deception Pass State Park","city":"Oak Harbor"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/resourceLocation
+    response:
+      body:
+        string:
+          '[{"resourceLocationId":-2147483624,"transactionLocationId":-2147483630,"rootMapId":-2147483388,"region":"Washington","country":"USA","resourceCategoryIds":[-2147483648,-2147483647,-2147483646,-2147483643,-2147483639,-2147483638,-2147483624],"localizedValues":[{"cultureName":"en-US","shortName":"Deception
+          Pass","fullName":"Deception Pass State Park","city":"Oak Harbor"}]},{"resourceLocationId":-2147483498,"transactionLocationId":-2147483630,"rootMapId":-2147483283,"region":"Washington","country":"USA","resourceCategoryIds":[-2147483632],"localizedValues":[{"cultureName":"en-US","shortName":"Retreat
+          Center - Cornet Bay","fullName":"Retreat Center - Cornet Bay","city":"Oak
+          Harbor"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/bookingcategories
+    response:
+      body:
+        string:
+          '[{"bookingCategoryId":52,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483623],"localizedValues":[{"cultureName":"en-US","name":"Group
+          Vacation Rentals"}]},{"bookingCategoryId":0,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483648,-2147483647,-2147483640,-2147483639,-2147483634],"localizedValues":[{"cultureName":"en-US","name":"Campsite"}]},{"bookingCategoryId":1,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483646,-2147483645,-2147483644,-2147483642,-2147483633,-2147483624],"localizedValues":[{"cultureName":"en-US","name":"Roofed"}]},{"bookingCategoryId":2,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483637,-2147483636],"localizedValues":[{"cultureName":"en-US","name":"Houses"}]},{"bookingCategoryId":4,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483643],"localizedValues":[{"cultureName":"en-US","name":"Group"}]},{"bookingCategoryId":5,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483641],"localizedValues":[{"cultureName":"en-US","name":"Marina"}]},{"bookingCategoryId":3,"bookingModel":1,"isDisabled":false,"allowedResourceCategoryIds":[-2147483638,-2147483621],"localizedValues":[{"cultureName":"en-US","name":"Facility"}]},{"bookingCategoryId":12,"bookingModel":2,"isDisabled":false,"allowedResourceCategoryIds":[-2147483628],"localizedValues":[{"cultureName":"en-US","name":"Annual
+          Marina"}]},{"bookingCategoryId":7,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483632],"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/resourcecategory
+    response:
+      body:
+        string:
+          '[{"resourceCategoryId":-2147483648,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Campsite"}]},{"resourceCategoryId":-2147483647,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Overflow"}]},{"resourceCategoryId":-2147483646,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Cabin"}]},{"resourceCategoryId":-2147483645,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Yurt"}]},{"resourceCategoryId":-2147483644,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Platform
+          Tent"}]},{"resourceCategoryId":-2147483643,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Group
+          Camp"}]},{"resourceCategoryId":-2147483642,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Adirondack"}]},{"resourceCategoryId":-2147483639,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Marine
+          Trail"}]},{"resourceCategoryId":-2147483638,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Day
+          Use Facility"}]},{"resourceCategoryId":-2147483637,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Vacation
+          House"}]},{"resourceCategoryId":-2147483636,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"ELC"}]},{"resourceCategoryId":-2147483635,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Rental"}]},{"resourceCategoryId":-2147483634,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Equestrian"}]},{"resourceCategoryId":-2147483633,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Teepee"}]},{"resourceCategoryId":-2147483640,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Boat
+          In"}]},{"resourceCategoryId":-2147483632,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center"}]},{"resourceCategoryId":-2147483631,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center Day Use"}]},{"resourceCategoryId":-2147483630,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Cama
+          Beach Cabin"}]},{"resourceCategoryId":-2147483627,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center - Add-ons DayUse"}]},{"resourceCategoryId":-2147483629,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center Add-Ons Overnight"}]},{"resourceCategoryId":-2147483641,"resourceType":1,"localizedValues":[{"cultureName":"en-US","name":"Marina"}]},{"resourceCategoryId":-2147483628,"resourceType":1,"localizedValues":[{"cultureName":"en-US","name":"Annual
+          Marina"}]},{"resourceCategoryId":-2147483626,"resourceType":1,"localizedValues":[{"cultureName":"en-US","name":"Mooring
+          Buoy"}]},{"resourceCategoryId":-2147483625,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Cama
+          Beach Cabin Category"}]},{"resourceCategoryId":-2147483624,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Deluxe
+          Cabin"}]},{"resourceCategoryId":-2147483623,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Group
+          Vacation Rental"}]},{"resourceCategoryId":-2147483622,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Conference
+          Day-Use Facility"}]},{"resourceCategoryId":-2147483621,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Day
+          Use Facility - Kopachuck Hall"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/transactionlocation
+    response:
+      body:
+        string:
+          '[{"transactionLocationId":-2147483630,"isDisabled":false,"regionCode":"98277","rootMapId":-2147483283,"localizedValues":[{"cultureName":"en-US","shortName":"Deception
+          Pass","fullName":"Deception Pass State Park","city":"Oak Harbor"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/transactionlocation
+    response:
+      body:
+        string:
+          '[{"transactionLocationId":-2147483630,"isDisabled":false,"regionCode":"98277","rootMapId":-2147483283,"localizedValues":[{"cultureName":"en-US","shortName":"Deception
+          Pass","fullName":"Deception Pass State Park","city":"Oak Harbor"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/transactionlocation
+    response:
+      body:
+        string:
+          '[{"transactionLocationId":-2147483630,"isDisabled":false,"regionCode":"98277","rootMapId":-2147483283,"localizedValues":[{"cultureName":"en-US","shortName":"Deception
+          Pass","fullName":"Deception Pass State Park","city":"Oak Harbor"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/resourceLocation
+    response:
+      body:
+        string:
+          '[{"resourceLocationId":-2147483624,"transactionLocationId":-2147483630,"rootMapId":-2147483388,"region":"Washington","country":"USA","resourceCategoryIds":[-2147483648,-2147483647,-2147483646,-2147483643,-2147483639,-2147483638,-2147483624],"localizedValues":[{"cultureName":"en-US","shortName":"Deception
+          Pass","fullName":"Deception Pass State Park","city":"Oak Harbor"}]},{"resourceLocationId":-2147483498,"transactionLocationId":-2147483630,"rootMapId":-2147483283,"region":"Washington","country":"USA","resourceCategoryIds":[-2147483632],"localizedValues":[{"cultureName":"en-US","shortName":"Retreat
+          Center - Cornet Bay","fullName":"Retreat Center - Cornet Bay","city":"Oak
+          Harbor"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/bookingcategories
+    response:
+      body:
+        string:
+          '[{"bookingCategoryId":52,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483623],"localizedValues":[{"cultureName":"en-US","name":"Group
+          Vacation Rentals"}]},{"bookingCategoryId":0,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483648,-2147483647,-2147483640,-2147483639,-2147483634],"localizedValues":[{"cultureName":"en-US","name":"Campsite"}]},{"bookingCategoryId":1,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483646,-2147483645,-2147483644,-2147483642,-2147483633,-2147483624],"localizedValues":[{"cultureName":"en-US","name":"Roofed"}]},{"bookingCategoryId":2,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483637,-2147483636],"localizedValues":[{"cultureName":"en-US","name":"Houses"}]},{"bookingCategoryId":4,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483643],"localizedValues":[{"cultureName":"en-US","name":"Group"}]},{"bookingCategoryId":5,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483641],"localizedValues":[{"cultureName":"en-US","name":"Marina"}]},{"bookingCategoryId":3,"bookingModel":1,"isDisabled":false,"allowedResourceCategoryIds":[-2147483638,-2147483621],"localizedValues":[{"cultureName":"en-US","name":"Facility"}]},{"bookingCategoryId":12,"bookingModel":2,"isDisabled":false,"allowedResourceCategoryIds":[-2147483628],"localizedValues":[{"cultureName":"en-US","name":"Annual
+          Marina"}]},{"bookingCategoryId":7,"bookingModel":0,"isDisabled":false,"allowedResourceCategoryIds":[-2147483632],"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://washington.goingtocamp.com/api/resourcecategory
+    response:
+      body:
+        string:
+          '[{"resourceCategoryId":-2147483648,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Campsite"}]},{"resourceCategoryId":-2147483647,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Overflow"}]},{"resourceCategoryId":-2147483646,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Cabin"}]},{"resourceCategoryId":-2147483645,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Yurt"}]},{"resourceCategoryId":-2147483644,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Platform
+          Tent"}]},{"resourceCategoryId":-2147483643,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Group
+          Camp"}]},{"resourceCategoryId":-2147483642,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Adirondack"}]},{"resourceCategoryId":-2147483639,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Marine
+          Trail"}]},{"resourceCategoryId":-2147483638,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Day
+          Use Facility"}]},{"resourceCategoryId":-2147483637,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Vacation
+          House"}]},{"resourceCategoryId":-2147483636,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"ELC"}]},{"resourceCategoryId":-2147483635,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Rental"}]},{"resourceCategoryId":-2147483634,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Equestrian"}]},{"resourceCategoryId":-2147483633,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Teepee"}]},{"resourceCategoryId":-2147483640,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Boat
+          In"}]},{"resourceCategoryId":-2147483632,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center"}]},{"resourceCategoryId":-2147483631,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center Day Use"}]},{"resourceCategoryId":-2147483630,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Cama
+          Beach Cabin"}]},{"resourceCategoryId":-2147483627,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center - Add-ons DayUse"}]},{"resourceCategoryId":-2147483629,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Retreat
+          Center Add-Ons Overnight"}]},{"resourceCategoryId":-2147483641,"resourceType":1,"localizedValues":[{"cultureName":"en-US","name":"Marina"}]},{"resourceCategoryId":-2147483628,"resourceType":1,"localizedValues":[{"cultureName":"en-US","name":"Annual
+          Marina"}]},{"resourceCategoryId":-2147483626,"resourceType":1,"localizedValues":[{"cultureName":"en-US","name":"Mooring
+          Buoy"}]},{"resourceCategoryId":-2147483625,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Cama
+          Beach Cabin Category"}]},{"resourceCategoryId":-2147483624,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Deluxe
+          Cabin"}]},{"resourceCategoryId":-2147483623,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Group
+          Vacation Rental"}]},{"resourceCategoryId":-2147483622,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Conference
+          Day-Use Facility"}]},{"resourceCategoryId":-2147483621,"resourceType":0,"localizedValues":[{"cultureName":"en-US","name":"Day
+          Use Facility - Kopachuck Hall"}]}]'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+version: 1

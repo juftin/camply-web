@@ -106,3 +106,57 @@ These probes found no bookable inventory on 2026-11-25. Each provider has a name
 | Long Point Region               | [Backus Heritage Conservation Area](https://longpoint.goingtocamp.com/create-booking/results?resourceLocationId=-2147483648&transactionLocationId=-2147483648) (`-2147483648`)    | May 24 and June 7 probes were empty. Follow the [conservation authority's camping page](https://www.lprca.on.ca/outdoor-recreation/camping/) for the next nightly release.                                                                      |
 | Maitland Valley                 | [Falls Reserve Conservation Area](https://maitlandvalley.goingtocamp.com/create-booking/results?resourceLocationId=-2147483648&transactionLocationId=-2147483648) (`-2147483648`) | May 24, June 7, and July 12 probes were empty. The [Falls Reserve camping page](https://mvca.on.ca/camping/frca-camping/) lists an early January reopening for reservations.                                                                    |
 | St. Clair Region                | [Warwick Conservation Area](https://stclair.goingtocamp.com/create-booking/results?resourceLocationId=-2147483646&transactionLocationId=-2147483643) (`-2147483646`)              | May 24 and June 7 probes were empty. The [conservation authority](https://www.scrca.on.ca/conservation-lands/) lists Jan. 11, 2027 for online bookings. Try a weekday after the release.                                                        |
+
+## Metadata recordings
+
+Metadata replay covers discovery and exact lookup, published enrichment, catalog sync, and campsite listing. The inventory is in `tests/providers/metadata_cases.py`. Verification is independent of the seasonal availability recordings. The catalog cases that need a dated browse grid use December 7, 2026. Update the clock in `tests/providers/test_metadata_catalog_cassettes.py` together with those recordings if a new browse date is needed.
+
+| Operation and case key       | Public verification target                                                                                                                                                         | Recording                                             | Last verified |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------- |
+| `discovery/recreation-gov`   | [Jumbo Rocks](https://www.recreation.gov/camping/campgrounds/272300) (`272300`), Joshua Tree (`2782`)                                                                              | `discovery/recreation-gov.yaml`                       | 2026-11-25    |
+| `discovery/usedirect`        | [South Camp](https://www.reservecalifornia.com/park/690/611) (`611`), [Pfeiffer Big Sur SP](https://parks.ca.gov/?page_id=29832) (`690`)                                           | `discovery/usedirect.yaml`                            | 2026-11-25    |
+| `discovery/going-to-camp`    | [Deception Pass](https://washington.goingtocamp.com/create-booking/results?resourceLocationId=-2147483624&transactionLocationId=-2147483630) (`-2147483624`), parent `-2147483630` | `discovery/going-to-camp.yaml`                        | 2026-11-25    |
+| `discovery/reserve-america`  | [Chatfield State Park](https://www.reserveamerica.com/campgroundDetails.do?contractCode=CO&parkId=50021) (`CO_50021`), Colorado state catalog                                      | `discovery/reserve-america.yaml`                      | 2026-11-25    |
+| `enrichment/recreation-gov`  | [Jumbo Rocks](https://www.recreation.gov/camping/campgrounds/272300) and Joshua Tree, RIDB archive                                                                                 | `ridb/joshua-tree.zip`                                | 2026-11-25    |
+| `enrichment/usedirect`       | [Lost Dutchman](https://azstateparks.com/reserve/#!park/13/64) campground (`64`) and park (`13`)                                                                                   | `enrichment/usedirect.yaml`                           | 2026-11-25    |
+| `enrichment/reserve-america` | [Jackson Lake State Park](https://www.reserveamerica.com/campgroundDetails.do?contractCode=CO&parkId=50028) (`CO_50028`)                                                           | `enrichment/reserve-america.yaml`                     | 2026-11-25    |
+| `catalog/recreation-gov`     | Jumbo Rocks site 001 (`103904`) and Joshua Tree (`2782`)                                                                                                                           | `catalog/recreation-gov.yaml`, `ridb/joshua-tree.zip` | 2026-11-25    |
+| `catalog/usedirect`          | Borrego Palm Canyon site 53 (`4245`) and Anza-Borrego (`2`)                                                                                                                        | `catalog/usedirect.yaml`                              | 2026-11-25    |
+| `catalog/going-to-camp`      | Deception Pass site 31 (`-2147481558`) and parent `-2147483630`                                                                                                                    | `catalog/going-to-camp.yaml`                          | 2026-11-25    |
+| `catalog/reserve-america`    | Chatfield State Park site 001 (`CO_50021_3134`), Colorado state catalog                                                                                                            | `catalog/reserve-america.yaml`                        | 2026-11-25    |
+
+Paths in the recording column are relative to `tests/providers/cassettes/metadata/`. ReserveAmerica records and replays a Colorado subset for discovery and sync, including its state pagination. ReserveAmerica has no recreation-area parent. GoingToCamp has no enrichment recording because its adapter has no enrichment path. The Lost Dutchman replay checks a successful park image and a campground without an image. The cassette retains only the image prefix the adapter needs.
+
+For ReserveCalifornia discovery, search for `South Camp` in California. The recorded park catalog lists South Camp (`611`), Weyland Camp (`612`), and Main Camp (`767`) with online booking enabled. Group Sites A & B (`609`) and Day Use Lots 3 and 4 (`2092`, `2093`) are present with `AllowWebBooking: false`. Keep both the included and excluded rows when refreshing so the test exercises area expansion filtering.
+
+### Refresh a single metadata recording
+
+1. Verify the target, names, IDs, relationships, and known fields on the public provider source. Update the inventory and test expectations independently of the replay output.
+2. Record the selected operation to a new candidate under `tmp/`. For example, use the following commands for Recreation.gov discovery.
+3. Review the candidate for public data, synthetic session placeholders, and relevant request matching fields. Run the replay command with outbound networking disabled. Copy the passing candidate into the recording path and update its verification date. Leave the committed recording available if recording or replay fails.
+
+```sh
+node='tests/providers/test_metadata_discovery_cassettes.py::test_metadata_discovery[asyncio-recreation-gov]'
+candidate=tmp/provider-metadata/recreation-gov-discovery.yaml
+
+task backend:test -- "$node" \
+  --record-provider-metadata discovery/recreation-gov \
+  --provider-metadata-candidate "$candidate"
+task backend:test -- "$node" --provider-metadata-candidate "$candidate"
+```
+
+For the shared Recreation.gov catalog and enrichment archive, download the [public RIDB export](https://ridb.recreation.gov/downloads/RIDBFullExport_V1_JSON.zip) into ignored storage. Use the archive tool to retain the selected area and campground, then review the compact ZIP members for public fields. With outbound networking disabled, run both tests against the same candidate. The catalog test uses the ZIP for sync and the existing YAML cassette for campsite listing. Replace `tests/providers/cassettes/metadata/ridb/joshua-tree.zip` and update its verification dates only after both tests pass.
+
+```sh
+uv run python -m tests.providers.metadata_archive \
+  tmp/provider-metadata/ridb-full.zip tmp/provider-metadata/joshua-tree-candidate.zip \
+  --area-id 2782 --campground-id 272300
+
+candidate=tmp/provider-metadata/joshua-tree-candidate.zip
+task backend:test -- \
+  'tests/providers/test_metadata_enrichment_cassettes.py::test_metadata_enrichment[asyncio-recreation-gov]' \
+  --provider-metadata-candidate "$candidate"
+task backend:test -- \
+  'tests/providers/test_metadata_catalog_cassettes.py::test_metadata_catalog[asyncio-recreation-gov]' \
+  --provider-metadata-candidate "$candidate"
+```

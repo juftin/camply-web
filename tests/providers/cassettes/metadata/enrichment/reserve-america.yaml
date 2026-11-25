@@ -1,0 +1,127 @@
+interactions:
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://a1.reserveamerica.com/explore/search-results
+    response:
+      body:
+        string: ""
+      headers:
+        set-cookie:
+          - idToken=synthetic-cassette-token; Path=/
+          - a1Data=synthetic-cassette-session; Path=/
+      status:
+        code: 200
+        message: "200"
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://a1.reserveamerica.com/jaxrs-json/facilities/CO/50028?detailsOnly=false
+    response:
+      body:
+        string:
+          '{"id":50028,"contrCode":"CO","originalPhotos":[{"photoURL":"/webphotos/originals/CO/pid50028/{pht}540x360{pht}1454464587412.jpg"},{"photoURL":"/webphotos/originals/CO/pid50028/{pht}540x360%20(1){pht}1454464595932.jpg"},{"photoURL":"/webphotos/originals/CO/pid50028/{pht}540x360%20(2){pht}1454464606943.jpg"},{"photoURL":"/webphotos/originals/CO/pid50028/{pht}540x360%20(3){pht}1454464615429.jpg"}],"notes":[{"content":"<hr
+          />\nHandicap site #35 is only reservable through the call center.  This site
+          requires a handicap sticker, plate or placard. Reservations: [redacted].\n<hr
+          />\n\nJackson Lake is well known for its wonderful campgrounds and excellent
+          water sports on a wide-open high-plains reservoir. There''s plenty of room
+          for everyone on this large body of water - sailboats, motorboats, personal
+          watercraft - as well as the beautiful waterfowl and wildlife that call this
+          area home. \n<hr />\nJackson Lake has 260 campsites, most of which accommodate
+          campers, trailers or tents. Shade may be naturally provided by trees and other
+          vegetation or by man-made shelter. Please call the Park for specific details.
+          Jackson Lake State Park also offers a group picnic area (complete with picnic
+          pavilion) and a group campground. Call the park for details at [redacted].\n\nFor
+          current conditions and more information, please visit the Jackson Lake website:
+          http://cpw.state.co.us/placestogo/parks/jacksonlake"},{"content":"<b>NO-SHOW
+          Policy</b><br />\nIf you do not arrive to the park within 24 hours of your
+          scheduled check in time and do not notify the park that you will be arriving
+          late, your site may be resold and may not be available when you arrive. The
+          fees for any nights passed are non-refundable.<br /><br />\n\n<b>Changes and
+          Cancellations</b>\n<ul>\n<li>Cancellations or changes may be made online 24
+          hours a day 7 days a week, or through the Aspira Call Center at [redacted].</li>\n<li>Reservations
+          where one or more dates fall outside of the 6-month booking window are frozen
+          for 14 days.</li>\n<li>Cancellations:\n\n<ul>\n<li>If the cancellation is
+          made 28 days or more prior to the arrival date, 25% of the fee for 1 night
+          or day-use permit will be retained</li>\n<li>If the cancellation is made 8-27
+          days prior to the arrival date, 50% of the fee for 1 night or day-use permit
+          will be retained.</li>\n<li>If the cancellation is made 7 days or less prior
+          to the arrival date, 100% of the fee for 1 night or day-use permit will be
+          retained.</li>\n<li>If a reservation is cancelled at any time after the arrival
+          date, any nights prior to the cancellation are NON-REFUNDABLE </li>\n\n</ul></li>\n<li>Changes:\n<ul>\n<li>If
+          a change in the reservation is made 28 days or more prior to the arrival date,
+          10% of the fee for one night or day-use permit will be retained.</li>\n<li>If
+          a change in the reservation is made 8-27 days prior to the arrival date, 15%
+          of the fee for one night or day-use permit will be retained.</li>\n<li>If
+          a change in the reservation is made 7 days or less prior to arrival, 20% of
+          the fee for one night or day-use permit will be retained.</li>\n<li>If the
+          change in the reservation dates is made between the day after the arrival
+          date and the departure date, the fees for any nights or days passed are NON-REFUNDABLE.</li>\n<li>There
+          is no additional fee to add days to a reservation.</li>\n<li>The reservation
+          holder is responsible for any difference in use fees.</li>\n</ul></li>\n\n<li>Customers
+          who wish to receive a refund outside of these rules will need to contact the
+          park at which they have the reservation directly.</li>\n\n<li>No exceptions
+          to the refund policy will be given for bugs, bad weather, campfire bans, water
+          conditions (including water levels, boat ramp or swim beach closures, and
+          algae)! </li>\n\n<li>If the original reservation was made directly with the
+          park, any refunds resulting from changes/cancellations will be issued via
+          personal check and may take up to 90 days from the date of the change/cancellation
+          to be processed. </li></ul>"},{"content":null},{"content":"From the US 34/I-76
+          Interchange, take CO 39 north 7 1/4 miles through Goodrich to T-intersection.
+          Turn left (west) on County Road Y.5. Stay on County Road Y.5. (It will turn
+          north after a couple of miles.) This will take you past the south side and
+          into the main park area on the west."},{"content":null},{"content":"<div class=\"fileContent\"><a
+          href=\"http://cpw.state.co.us/buyapply/Pages/ReservationFees.aspx\">Please
+          read our Fees and Cancellation Policies</a>\n</div>"}],"directions":{"directionsInfo":{"content":"From
+          the US 34/I-76 Interchange, take CO 39 north 7 1/4 miles through Goodrich
+          to T-intersection. Turn left (west) on County Road Y.5. Stay on County Road
+          Y.5. (It will turn north after a couple of miles.) This will take you past
+          the south side and into the main park area on the west."}},"amenities":[{"name":"Beach
+          (Swimming)","distanceCode":"2000","distanceName":"Within Facility"},{"name":"Biking","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Bird Watching","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Boat Launch Ramp","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Boat Ramp","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Boating","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Camper Services Bldg","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Comfort Station","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Dump Station","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Firewood Available","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Fishing","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Fishing Licenses Sold","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Group Campground","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Group Pavilions Available","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Group Picnic Area","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Hiking","distanceCode":"2000","distanceName":"Within Facility"},{"name":"Hunting","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Ice Fishing","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Interpretitive Programs","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Jet Skiing","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Marina","distanceCode":"2000","distanceName":"Within Facility"},{"name":"Parking","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Photography","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Picnic Tables","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Picnicking","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Proximity To Camp Serv.","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Ranger Station","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Sailing And Sailboarding","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Showers","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Swimming","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Swimming - Lake","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Toilet, Pit/Vault","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Visitor Center","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Water Skiing","distanceCode":"2000","distanceName":"Within
+          Facility"},{"name":"Wildlife Watching Opportunity","distanceCode":"2000","distanceName":"Within
+          Facility"}],"relatedLinks":[{"linkLabel":"General Rules","linkTitle":"General
+          Rules","linkURL":"/rules/general/corules.jsp"}],"feesCancellationsDescription":"Non-Peak
+          Primitive Site $10.00<br/>Non-Peak Standard Full Hookup $22.00<br/>Non-Peak
+          Standard with Electric Hookup $19.00<br/>Non-Peak Standard with Water and
+          Electric Hookups $21.00<br/><br/>Peak Primitive Site $10-$12<br/>Peak Standard
+          Full Hookup $22.00-$24.00<br/>Peak Standard with Electric Hookup $19.00-$21.00<br/>Peak
+          Standard with Water and Electric Hookups $21.00-$23.00<br/>","seasons":[{"name":"Peak","datePeriod":{"startDate":"2026-01-01","endDate":"2026-12-31"}},{"name":"Peak","datePeriod":{"startDate":"2027-01-01","endDate":"2027-10-31"}}]}'
+      headers:
+        content-type:
+          - application/json
+      status:
+        code: 200
+        message: "200"
+version: 1
