@@ -1,0 +1,76 @@
+interactions:
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://www.recreation.gov/api/search/campsites?start=0&size=1000&fq=asset_id%3A272300&include_non_site_specific_campsites=true
+    response:
+      body:
+        string:
+          '{"campsites":[{"campsite_id":103820,"name":"015","type":"TENT ONLY
+          NONELECTRIC","accessible":false,"loop":"JUMBO ROCKS CAMPGROUND","latitude":33.99185209,"longitude":-116.0648811,"permitted_equipment":[{"equipment_name":"Tent","max_length":0.0},{"equipment_name":"Small
+          Tent","max_length":0.0}],"attributes":[{"attribute_category":"site_details","attribute_id":0,"attribute_name":"Water
+          Hookup","attribute_value":"No"},{"attribute_category":"site_details","attribute_id":12,"attribute_name":"Checkout
+          Time","attribute_value":"12:00 PM"},{"attribute_category":"site_details","attribute_id":65,"attribute_name":"Pets
+          Allowed","attribute_value":"Yes"},{"attribute_category":"site_details","attribute_id":52,"attribute_name":"Max
+          Num of People","attribute_value":"6"},{"attribute_category":"site_details","attribute_id":0,"attribute_name":"Hike
+          in Distance","attribute_value":"90"},{"attribute_category":"site_details","attribute_id":79,"attribute_name":"Site
+          Access","attribute_value":"Hike-In"},{"attribute_category":"site_details","attribute_id":11,"attribute_name":"Checkin
+          Time","attribute_value":"12:00 PM"},{"attribute_category":"site_details","attribute_id":9,"attribute_name":"Campfire
+          Allowed","attribute_value":"Yes"},{"attribute_category":"equipment_details","attribute_id":0,"attribute_name":"Site
+          Height/Overhead Clearance","attribute_value":""},{"attribute_category":"equipment_details","attribute_id":0,"attribute_name":"Is
+          Equipment Mandatory","attribute_value":"false"},{"attribute_category":"equipment_details","attribute_id":22,"attribute_name":"Double
+          Driveway","attribute_value":"No"},{"attribute_category":"equipment_details","attribute_id":23,"attribute_name":"Driveway
+          Entry","attribute_value":"Back-in"},{"attribute_category":"equipment_details","attribute_id":25,"attribute_name":"Driveway
+          Length","attribute_value":"18"},{"attribute_category":"equipment_details","attribute_id":0,"attribute_name":"Max
+          Vehicle Length","attribute_value":"18"},{"attribute_category":"equipment_details","attribute_id":53,"attribute_name":"Max
+          Num of Vehicles","attribute_value":"1"},{"attribute_category":"equipment_details","attribute_id":0,"attribute_name":"Site
+          Width","attribute_value":"0"},{"attribute_category":"equipment_details","attribute_id":26,"attribute_name":"Driveway
+          Surface","attribute_value":"Paved"},{"attribute_category":"equipment_details","attribute_id":0,"attribute_name":"Min
+          Num of Vehicles","attribute_value":"1"},{"attribute_category":"equipment_details","attribute_id":0,"attribute_name":"Site
+          Length","attribute_value":"0"},{"attribute_category":"amenities","attribute_id":67,"attribute_name":"Picnic
+          Table","attribute_value":"Y"},{"attribute_category":"amenities","attribute_id":38,"attribute_name":"Grills/Fire
+          Ring","attribute_value":"Y"}]},{"campsite_id":103860,"name":"089","type":"STANDARD
+          NONELECTRIC","accessible":false,"loop":"JUMBO ROCKS CAMPGROUND","latitude":33.9921226170001,"longitude":-116.061160516,"permitted_equipment":[{"equipment_name":"Tent","max_length":0.0},{"equipment_name":"RV","max_length":38.0},{"equipment_name":"Trailer","max_length":20.0},{"equipment_name":"Pickup
+          Camper","max_length":35.0},{"equipment_name":"Fifth Wheel","max_length":20.0},{"equipment_name":"Large
+          Tent Over 9X12`","max_length":0.0},{"equipment_name":"Small Tent","max_length":0.0},{"equipment_name":"Caravan/Camper
+          Van","max_length":35.0}],"attributes":[{"attribute_category":"site_details","attribute_id":11,"attribute_name":"Checkin
+          Time","attribute_value":"12:00 PM"},{"attribute_category":"site_details","attribute_id":9,"attribute_name":"Campfire
+          Allowed","attribute_value":"Yes"},{"attribute_category":"site_details","attribute_id":52,"attribute_name":"Max
+          Num of People","attribute_value":"6"},{"attribute_category":"site_details","attribute_id":12,"attribute_name":"Checkout
+          Time","attribute_value":"12:00 PM"},{"attribute_category":"site_details","attribute_id":79,"attribute_name":"Site
+          Access","attribute_value":"Drive-In"},{"attribute_category":"site_details","attribute_id":65,"attribute_name":"Pets
+          Allowed","attribute_value":"Yes"},{"attribute_category":"equipment_details","attribute_id":23,"attribute_name":"Driveway
+          Entry","attribute_value":"Parallel"},{"attribute_category":"equipment_details","attribute_id":0,"attribute_name":"Is
+          Equipment Mandatory","attribute_value":"true"},{"attribute_category":"equipment_details","attribute_id":25,"attribute_name":"Driveway
+          Length","attribute_value":"40"},{"attribute_category":"equipment_details","attribute_id":54,"attribute_name":"Max
+          Vehicle Length","attribute_value":"38"},{"attribute_category":"equipment_details","attribute_id":0,"attribute_name":"Site
+          Height/Overhead Clearance","attribute_value":"0"},{"attribute_category":"equipment_details","attribute_id":53,"attribute_name":"Max
+          Num of Vehicles","attribute_value":"2"},{"attribute_category":"equipment_details","attribute_id":26,"attribute_name":"Driveway
+          Surface","attribute_value":"Paved"},{"attribute_category":"amenities","attribute_id":67,"attribute_name":"Picnic
+          Table","attribute_value":"Y"},{"attribute_category":"amenities","attribute_id":38,"attribute_name":"Grills/Fire
+          Ring","attribute_value":"Y"}]}],"size":119,"start":0,"total":2}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://www.recreation.gov/api/camps/availability/campground/272300/month?start_date=2026-12-01T00%3A00%3A00.000Z
+    response:
+      body:
+        string:
+          '{"campsites":{"103820":{"availabilities":{"2026-12-06T00:00:00Z":"Available","2026-12-07T00:00:00Z":"Available","2026-12-08T00:00:00Z":"Available","2026-12-09T00:00:00Z":"Available"},"loop":"JUMBO
+          ROCKS CAMPGROUND","campsite_type":"TENT ONLY NONELECTRIC","max_num_people":6,"min_num_people":0,"type_of_use":"Overnight","site":"015"},"103860":{"availabilities":{"2026-12-06T00:00:00Z":"Reserved","2026-12-07T00:00:00Z":"Available","2026-12-08T00:00:00Z":"Available","2026-12-09T00:00:00Z":"Reserved"},"loop":"JUMBO
+          ROCKS CAMPGROUND","campsite_type":"STANDARD NONELECTRIC","max_num_people":6,"min_num_people":0,"type_of_use":"Overnight","site":"089"}}}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+version: 1

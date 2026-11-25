@@ -65,7 +65,7 @@ Opt-in Docker integration suites (`task admin:smoke`, `task search:smoke`, `task
 
 - **Database migrations:** Generate with `task backend:migration -- "message"` and apply with `task backend:migration-upgrade`.
 - **API client codegen:** After changing FastAPI routes or schemas, run `task api:generate` (and `task api:check` to verify no OpenAPI drift).
-- **VCR cassettes:** Re-record provider fixtures with `task backend:test -- --vcr-record=all` and verify no credentials are saved.
+- **Provider availability cassettes:** Find confirmed open dates, record a single search, and verify it offline using the [cassette refresh guide](PROVIDER_CASSETTES.md).
 - **Standalone wheels/sdists:** Build complete distributions into `dist/` with `uv run python -m build` (or `task dist`). See [Runtime & Packaging](../operations/RUNNING.md) for the packaging contract.
 
 ## Working on the docs

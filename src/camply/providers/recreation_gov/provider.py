@@ -695,12 +695,14 @@ class RecreationGovProvider(BaseProvider):
         """
         Scan and fetch availabilities.
         """
-        # Calculate unique months in target range
+        if end_date <= start_date:
+            raise ValueError("Check-out must be after arrival")
+
+        # Checkout is exclusive, including when it falls on the first of a month.
         months: list[date] = []
         current = date(start_date.year, start_date.month, 1)
-        end_month = date(end_date.year, end_date.month, 1)
         december = 12
-        while current <= end_month:
+        while current < end_date:
             months.append(current)
             if current.month == december:
                 current = date(current.year + 1, 1, 1)
@@ -791,7 +793,7 @@ class RecreationGovProvider(BaseProvider):
         available_dates = []
         for dt, status in site_data.availabilities.items():
             d = dt.date()
-            if start_date <= d <= end_date and status not in unavail_statuses:
+            if start_date <= d < end_date and status not in unavail_statuses:
                 available_dates.append(d)
         return available_dates
 

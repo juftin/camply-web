@@ -1,0 +1,62 @@
+interactions:
+  - request:
+      body: ""
+      headers: {}
+      method: GET
+      uri: https://mnrdr.usedirect.com/minnesotardr/rdr/search/filters
+    response:
+      body:
+        string:
+          '{"UnitTypesGroups":[{"UnitTypesGroupId":182,"UnitTypesGroupName":"Room"},{"UnitTypesGroupId":183,"UnitTypesGroupName":"Camper
+          Cabin - Basic"},{"UnitTypesGroupId":184,"UnitTypesGroupName":"Camper Cabin-Electric/or Heat"},{"UnitTypesGroupId":196,"UnitTypesGroupName":"Cabin
+          (6 Person) - A"},{"UnitTypesGroupId":198,"UnitTypesGroupName":"Cabin (6 Person) - B"},{"UnitTypesGroupId":199,"UnitTypesGroupName":"Cabin
+          (4 Person) - A"},{"UnitTypesGroupId":200,"UnitTypesGroupName":"Cabin (4 Person) - B"},{"UnitTypesGroupId":201,"UnitTypesGroupName":"Cabin
+          (8 Person) - A"},{"UnitTypesGroupId":221,"UnitTypesGroupName":"Yurt (3 person)"},{"UnitTypesGroupId":222,"UnitTypesGroupName":"Yurt
+          (7 person)"},{"UnitTypesGroupId":232,"UnitTypesGroupName":"Double Room"},{"UnitTypesGroupId":233,"UnitTypesGroupName":"Single
+          Room"},{"UnitTypesGroupId":146,"UnitTypesGroupName":"Cabin (8 Person)"},{"UnitTypesGroupId":147,"UnitTypesGroupName":"Cabin
+          (6 Person)"},{"UnitTypesGroupId":148,"UnitTypesGroupName":"Cabin (4 Person)"},{"UnitTypesGroupId":149,"UnitTypesGroupName":"Cabin
+          (2 Person)"},{"UnitTypesGroupId":239,"UnitTypesGroupName":"Camper Cabin-Electric"},{"UnitTypesGroupId":150,"UnitTypesGroupName":"Suites"},{"UnitTypesGroupId":151,"UnitTypesGroupName":"Guest
+          House"},{"UnitTypesGroupId":211,"UnitTypesGroupName":"Trail Center"},{"UnitTypesGroupId":212,"UnitTypesGroupName":"Enclosed
+          Picnic Shelter"},{"UnitTypesGroupId":214,"UnitTypesGroupName":"Meeting Room"},{"UnitTypesGroupId":215,"UnitTypesGroupName":"Amphitheater"},{"UnitTypesGroupId":217,"UnitTypesGroupName":"Dining
+          Hall"},{"UnitTypesGroupId":218,"UnitTypesGroupName":"Interpretive Center"},{"UnitTypesGroupId":219,"UnitTypesGroupName":"Meeting
+          Room (Half)"},{"UnitTypesGroupId":227,"UnitTypesGroupName":"Track Chair"},{"UnitTypesGroupId":143,"UnitTypesGroupName":"Open
+          Picnic Shelter"},{"UnitTypesGroupId":234,"UnitTypesGroupName":"Beach Chair"},{"UnitTypesGroupId":179,"UnitTypesGroupName":"Group
+          Area - Premium"},{"UnitTypesGroupId":180,"UnitTypesGroupName":"Group Area - Basic"},{"UnitTypesGroupId":181,"UnitTypesGroupName":"Group
+          Area -  Canoe-In/Boat-In"},{"UnitTypesGroupId":237,"UnitTypesGroupName":"Enhanced Group Area"},{"UnitTypesGroupId":187,"UnitTypesGroupName":"Itasca
+          Club House"},{"UnitTypesGroupId":194,"UnitTypesGroupName":"Boat/Canoe/Kayak"},{"UnitTypesGroupId":235,"UnitTypesGroupName":"Track
+          Chair Rental"},{"UnitTypesGroupId":236,"UnitTypesGroupName":"Track chair"},{"UnitTypesGroupId":178,"UnitTypesGroupName":"Water
+          Accessible"},{"UnitTypesGroupId":205,"UnitTypesGroupName":"Drive-In Wall Tent"},{"UnitTypesGroupId":206,"UnitTypesGroupName":"Drive-In
+          Equestrian Electric Double Site"},{"UnitTypesGroupId":209,"UnitTypesGroupName":"Drive-In Equestrian Triple Site"},{"UnitTypesGroupId":210,"UnitTypesGroupName":"Drive-In
+          Double Site"},{"UnitTypesGroupId":223,"UnitTypesGroupName":"Drive-in Electric Double Site"},{"UnitTypesGroupId":224,"UnitTypesGroupName":"Canoe-In/Boat-In
+          Double Site"},{"UnitTypesGroupId":226,"UnitTypesGroupName":"Drive-In Equestrian"},{"UnitTypesGroupId":238,"UnitTypesGroupName":"Hike-In"},{"UnitTypesGroupId":240,"UnitTypesGroupName":"Boat-in"},{"UnitTypesGroupId":158,"UnitTypesGroupName":"Canoe-In/Boat-In"},{"UnitTypesGroupId":162,"UnitTypesGroupName":"Drive-In"},{"UnitTypesGroupId":163,"UnitTypesGroupName":"Drive-In
+          Electric"},{"UnitTypesGroupId":164,"UnitTypesGroupName":"Walk-In"},{"UnitTypesGroupId":165,"UnitTypesGroupName":"Cart-In"},{"UnitTypesGroupId":172,"UnitTypesGroupName":"Drive-In
+          Electric/Water/Sewer"},{"UnitTypesGroupId":174,"UnitTypesGroupName":"Drive-In Equestrian Electric"},{"UnitTypesGroupId":175,"UnitTypesGroupName":"Tipi"},{"UnitTypesGroupId":176,"UnitTypesGroupName":"Bike-In"},{"UnitTypesGroupId":177,"UnitTypesGroupName":"Backpack"},{"UnitTypesGroupId":186,"UnitTypesGroupName":"Group
+          Center Class II"},{"UnitTypesGroupId":225,"UnitTypesGroupName":"Group Camp SFRA"}],"NightlySleepingUnits":[{"SleepingUnitId":66,"SleepingUnitName":"5th
+          Wheel Trailer"},{"SleepingUnitId":32,"SleepingUnitName":"Car/Truck/Van"},{"SleepingUnitId":74,"SleepingUnitName":"Horse
+          Trailer"},{"SleepingUnitId":18,"SleepingUnitName":"Motorhome (RV)"},{"SleepingUnitId":69,"SleepingUnitName":"No Equipment"},{"SleepingUnitId":25,"SleepingUnitName":"Pickup
+          Camper"},{"SleepingUnitId":20,"SleepingUnitName":"Pop-Up Trailer"},{"SleepingUnitId":31,"SleepingUnitName":"Tent"},{"SleepingUnitId":21,"SleepingUnitName":"Travel
+          Trailer"}]}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+  - request:
+      body: '{"FacilityId":778,"StartDate":"03-08-2027","EndDate":"03-08-2027","WebOnly":true,"InSeasonOnly":true,"UnitSort":"orderby"}'
+      headers: {}
+      method: POST
+      uri: https://mnrdr.usedirect.com/minnesotardr/rdr/search/grid
+    response:
+      body:
+        string:
+          '{"Facility":{"FacilityId":778,"IsReservationDraw":false,"SeasonDates":{"2027-03-08T00:00:00":true,"2027-03-09T00:00:00":true,"2027-03-10T00:00:00":true,"2027-03-11T00:00:00":true,"2027-03-12T00:00:00":true,"2027-03-13T00:00:00":true,"2027-03-14T00:00:00":true,"2027-03-15T00:00:00":true,"2027-03-16T00:00:00":true,"2027-03-17T00:00:00":true,"2027-03-18T00:00:00":true,"2027-03-19T00:00:00":true,"2027-03-20T00:00:00":true,"2027-03-21T00:00:00":true,"2027-03-22T00:00:00":true,"2027-03-23T00:00:00":true,"2027-03-24T00:00:00":true,"2027-03-25T00:00:00":true,"2027-03-26T00:00:00":true,"2027-03-27T00:00:00":true,"2027-03-28T00:00:00":true},"Units":{"119.1":{"UnitId":15579,"Name":"Hike-In
+          #01","ShortName":"01","AllowWebBooking":true,"IsWebViewable":true,"IsFiltered":false,"IsAda":false,"UseType":4,"UnitCategoryId":25,"UnitTypeGroupId":0,"SleepingUnitIds":[31,69],"VehicleLength":0,"Slices":{"2027-03-08T00:00:00":{"Date":"2027-03-08","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-09T00:00:00":{"Date":"2027-03-09","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-10T00:00:00":{"Date":"2027-03-10","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-11T00:00:00":{"Date":"2027-03-11","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-12T00:00:00":{"Date":"2027-03-12","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-13T00:00:00":{"Date":"2027-03-13","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-14T00:00:00":{"Date":"2027-03-14","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-15T00:00:00":{"Date":"2027-03-15","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-16T00:00:00":{"Date":"2027-03-16","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-17T00:00:00":{"Date":"2027-03-17","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-18T00:00:00":{"Date":"2027-03-18","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-19T00:00:00":{"Date":"2027-03-19","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-20T00:00:00":{"Date":"2027-03-20","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-21T00:00:00":{"Date":"2027-03-21","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-22T00:00:00":{"Date":"2027-03-22","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-23T00:00:00":{"Date":"2027-03-23","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-24T00:00:00":{"Date":"2027-03-24","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1},"2027-03-25T00:00:00":{"Date":"2027-03-25","IsFree":true,"IsBlocked":false,"IsWalkin":false,"IsReservationDraw":false,"Lock":null,"MinStay":1}}}}},"Message":"Built
+          in 2.0228 ms size 7007 bytes on IP-AC122C8E","NightsActual":21}'
+      headers:
+        content-type:
+          - application/json; charset=utf-8
+      status:
+        code: 200
+        message: OK
+version: 1

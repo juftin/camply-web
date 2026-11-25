@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from camply.providers.dto import CampsiteType
+from camply.providers.recreation_gov.models.api import CampsiteAvailabilityResponse
 from camply.providers.recreation_gov.provider import (
     RecreationGovProvider,
     check_is_electric,
@@ -81,35 +82,45 @@ def test_check_is_electric():
     assert check_is_electric(campsite_non_electric) is False
 
 
-@pytest.mark.vcr
 @pytest.mark.anyio
-async def test_find_availabilities():
-    """
-    Test the complete async find_availabilities flow using VCRPy recorded HTTP requests.
-    """
+async def test_availability_excludes_checkout_at_month_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Checkout is excluded from the result and from the queried months."""
     provider = RecreationGovProvider()
-
-    # We will query Apache Trout Campground (facility ID 234708)
-    # for a specific date range that we record/replay.
-    start_date = datetime.date(2026, 9, 1)
-    end_date = datetime.date(2026, 9, 2)
-
-    availabilities = await provider.find_availabilities(
-        park_id="234708",
-        start_date=start_date,
-        end_date=end_date,
+    arrival = datetime.date(2030, 12, 31)
+    checkout = datetime.date(2031, 1, 1)
+    response = CampsiteAvailabilityResponse.model_validate(
+        {
+            "campsites": {
+                "1": {
+                    "site": "001",
+                    "availabilities": {
+                        "2030-12-30T00:00:00Z": "Available",
+                        "2030-12-31T00:00:00Z": "Available",
+                        "2031-01-01T00:00:00Z": "Available",
+                    },
+                }
+            }
+        }
+    )
+    monthly = AsyncMock(return_value=response)
+    monkeypatch.setattr(provider, "make_recdotgov_availability_request", monthly)
+    monkeypatch.setattr(
+        provider, "paginate_recdotgov_campsites", AsyncMock(return_value=[])
     )
 
-    # Structural assertions to verify that data is loaded and mapped correctly
-    assert isinstance(availabilities, list)
-    # Check that we successfully fetch and map to DTOs
-    for avail in availabilities:
-        assert avail.campsite_id
-        assert avail.campsite_name
-        assert avail.campsite_type in CampsiteType
-        assert isinstance(avail.available_dates, list)
-        assert len(avail.available_dates) > 0
-        assert all(start_date <= d <= end_date for d in avail.available_dates)
+    try:
+        sites = await provider.find_availabilities(
+            "10", start_date=arrival, end_date=checkout
+        )
+    finally:
+        await provider.async_client.aclose()
+
+    monthly.assert_awaited_once_with(campground_id=10, month=arrival.replace(day=1))
+    assert [(site.campsite_id, site.available_dates) for site in sites] == [
+        ("1", [arrival])
+    ]
 
 
 @pytest.mark.anyio
