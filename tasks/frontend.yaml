@@ -138,7 +138,7 @@ tasks:
         -v camply-playwright-node-modules:/work/node_modules
         -w /work
         -e GITHUB_REPOSITORY=""
-        mcr.microsoft.com/playwright:v1.64.1-noble
+        mcr.microsoft.com/playwright:v1.65.1-noble
         bash -lc 'corepack enable pnpm 2>/dev/null || npm install -g pnpm@12; pnpm install --frozen-lockfile && pnpm run snapshot -- {{.CLI_ARGS}}'
 
   snapshot:

@@ -131,7 +131,7 @@ postgresql:
   image:
     {
       repository: docker.io/library/postgres,
-      tag: "17",
+      tag: "17@sha256:87c8b42f423b45d5247e6aa8fdb2e7762fec164c68a50fe3eb07e7bfcaf4dbcf",
       pullPolicy: IfNotPresent,
     }
   annotations: {}
@@ -164,7 +164,7 @@ valkey:
   image:
     {
       repository: docker.io/valkey/valkey,
-      tag: 9-alpine,
+      tag: 9-alpine@sha256:c8e2d17498838af5d91e12eb7c11220b3434a7b7131a333e3af52ad5e0b80882,
       pullPolicy: IfNotPresent,
     }
   args: [valkey-server, --save, "60", "1", --loglevel, warning]
@@ -190,7 +190,7 @@ prometheus:
   image:
     {
       repository: docker.io/prom/prometheus,
-      tag: v3.15.1,
+      tag: v3.16.0@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06,
       pullPolicy: IfNotPresent,
     }
   retention: 30d

@@ -9,17 +9,17 @@ requires-python = ">=3.11"
 dependencies = [
   "aiosqlite==0.22.1",
   "alembic==1.20.1",
-  "click==8.5.0",
+  "click==8.5.1",
   "fake-useragent==2.2.0",
-  "httpx2==2.16.0",
+  "httpx2==2.16.2",
   "ijson==3.6.0",
-  "jiter==0.18.0",
-  "platformdirs==4.14.3",
-  "pydantic==2.14.2",
-  "pydantic-settings==2.16.2",
+  "jiter==0.19.0",
+  "platformdirs==4.14.7",
+  "pydantic==2.14.3",
+  "pydantic-settings==2.16.3",
   "pyyaml==6.0.3",
   "rich==15.0.0",
-  "sqlalchemy[asyncio]==2.1.7",
+  "sqlalchemy[asyncio]==2.1.9",
   "structlog==26.1.0"
 ]
 
@@ -29,8 +29,8 @@ camply = "camply.cli.main:cli"
 [project.optional-dependencies]
 server = [
   "cryptography==50.0.2",
-  "fastapi==0.162.0",
-  "gunicorn==26.2.0 ; sys_platform != 'win32'",
+  "fastapi==0.163.2",
+  "gunicorn==27.0.1 ; sys_platform != 'win32'",
   "orjson==3.13.0",
   "prometheus-client==0.26.0",
   "pyjwt==2.15.1",
@@ -38,16 +38,16 @@ server = [
   "uvicorn==0.54.0"
 ]
 distributed = [
-  "celery[redis]==5.6.3",
+  "celery[redis]==5.7.0",
   "msgpack==1.2.4",
   "prometheus-client==0.26.0",
   "redis==6.4.0"
 ]
 postgres = [
-  "psycopg[binary]==3.3.7"
+  "psycopg[binary]==3.3.9"
 ]
 sentry = [
-  "sentry-sdk==2.73.0"
+  "sentry-sdk==2.75.0"
 ]
 
 [build-system]
@@ -147,18 +147,18 @@ ignore_missing_imports = true
 dev = [
   "build==1.6.1",
   "hatchling==1.33.0",
-  "httpx2==2.16.0",
-  "import-linter==2.15",
+  "httpx2==2.16.2",
+  "import-linter==2.16",
   "jsonschema==4.26.0",
   "mypy==2.4.1",
   "pip==26.3",
   "pytest==9.2.0",
-  "pytest-asyncio==1.4.1.post1",
+  "pytest-asyncio==1.5.0",
   "pytest-cov==7.1.0",
   "pytest-vcr==1.0.2",
   "pytest-xdist==3.8.0",
-  "ruff==0.17.3",
-  "types-pyyaml==6.0.12.20261103",
+  "ruff==0.17.5",
+  "types-pyyaml==6.0.12.20261113",
   "types-ujson==5.10.0.20250822"
 ]
 
