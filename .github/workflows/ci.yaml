@@ -16,7 +16,7 @@ permissions:
 jobs:
   backend:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     concurrency:
       group: ci-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
@@ -84,7 +84,7 @@ jobs:
 
   frontend:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     concurrency:
       group: ci-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
@@ -123,7 +123,7 @@ jobs:
 
   verify:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     concurrency:
       group: ci-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
@@ -173,7 +173,7 @@ jobs:
 
   build:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     concurrency:
       group: ci-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
@@ -196,7 +196,7 @@ jobs:
 
   smoke:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     concurrency:
       group: ci-${{ matrix.name }}-${{ github.event.pull_request.number || github.ref }}
@@ -239,9 +239,9 @@ jobs:
 
   snapshots:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     container:
-      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      image: mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579
       options: --ipc=host
     timeout-minutes: 15
     concurrency:
@@ -265,7 +265,7 @@ jobs:
 
       - name: Upload Snapshot Reports and Visual Diffs
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ui-snapshots-report
           path: |
@@ -279,7 +279,7 @@ jobs:
   status-start:
     name: ci - status (start)
     if: github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     continue-on-error: true
     concurrency:
@@ -299,7 +299,7 @@ jobs:
     name: ci - status (checks)
     needs: [frontend, verify, build]
     if: always() && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     continue-on-error: true
     concurrency:
@@ -319,7 +319,7 @@ jobs:
     name: ci - status (final)
     needs: [backend, frontend, verify, build, smoke, snapshots]
     if: always() && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     continue-on-error: true
     concurrency:
@@ -339,7 +339,7 @@ jobs:
     name: verification
     needs: [backend, frontend, verify, build, smoke, snapshots]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - name: Verify all CI jobs succeeded

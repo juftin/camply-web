@@ -1,6 +1,6 @@
 ARG PYTHON_VERSION=3.14
-FROM node:24-bookworm-slim AS node
-FROM ghcr.io/astral-sh/uv:latest AS uv
+FROM node:26-bookworm-slim@sha256:0042e17d232a87a2cd485be1da7900fca4d10a4ad11b29e9285da1d2e54798c9 AS node
+FROM ghcr.io/astral-sh/uv:latest@sha256:a3ea1357342c1a4bf9a0c53a3deb1b55379aefa037338d8113d5771efa01774f AS uv
 
 FROM python:${PYTHON_VERSION}-slim-bookworm AS python-base
 WORKDIR /app
@@ -13,7 +13,10 @@ ENV UV_LINK_MODE=copy \
 FROM python-base AS application-build
 # Only this shared build stage needs JavaScript tooling.
 COPY --from=node /usr/local/ /usr/local/
-RUN corepack enable pnpm && corepack prepare pnpm@12.15.0 --activate
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libatomic1 && \
+    rm -rf /var/lib/apt/lists/* && \
+    npm install -g pnpm@12.22.0
 COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .python-version ./
 COPY src/ src/
