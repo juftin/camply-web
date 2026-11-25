@@ -13,7 +13,10 @@ ENV UV_LINK_MODE=copy \
 FROM python-base AS application-build
 # Only this shared build stage needs JavaScript tooling.
 COPY --from=node /usr/local/ /usr/local/
-RUN npm install -g pnpm@12.22.0
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libatomic1 && \
+    rm -rf /var/lib/apt/lists/* && \
+    npm install -g pnpm@12.22.0
 COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .python-version ./
 COPY src/ src/
