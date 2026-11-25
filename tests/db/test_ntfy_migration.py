@@ -7,6 +7,11 @@ import pytest
 from alembic import command
 
 from camply.db.config import DatabaseConfig
+from camply.db.encryption import (
+    ENCRYPTED_PREFIX,
+    decrypt_value,
+    load_or_create_sqlite_key,
+)
 from camply.db.migration import get_alembic_config
 
 
@@ -26,18 +31,19 @@ def test_upgrade_from_either_notification_or_provider_head(
         if previous_head == "f024c1d2e3f4":
             connection.execute("UPDATE users SET ntfy_topic = 'custom-kept-topic'")
     command.upgrade(config, "head")
+    cipher = load_or_create_sqlite_key(Path(database.HOST))
     with sqlite3.connect(database.HOST) as connection:
         assert connection.execute(
             "SELECT version_num FROM alembic_version"
-        ).fetchall() == [("a1c3e5f7b9d2",)]
-        assert connection.execute(
+        ).fetchall() == [("b2d4f6a8c0e1",)]
+        email, raw_token, topic = connection.execute(
             "SELECT email, pushover_token, ntfy_topic FROM users"
-        ).fetchone() == (
-            "merge@example.test",
-            "synthetic-key",
-            "custom-kept-topic"
-            if previous_head == "f024c1d2e3f4"
-            else "camply-aaaaaaa",
+        ).fetchone()
+        assert email == "merge@example.test"
+        assert raw_token.startswith(ENCRYPTED_PREFIX)
+        assert decrypt_value(raw_token, cipher) == "synthetic-key"
+        assert topic == (
+            "custom-kept-topic" if previous_head == "f024c1d2e3f4" else "camply-aaaaaaa"
         )
         assert connection.execute(
             "SELECT url FROM providers WHERE id = 13"
@@ -60,17 +66,28 @@ def test_existing_user_topics_and_downgrade(tmp_path: Path) -> None:
                 ),
             )
     command.upgrade(config, "head")
+    cipher = load_or_create_sqlite_key(Path(database.HOST))
     with sqlite3.connect(database.HOST) as connection:
         rows = connection.execute(
             "SELECT ntfy_topic, notification_provider, ntfy_server_url, pushover_token FROM users"
         ).fetchall()
         assert len({row[0] for row in rows}) == 2
         assert {row[0] for row in rows} == {"camply-aaaaaaa", "camply-bbbbbbb"}
-        assert all(row[1:] == ("pushover", None, "preserve-me") for row in rows)
+        assert all(
+            row[1] == "pushover"
+            and row[2] is None
+            and row[3].startswith(ENCRYPTED_PREFIX)
+            and decrypt_value(row[3], cipher) == "preserve-me"
+            for row in rows
+        )
         assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
     command.downgrade(config, "c2f84b9d1a3e")
     with sqlite3.connect(database.HOST) as connection:
         assert connection.execute("SELECT COUNT(*) FROM users").fetchone() == (2,)
+        assert connection.execute("SELECT pushover_token FROM users").fetchall() == [
+            ("preserve-me",),
+            ("preserve-me",),
+        ]
 
 
 @pytest.mark.parametrize("prefix_claimed", [False, True])

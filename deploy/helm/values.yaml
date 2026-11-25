@@ -126,6 +126,12 @@ database:
   existingSecret: camply-db
   passwordKey: POSTGRES_PASSWORD
 
+# Application-level encryption key for stored user notification secrets.
+# Required with PostgreSQL; supply via existingSecret (recommended) or env/envFrom.
+encryption:
+  existingSecret: ""
+  key: CAMPLY_ENCRYPTION_KEY
+
 postgresql:
   enabled: true
   image:

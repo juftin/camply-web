@@ -10,6 +10,7 @@ dependencies = [
   "aiosqlite==0.22.1",
   "alembic==1.20.1",
   "click==8.5.1",
+  "cryptography==50.0.2",
   "fake-useragent==2.2.0",
   "httpx2==2.16.2",
   "ijson==3.6.0",
@@ -28,7 +29,6 @@ camply = "camply.cli.main:cli"
 
 [project.optional-dependencies]
 server = [
-  "cryptography==50.0.2",
   "fastapi==0.163.2",
   "gunicorn==27.0.1 ; sys_platform != 'win32'",
   "orjson==3.13.0",
@@ -265,7 +265,6 @@ forbidden_modules = [
   "uvicorn_worker",
   "orjson",
   "jwt",
-  "cryptography",
   "prometheus_client",
   "celery",
   "redis",
@@ -283,8 +282,7 @@ forbidden_modules = [
   "gunicorn",
   "uvicorn_worker",
   "orjson",
-  "jwt",
-  "cryptography"
+  "jwt"
 ]
 
 [[tool.importlinter.contracts]]

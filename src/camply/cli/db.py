@@ -9,6 +9,7 @@ import click
 import rich.traceback
 
 from camply.db.config import DatabaseConfig
+from camply.db.encryption import reencrypt_user_secrets
 from camply.db.migration import delete_database, sqlite_database_path, upgrade
 from camply.providers import PROVIDERS
 
@@ -52,6 +53,19 @@ def migrate_cmd() -> None:
     except RuntimeError as exc:
         raise click.ClickException(str(exc)) from exc
     click.echo("Database migrations applied.")
+
+
+@db_group.command(name="rotate-encryption-key")
+def rotate_encryption_key_cmd() -> None:
+    """Encrypt legacy plaintext secrets and re-encrypt ciphertexts with the primary key."""
+    try:
+        summary = asyncio.run(reencrypt_user_secrets(database_config=DatabaseConfig()))
+    except RuntimeError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(
+        f"Updated {summary.users_updated} user(s): "
+        f"{summary.values_encrypted} encrypted, {summary.values_rotated} rotated."
+    )
 
 
 @db_group.command(name="delete")

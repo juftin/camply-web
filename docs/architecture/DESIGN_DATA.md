@@ -31,5 +31,5 @@ Successful empty checks clear `scan_results`; failed checks keep the prior snaps
 ## Delivery, auth, and access tables
 
 - **`notification_outbox`:** Durable standalone delivery queue storing credential-free JSON payloads, `payload_kind` (`campground` or `area`), `scan_revision`, `delivery_key`, attempt counts (`0–4`), and allowlisted error categories. Terminal rows expire after 24 hours; pending retries survive restarts.
-- **`users` and `user_sessions`:** User accounts (linked via `auth0_id` or local session auth), invitation flags (`is_early_access_user` mapped to `is_invited`), notification settings, and revocable session `jti` rows.
+- **`users` and `user_sessions`:** User accounts (linked via `auth0_id` or local session auth), invitation flags (`is_early_access_user` mapped to `is_invited`), notification settings (`pushover_token` and `ntfy_access_token` stored as `Text` encrypted at rest with versioned `enc:v1:` Fernet ciphertexts via `EncryptedString`, using `CAMPLY_ENCRYPTION_KEY` or an auto-persisted `0600` sidecar `.key` file for local SQLite), and revocable session `jti` rows.
 - **`access_requests`:** Invite-only access requests (`pending`, `approved`, `rejected`) linked to reviewing admins and resulting user accounts.

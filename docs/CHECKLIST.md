@@ -171,6 +171,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T2.5.3 Test page reloads, multiple tabs, logout, and session expiry; verify credentials/tokens do not appear in application logs or unintended persistent storage.
 
 - [x] T2.5.4 Add individual server-side revocation for password sessions (`UserSession` persistence, `GET/DELETE /api/me/sessions`, and the profile Active Sessions UI).
+- [x] T2.5.5 Encrypt stored user notification secrets (`users.pushover_token` and `users.ntfy_access_token`) at rest via `EncryptedString` (`cryptography.fernet.MultiFernet`, `enc:v1:` prefix), Alembic `Text` column migration with legacy plaintext backfill/compatibility, `CAMPLY_ENCRYPTION_KEY` key rotation (`camply db rotate-encryption-key`), auto-persisted `0600` local SQLite key files, PostgreSQL startup fail-fast validation, and Docker Compose/Helm/documentation wiring.
 
 ### 2.6 Signed JWT Verification Tests
 

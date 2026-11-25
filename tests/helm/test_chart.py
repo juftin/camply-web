@@ -187,6 +187,30 @@ def test_external_services_and_secret_injection() -> None:
         assert container["envFrom"] == [{"secretRef": {"name": "camply-runtime"}}]
 
 
+def test_encryption_secret_reaches_backend_workers_and_migrations_only() -> None:
+    """Encryption key Secret injects into Python roles and migrations, not Nginx."""
+    items = render("-f", str(CHART / "examples/home-ops.yaml"))
+    expected = {
+        "secretKeyRef": {"name": "camply-home-ops", "key": "CAMPLY_ENCRYPTION_KEY"}
+    }
+    for suffix in ("-backend", "-worker", "-beat"):
+        container = resource(items, "Deployment", suffix)["spec"]["template"]["spec"][
+            "containers"
+        ][0]
+        env = {e["name"]: e for e in container["env"]}
+        assert env["CAMPLY_ENCRYPTION_KEY"]["valueFrom"] == expected
+    job = next(item for item in items if item["kind"] == "Job")
+    job_env = {
+        e["name"]: e for e in job["spec"]["template"]["spec"]["containers"][0]["env"]
+    }
+    assert job_env["CAMPLY_ENCRYPTION_KEY"]["valueFrom"] == expected
+    frontend = resource(items, "Deployment", "-frontend")["spec"]["template"]["spec"][
+        "containers"
+    ][0]
+    frontend_env = {e["name"]: e for e in frontend["env"]}
+    assert "CAMPLY_ENCRYPTION_KEY" not in frontend_env
+
+
 def test_metrics_scrape_each_replica() -> None:
     """Prometheus discovers pod endpoints instead of sampling a load-balanced Service."""
     config = resource(render(), "ConfigMap", "-prometheus")

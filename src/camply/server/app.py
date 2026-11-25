@@ -68,11 +68,14 @@ if backend_config.sentry_dsn:
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-    """Own standalone resources and supervised tasks only while the app is serving."""
+    """Validate runtime encryption and own standalone resources while serving."""
+    from camply.db.config import db
+    from camply.db.encryption import validate_encryption_config
+
+    validate_encryption_config(db)
     if backend_config.runtime_mode != RuntimeMode.STANDALONE:
         yield
         return
-    from camply.db.config import db
     from camply.server.services import local_operations
     from camply.server.standalone import validate_standalone
     from camply.worker.runtime import LocalRunner

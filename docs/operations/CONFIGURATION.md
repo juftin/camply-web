@@ -45,12 +45,27 @@ They are defined in `src/camply/server/config.py` via `pydantic-settings`.
 
 Database config uses `CAMPLY_DB_` prefix (defined in `src/camply/db/config.py`):
 
-| Variable               | Description        | Default                           |
-| ---------------------- | ------------------ | --------------------------------- |
-| `CAMPLY_DB_DRIVERNAME` | Database driver    | `sqlite+aiosqlite`                |
-| `CAMPLY_DB_USERNAME`   | Database username  | `camply`                          |
-| `CAMPLY_DB_HOST`       | Database host/path | `~/.local/share/camply/camply.db` |
-| `CAMPLY_DB_DATABASE`   | Database name      | `camply`                          |
+| Variable                | Description                                                                   | Default                                                         |
+| ----------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `CAMPLY_DB_DRIVERNAME`  | Database driver                                                               | `sqlite+aiosqlite`                                              |
+| `CAMPLY_DB_USERNAME`    | Database username                                                             | `camply`                                                        |
+| `CAMPLY_DB_HOST`        | Database host/path                                                            | `~/.local/share/camply/camply.db`                               |
+| `CAMPLY_DB_DATABASE`    | Database name                                                                 | `camply`                                                        |
+| `CAMPLY_ENCRYPTION_KEY` | Comma-separated Fernet key(s) encrypting stored user notification credentials | Auto-generated `<db>.key` for file-backed SQLite; required on PostgreSQL |
+
+### Notification secret encryption at rest
+
+Stored user notification secrets (`users.pushover_token` and `users.ntfy_access_token`) are encrypted at the application layer with `cryptography.fernet.MultiFernet` (`enc:v1:` prefix) before being written to the database.
+
+Generate a Fernet key with:
+
+```bash
+python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
+```
+
+- **PostgreSQL / distributed deployments**: `CAMPLY_ENCRYPTION_KEY` is required on the API, Celery worker, Celery beat, and migration Job. Startup fails fast when it is missing or malformed. Docker Compose supplies a local-development default; override it before deploying.
+- **Standalone / local SQLite**: When `CAMPLY_ENCRYPTION_KEY` is unset, Camply automatically creates a `0600` sidecar key file alongside the SQLite database (`<db-path>.key`, e.g. `~/.local/share/camply/camply.db.key`) so secrets remain decryptable across restarts. Back up the `.key` file alongside the SQLite database, or set `CAMPLY_ENCRYPTION_KEY` explicitly.
+- **Key rotation**: Prepend the new key before the previous key (`CAMPLY_ENCRYPTION_KEY="<new_key>,<old_key>"`), run `camply db rotate-encryption-key` to re-encrypt all stored tokens (and encrypt any legacy plaintext rows) with the new primary key, then remove the old key.
 
 Valkey/Celery & Operations config:
 

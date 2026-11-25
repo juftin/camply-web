@@ -47,8 +47,9 @@ Always set `CAMPLY_APP_URL` to an address your phone or browser can actually ope
 
 ## Storage and polling
 
-| Variable                    | Purpose                                                                  | Default                                        |
-| --------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------- |
-| `CAMPLY_DB_HOST`            | Absolute SQLite file path (standalone) or database hostname (PostgreSQL) | `~/.local/share/camply/camply.db` (standalone) |
-| `CAMPLY_HEARTBEAT_INTERVAL` | Seconds between scheduler discovery heartbeats                           | `300`                                          |
-| `CAMPLY_TARGET_COOLDOWN`    | Minimum seconds before re-checking the same campground target            | `55`                                           |
+| Variable                    | Purpose                                                                           | Default                                                        |
+| --------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `CAMPLY_DB_HOST`            | Absolute SQLite file path (standalone) or database hostname (PostgreSQL)          | `~/.local/share/camply/camply.db` (standalone)                 |
+| `CAMPLY_ENCRYPTION_KEY`     | Fernet key(s) for encrypting stored user notification secrets (comma-separated)   | Auto-generated `<db>.key` for SQLite; required for PostgreSQL  |
+| `CAMPLY_HEARTBEAT_INTERVAL` | Seconds between scheduler discovery heartbeats                                    | `300`                                                          |
+| `CAMPLY_TARGET_COOLDOWN`    | Minimum seconds before re-checking the same campground target                     | `55`                                                           |

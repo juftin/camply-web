@@ -50,6 +50,9 @@ app.kubernetes.io/component: {{ .role | quote }}
 {{- $_ := set $env "CAMPLY_DB_USERNAME" $root.Values.database.username -}}
 {{- $_ := set $env "CAMPLY_DB_DATABASE" $root.Values.database.name -}}
 {{- $_ := set $env "CAMPLY_DB_PASSWORD" (dict "valueFrom" (dict "secretKeyRef" (dict "name" $root.Values.database.existingSecret "key" $root.Values.database.passwordKey))) -}}
+{{- if $root.Values.encryption.existingSecret -}}
+{{- $_ := set $env "CAMPLY_ENCRYPTION_KEY" (dict "valueFrom" (dict "secretKeyRef" (dict "name" $root.Values.encryption.existingSecret "key" $root.Values.encryption.key))) -}}
+{{- end -}}
 {{- if $root.Values.valkey.existingSecret -}}
 {{- $_ := set $env "CAMPLY_VALKEY_URL" (dict "valueFrom" (dict "secretKeyRef" (dict "name" $root.Values.valkey.existingSecret "key" $root.Values.valkey.urlKey))) -}}
 {{- else if $root.Values.valkey.enabled -}}

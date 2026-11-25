@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 
 from camply.db.config import DatabaseConfig, DatabaseDrivers, db
+from camply.db.encryption import EncryptionError, validate_encryption_config
 from camply.db.migration import upgrade_database
 from camply.server.config import BackendConfig, RuntimeMode, backend_config
 
@@ -48,6 +49,7 @@ def validate_standalone(config: BackendConfig, database: DatabaseConfig) -> Path
         raise ValueError(
             "SQLite storage is not writable; configure CAMPLY_DB_HOST"
         ) from exc
+    validate_encryption_config(database)
     return directory
 
 
@@ -68,7 +70,7 @@ def main() -> None:
     try:
         validate_standalone(backend_config, db)
         upgrade_database(database_config=db)
-    except (ValueError, OSError) as exc:
+    except (ValueError, OSError, EncryptionError) as exc:
         parser.error(str(exc))
     uvicorn.run("camply.server.app:app", host=args.host, port=args.port, workers=1)
 
