@@ -13,7 +13,7 @@ _STATE_CODE_LENGTH : int
 import asyncio
 import time
 from abc import ABC
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, ClassVar
 
 import httpx2
@@ -90,6 +90,43 @@ class UseDirectProvider(BaseProvider, ABC):
             )
             response.raise_for_status()
             return response
+
+    async def list_campsites(self, park_id: str) -> list[CampsiteDTO]:
+        """List eligible overnight units in a UseDirect facility regardless of availability."""
+        try:
+            facility_id = int(park_id)
+        except ValueError as exc:
+            raise ValueError(
+                f"{self.provider.name} rejected the catalog lookup: invalid campground {park_id}"
+            ) from exc
+        if self._filters is None:
+            response = await self._request("GET", "search/filters")
+            self._filters = SearchFilters.model_validate_json(response.content)
+        probe_day = datetime.now(tz=timezone.utc).date() + timedelta(days=1)
+        formatted = probe_day.strftime("%m-%d-%Y")
+        response = await self._request(
+            "POST",
+            "search/grid",
+            payload={
+                "FacilityId": facility_id,
+                "StartDate": formatted,
+                "EndDate": formatted,
+                "WebOnly": True,
+                "InSeasonOnly": False,
+                "UnitSort": "orderby",
+            },
+        )
+        parsed = AvailabilityResponse.model_validate_json(response.content)
+        if parsed.NightsActual == 0:
+            raise ValueError(
+                f"{self.provider.name} rejected the catalog lookup: {parsed.Message}"
+            )
+        facility = parsed.Facility
+        if facility is None:
+            return []
+        if facility.FacilityId != facility_id:
+            raise ValueError(f"{self.provider.name} returned a different facility")
+        return facility.to_catalog_dtos(filters=self._filters)
 
     async def find_availabilities(
         self, park_id: str, start_date: date, end_date: date

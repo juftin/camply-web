@@ -1,6 +1,7 @@
 import asyncio
 import time
 import zipfile
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
@@ -30,10 +31,12 @@ from camply.providers.recreation_gov.config import RecreationGovConfig
 from camply.providers.recreation_gov.models.address import AddressData, AddressPopulator
 from camply.providers.recreation_gov.models.api import (
     CampsiteAvailabilityResponse,
+    RecDotGovAttribute,
     RecDotGovAvailabilityParams,
     RecDotGovCampsite,
     RecDotGovCampsiteResponse,
     RecDotGovCampsiteSearchParams,
+    RecDotGovEquipment,
     RecDotGovSearchResponse,
     RecDotGovSearchResult,
     RecreationGovCampsiteMetadata,
@@ -88,19 +91,29 @@ def map_campsite_type(type_str: str | None) -> CampsiteType:
     return CampsiteType.OTHER
 
 
+def _type_indicates_electric(type_str: str | None) -> bool:
+    """Return True when a campsite type string describes an electric site."""
+    if not type_str:
+        return False
+    low_type = type_str.lower()
+    return "electric" in low_type and not any(
+        neg in low_type for neg in _NON_ELECTRIC_KEYWORDS
+    )
+
+
 def check_is_electric(campsite: RecDotGovCampsite) -> bool:
     """
     Check if a campsite supports electric hookup.
     """
-    if campsite.type and "electric" in campsite.type.lower():
+    if _type_indicates_electric(campsite.type):
         return True
     for attr in campsite.attributes:
         if (
             "electric" in attr.attribute_name.lower()
             or "electricity" in attr.attribute_name.lower()
         ):
-            val = str(attr.attribute_value).lower()
-            if val not in ("no", "none", "0", "false", "n/a"):
+            val = str(attr.attribute_value).strip().lower()
+            if val not in _NEGATIVE_ATTR_VALUES:
                 return True
     return False
 
@@ -570,6 +583,109 @@ class RecreationGovProvider(BaseProvider):
         response.raise_for_status()
         return CampsiteAvailabilityResponse.model_validate_json(response.content)
 
+    async def list_campsites(self, park_id: str) -> list[CampsiteDTO]:
+        """
+        List all campsites in a Recreation.gov campground without date availability queries.
+        """
+        try:
+            facility_id = int(park_id)
+        except ValueError as exc:
+            raise ValueError(
+                f"Invalid Recreation.gov campground ID: {park_id}"
+            ) from exc
+        raw_sites = await self.paginate_recdotgov_campsites(facility_id=facility_id)
+        return [self._campsite_dto_from_metadata(site) for site in raw_sites]
+
+    def _campsite_dto_from_metadata(self, meta_site: RecDotGovCampsite) -> CampsiteDTO:
+        """Build a standardized CampsiteDTO directly from Recreation.gov campsite metadata."""
+        campsite_type = self._determine_campsite_type(
+            site_data=None, meta_site=meta_site
+        )
+        permitted_eq = meta_site.permitted_equipment
+        attrs = meta_site.attributes
+        equipment_labels = normalize_equipment_labels(
+            eq.equipment_name for eq in permitted_eq
+        )
+        max_vehicle_length = self._extract_max_vehicle_length(
+            campsite_type=campsite_type,
+            permitted_eq=permitted_eq,
+            attrs=attrs,
+        )
+        metadata_model = RecreationGovCampsiteMetadata(
+            loop=meta_site.loop,
+            site=meta_site.name,
+            type_of_use=None,
+            permitted_equipment=permitted_eq,
+            attributes=attrs,
+            latitude=meta_site.latitude,
+            longitude=meta_site.longitude,
+        )
+        metadata = metadata_model.model_dump()
+        metadata["booking_url"] = (
+            f"https://www.recreation.gov/camping/campsites/{meta_site.campsite_id}"
+        )
+        capacity = self._extract_capacity(attrs)
+        return CampsiteDTO(
+            campsite_id=str(meta_site.campsite_id),
+            campsite_name=meta_site.name or str(meta_site.campsite_id),
+            campsite_type=campsite_type,
+            capacity=capacity,
+            available_dates=[],
+            is_electric=check_is_electric(meta_site),
+            is_accessible=meta_site.accessible,
+            permitted_equipment=equipment_labels,
+            max_vehicle_length=max_vehicle_length,
+            metadata=metadata,
+        )
+
+    @staticmethod
+    def _extract_capacity(attrs: Sequence[RecDotGovAttribute]) -> int:
+        """Extract maximum occupancy from Recreation.gov campsite attributes when present."""
+        for attr in attrs:
+            if attr.attribute_name.strip().lower() in {
+                "max num of people",
+                "maximum number of people",
+            }:
+                raw = str(attr.attribute_value).strip()
+                if raw.isdecimal():
+                    return int(raw)
+        return 0
+
+    @staticmethod
+    def _extract_max_vehicle_length(
+        *,
+        campsite_type: CampsiteType,
+        permitted_eq: Sequence[RecDotGovEquipment],
+        attrs: Sequence[RecDotGovAttribute],
+    ) -> int | None:
+        """Extract maximum compatible RV or trailer length in whole feet."""
+        rv_lengths = [
+            parsed
+            for eq in permitted_eq
+            if is_rv_equipment_name(eq.equipment_name)
+            and (parsed := parse_vehicle_length_feet(eq.max_length)) is not None
+        ]
+        max_vehicle_length = max(rv_lengths) if rv_lengths else None
+        if (
+            max_vehicle_length is None
+            and campsite_type != CampsiteType.TENT
+            and (
+                not permitted_eq
+                or any(is_rv_equipment_name(eq.equipment_name) for eq in permitted_eq)
+            )
+        ):
+            attr_lengths = [
+                parsed
+                for attr in attrs
+                if attr.attribute_name.strip().lower()
+                in {"max vehicle length", "rv max length", "driveway length"}
+                and (parsed := parse_vehicle_length_feet(str(attr.attribute_value)))
+                is not None
+            ]
+            if attr_lengths:
+                max_vehicle_length = max(attr_lengths)
+        return max_vehicle_length
+
     async def find_availabilities(
         self,
         park_id: str,
@@ -701,7 +817,7 @@ class RecreationGovProvider(BaseProvider):
         is_electric = False
         capacity = site_data.max_num_people
 
-        if site_data.campsite_type and "electric" in site_data.campsite_type.lower():
+        if _type_indicates_electric(site_data.campsite_type):
             is_electric = True
 
         permitted_eq = []
@@ -729,31 +845,11 @@ class RecreationGovProvider(BaseProvider):
         equipment_labels = normalize_equipment_labels(
             eq.equipment_name for eq in permitted_eq
         )
-        rv_lengths = [
-            parsed
-            for eq in permitted_eq
-            if is_rv_equipment_name(eq.equipment_name)
-            and (parsed := parse_vehicle_length_feet(eq.max_length)) is not None
-        ]
-        max_vehicle_length = max(rv_lengths) if rv_lengths else None
-        if (
-            max_vehicle_length is None
-            and campsite_type != CampsiteType.TENT
-            and (
-                not permitted_eq
-                or any(is_rv_equipment_name(eq.equipment_name) for eq in permitted_eq)
-            )
-        ):
-            attr_lengths = [
-                parsed
-                for attr in attrs
-                if attr.attribute_name.strip().lower()
-                in {"max vehicle length", "rv max length", "driveway length"}
-                and (parsed := parse_vehicle_length_feet(str(attr.attribute_value)))
-                is not None
-            ]
-            if attr_lengths:
-                max_vehicle_length = max(attr_lengths)
+        max_vehicle_length = self._extract_max_vehicle_length(
+            campsite_type=campsite_type,
+            permitted_eq=permitted_eq,
+            attrs=attrs,
+        )
 
         return CampsiteDTO(
             campsite_id=str(campsite_id),
@@ -805,12 +901,16 @@ class RecreationGovProvider(BaseProvider):
             )
 
     def _determine_campsite_type(
-        self, site_data: Any, meta_site: RecDotGovCampsite | None
+        self, site_data: Any | None, meta_site: RecDotGovCampsite | None
     ) -> CampsiteType:
         """
         Determine the standardized campsite type from availability and metadata.
         """
-        campsite_type = map_campsite_type(site_data.campsite_type)
+        campsite_type = (
+            map_campsite_type(site_data.campsite_type)
+            if site_data is not None
+            else CampsiteType.OTHER
+        )
         if campsite_type == CampsiteType.OTHER and meta_site:
             campsite_type = map_campsite_type(meta_site.type)
             if campsite_type == CampsiteType.OTHER and meta_site.permitted_equipment:

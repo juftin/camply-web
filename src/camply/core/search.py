@@ -63,6 +63,24 @@ class AvailabilityStay(BaseModel):
     booking_url: str
 
 
+class CampsiteCatalogEntry(BaseModel):
+    """One site in a campground catalog, independent of availability dates."""
+
+    model_config = ConfigDict(frozen=True)
+
+    campground: CampgroundSearchResult
+    campsite_id: str
+    campsite_name: str
+    campsite_type: CampsiteType
+    capacity: int = 0
+    is_electric: bool = False
+    is_accessible: bool = False
+    max_vehicle_length: int | None = None
+    permitted_equipment: tuple[str, ...] = ()
+    loop: str | None = None
+    booking_url: str = ""
+
+
 def utc_today() -> date:
     """Return the current UTC calendar day used by web and local matching."""
     return datetime.now(tz=timezone.utc).date()
@@ -140,7 +158,7 @@ def _normalized_campsites(campsites: Sequence[str]) -> tuple[str, ...]:
     return cleaned
 
 
-def _normalized_campsite_types(
+def normalize_campsite_types(
     campsite_types: Sequence[str],
 ) -> tuple[CampsiteType, ...]:
     """Normalize and deduplicate standardized campsite types."""
@@ -157,26 +175,65 @@ def _normalized_campsite_types(
     return tuple(normalized)
 
 
-def site_matches_request(site: CampsiteDTO, request: SearchRequest) -> bool:
-    """Evaluate site-attribute and campsite-ID/name filters with fail-closed semantics."""
-    if request.campsites:
+_normalized_campsite_types = normalize_campsite_types
+
+
+def site_matches_filters(
+    site: CampsiteDTO,
+    *,
+    campsites: Sequence[str] = (),
+    campsite_types: Sequence[CampsiteType] = (),
+    require_electric: bool = False,
+    require_accessible: bool = False,
+    min_rv_length: int | None = None,
+    search_query: str = "",
+) -> bool:
+    """Evaluate site-attribute, text, and campsite-ID/name filters with fail-closed semantics."""
+    if campsites:
         site_id = site.campsite_id.strip()
         site_name = site.campsite_name.strip().casefold()
-        lowered = {value.casefold() for value in request.campsites}
-        if site_id not in request.campsites and site_name not in lowered:
+        lowered = {value.casefold() for value in campsites}
+        if site_id not in campsites and site_name not in lowered:
+            return False
+    if search_query:
+        needle = search_query.strip().casefold()
+        loop = str(site.metadata.get("loop") or "")
+        haystack = f"{site.campsite_id} {site.campsite_name} {loop}".casefold()
+        if needle not in haystack:
             return False
     return (
-        (not request.campsite_types or site.campsite_type in request.campsite_types)
-        and (not request.require_electric or site.is_electric is True)
-        and (not request.require_accessible or site.is_accessible is True)
+        (not campsite_types or site.campsite_type in campsite_types)
+        and (not require_electric or site.is_electric is True)
+        and (not require_accessible or site.is_accessible is True)
         and (
-            request.min_rv_length is None
+            min_rv_length is None
             or (
                 site.max_vehicle_length is not None
-                and site.max_vehicle_length >= request.min_rv_length
+                and site.max_vehicle_length >= min_rv_length
             )
         )
     )
+
+
+def site_matches_request(site: CampsiteDTO, request: SearchRequest) -> bool:
+    """Evaluate site-attribute and campsite-ID/name filters with fail-closed semantics."""
+    return site_matches_filters(
+        site,
+        campsites=request.campsites,
+        campsite_types=request.campsite_types,
+        require_electric=request.require_electric,
+        require_accessible=request.require_accessible,
+        min_rv_length=request.min_rv_length,
+    )
+
+
+def has_remaining_stays(request: SearchRequest, *, today: date | None = None) -> bool:
+    """Return True if remaining current/future eligible nights can still form a qualifying stay."""
+    current_day = today if today is not None else utc_today()
+    remaining = [
+        night.isoformat() for night in request.eligible_dates if night >= current_day
+    ]
+    return bool(matching_available_dates(remaining, min_stay_length=request.nights))
 
 
 def allowed_weekdays(days: Sequence[str], *, weekends: bool) -> set[int]:
@@ -336,6 +393,83 @@ async def check_availability(
     )
 
 
+async def fetch_campsite_catalog(
+    provider: BaseProvider,
+    targets: Sequence[CampgroundSearchResult],
+    *,
+    search_query: str = "",
+    campsite_types: Sequence[CampsiteType] = (),
+    require_electric: bool = False,
+    require_accessible: bool = False,
+    min_rv_length: int | None = None,
+) -> list[CampsiteCatalogEntry]:
+    """Fetch and filter campsite catalog entries across unique resolved campgrounds."""
+    unique_targets = {
+        (target.provider_id, target.campground_id): target for target in targets
+    }
+    entries: dict[tuple[int, str, str], CampsiteCatalogEntry] = {}
+    for key in sorted(unique_targets):
+        target = unique_targets[key]
+        sites = await provider.list_campsites(target.campground_id)
+        for site in sites:
+            if not site_matches_filters(
+                site,
+                campsite_types=campsite_types,
+                require_electric=require_electric,
+                require_accessible=require_accessible,
+                min_rv_length=min_rv_length,
+                search_query=search_query,
+            ):
+                continue
+            candidate_url = site.metadata.get("booking_url")
+            booking_url = (
+                candidate_url
+                if isinstance(candidate_url, str) and candidate_url
+                else target.booking_url
+            )
+            raw_loop = site.metadata.get("loop")
+            loop = (
+                raw_loop.strip()
+                if isinstance(raw_loop, str) and raw_loop.strip()
+                else None
+            )
+            entries[(target.provider_id, target.campground_id, site.campsite_id)] = (
+                CampsiteCatalogEntry(
+                    campground=target,
+                    campsite_id=site.campsite_id,
+                    campsite_name=site.campsite_name,
+                    campsite_type=site.campsite_type,
+                    capacity=site.capacity,
+                    is_electric=site.is_electric,
+                    is_accessible=site.is_accessible,
+                    max_vehicle_length=site.max_vehicle_length,
+                    permitted_equipment=tuple(site.permitted_equipment),
+                    loop=loop,
+                    booking_url=booking_url,
+                )
+            )
+    return sorted(
+        entries.values(),
+        key=lambda item: (
+            item.campground.provider_id,
+            item.campground.campground_id,
+            item.campsite_name.casefold(),
+            item.campsite_id,
+        ),
+    )
+
+
+async def _invoke(
+    callback: Callable[..., Awaitable[None] | None] | None, *args: object
+) -> None:
+    """Invoke an optional sync or async callback."""
+    if callback is None:
+        return
+    result = callback(*args)
+    if inspect.isawaitable(result):
+        await result
+
+
 async def monitor(
     provider: BaseProvider,
     targets: Sequence[CampgroundSearchResult],
@@ -345,8 +479,11 @@ async def monitor(
     wait: Callable[[float], Awaitable[None]] = asyncio.sleep,
     interval: float | None = None,
     once: bool = False,
+    stop_on_match: bool = False,
+    on_error: Callable[[Exception], Awaitable[None] | None] | None = None,
+    on_expired: Callable[[], Awaitable[None] | None] | None = None,
 ) -> None:
-    """Check immediately and continue after every success until cancellation.
+    """Check immediately and continue until stopped, expired, or cancelled.
 
     The caller owns provider closure around resolution and monitoring. Every
     request and wait is awaited directly, so cancelling this coroutine stops
@@ -358,11 +495,20 @@ async def monitor(
     if delay <= 0:
         raise ValueError("Internal polling interval must be positive.")
     while True:
-        callback_result = on_results(
-            await check_availability(provider, targets, request)
-        )
-        if inspect.isawaitable(callback_result):
-            await callback_result
-        if once:
+        if not once and not has_remaining_stays(request):
+            await _invoke(on_expired)
+            return
+        try:
+            stays = await check_availability(provider, targets, request)
+        except Exception as exc:
+            if once or on_error is None:
+                raise
+            await _invoke(on_error, exc)
+        else:
+            await _invoke(on_results, stays)
+            if once or (stop_on_match and stays):
+                return
+        if not has_remaining_stays(request):
+            await _invoke(on_expired)
             return
         await wait(delay)

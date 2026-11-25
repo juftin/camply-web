@@ -85,7 +85,12 @@ class AvailabilityUnit(BaseModel):
     Slices: dict[str, AvailabilitySlice] | None = None
 
     def to_dto(
-        self, *, filters: SearchFilters, start_date: date, end_date: date
+        self,
+        *,
+        filters: SearchFilters,
+        start_date: date,
+        end_date: date,
+        allow_empty_dates: bool = False,
     ) -> CampsiteDTO | None:
         """Translate online overnight inventory within a half-open date interval.
 
@@ -107,7 +112,7 @@ class AvailabilityUnit(BaseModel):
             for s in (self.Slices or {}).values()
             if start_date <= s.Date < end_date and s.bookable
         ]
-        if not slices:
+        if not slices and not allow_empty_dates:
             return None
         group = next(
             (
@@ -211,6 +216,22 @@ class AvailabilityFacility(BaseModel):
             if dto.available_dates:
                 results.append(dto)
         return results
+
+    def to_catalog_dtos(self, *, filters: SearchFilters) -> list[CampsiteDTO]:
+        """Return unique online-bookable overnight units regardless of slice availability."""
+        if self.FacilityAllowWebBooking is False:
+            return []
+        unique: dict[str, CampsiteDTO] = {}
+        for unit in (self.Units or {}).values():
+            dto = unit.to_dto(
+                filters=filters,
+                start_date=date.min,
+                end_date=date.min,
+                allow_empty_dates=True,
+            )
+            if dto is not None:
+                unique[dto.campsite_id] = dto
+        return list(unique.values())
 
 
 class AvailabilityResponse(BaseModel):

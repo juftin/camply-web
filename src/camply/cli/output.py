@@ -21,7 +21,7 @@ from camply.cli.discovery import DISPLAY_LIMIT, identity_key
 from camply.providers.dto import ProviderSearchResult, SearchEntityType
 
 if TYPE_CHECKING:
-    from camply.core.search import AvailabilityStay
+    from camply.core.search import AvailabilityStay, CampsiteCatalogEntry
     from camply.db.models import Provider
     from camply.providers.base import BaseProvider
 
@@ -384,3 +384,91 @@ def serialize_stays(
 def render_stays_json(stays: Sequence["AvailabilityStay"]) -> None:
     """Emit qualifying stays as a JSON array on stdout."""
     click.echo(json.dumps(serialize_stays(stays), indent=2))
+
+
+def _format_site_badges(entry: "CampsiteCatalogEntry") -> str:
+    """Summarize key site capabilities concisely for terminal catalog output."""
+    parts = [entry.campsite_type.value]
+    if entry.is_electric:
+        parts.append("Electric")
+    if entry.is_accessible:
+        parts.append("ADA")
+    if entry.max_vehicle_length is not None:
+        parts.append(f"Max {entry.max_vehicle_length}ft")
+    if entry.loop:
+        parts.append(f"Loop: {entry.loop}")
+    return f"[{', '.join(parts)}]"
+
+
+def render_campsite_catalog(
+    entries: Sequence["CampsiteCatalogEntry"],
+    *,
+    limit: int = DISPLAY_LIMIT,
+) -> None:
+    """Log campsite catalog entries grouped by campground in classic camply style."""
+    if not entries:
+        logger.info("No matching campsites found for these selectors and filters.")
+        return
+    displayed = list(entries[:limit])
+    logger.info("%s Matching Campsites Found", len(displayed))
+    grouped: dict[tuple[int, str], list[CampsiteCatalogEntry]] = {}
+    for entry in displayed:
+        grouped.setdefault(
+            (entry.campground.provider_id, entry.campground.campground_id), []
+        ).append(entry)
+    for sites in grouped.values():
+        logger.info(format_campground_log(sites[0].campground))
+        for site in sites:
+            logger.info(
+                "\t⛺ %s (#%s) %s",
+                site.campsite_name,
+                site.campsite_id,
+                _format_site_badges(site),
+            )
+    if len(entries) > limit:
+        logger.warning(
+            "Showing %s results; more campsites exist. Pass --limit or narrow filters.",
+            limit,
+        )
+
+
+def serialize_campsite_catalog(
+    entries: Sequence["CampsiteCatalogEntry"],
+) -> list[dict[str, object]]:
+    """Represent campsite catalog entries as JSON-ready dictionaries."""
+    return [
+        {
+            "provider_id": entry.campground.provider_id,
+            "provider_name": entry.campground.provider_name,
+            "recreation_area_id": entry.campground.recreation_area_id,
+            "recreation_area_name": entry.campground.recreation_area_name,
+            "campground_id": entry.campground.campground_id,
+            "campground_name": entry.campground.campground_name,
+            "campsite_id": entry.campsite_id,
+            "campsite_name": entry.campsite_name,
+            "campsite_type": entry.campsite_type.value,
+            "capacity": entry.capacity,
+            "is_electric": entry.is_electric,
+            "is_accessible": entry.is_accessible,
+            "max_vehicle_length": entry.max_vehicle_length,
+            "permitted_equipment": list(entry.permitted_equipment),
+            "loop": entry.loop,
+            "booking_url": entry.booking_url,
+        }
+        for entry in entries
+    ]
+
+
+def render_campsite_catalog_json(
+    entries: Sequence["CampsiteCatalogEntry"],
+    *,
+    limit: int = DISPLAY_LIMIT,
+) -> None:
+    """Emit campsite catalog entries as JSON on stdout and log truncation to stderr."""
+    displayed = entries[:limit]
+    if len(entries) > limit:
+        logger.warning(
+            "Showing %s results; more campsites exist. Pass --limit or narrow filters.",
+            limit,
+        )
+    click.echo(json.dumps(serialize_campsite_catalog(displayed), indent=2))

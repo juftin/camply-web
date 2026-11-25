@@ -796,6 +796,14 @@ class BaseProvider(ABC):
         Find campsite availabilities for the target park and dates.
         """
 
+    async def list_campsites(self, park_id: str) -> list[CampsiteDTO]:
+        """
+        List eligible overnight campsites in the target park without filtering by availability.
+        """
+        raise NotImplementedError(
+            f"{self.provider.name} does not expose a campsite catalog."
+        )
+
     @abstractmethod
     async def sync_metadata(self) -> None:
         """

@@ -10,7 +10,7 @@ _GRID_DAYS : int
 
 import asyncio
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from http import HTTPStatus
 from http.cookies import SimpleCookie
 from typing import Any, ClassVar, TypeVar
@@ -137,6 +137,28 @@ class ReserveAmericaProvider(BaseProvider):
             if not page.records or page_number >= _MAX_PAGES:
                 raise ValueError("ReserveAmerica pagination made no progress")
             page_number += 1
+
+    async def list_campsites(self, park_id: str) -> list[CampsiteDTO]:
+        """List eligible overnight sites in a ReserveAmerica facility regardless of availability."""
+        contract, facility = split_facility_id(park_id)
+        probe_day = datetime.now(tz=timezone.utc).date() + timedelta(days=1)
+        records = await self._pages(
+            f"products/{contract}/{facility}",
+            {"gad": probe_day.isoformat(), "gal": 1},
+            Site,
+        )
+        unique: dict[int, Site] = {}
+        for site in records:
+            if site.eligible:
+                unique[site.id] = site
+        return [
+            site.to_dto(
+                park_id,
+                set(),
+                f"{self.booking_url}/campsiteDetails.do?{urlencode({'contractCode': contract, 'parkId': facility, 'siteId': key})}",
+            )
+            for key, site in unique.items()
+        ]
 
     async def find_availabilities(
         self, park_id: str, start_date: date, end_date: date

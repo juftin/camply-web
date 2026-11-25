@@ -1,6 +1,7 @@
 """List registered providers and resolve canonical CLI names and aliases."""
 
 import os
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import click
@@ -20,6 +21,33 @@ from camply.providers.base import BaseProvider
 
 if TYPE_CHECKING:
     from camply.core.search import SearchRequest
+    from camply.providers.dto import CampsiteType
+
+
+def validate_site_filters(
+    provider_name: str,
+    provider_class: type["BaseProvider"],
+    *,
+    campsite_types: Sequence["CampsiteType"] = (),
+    require_electric: bool = False,
+    require_accessible: bool = False,
+    min_rv_length: int | None = None,
+) -> None:
+    """Reject site-attribute filters that are unsupported by the selected provider."""
+    caps = provider_class.filter_capabilities
+    unsupported: list[str] = []
+    if campsite_types and not caps.preferred_types:
+        unsupported.append("campsite type")
+    if require_electric and not caps.require_electric:
+        unsupported.append("electric hookup")
+    if require_accessible and not caps.require_accessible:
+        unsupported.append("ADA accessibility")
+    if min_rv_length is not None and not caps.min_rv_length:
+        unsupported.append("minimum RV / trailer length")
+    if unsupported:
+        raise click.UsageError(
+            f"{provider_name} does not support {', '.join(unsupported)} filtering."
+        )
 
 
 def validate_provider_filters(
@@ -28,20 +56,14 @@ def validate_provider_filters(
     request: "SearchRequest",
 ) -> None:
     """Reject site-attribute filters that are unsupported by the selected provider."""
-    caps = provider_class.filter_capabilities
-    unsupported: list[str] = []
-    if request.campsite_types and not caps.preferred_types:
-        unsupported.append("campsite type")
-    if request.require_electric and not caps.require_electric:
-        unsupported.append("electric hookup")
-    if request.require_accessible and not caps.require_accessible:
-        unsupported.append("ADA accessibility")
-    if request.min_rv_length is not None and not caps.min_rv_length:
-        unsupported.append("minimum RV / trailer length")
-    if unsupported:
-        raise click.UsageError(
-            f"{provider_name} does not support {', '.join(unsupported)} filtering."
-        )
+    validate_site_filters(
+        provider_name,
+        provider_class,
+        campsite_types=request.campsite_types,
+        require_electric=request.require_electric,
+        require_accessible=request.require_accessible,
+        min_rv_length=request.min_rv_length,
+    )
 
 
 def provider_entries() -> dict[str, tuple[type[BaseProvider], Provider]]:

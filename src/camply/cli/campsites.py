@@ -10,6 +10,7 @@ from camply.cli import options
 from camply.cli.discovery import DISPLAY_LIMIT, normalize_ids, resolve_targets
 from camply.cli.execution import run
 from camply.cli.notifications import (
+    DEFAULT_MAX_NOTIFICATIONS,
     CLINotificationConfig,
     StayDeduplicationState,
     resolve_notification_config,
@@ -37,10 +38,17 @@ def _announce_watch(
     request: "SearchRequest",
     areas: tuple[str, ...],
     campgrounds: tuple[str, ...],
+    *,
+    search_once: bool = False,
 ) -> None:
     """Initialize logging and emit initial search summary messages."""
+    summary = (
+        f"Checking campground availability once on {name}."
+        if search_once
+        else f"Watching campground availability on {name}; cancel with Ctrl-C."
+    )
     diagnostic(
-        f"Watching campground availability on {name}; cancel with Ctrl-C.",
+        summary,
         debug_enabled,
         provider=name,
         stderr_only=json_output,
@@ -74,6 +82,8 @@ async def _execute_watch(
     *,
     effective_interval: float,
     search_once: bool,
+    stop_on_match: bool,
+    max_notifications: int,
     json_output: bool,
 ) -> None:
     """Resolve targets, monitor availability, and release the provider HTTP client."""
@@ -86,7 +96,22 @@ async def _execute_watch(
             render_stays(stays)
         new_stays = dedup_state.record_cycle(stays)
         if notification_config.channels and new_stays:
-            await send_stay_notifications(notification_config, new_stays)
+            await send_stay_notifications(
+                notification_config,
+                new_stays,
+                max_notifications=max_notifications,
+            )
+        if stop_on_match and stays and not search_once:
+            logger.info("Match found; stopping watch (--stop-on-match).")
+
+    def handle_error(exc: Exception) -> None:
+        logger.error(
+            "Provider request failed (%s); retrying on next check.",
+            type(exc).__name__,
+        )
+
+    def handle_expired() -> None:
+        logger.info("All requested booking dates have passed; stopping watch.")
 
     instance = provider_class()
     try:
@@ -109,6 +134,9 @@ async def _execute_watch(
             handle_stays,
             interval=effective_interval,
             once=search_once,
+            stop_on_match=stop_on_match,
+            on_error=None if search_once else handle_error,
+            on_expired=handle_expired,
         )
     finally:
         await instance.async_client.aclose()
@@ -155,8 +183,10 @@ async def _execute_watch(
 @options.accessible()
 @options.rv_length()
 @options.notifications()
+@options.max_notifications()
 @options.state_file()
 @options.search_once()
+@options.stop_on_match()
 @options.interval()
 @options.json_output()
 @click.pass_context
@@ -177,8 +207,10 @@ def campsites_cmd(
     accessible: bool,
     rv_length: int | None,
     notifications: tuple[str, ...],
-    state_file: Path | None,
+    max_notifications: int = DEFAULT_MAX_NOTIFICATIONS,
+    state_file: Path | None = None,
     search_once: bool = False,
+    stop_on_match: bool = False,
     interval: int = 10,
     json_output: bool = False,
     yaml_config: Path | None = None,
@@ -192,6 +224,14 @@ def campsites_cmd(
                 raise click.MissingParameter(
                     ctx=ctx, param_hint=name, param_type="option"
                 )
+    if search_once and stop_on_match:
+        raise click.UsageError("--search-once cannot be combined with --stop-on-match.")
+    if (
+        search_once
+        and ctx.get_parameter_source("interval")
+        == click.core.ParameterSource.COMMANDLINE
+    ):
+        raise click.UsageError("--interval cannot be combined with --search-once.")
     if json_output and not search_once:
         raise click.UsageError("--json requires --search-once on campsites.")
     if yaml_config is not None:
@@ -202,6 +242,7 @@ def campsites_cmd(
             yaml_config,
             debug=resolve_debug(ctx, debug),
             once=search_once,
+            stop_on_match=stop_on_match,
             json_output=json_output,
         )
         return
@@ -238,6 +279,7 @@ def campsites_cmd(
         request,
         areas,
         campgrounds,
+        search_once=search_once,
     )
 
     dedup_state = StayDeduplicationState.load(state_file)
@@ -258,6 +300,8 @@ def campsites_cmd(
             dedup_state,
             effective_interval=effective_interval,
             search_once=search_once,
+            stop_on_match=stop_on_match,
+            max_notifications=max_notifications,
             json_output=json_output,
         )
     )

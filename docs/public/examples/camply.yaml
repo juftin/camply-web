@@ -30,10 +30,14 @@ defaults:
 
   # Minutes between availability checks (minimum 5).
   interval: 10
+  # Stop a search automatically after its first check cycle that finds a match.
+  stop_on_match: false
   # Push channels. [] prints results to the terminal only.
-  # ntfy requires NTFY_TOPIC. NTFY_SERVER_URL and NTFY_ACCESS_TOKEN are optional.
-  # pushover requires PUSHOVER_USER_KEY and PUSHOVER_APP_TOKEN.
+  # Supported channels: pushover, ntfy, webhook, discord, slack, telegram.
+  # Credentials and webhook URLs are read from environment variables.
   notifications: []
+  # Maximum notifications sent per channel per cycle (1–100); overflow is summarized.
+  max_notifications: 5
 
 # At least one search is required. Each search needs a unique name, a provider,
 # one or more campground or recreation-area IDs, and at least one date window.
