@@ -29,7 +29,7 @@ camply = "camply.cli.main:cli"
 [project.optional-dependencies]
 server = [
   "cryptography==50.0.2",
-  "fastapi==0.163.2",
+  "fastapi==0.165.0",
   "gunicorn==27.0.1 ; sys_platform != 'win32'",
   "orjson==3.13.0",
   "prometheus-client==0.26.0",
