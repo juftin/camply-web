@@ -51,7 +51,7 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
 - `docs/specs/`: Feature specifications, plans, and task tracking. Spec-Kit creation defaults and numbering use this directory; `.specify/` stays at root. Feature overrides identify the complete feature directory, and saved pointers remain checkout-local.
 - `tests/`: Python suites, installed-artifact/release regressions, and frontend visual baselines.
 - `tasks/`: Python/frontend task definitions included by root `Taskfile.yaml`; preserve task namespaces and root working directories.
-- `deploy/`: Infrastructure configuration. Root Dockerfile has backend/frontend targets; root Compose contains all services.
+- `deploy/`: Infrastructure configuration (GHCR-based Compose flavors in `deploy/compose/`, Helm chart in `deploy/helm/`, Prometheus config, and Bake overlay). Root `Dockerfile` and `docker-compose.yaml` build and run the local development stack.
 - `build/`, `dist/`, `tmp/`: Ignored generated frontend/API output, distributions, and reports respectively. Build hooks map assets into archives without staging into working source.
 - `.worktrees/`: Git worktrees directory for parallel isolated development.
 

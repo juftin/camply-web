@@ -1,3 +1,13 @@
+# Local Development Docker Compose — camply-web
+#
+# Builds the shared camply-web image from this repository checkout with local
+# defaults and host-exposed backing services for development.
+#
+# For self-contained deployments pulling published GHCR images (no build), see:
+#   - deploy/compose/docker-compose.yaml              (distributed quick start)
+#   - deploy/compose/docker-compose.standalone.yaml   (single-container SQLite)
+#   - deploy/compose/docker-compose.production.yaml   (hardened production stack)
+
 name: "camply"
 
 x-camply: &camply
@@ -76,6 +86,8 @@ services:
       PUSHOVER_APP_TOKEN: ${PUSHOVER_APP_TOKEN:-}
       CAMPLY_NTFY_SUBSCRIPTION_URL: ${CAMPLY_NTFY_SUBSCRIPTION_URL:-https://ntfy.sh}
       CAMPLY_NTFY_PUBLISH_URL: ${CAMPLY_NTFY_PUBLISH_URL:-}
+      CAMPLY_SENTRY_DSN: ${CAMPLY_SENTRY_DSN:-}
+      CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${CAMPLY_SENTRY_TRACES_SAMPLE_RATE:-0.0}
     healthcheck:
       test: ["CMD", "camply", "serve", "healthcheck", "backend"]
       interval: 30s
@@ -84,6 +96,7 @@ services:
       start_period: 40s
     ports:
       - "8000:8000"
+    restart: unless-stopped
 
   db:
     image: postgres:17@sha256:87c8b42f423b45d5247e6aa8fdb2e7762fec164c68a50fe3eb07e7bfcaf4dbcf
@@ -123,8 +136,8 @@ services:
       CAMPLY_DB_DATABASE: ${POSTGRES_DB:-camply}
       CAMPLY_DB_PORT: 5432
       CAMPLY_VALKEY_URL: "redis://valkey:6379/0"
-      CAMPLY_SENTRY_DSN: ${SENTRY_DSN:-}
-      CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.0}
+      CAMPLY_SENTRY_DSN: ${CAMPLY_SENTRY_DSN:-}
+      CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${CAMPLY_SENTRY_TRACES_SAMPLE_RATE:-0.0}
       CAMPLY_METRICS_PORT: 8001
       CAMPLY_HEARTBEAT_INTERVAL: ${CAMPLY_HEARTBEAT_INTERVAL:-300}
       CAMPLY_TARGET_COOLDOWN: ${CAMPLY_TARGET_COOLDOWN:-55}
@@ -164,8 +177,8 @@ services:
       CAMPLY_DB_DATABASE: ${POSTGRES_DB:-camply}
       CAMPLY_DB_PORT: 5432
       CAMPLY_VALKEY_URL: "redis://valkey:6379/0"
-      CAMPLY_SENTRY_DSN: ${SENTRY_DSN:-}
-      CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.0}
+      CAMPLY_SENTRY_DSN: ${CAMPLY_SENTRY_DSN:-}
+      CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${CAMPLY_SENTRY_TRACES_SAMPLE_RATE:-0.0}
       SKIP_MIGRATIONS: "1"
       CAMPLY_METRICS_PORT: 8001
       CAMPLY_HEARTBEAT_INTERVAL: ${CAMPLY_HEARTBEAT_INTERVAL:-300}
@@ -226,3 +239,4 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    restart: unless-stopped

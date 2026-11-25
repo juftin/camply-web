@@ -12,6 +12,7 @@ import pytest
     [
         (["nginx", "-g", "daemon off;"], False, False),
         (["camply", "serve"], False, False),
+        (["camply", "serve", "--host", "0.0.0.0", "--port", "8000"], False, False),
         (["camply", "serve", "--port", "9000"], False, False),
         (["camply", "serve", "frontend"], False, False),
         (["camply", "serve", "backend"], False, False),

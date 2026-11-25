@@ -1,0 +1,71 @@
+# Standalone Single-Container Docker Compose — camply-web
+#
+# Runs the web UI, FastAPI backend, SQLite database, and in-process background
+# polling in a single container using the published GHCR image.
+# No PostgreSQL, Valkey, Nginx, or Prometheus required.
+#
+# Quick start:
+#   docker compose -f deploy/compose/docker-compose.standalone.yaml up -d
+#   # Open http://localhost:8000 and run Admin Operations -> Sync Providers
+#
+# Before exposing beyond localhost, enable authentication (CAMPLY_AUTH_MODE=session
+# or auth0), set CAMPLY_APP_URL and CAMPLY_CORS_ORIGINS to your public HTTPS URL,
+# and place behind an HTTPS reverse proxy (or set CAMPLY_BIND=0.0.0.0 as needed).
+
+name: "camply-standalone"
+
+volumes:
+  camply_data:
+    driver: local
+
+services:
+  camply:
+    image: ghcr.io/juftin/camply-web:${CAMPLY_VERSION:-v2}
+    command: ["camply", "serve", "--host", "0.0.0.0", "--port", "8000"]
+    stop_signal: SIGTERM
+    stop_grace_period: 1m
+    restart: unless-stopped
+    ports:
+      - "${CAMPLY_BIND:-127.0.0.1}:${CAMPLY_PORT:-8000}:8000"
+    volumes:
+      - camply_data:/home/camply/.local/share/camply
+    environment:
+      # Runtime & observability
+      CAMPLY_ENVIRONMENT: ${CAMPLY_ENVIRONMENT:-production}
+      CAMPLY_DEBUG: ${CAMPLY_DEBUG:-false}
+      CAMPLY_SENTRY_DSN: ${CAMPLY_SENTRY_DSN:-}
+      CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${CAMPLY_SENTRY_TRACES_SAMPLE_RATE:-0.0}
+
+      # Authentication (default: none on loopback; enable session or auth0 before sharing)
+      CAMPLY_AUTH_MODE: ${CAMPLY_AUTH_MODE:-none}
+      CAMPLY_INVITE_ONLY: ${CAMPLY_INVITE_ONLY:-false}
+      CAMPLY_ADMIN_EMAIL: ${CAMPLY_ADMIN_EMAIL:-admin@camply.local}
+      CAMPLY_LOGIN_USERNAME: ${CAMPLY_LOGIN_USERNAME:-}
+      CAMPLY_LOGIN_PASSWORD: ${CAMPLY_LOGIN_PASSWORD:-}
+      CAMPLY_SESSION_SECRET: ${CAMPLY_SESSION_SECRET:-}
+      CAMPLY_SESSION_MAX_AGE: ${CAMPLY_SESSION_MAX_AGE:-43200}
+      CAMPLY_SESSION_COOKIE_SECURE: ${CAMPLY_SESSION_COOKIE_SECURE:-true}
+      CAMPLY_CORS_ORIGINS: '${CAMPLY_CORS_ORIGINS:-["http://localhost:8000"]}'
+      CAMPLY_AUTH0_DOMAIN: ${CAMPLY_AUTH0_DOMAIN:-}
+      CAMPLY_AUTH0_AUDIENCE: ${CAMPLY_AUTH0_AUDIENCE:-}
+      CAMPLY_AUTH0_CLIENT_ID: ${CAMPLY_AUTH0_CLIENT_ID:-}
+
+      # Notifications & polling
+      CAMPLY_APP_URL: ${CAMPLY_APP_URL:-http://localhost:8000}
+      CAMPLY_NOTIFICATION_MODE: ${CAMPLY_NOTIFICATION_MODE:-summary}
+      CAMPLY_HEARTBEAT_INTERVAL: ${CAMPLY_HEARTBEAT_INTERVAL:-300}
+      CAMPLY_TARGET_COOLDOWN: ${CAMPLY_TARGET_COOLDOWN:-55}
+      PUSHOVER_APP_TOKEN: ${PUSHOVER_APP_TOKEN:-}
+      CAMPLY_NTFY_SUBSCRIPTION_URL: ${CAMPLY_NTFY_SUBSCRIPTION_URL:-https://ntfy.sh}
+      CAMPLY_NTFY_PUBLISH_URL: ${CAMPLY_NTFY_PUBLISH_URL:-}
+    healthcheck:
+      test: ["CMD", "camply", "serve", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -77,7 +77,7 @@ task compose:infra
 task dev
 ```
 
-Vite serves development UI on port 5173 and proxies `/api` to the backend on port 8000. Use `task compose:up` to run the whole distributed stack in containers. One root Dockerfile builds `ghcr.io/juftin/camply-web` for the API, Nginx, Celery worker, and beat; root Compose defines all services and preserves named volumes and `.data/camply` storage.
+Vite serves development UI on port 5173 and proxies `/api` to the backend on port 8000. Use `task compose:up` to run the whole distributed stack in containers. One root Dockerfile builds `ghcr.io/juftin/camply-web` for the API, Nginx, Celery worker, and beat; root `docker-compose.yaml` builds and runs the local development stack (preserving named volumes and `.data/camply` storage), while `deploy/compose/` provides self-contained GHCR-pulling stacks (`docker-compose.yaml` for distributed quick start, `docker-compose.standalone.yaml` for single-container SQLite, and `docker-compose.production.yaml` for hardened production). See [Docker & Kubernetes](../self-hosting/containers.md).
 
 Build the shared image with `task build`. The default command is `camply serve backend`; Compose selects the other roles with command overrides:
 
@@ -105,7 +105,7 @@ Health probes follow the same roles: `camply serve healthcheck` checks standalon
 /
 ├── pyproject.toml, uv.lock, package.json, pnpm-lock.yaml
 ├── Taskfile.yaml, tasks/{python,frontend}.yaml
-├── Dockerfile, docker-compose.yaml, docker-bake.release.hcl
+├── Dockerfile, docker-compose.yaml
 ├── src/
 │   ├── camply/{cli,db,providers,server,worker}/
 │   └── frontend/
@@ -113,7 +113,7 @@ Health probes follow the same roles: `camply serve healthcheck` checks standalon
 │       ├── functions/, tooling/
 │       └── wrangler.jsonc
 ├── tests/                    # Python, packaging/release, and visual baselines
-├── deploy/                   # Entrypoint and Prometheus configuration
+├── deploy/                   # Compose flavors, entrypoint, Helm chart, and Prometheus configuration
 └── docs/
     ├── development/, architecture/, operations/
     └── specs/                # Feature specifications and implementation plans

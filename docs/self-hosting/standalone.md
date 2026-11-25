@@ -26,6 +26,16 @@ camply serve
 
 Open <http://127.0.0.1:8000>. Run **Sync Providers** in **Admin Operations** to import the campground catalog, then create a scan from [Using the web app](../using-camply.md).
 
+## Run with Docker Compose
+
+Prefer a single container without PostgreSQL, Valkey, or Prometheus? Use `deploy/compose/docker-compose.standalone.yaml`, which runs `camply serve` from the published `ghcr.io/juftin/camply-web` image and persists SQLite in a named Docker volume:
+
+```bash
+docker compose -f deploy/compose/docker-compose.standalone.yaml up -d
+```
+
+The container binds `127.0.0.1:8000` by default (override with `CAMPLY_BIND` and `CAMPLY_PORT`) and persists `/home/camply/.local/share/camply` in the `camply_data` volume. Configure authentication, `CAMPLY_APP_URL`, and notifications via a `.env` file alongside the Compose file; see [Docker & Kubernetes](containers.md) for reverse-proxy TLS setup and distributed Compose options.
+
 ## Expose on your network
 
 By default, standalone camply listens only on `127.0.0.1:8000` and signs every visitor in as a shared administrator.

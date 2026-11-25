@@ -14,20 +14,30 @@ sqlite3 ~/.local/share/camply/camply.db ".backup /path/to/camply-backup.db"
 
 To restore, stop camply, replace the database file at `CAMPLY_DB_HOST` (or the default path), remove any stale `-wal` and `-shm` files from the old database, and start camply again.
 
-### Docker Compose (PostgreSQL)
-
-Dump the database from the running `db` container:
+When running the standalone Docker Compose stack (`deploy/compose/docker-compose.standalone.yaml`), stop the container before copying `/home/camply/.local/share/camply/camply.db` out of the `camply_data` volume:
 
 ```bash
-docker compose exec -T db pg_dump -U camply camply > camply-backup.sql
+docker compose -f deploy/compose/docker-compose.standalone.yaml stop camply
+docker run --rm -v camply-standalone_camply_data:/data:ro -v "$PWD:/backup" alpine \
+  cp /data/camply.db /backup/camply-backup.db
+docker compose -f deploy/compose/docker-compose.standalone.yaml start camply
+```
+
+### Docker Compose (PostgreSQL)
+
+Dump the database from the running `db` container (pass `-f deploy/compose/docker-compose.production.yaml` or `-f deploy/compose/docker-compose.yaml` for the GHCR stacks, or omit `-f` for the root development file):
+
+```bash
+docker compose -f deploy/compose/docker-compose.production.yaml exec -T db pg_dump -U camply camply > camply-backup.sql
 ```
 
 To restore into a fresh database, stop the `backend`, `celery-worker`, and `celery-beat` services first so nothing writes while loading the dump.
 
 ## Upgrades and migrations
 
-- **Standalone:** Upgrade `camply-web` via `uv tool upgrade camply-web` (or install the new wheel) and run `camply serve`. Standalone automatically runs pending Alembic migrations on startup.
-- **Docker Compose:** Pull or rebuild images with `docker compose up -d --build`. The `backend` service applies pending migrations before serving traffic or allowing workers to start.
+- **Standalone (`uv`):** Upgrade `camply-web` via `uv tool upgrade camply-web` (or install the new wheel) and run `camply serve`. Standalone automatically runs pending Alembic migrations on startup.
+- **Docker Compose (published images):** Pull the updated image and recreate containers with `docker compose -f deploy/compose/docker-compose.production.yaml pull && docker compose -f deploy/compose/docker-compose.production.yaml up -d` (or substitute `docker-compose.yaml` / `docker-compose.standalone.yaml` under `deploy/compose/`).
+- **Docker Compose (local checkout):** Rebuild and restart with `docker compose up -d --build` (or `task compose:up`). In distributed stacks, `backend` applies pending migrations before serving traffic or allowing workers to start.
 - **Manual database tools:** Inspect or migrate your configured database directly with the CLI:
 
 ```bash
