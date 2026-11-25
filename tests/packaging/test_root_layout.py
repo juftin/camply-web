@@ -13,4 +13,4 @@ def test_root_build_configuration() -> None:
         config["tool"]["hatch"]["build"]["hooks"]["custom"]["path"]
         == "src/hatchling/plugin.py"
     )
-    assert (root / "src/camply/server/gunicorn.py").is_file()
+    assert (root / "src/camply/server/standalone.py").is_file()

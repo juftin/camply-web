@@ -30,11 +30,10 @@ camply = "camply.cli.main:cli"
 server = [
   "cryptography==50.0.2",
   "fastapi==0.162.0",
-  "gunicorn==26.2.0 ; sys_platform != 'win32'",
+  "granian[reload]==2.8.9",
   "orjson==3.13.0",
   "prometheus-client==0.26.0",
   "pyjwt==2.15.1",
-  "uvicorn-worker==0.4.0 ; sys_platform != 'win32'",
   "uvicorn==0.54.0"
 ]
 distributed = [
@@ -134,7 +133,6 @@ ignore_missing_imports = false
 [[tool.mypy.overrides]]
 module = [
   "orjson",
-  "uvicorn_worker",
   "celery.*",
   "aiosqlite",
   "fake_useragent",
@@ -260,9 +258,8 @@ source_modules = [
 as_packages = false
 forbidden_modules = [
   "fastapi",
+  "granian",
   "uvicorn",
-  "gunicorn",
-  "uvicorn_worker",
   "orjson",
   "jwt",
   "cryptography",
@@ -279,9 +276,8 @@ type = "forbidden"
 source_modules = ["camply.worker"]
 forbidden_modules = [
   "fastapi",
+  "granian",
   "uvicorn",
-  "gunicorn",
-  "uvicorn_worker",
   "orjson",
   "jwt",
   "cryptography"

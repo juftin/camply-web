@@ -36,7 +36,7 @@ uv run python -m build
 
 Using the project's interpreter, `python -m build` also works directly. It creates one `camply` sdist and wheel in `dist/`; `task dist` uses the same complete artifact contract through uv. The build installs frontend dependencies from the frozen lockfile and compiles root-hosted assets with same-origin `/api`. Missing source-build prerequisites fail rather than producing an incomplete wheel.
 
-The sdist contains frontend source and prepared assets. Rebuilding its wheel and installing or running a prepared wheel require no Node or pnpm. Every wheel contains the UI, Python typing markers, Gunicorn configuration, and the full Alembic migration graph. The build does not stage generated assets into working source files.
+The sdist contains frontend source and prepared assets. Rebuilding its wheel and installing or running a prepared wheel require no Node or pnpm. Every wheel contains the UI, Python typing markers, and the full Alembic migration graph. The build does not stage generated assets into working source files.
 
 The shared `camply-web` Docker image includes Python and Nginx. `camply serve frontend` locates its bundled assets automatically and renders the packaged Nginx configuration at startup. Editable installs without bundled assets report a clear error when serving the frontend.
 
@@ -95,7 +95,7 @@ Outside Docker, standalone and backend serving require `camply-web[server]`, and
 
 Serving commands replace the CLI process with the foreground runtime, preserving direct signal delivery. Compose sends `SIGTERM` to Python roles and `SIGQUIT` to Nginx, with one minute to stop before a forced kill. For Nginx outside Compose, use `docker run --stop-signal SIGQUIT --stop-timeout 60` or send `SIGQUIT` directly. See [shutdown behavior](../operations/CONFIGURATION.md#process-shutdown) for forced termination and host process groups.
 
-Backend and worker commands forward extra arguments to Gunicorn or Celery, for example `camply serve backend --bind 127.0.0.1:9000`, `camply serve worker --concurrency=2`, or `camply serve beat --schedule /tmp/camply-beat`. Backend serving requires `camply-web[server]`; worker commands require `camply-web[distributed]`. Each command replaces itself with the runtime process so container signals reach it directly.
+Backend and worker commands forward extra arguments to Granian or Celery, for example `camply serve backend --host 127.0.0.1 --port 9000`, `camply serve worker --concurrency=2`, or `camply serve beat --schedule /tmp/camply-beat`. Backend serving requires `camply-web[server]`; worker commands require `camply-web[distributed]`. Each command replaces itself with the runtime process so container signals reach it directly.
 
 Frontend serving requires system Nginx with `/etc/nginx/mime.types`, as installed in the image. Set `CAMPLY_BACKEND_URL` to choose the API upstream; it defaults to `http://backend:8000`. For example, `CAMPLY_BACKEND_URL=http://api.internal:9000 camply serve frontend` proxies `/api/` to that server. Compose forwards the same variable. Use an origin without a trailing slash to preserve the `/api/` path. The frontend listens on port 8080, renders the two package-owned templates under a writable temporary directory, and runs Nginx in the foreground without modifying `/etc/nginx`. Nginx config resources live in `src/camply/cli/nginx/`.
 

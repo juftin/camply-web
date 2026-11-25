@@ -23,7 +23,7 @@ from .conftest import Installation
             "backend",
             False,
             marks=pytest.mark.skipif(
-                sys.platform == "win32", reason="Gunicorn requires Unix"
+                sys.platform == "win32", reason="Graceful SIGTERM requires Unix"
             ),
         ),
     ],
@@ -54,12 +54,13 @@ def test_http_cli_serves_and_shuts_down(
             port = listener.getsockname()[1]
         with tempfile.TemporaryFile() as log:
             arguments = ['--port', str(port)] if role == 'standalone' else [
-                'backend', '--bind', f'127.0.0.1:{port}', '--workers', '1',
+                'backend', '--host', '127.0.0.1', '--port', str(port), '--workers', '2',
             ]
             process = subprocess.Popen(
                 [str(Path(sys.executable).with_name('camply')), 'serve', *arguments],
                 stdout=log, stderr=subprocess.STDOUT,
                 start_new_session=os.name != 'nt',
+                env={**os.environ, 'PATH': ''} if role == 'backend' else None,
             )
             try:
                 ready = False
@@ -109,9 +110,12 @@ def test_http_cli_serves_and_shuts_down(
                 if force:
                     assert process.returncode == -signal.SIGKILL, output
                 else:
-                    assert 'Application shutdown complete' in output, output
-                    if role == 'backend':
-                        assert 'Shutting down: Master' in output, output
+                    if role == 'standalone':
+                        assert 'Application shutdown complete' in output, output
+                    else:
+                        assert process.returncode == 0, output
+                        assert 'Stopped worker-2' in output, output
+                        assert 'Granian shutdown completed' in output, output
                 with sqlite3.connect(os.environ['CAMPLY_DB_HOST']) as database:
                     assert database.execute('PRAGMA integrity_check').fetchone() == ('ok',)
             finally:
@@ -201,7 +205,7 @@ def test_worker_only_registration(install: Callable[[str], Installation]) -> Non
         import sys
         from unittest.mock import patch
 
-        assert all(importlib.util.find_spec(name) is None for name in ('fastapi', 'uvicorn', 'psycopg', 'sentry_sdk', 'pytest'))
+        assert all(importlib.util.find_spec(name) is None for name in ('fastapi', 'granian', 'uvicorn', 'psycopg', 'sentry_sdk', 'pytest'))
         with patch.object(socket.socket, 'connect', side_effect=AssertionError('Unexpected broker connection')):
             from camply.worker.celery_app import celery_app
             from camply.worker.scheduler import HealthScheduler

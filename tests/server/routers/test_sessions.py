@@ -9,11 +9,11 @@ from unittest.mock import patch
 import jwt
 import pytest
 from fastapi.testclient import TestClient
-from httpx2 import URL
+from httpx2 import URL, ASGITransport, AsyncClient
 from sqlalchemy import select
 
 from camply.db.models import User, UserSession
-from camply.server.app import app
+from camply.server.app import app, granian_app
 from camply.server.auth import hash_password, session_signing_key
 from camply.server.config import AuthMode, BackendConfig, backend_config
 from tests.server.conftest import maker
@@ -196,6 +196,28 @@ def test_login_rejects_untrusted_origin(
         json={"username": "test-admin", "password": "synthetic-test-password"},
     )
     assert response.status_code == 403
+
+
+@pytest.mark.parametrize(("peer", "expected"), [("127.0.0.1", 200), ("192.0.2.5", 403)])
+@pytest.mark.asyncio
+async def test_login_trusts_forwarded_scheme_from_loopback(
+    session_mode: None, peer: str, expected: int
+) -> None:
+    """Trust the HTTPS scheme only when a configured reverse proxy supplies it."""
+    async with AsyncClient(
+        transport=ASGITransport(app=granian_app(), client=(peer, 12345)),
+        base_url="http://camply.example.test",
+    ) as client:
+        response = await client.post(
+            "/api/login",
+            headers={
+                "Origin": "https://camply.example.test",
+                "X-Forwarded-Proto": "https",
+                "X-Forwarded-For": "192.0.2.10",
+            },
+            json={"username": "test-admin", "password": "synthetic-test-password"},
+        )
+    assert response.status_code == expected
 
 
 @pytest.mark.parametrize(

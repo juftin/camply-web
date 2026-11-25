@@ -84,10 +84,8 @@ tasks:
   dev:
     desc: Run Backend API in Debug Mode
     cmds:
-      - uv run --all-extras -- gunicorn --config python:camply.server.gunicorn camply.server.app:app
-    env:
-      GUNICORN_RELOAD: "1"
-    deps: [sync, migration-upgrade]
+      - uv run --all-extras -- camply serve backend --reload --workers 1
+    deps: [sync]
 
   build:
     summary: Build the Shared camply-web Docker Image

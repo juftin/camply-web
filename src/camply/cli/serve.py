@@ -1,6 +1,7 @@
 """Standalone serving and individual application-role CLI commands."""
 
 import json
+import multiprocessing
 import os
 import shutil
 import subprocess
@@ -27,18 +28,17 @@ def _executable(name: str, *, hint: str) -> str:
     return executable
 
 
-def _require_server(*modules: str) -> None:
-    """Check shared server dependencies plus any role-specific Python modules."""
+def _require_server(server: str) -> None:
+    """Check the selected HTTP server and shared API dependencies."""
     require_modules(
         "server",
         (
             "fastapi",
-            "uvicorn",
+            server,
             "orjson",
             "jwt",
             "cryptography",
             "prometheus_client",
-            *modules,
         ),
     )
 
@@ -57,7 +57,7 @@ def serve_group(ctx: click.Context, host: str | None, port: int | None) -> None:
                 "--host and --port apply to standalone serving; omit the subcommand."
             )
         return
-    _require_server()
+    _require_server("uvicorn")
     args = [sys.executable, "-m", "camply.server.standalone"]
     if host is not None:
         args.extend(["--host", host])
@@ -112,22 +112,28 @@ def serve_frontend() -> None:
 @serve_group.command(name="backend", context_settings={"ignore_unknown_options": True})
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def serve_backend(args: tuple[str, ...]) -> None:
-    """Migrate the database and serve the API; forward arguments to Gunicorn."""
-    _require_server("gunicorn", "uvicorn_worker")
+    """Migrate the database and serve the API; forward arguments to Granian."""
+    _require_server("granian")
     if os.environ.get("SKIP_MIGRATIONS", "0") != "1":
         from camply.db.migration import upgrade
 
         upgrade()
+    os.environ.setdefault("GRANIAN_HOST", "0.0.0.0")
+    os.environ.setdefault(
+        "GRANIAN_WORKERS", str(max(1, multiprocessing.cpu_count() - 1))
+    )
+    os.environ.setdefault("GRANIAN_LOG_ACCESS_ENABLED", "1")
     os.execv(
         sys.executable,
         [
             sys.executable,
             "-m",
-            "gunicorn",
-            "--config",
-            "python:camply.server.gunicorn",
+            "granian",
+            "--interface",
+            "asgi",
             *args,
-            "camply.server.app:app",
+            "--factory",
+            "camply.server.app:granian_app",
         ],
     )
 

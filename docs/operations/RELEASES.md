@@ -44,8 +44,8 @@ single distribution into `dist/`. The GitHub plugin attaches both artifacts.
 On release, `.github/workflows/publish.yaml` publishes the `camply-web` Python package
 to PyPI using PyPI Trusted Publishing. The
 standalone sdist includes frontend inputs and prepared UI, its README, license,
-typing marker, installed Gunicorn configuration, and the full Alembic migration
-graph. Its wheel can be rebuilt without JavaScript tooling or repository siblings.
+typing marker, and the full Alembic migration graph. Its wheel can be rebuilt
+without JavaScript tooling or repository siblings.
 
 Checkout/release builds require Node 24 and the root package-manager pin; all
 artifact-building CI jobs install that toolchain before running the build hook.

@@ -286,7 +286,7 @@ async def test_trends_promql_aggregates_across_workers() -> None:
     """
     Verify PromQL queries for global gauges and worker rates use aggregation.
 
-    Guarantees that multi-process workers (Gunicorn/Celery) do not produce
+    Guarantees that multi-process workers (Granian/Celery) do not produce
     duplicate series in charts and legends.
     """
     from typing import Any

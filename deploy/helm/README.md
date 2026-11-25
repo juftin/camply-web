@@ -1,7 +1,7 @@
 # camply-web Helm chart
 
 This chart deploys the distributed application using one `camply-web` image for
-Nginx, Gunicorn, Celery worker, beat, and migrations. It includes optional single
+Nginx, Granian, Celery worker, beat, and migrations. It includes optional single
 instance PostgreSQL 17, Valkey, and Prometheus services. Kubernetes 1.26+ and Helm
 3 or 4 are supported. Gateway API resources additionally require the v1 CRDs and
 a compatible controller; Ingress needs an installed ingress controller.

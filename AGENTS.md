@@ -41,7 +41,7 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
 ## 🏗️ Directory Structure
 
 - `src/camply/`: One `camply` Python distribution, managed from root `pyproject.toml` and `uv.lock`.
-  - `server/`: FastAPI, standalone runtime, and installed Gunicorn configuration (`server` extra).
+  - `server/`: FastAPI with Uvicorn for standalone and Granian for distributed serving (`server` extra).
   - `db/`: Models, SQLite persistence, and packaged Alembic migrations.
   - `providers/`: Third-party booking providers.
   - `worker/`: Shared polling engine and Celery adapters (`distributed` extra).

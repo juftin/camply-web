@@ -18,7 +18,17 @@ import pytest
         (["camply", "serve", "worker"], False, False),
         (["camply", "serve", "beat"], False, False),
         (["camply", "serve", "beat", "--sync-providers"], False, False),
-        (["gunicorn", "camply.server.app:app"], False, True),
+        (
+            [
+                "granian",
+                "--interface",
+                "asgi",
+                "--factory",
+                "camply.server.app:granian_app",
+            ],
+            False,
+            True,
+        ),
         (["celery", "worker"], True, False),
         (["celery", "beat"], True, False),
     ],
@@ -31,7 +41,7 @@ def test_role_dispatch(
     executable = tmp_path / "record"
     executable.write_text('#!/bin/sh\nprintf "%s\\n" "$0" "$@" >> "$CALL_LOG"\n')
     executable.chmod(0o755)
-    for name in ("python", "nginx", "camply", "gunicorn", "celery"):
+    for name in ("python", "nginx", "camply", "granian", "celery"):
         (tmp_path / name).symlink_to(executable)
     log = tmp_path / "calls"
     result = subprocess.run(
