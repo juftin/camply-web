@@ -4,11 +4,11 @@ Run your own camply instance on a single machine, a Docker host, or a Kubernetes
 
 ## Choose a deployment option
 
-| Option                                | Backing services                         | Best for                                               | Guide                                                     |
-| ------------------------------------- | ---------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------- |
-| **Standalone (`uv` or 1 container)**  | None (built-in SQLite)                   | Personal or small-group instances on one machine       | [Standalone](standalone.md)                               |
-| **Docker Compose (Distributed)**      | PostgreSQL, Valkey, Prometheus           | Hardened multi-container hosts and monitoring charts   | [Docker & Kubernetes](containers.md)                      |
-| **Kubernetes (Helm)**                 | PostgreSQL, Valkey (bundled or external) | Cluster deployments with Ingress or Gateway API        | [Docker & Kubernetes](containers.md#kubernetes-with-helm) |
+| Option                               | Backing services                         | Best for                                             | Guide                                                     |
+| ------------------------------------ | ---------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------- |
+| **Standalone (`uv` or 1 container)** | None (built-in SQLite)                   | Personal or small-group instances on one machine     | [Standalone](standalone.md)                               |
+| **Docker Compose (Distributed)**     | PostgreSQL, Valkey, Prometheus           | Hardened multi-container hosts and monitoring charts | [Docker & Kubernetes](containers.md)                      |
+| **Kubernetes (Helm)**                | PostgreSQL, Valkey (bundled or external) | Cluster deployments with Ingress or Gateway API      | [Docker & Kubernetes](containers.md#kubernetes-with-helm) |
 
 ## After your first start
 
