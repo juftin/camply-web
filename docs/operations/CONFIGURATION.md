@@ -240,14 +240,19 @@ The Admin UI provides native monitoring dashboards for usage trends, API latency
 
 ## Docker and infrastructure
 
-These variables are primarily used in `docker-compose.yaml`.
+These variables configure the Docker Compose files (root `docker-compose.yaml` for local builds, and the GHCR-pulling flavors under `deploy/compose/`: `docker-compose.yaml`, `docker-compose.standalone.yaml`, and `docker-compose.production.yaml`).
 
-| Variable            | Description                    | Default  |
-| ------------------- | ------------------------------ | -------- |
-| `POSTGRES_USER`     | DB Username                    | `camply` |
-| `POSTGRES_PASSWORD` | DB Password                    | `camply` |
-| `POSTGRES_DB`       | DB Name                        | `camply` |
-| `CAMPLY_VERSION`    | Shared camply Docker image tag | `local`  |
+| Variable               | Description                                                       | Default                                                                          |
+| ---------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `CAMPLY_VERSION`       | Shared camply Docker image tag                                    | `local` (root build) / `v2` (`deploy/compose/`)                                  |
+| `POSTGRES_USER`        | PostgreSQL username                                               | `camply`                                                                         |
+| `POSTGRES_PASSWORD`    | PostgreSQL password                                               | `camply` (local & quick start) / **required** (`docker-compose.production.yaml`) |
+| `POSTGRES_DB`          | PostgreSQL database name                                          | `camply`                                                                         |
+| `FRONTEND_BIND`        | Host bind address for frontend (`docker-compose.production.yaml`) | `127.0.0.1`                                                                      |
+| `FRONTEND_PORT`        | Host port for frontend Nginx proxy                                | `80` (local & quick start) / `8080` (`docker-compose.production.yaml`)           |
+| `CAMPLY_BIND`          | Host bind address (`docker-compose.standalone.yaml`)              | `127.0.0.1`                                                                      |
+| `CAMPLY_PORT`          | Host port (`docker-compose.standalone.yaml`)                      | `8000`                                                                           |
+| `PROMETHEUS_RETENTION` | Prometheus TSDB retention (`deploy/compose/` distributed stacks)  | `30d`                                                                            |
 
 ## Optional Community Pages (Public Frontend Build Setting)
 

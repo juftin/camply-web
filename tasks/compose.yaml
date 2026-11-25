@@ -32,3 +32,13 @@ tasks:
     summary: Start Backing Infrastructure Only (PostgreSQL + Valkey)
     cmds:
       - docker compose up -d db valkey {{.CLI_ARGS}}
+
+  standalone:up:
+    summary: Start Standalone Single-Container Compose Stack
+    cmds:
+      - docker compose -f deploy/compose/docker-compose.standalone.yaml up -d {{.CLI_ARGS}}
+
+  standalone:down:
+    summary: Stop Standalone Single-Container Compose Stack
+    cmds:
+      - docker compose -f deploy/compose/docker-compose.standalone.yaml down {{.CLI_ARGS}}

@@ -1,0 +1,285 @@
+# Default Distributed Docker Compose — camply-web (Published GHCR Image)
+#
+# Self-contained multi-container deployment pulling the published GHCR image
+# with no repository checkout or local build required. Runs the API, Nginx
+# frontend proxy, Celery worker, Celery beat scheduler, PostgreSQL, Valkey,
+# and Prometheus with quick-start defaults (not full production hardening).
+#
+# Quick start:
+#   docker compose -f deploy/compose/docker-compose.yaml up -d
+#   # Open http://localhost
+#
+# For single-container SQLite, see deploy/compose/docker-compose.standalone.yaml.
+# For hardened production behind HTTPS, see deploy/compose/docker-compose.production.yaml.
+
+name: "camply"
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-camply: &camply
+  image: ghcr.io/juftin/camply-web:${CAMPLY_VERSION:-v2}
+  stop_signal: SIGTERM
+  stop_grace_period: 1m
+  restart: unless-stopped
+  logging: *default-logging
+
+configs:
+  prometheus_config:
+    content: |
+      # Prometheus Configuration — camply-web Monitoring
+      #
+      # Scrapes metrics from the FastAPI backend, Celery worker, and
+      # optionally Valkey via the valkey-exporter.
+
+      global:
+        scrape_interval: 15s
+        evaluation_interval: 15s
+        external_labels:
+          application: camply
+
+      scrape_configs:
+        - job_name: "camply-backend"
+          metrics_path: "/metrics"
+          static_configs:
+            - targets: ["backend:8000"]
+          scrape_interval: 15s
+
+        - job_name: "camply-worker"
+          metrics_path: "/metrics"
+          static_configs:
+            - targets: ["celery-worker:8001"]
+          scrape_interval: 15s
+
+        - job_name: "prometheus"
+          static_configs:
+            - targets: ["localhost:9090"]
+
+volumes:
+  db_data:
+    driver: local
+  valkey_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  camply_cache:
+    driver: local
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-camply}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-camply}
+      POSTGRES_DB: ${POSTGRES_DB:-camply}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-camply} -d ${POSTGRES_DB:-camply}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    logging: *default-logging
+
+  valkey:
+    image: valkey/valkey:9-alpine
+    command: valkey-server --save 60 1 --loglevel warning
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    logging: *default-logging
+
+  backend:
+    <<: *camply
+    depends_on:
+      db:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    volumes:
+      - camply_cache:/home/camply/.local/share/camply
+    environment:
+      CAMPLY_ENVIRONMENT: ${CAMPLY_ENVIRONMENT:-local}
+      CAMPLY_DEBUG: ${CAMPLY_DEBUG:-false}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+
+      # Database & internal services
+      CAMPLY_DB_DRIVERNAME: "postgresql+psycopg"
+      CAMPLY_DB_HOST: "db"
+      CAMPLY_DB_USERNAME: ${POSTGRES_USER:-camply}
+      CAMPLY_DB_PASSWORD: ${POSTGRES_PASSWORD:-camply}
+      CAMPLY_DB_DATABASE: ${POSTGRES_DB:-camply}
+      CAMPLY_DB_PORT: 5432
+      CAMPLY_VALKEY_URL: "redis://valkey:6379/0"
+      CAMPLY_PROMETHEUS_URL: "http://prometheus:9090"
+      PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
+      CAMPLY_PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
+
+      # Authentication (default: none for quick evaluation; switch to session/auth0 before sharing)
+      CAMPLY_AUTH_MODE: ${CAMPLY_AUTH_MODE:-none}
+      CAMPLY_INVITE_ONLY: ${CAMPLY_INVITE_ONLY:-false}
+      CAMPLY_ADMIN_EMAIL: ${CAMPLY_ADMIN_EMAIL:-admin@camply.local}
+      CAMPLY_LOGIN_USERNAME: ${CAMPLY_LOGIN_USERNAME:-admin}
+      CAMPLY_LOGIN_PASSWORD: ${CAMPLY_LOGIN_PASSWORD:-camply}
+      CAMPLY_SESSION_SECRET: ${CAMPLY_SESSION_SECRET:-camply-compose-local-session-secret-change-me}
+      CAMPLY_SESSION_MAX_AGE: ${CAMPLY_SESSION_MAX_AGE:-43200}
+      CAMPLY_SESSION_COOKIE_SECURE: ${CAMPLY_SESSION_COOKIE_SECURE:-false}
+      CAMPLY_CORS_ORIGINS: '${CAMPLY_CORS_ORIGINS:-["http://localhost", "http://localhost:8000"]}'
+      CAMPLY_AUTH0_DOMAIN: ${CAMPLY_AUTH0_DOMAIN:-}
+      CAMPLY_AUTH0_AUDIENCE: ${CAMPLY_AUTH0_AUDIENCE:-}
+      CAMPLY_AUTH0_CLIENT_ID: ${CAMPLY_AUTH0_CLIENT_ID:-}
+
+      # Polling, notifications & observability
+      CAMPLY_HEARTBEAT_INTERVAL: ${CAMPLY_HEARTBEAT_INTERVAL:-300}
+      CAMPLY_TARGET_COOLDOWN: ${CAMPLY_TARGET_COOLDOWN:-55}
+      PUSHOVER_APP_TOKEN: ${PUSHOVER_APP_TOKEN:-}
+      CAMPLY_NTFY_SUBSCRIPTION_URL: ${CAMPLY_NTFY_SUBSCRIPTION_URL:-https://ntfy.sh}
+      CAMPLY_NTFY_PUBLISH_URL: ${CAMPLY_NTFY_PUBLISH_URL:-}
+      CAMPLY_SENTRY_DSN: ${CAMPLY_SENTRY_DSN:-}
+      CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${CAMPLY_SENTRY_TRACES_SAMPLE_RATE:-0.0}
+    healthcheck:
+      test: ["CMD", "camply", "serve", "healthcheck", "backend"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  celery-worker:
+    <<: *camply
+    command: ["camply", "serve", "worker"]
+    depends_on:
+      backend:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    volumes:
+      - camply_cache:/home/camply/.local/share/camply
+    environment:
+      CAMPLY_ENVIRONMENT: ${CAMPLY_ENVIRONMENT:-local}
+      CAMPLY_DB_DRIVERNAME: "postgresql+psycopg"
+      CAMPLY_DB_HOST: "db"
+      CAMPLY_DB_USERNAME: ${POSTGRES_USER:-camply}
+      CAMPLY_DB_PASSWORD: ${POSTGRES_PASSWORD:-camply}
+      CAMPLY_DB_DATABASE: ${POSTGRES_DB:-camply}
+      CAMPLY_DB_PORT: 5432
+      CAMPLY_VALKEY_URL: "redis://valkey:6379/0"
+      CAMPLY_INVITE_ONLY: ${CAMPLY_INVITE_ONLY:-false}
+      CAMPLY_METRICS_PORT: 8001
+      CAMPLY_HEARTBEAT_INTERVAL: ${CAMPLY_HEARTBEAT_INTERVAL:-300}
+      CAMPLY_TARGET_COOLDOWN: ${CAMPLY_TARGET_COOLDOWN:-55}
+      CAMPLY_NOTIFICATION_MODE: ${CAMPLY_NOTIFICATION_MODE:-summary}
+      CAMPLY_APP_URL: ${CAMPLY_APP_URL:-http://localhost}
+      PUSHOVER_APP_TOKEN: ${PUSHOVER_APP_TOKEN:-}
+      CAMPLY_NTFY_SUBSCRIPTION_URL: ${CAMPLY_NTFY_SUBSCRIPTION_URL:-https://ntfy.sh}
+      CAMPLY_NTFY_PUBLISH_URL: ${CAMPLY_NTFY_PUBLISH_URL:-}
+      CAMPLY_SENTRY_DSN: ${CAMPLY_SENTRY_DSN:-}
+      CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${CAMPLY_SENTRY_TRACES_SAMPLE_RATE:-0.0}
+      PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
+      CAMPLY_PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
+      SKIP_MIGRATIONS: "1"
+    healthcheck:
+      test: ["CMD", "camply", "serve", "healthcheck", "worker"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  celery-beat:
+    <<: *camply
+    command: ["camply", "serve", "beat", "--sync-providers"]
+    depends_on:
+      backend:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    volumes:
+      - camply_cache:/home/camply/.local/share/camply
+    environment:
+      CAMPLY_ENVIRONMENT: ${CAMPLY_ENVIRONMENT:-local}
+      CAMPLY_DB_DRIVERNAME: "postgresql+psycopg"
+      CAMPLY_DB_HOST: "db"
+      CAMPLY_DB_USERNAME: ${POSTGRES_USER:-camply}
+      CAMPLY_DB_PASSWORD: ${POSTGRES_PASSWORD:-camply}
+      CAMPLY_DB_DATABASE: ${POSTGRES_DB:-camply}
+      CAMPLY_DB_PORT: 5432
+      CAMPLY_VALKEY_URL: "redis://valkey:6379/0"
+      CAMPLY_METRICS_PORT: 8001
+      CAMPLY_HEARTBEAT_INTERVAL: ${CAMPLY_HEARTBEAT_INTERVAL:-300}
+      CAMPLY_TARGET_COOLDOWN: ${CAMPLY_TARGET_COOLDOWN:-55}
+      CAMPLY_SENTRY_DSN: ${CAMPLY_SENTRY_DSN:-}
+      CAMPLY_SENTRY_TRACES_SAMPLE_RATE: ${CAMPLY_SENTRY_TRACES_SAMPLE_RATE:-0.0}
+      PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
+      CAMPLY_PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus_multiproc"
+      SKIP_MIGRATIONS: "1"
+    healthcheck:
+      test: ["CMD", "camply", "serve", "healthcheck", "beat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  prometheus:
+    image: prom/prometheus:v3.15.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}"
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+        mode: 0444
+    volumes:
+      - prometheus_data:/prometheus
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9090/-/healthy",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    logging: *default-logging
+
+  frontend:
+    <<: *camply
+    command: ["camply", "serve", "frontend"]
+    stop_signal: SIGQUIT
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      CAMPLY_BACKEND_URL: ${CAMPLY_BACKEND_URL:-http://backend:8000}
+    ports:
+      - "${FRONTEND_PORT:-80}:8080"
+    healthcheck:
+      test: ["CMD", "camply", "serve", "healthcheck", "frontend"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

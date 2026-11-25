@@ -648,3 +648,90 @@ test("Compose passes a custom backend URL to the frontend", () => {
     backend,
   );
 });
+
+test("deploy/compose GHCR flavors render cleanly with docker compose config", () => {
+  const baseEnv = {
+    PATH: process.env.PATH,
+    HOME: process.env.HOME,
+    COMPOSE_DISABLE_ENV_FILE: "1",
+  };
+
+  for (const [file, extraEnv, expectedServices] of [
+    [
+      "deploy/compose/docker-compose.yaml",
+      {},
+      [
+        "backend",
+        "celery-beat",
+        "celery-worker",
+        "db",
+        "frontend",
+        "prometheus",
+        "valkey",
+      ],
+    ],
+    ["deploy/compose/docker-compose.standalone.yaml", {}, ["camply"]],
+    [
+      "deploy/compose/docker-compose.production.yaml",
+      {
+        POSTGRES_PASSWORD: "synthetic-strong-password",
+        CAMPLY_APP_URL: "https://camply.example.com",
+      },
+      [
+        "backend",
+        "celery-beat",
+        "celery-worker",
+        "db",
+        "frontend",
+        "prometheus",
+        "valkey",
+      ],
+    ],
+  ]) {
+    const rendered = spawnSync(
+      "docker",
+      [
+        "compose",
+        "-f",
+        file,
+        "--env-file",
+        "/dev/null",
+        "config",
+        "--format",
+        "json",
+      ],
+      {
+        cwd: root,
+        encoding: "utf8",
+        env: { ...baseEnv, ...extraEnv },
+      },
+    );
+    assert.equal(rendered.status, 0, `${file}: ${rendered.stderr}`);
+    const config = JSON.parse(rendered.stdout);
+    assert.deepEqual(Object.keys(config.services).sort(), expectedServices);
+    for (const [name, service] of Object.entries(config.services)) {
+      assert.equal(service.build, undefined, `${file}:${name} must not build`);
+    }
+  }
+
+  const missingSecrets = spawnSync(
+    "docker",
+    [
+      "compose",
+      "-f",
+      "deploy/compose/docker-compose.production.yaml",
+      "--env-file",
+      "/dev/null",
+      "config",
+      "--format",
+      "json",
+    ],
+    {
+      cwd: root,
+      encoding: "utf8",
+      env: baseEnv,
+    },
+  );
+  assert.notEqual(missingSecrets.status, 0);
+  assert.match(missingSecrets.stderr, /POSTGRES_PASSWORD/);
+});
