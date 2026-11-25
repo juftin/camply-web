@@ -163,6 +163,7 @@ dev = [
 ]
 
 [tool.uv]
+exclude-newer = "7 days"
 no-build-package = [
   "ast-serialize",
   "cffi",
