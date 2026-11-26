@@ -19,7 +19,7 @@ export function AdminPagination({
           ? "No records"
           : `Showing ${Math.min(page * pageSize + 1, total)}–${Math.min((page + 1) * pageSize, total)} of ${total}`}
       </span>
-      <div className="flex gap-2">
+      <div className="flex gap-2 [&_button]:min-h-11 sm:[&_button]:min-h-0">
         <Button
           variant="outline"
           size="sm"

@@ -75,11 +75,11 @@ export const NotificationSettings = ({
     provider === "ntfy" &&
     (!topic.trim() || (serverChoice === "custom" && !server.trim()));
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2 break-words">
       <Label htmlFor="notification-provider">Notification provider</Label>
       <select
         id="notification-provider"
-        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        className="w-full rounded-md border border-input bg-background min-h-11 px-3 py-2 text-base sm:min-h-0 sm:text-sm"
         value={provider}
         onChange={(event) =>
           setProvider(event.target.value as "pushover" | "ntfy")
@@ -118,10 +118,10 @@ export const NotificationSettings = ({
       {provider === "ntfy" && (
         <>
           <Label htmlFor="ntfy-server-choice">ntfy server</Label>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2 [&>button]:min-h-11 [&>button]:min-w-11 sm:[&>button]:min-h-0 sm:[&>button]:min-w-0">
             <select
               id="ntfy-server-choice"
-              className="min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="min-w-0 flex-1 rounded-md border border-input bg-background min-h-11 px-3 py-2 text-base sm:min-h-0 sm:text-sm"
               value={serverChoice}
               onChange={(event) => {
                 setToken("");
@@ -148,7 +148,7 @@ export const NotificationSettings = ({
           {serverChoice === "custom" && (
             <>
               <Label htmlFor="ntfy-server">Your ntfy server URL</Label>
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 items-center gap-2 [&>button]:min-h-11 [&>button]:min-w-11 sm:[&>button]:min-h-0 sm:[&>button]:min-w-0">
                 <Input
                   id="ntfy-server"
                   className="min-w-0 flex-1"
@@ -168,7 +168,7 @@ export const NotificationSettings = ({
             </>
           )}
           <Label htmlFor="ntfy-topic">Your ntfy topic</Label>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2 [&>button]:min-h-11 [&>button]:min-w-11 sm:[&>button]:min-h-0 sm:[&>button]:min-w-0">
             <Input
               id="ntfy-topic"
               className="min-w-0 flex-1"
@@ -200,27 +200,29 @@ export const NotificationSettings = ({
           </p>
         </>
       )}
-      <Button
-        size="sm"
-        disabled={mutation.isPending || testMutation.isPending || invalidNtfy}
-        onClick={() => mutation.mutate(settings)}
-      >
-        Save notification settings
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={
-          mutation.isPending ||
-          testMutation.isPending ||
-          invalidNtfy ||
-          (provider === "pushover" && !pushoverKey.trim())
-        }
-        onClick={() => testMutation.mutate(settings)}
-      >
-        {testMutation.isPending ? "Sending test…" : "Send test notification"}
-      </Button>
+      <div className="flex flex-wrap gap-2 [&>button]:min-h-11 [&>button]:whitespace-normal sm:[&>button]:min-h-0">
+        <Button
+          size="sm"
+          disabled={mutation.isPending || testMutation.isPending || invalidNtfy}
+          onClick={() => mutation.mutate(settings)}
+        >
+          Save notification settings
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={
+            mutation.isPending ||
+            testMutation.isPending ||
+            invalidNtfy ||
+            (provider === "pushover" && !pushoverKey.trim())
+          }
+          onClick={() => testMutation.mutate(settings)}
+        >
+          {testMutation.isPending ? "Sending test…" : "Send test notification"}
+        </Button>
+      </div>
       <p className="text-xs text-muted-foreground">
         Send a test using the settings above without saving them.
       </p>

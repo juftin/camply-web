@@ -63,7 +63,7 @@ export function Profile() {
             Manage your account and notification preferences
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="min-w-0 break-words space-y-6">
           {/* Email */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
@@ -84,7 +84,11 @@ export function Profile() {
 
           {/* Actions */}
           <div className="pt-4 border-t space-y-3">
-            <Button variant="outline" className="w-full" asChild>
+            <Button
+              variant="outline"
+              className="min-h-11 w-full sm:min-h-0"
+              asChild
+            >
               <Link to="/dashboard">
                 <LayoutDashboard className="h-4 w-4 mr-2" />
                 Go to Dashboard
@@ -94,7 +98,7 @@ export function Profile() {
             {!autoLogin && (
               <Button
                 variant="destructive"
-                className="w-full"
+                className="min-h-11 w-full sm:min-h-0"
                 onClick={handleSignOut}
               >
                 <LogOut className="h-4 w-4 mr-2" />

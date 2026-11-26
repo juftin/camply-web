@@ -3,10 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminInvites } from "./AdminInvites";
 import * as api from "@/lib/api";
 import type { AdminAccessRequestItem } from "@/lib/structs";
+
+afterEach(() => vi.unstubAllGlobals());
 
 vi.mock("@/lib/api", async (original) => ({
   ...(await original<typeof import("@/lib/api")>()),
@@ -133,64 +135,76 @@ describe("AdminInvites", () => {
     });
   });
 
-  it("approves, rejects, and revokes requests and invalidates admin caches", async () => {
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
-    vi.mocked(api.updateAdminAccessRequest).mockResolvedValue({
-      ...pendingRequest,
-      status: "approved",
-    });
-
-    const user = setup();
-    await screen.findByText("pending@example.test");
-
-    const approveButtons = screen.getAllByRole("button", { name: "Approve" });
-    await user.click(approveButtons[0]);
-
-    await waitFor(() => {
-      expect(api.updateAdminAccessRequest).toHaveBeenCalledWith("req-1", {
+  it.each([false, true])(
+    "approves, rejects, and revokes requests and invalidates admin caches (mobile: %s)",
+    async (mobile) => {
+      vi.stubGlobal("matchMedia", () => ({
+        matches: mobile,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }));
+      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+      vi.mocked(api.updateAdminAccessRequest).mockResolvedValue({
+        ...pendingRequest,
         status: "approved",
       });
-    });
-    expect(
-      await screen.findByText(
-        "Approved invitation request for pending@example.test.",
-      ),
-    ).toBeInTheDocument();
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ["admin", "access-requests"],
-    });
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ["admin", "users"],
-    });
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ["admin", "overview"],
-    });
 
-    await user.click(screen.getByRole("button", { name: "Reject" }));
-    await waitFor(() => {
-      expect(api.updateAdminAccessRequest).toHaveBeenCalledWith("req-1", {
-        status: "rejected",
-      });
-    });
+      const user = setup();
+      await screen.findByText("pending@example.test");
 
-    await user.click(screen.getByRole("button", { name: "Revoke" }));
-    await waitFor(() => {
-      expect(api.updateAdminAccessRequest).toHaveBeenCalledWith("req-2", {
-        status: "rejected",
-      });
-    });
-    expect(
-      await screen.findByText("Revoked invitation for approved@example.test."),
-    ).toBeInTheDocument();
+      const approveButtons = screen.getAllByRole("button", { name: "Approve" });
+      await user.click(approveButtons[0]);
 
-    // Re-approve previously rejected request
-    await user.click(approveButtons[1]);
-    await waitFor(() => {
-      expect(api.updateAdminAccessRequest).toHaveBeenCalledWith("req-3", {
-        status: "approved",
+      await waitFor(() => {
+        expect(api.updateAdminAccessRequest).toHaveBeenCalledWith("req-1", {
+          status: "approved",
+        });
       });
-    });
-  });
+      expect(
+        await screen.findByText(
+          "Approved invitation request for pending@example.test.",
+        ),
+      ).toBeInTheDocument();
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ["admin", "access-requests"],
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ["admin", "users"],
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ["admin", "overview"],
+      });
+
+      await user.click(screen.getByRole("button", { name: "Reject" }));
+      await waitFor(() => {
+        expect(api.updateAdminAccessRequest).toHaveBeenCalledWith("req-1", {
+          status: "rejected",
+        });
+      });
+
+      await user.click(screen.getByRole("button", { name: "Revoke" }));
+      await waitFor(() => {
+        expect(api.updateAdminAccessRequest).toHaveBeenCalledWith("req-2", {
+          status: "rejected",
+        });
+      });
+      expect(
+        await screen.findByText(
+          "Revoked invitation for approved@example.test.",
+        ),
+      ).toBeInTheDocument();
+
+      // Re-approve previously rejected request
+      await user.click(approveButtons[1]);
+      await waitFor(() => {
+        expect(api.updateAdminAccessRequest).toHaveBeenCalledWith("req-3", {
+          status: "approved",
+        });
+      });
+      expect(Boolean(screen.queryByRole("table"))).toBe(!mobile);
+      if (mobile) expect(screen.getByRole("list")).toBeInTheDocument();
+    },
+  );
 
   it("displays API error details when a mutation fails", async () => {
     vi.mocked(api.updateAdminAccessRequest).mockRejectedValue(

@@ -255,7 +255,7 @@ function DestinationContent({
       >
         {activePhoto && (
           <DialogContent
-            className="max-h-[95dvh] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto"
+            className="max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] max-w-4xl overflow-y-auto"
             onCloseAutoFocus={(event) => {
               event.preventDefault();
               if (
@@ -277,7 +277,7 @@ function DestinationContent({
             }}
           >
             <DialogHeader>
-              <DialogTitle>{name} photos</DialogTitle>
+              <DialogTitle className="break-words">{name} photos</DialogTitle>
               <DialogDescription aria-live="polite">
                 Photo {activeIndex + 1} of {photos.length}
               </DialogDescription>

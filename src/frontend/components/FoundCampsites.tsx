@@ -289,7 +289,7 @@ export const FoundCampsites = ({ scan }: FoundCampsitesProps) => {
                       onChange={(event) =>
                         handleSortChange(event.target.value as FoundSortMode)
                       }
-                      className="h-9 w-44 appearance-none rounded-md border bg-background pl-3 pr-8 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="h-9 w-44 appearance-none rounded-md border bg-background pl-3 pr-8 text-base sm:text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <option value="soonest">Soonest opening</option>
                       <option value="longest">Longest stay</option>
@@ -313,7 +313,7 @@ export const FoundCampsites = ({ scan }: FoundCampsitesProps) => {
                     aria-pressed={viewMode === "cards"}
                     onClick={() => handleViewChange("cards")}
                     className={cn(
-                      "inline-flex h-8 items-center gap-1.5 rounded-sm px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "inline-flex h-11 min-w-11 items-center sm:h-8 sm:min-w-0 gap-1.5 rounded-sm px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       viewMode === "cards"
                         ? "bg-background text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground",
@@ -327,7 +327,7 @@ export const FoundCampsites = ({ scan }: FoundCampsitesProps) => {
                     aria-pressed={viewMode === "grid"}
                     onClick={() => handleViewChange("grid")}
                     className={cn(
-                      "inline-flex h-8 items-center gap-1.5 rounded-sm px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "inline-flex h-11 min-w-11 items-center sm:h-8 sm:min-w-0 gap-1.5 rounded-sm px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       viewMode === "grid"
                         ? "bg-background text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground",

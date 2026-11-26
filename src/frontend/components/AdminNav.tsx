@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -30,6 +31,17 @@ const NAV_ITEMS = [
 
 export function AdminNav() {
   const location = useLocation();
+  const navRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const nav = navRef.current;
+    const active = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!nav || !active) return;
+    const { left, right } = active.getBoundingClientRect();
+    const bounds = nav.getBoundingClientRect();
+    if (left < bounds.left) nav.scrollLeft += left - bounds.left;
+    if (right > bounds.right) nav.scrollLeft += right - bounds.right;
+  }, [location.pathname]);
 
   const isActive = (item: (typeof NAV_ITEMS)[0]) => {
     if (item.exact) {
@@ -40,7 +52,10 @@ export function AdminNav() {
 
   return (
     <div className="border-b mb-6">
-      <div className="flex items-center space-x-1 sm:space-x-2 overflow-x-auto pb-2">
+      <div
+        ref={navRef}
+        className="flex min-w-0 items-center space-x-1 sm:space-x-2 overflow-x-auto pb-2"
+      >
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = isActive(item);
@@ -48,8 +63,9 @@ export function AdminNav() {
             <Link
               key={item.path}
               to={item.path}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
+                "inline-flex min-h-11 shrink-0 items-center sm:min-h-0 gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted",

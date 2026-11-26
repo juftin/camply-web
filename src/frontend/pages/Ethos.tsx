@@ -19,7 +19,7 @@ export function Ethos() {
         <div className="mb-6">
           <Mountain className="h-16 w-16 text-primary mx-auto mb-4" />
         </div>
-        <h1 className="text-5xl font-bold mb-6">
+        <h1 className="text-4xl font-bold mb-6 sm:text-5xl">
           Making the Great Outdoors
           <span className="text-primary"> Accessible to All</span>
         </h1>

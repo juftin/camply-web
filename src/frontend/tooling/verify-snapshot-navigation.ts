@@ -5,6 +5,7 @@ import { chromium, expect } from "@playwright/test";
 import {
   navigateToSnapshot,
   waitForSnapshotAssets,
+  waitForSnapshotContent,
 } from "./snapshot-navigation";
 
 if (fs.existsSync("/tmp/camply-browser-deps/root/usr/lib/x86_64-linux-gnu")) {
@@ -85,6 +86,43 @@ async function main(): Promise<void> {
     );
     assert.equal(
       await page.getByRole("button", { name: "Retry map summary" }).count(),
+      1,
+    );
+
+    const overviewReady = { role: "heading", name: "Shared Targets" } as const;
+    const overviewUrl = "http://snapshot.test/admin";
+    for (const placeholder of [
+      '<p role="status">Loading overview…</p>',
+      '<p role="alert">Failed to load system overview</p>',
+    ]) {
+      await page.route(overviewUrl, (route) =>
+        route.fulfill({
+          contentType: "text/html",
+          body: `<!doctype html><main><h1>Administration</h1>${placeholder}</main>`,
+        }),
+      );
+      await navigateToSnapshot(page, overviewUrl);
+      await assert.rejects(
+        waitForSnapshotContent(page, overviewReady, 150),
+        /Expected heading "Shared Targets".*\/admin/,
+      );
+      assert.equal(page.url(), overviewUrl);
+      await page.unroute(overviewUrl);
+    }
+    await page.route(overviewUrl, (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: `<!doctype html><main><h1>Administration</h1></main><script>
+          setTimeout(() => {
+            document.querySelector('main').insertAdjacentHTML('beforeend', '<h2>Shared Targets</h2>');
+          }, 200);
+        </script>`,
+      }),
+    );
+    await navigateToSnapshot(page, overviewUrl);
+    await waitForSnapshotContent(page, overviewReady);
+    assert.equal(
+      await page.getByRole("heading", { name: "Shared Targets" }).count(),
       1,
     );
 

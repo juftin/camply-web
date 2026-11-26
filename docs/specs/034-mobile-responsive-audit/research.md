@@ -77,7 +77,7 @@ This research consolidates architectural and UX decisions for executing the full
 - **Decision**:
   1. Add an automated document-level horizontal overflow assertion (`document.documentElement.scrollWidth <= window.innerWidth`) to every mobile scenario executed in `src/frontend/tooling/run-snapshots.ts` (and verify across 375 px, 390 px, and 768 px in an automated route-sweep check).
   2. Add one representative mobile visual baseline (balancing `light` and `dark` themes across the newly covered routes) for every previously desktop-only route and critical overlay (~24–26 new mobile scenarios, bringing mobile coverage to 100% of application routes and key dialogs/pickers).
-  3. Capture and update visual baselines inside the deterministic CI Playwright Docker container (`task snapshot:docker -- --update`) so Linux font rendering matches GitHub Actions CI with zero platform drift.
+  3. Capture and verify visual baselines using the locked Playwright Chromium build and matching fonts. The CI container and a local Chromium installation with those fonts are both supported.
 - **Rationale**:
   - Currently 24 desktop scenarios lack mobile baselines (`auth`, `providers`, `how-it-works`, `faq`, `ethos`, `home-search-dropdown`, `map-selected`, `dashboard-empty`, `profile`, `scan-form-dialog`, `scan-form-checkin-calendar`, `scan-form-checkout-calendar`, `scan-delete-error`, and 11 admin scenarios), plus `contact`, `contribute`, `privacy`, `terms`, and the open mobile navigation drawer.
   - Adding one representative theme per newly added route keeps CI snapshot runtime fast (parallel Playwright workers in `run-snapshots.ts`) while locking in visual and zero-overflow verification across all 26 routes.

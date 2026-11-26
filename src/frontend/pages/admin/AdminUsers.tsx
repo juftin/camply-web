@@ -18,12 +18,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogBody,
   DialogHeader,
   DialogTitle,
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { AdminNav } from "@/components/AdminNav";
+import { useCompactAdminList } from "@/hooks/useCompactAdminList";
 import { useAdminLocation } from "@/hooks/useAdminLocation";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminFeedback } from "@/components/admin/AdminFeedback";
@@ -35,10 +37,11 @@ import {
   useCreateAdminUser,
   useUpdateAdminUser,
 } from "@/hooks/useAdmin";
-import type { AdminUserItem } from "@/lib/structs";
+import type { AdminUserItem, AdminUserUpdateRequest } from "@/lib/structs";
 
 export function AdminUsers() {
-  const { authMode } = useAuth();
+  const { authMode, user: currentUser } = useAuth();
+  const compact = useCompactAdminList();
   const { params, page, update, setPage } = useAdminLocation();
   const search = params.get("search") ?? "";
   const filter = params.get("status") ?? "all";
@@ -131,26 +134,184 @@ export function AdminUsers() {
     }
   };
 
-  const handleToggleScanning = async (userId: string, current: boolean) => {
+  const handleUserUpdate = async (
+    userId: string,
+    payload: AdminUserUpdateRequest,
+    successMessage: string,
+  ) => {
     setMessage(null);
     setActionError(false);
     try {
       setUpdatingUserId(userId);
       await updateMutation.mutateAsync({
         userId,
-        payload: { scanning_enabled: !current },
+        payload,
       });
-      setMessage(
-        current
-          ? "Scanning suspended. Login and saved scans are preserved."
-          : "Scanning enabled.",
-      );
+      setMessage(successMessage);
     } catch (error) {
       setActionError(true);
       setMessage(getApiErrorMessage(error));
     } finally {
       setUpdatingUserId(null);
     }
+  };
+
+  const renderRow = (u: AdminUserItem) => {
+    const isUpdating = updatingUserId === u.id;
+
+    const identity = (
+      <>
+        <div className="break-words font-medium text-foreground">{u.email}</div>
+        <div className="break-all text-xs text-muted-foreground font-mono">
+          {u.id}
+        </div>
+      </>
+    );
+    const role = (
+      <div className="flex flex-col items-start gap-1">
+        {u.is_admin ? (
+          <Badge variant="default" className="gap-1">
+            <Shield className="h-3 w-3" /> Admin
+          </Badge>
+        ) : (
+          <Badge variant="secondary" className="gap-1">
+            <UserIcon className="h-3 w-3" /> User
+          </Badge>
+        )}
+        {u.must_change_password && (
+          <Badge
+            variant="outline"
+            className="text-amber-600 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-[10px] py-0 px-1.5"
+          >
+            Password change required
+          </Badge>
+        )}
+        {!u.is_invited && (
+          <Badge
+            variant="outline"
+            className="text-muted-foreground text-[10px] py-0 px-1.5"
+          >
+            Not invited
+          </Badge>
+        )}
+      </div>
+    );
+    const scanning = (
+      <div className="flex flex-wrap items-center gap-2">
+        <Switch
+          aria-label={`Scanning access for ${u.email}`}
+          checked={u.scanning_enabled}
+          disabled={isUpdating || updateMutation.isPending}
+          onCheckedChange={() =>
+            handleUserUpdate(
+              u.id,
+              { scanning_enabled: !u.scanning_enabled },
+              u.scanning_enabled
+                ? "Scanning suspended. Login and saved scans are preserved."
+                : "Scanning enabled.",
+            )
+          }
+        />
+        <span
+          className={`text-xs font-medium ${
+            u.scanning_enabled
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-amber-600 dark:text-amber-400"
+          }`}
+        >
+          {u.scanning_enabled ? "Enabled" : "Suspended"}
+        </span>
+      </div>
+    );
+    const counts = (
+      <>
+        <span className="font-medium">{u.total_scans}</span> total (
+        <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+          {u.active_scans} active
+        </span>
+        )
+      </>
+    );
+    const joined = new Date(u.created_at).toLocaleDateString();
+    const actions = (
+      <div className="flex flex-wrap items-center md:justify-end gap-1">
+        {authMode === "session" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setResetUser(u);
+              setResetPassword("");
+              setResetError(null);
+            }}
+            className="gap-1 text-muted-foreground hover:text-foreground"
+            aria-label={`Reset password for ${u.email}`}
+          >
+            <KeyRound className="h-3.5 w-3.5" />
+            Reset
+          </Button>
+        )}
+        <Button asChild variant="ghost" size="sm">
+          <Link
+            to={`/admin/users/${u.id}`}
+            className="inline-flex items-center gap-1"
+          >
+            Details <ExternalLink className="h-3 w-3" />
+          </Link>
+        </Button>
+      </div>
+    );
+    if (compact) {
+      return (
+        <li
+          key={u.id}
+          className="min-w-0 break-words space-y-2 p-4 [&_a]:min-h-11 [&_button:not([role=switch])]:min-h-11 [&_button[role=switch]]:relative [&_button[role=switch]]:before:absolute [&_button[role=switch]]:before:-inset-y-3 [&_button[role=switch]]:before:inset-x-0"
+        >
+          {identity}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {role}
+            {scanning}
+          </div>
+          <div className="flex min-h-11 items-center gap-2 text-sm">
+            <Switch
+              id={`admin-access-${u.id}`}
+              aria-label={`Administrator access for ${u.email}`}
+              checked={u.is_admin}
+              disabled={
+                currentUser?.id === u.id ||
+                isUpdating ||
+                updateMutation.isPending
+              }
+              onCheckedChange={(enabled) =>
+                handleUserUpdate(
+                  u.id,
+                  { is_admin: enabled },
+                  enabled
+                    ? `Administrator privileges granted to ${u.email}.`
+                    : `Administrator privileges revoked for ${u.email}.`,
+                )
+              }
+            />
+            <Label htmlFor={`admin-access-${u.id}`}>Administrator access</Label>
+          </div>
+          <div className="text-sm">
+            {counts}{" "}
+            <span className="text-muted-foreground">· Joined {joined}</span>
+          </div>
+          {actions}
+        </li>
+      );
+    }
+    return (
+      <tr key={u.id} className="hover:bg-muted/30 transition-colors">
+        <td className="py-3 px-4">{identity}</td>
+        <td className="py-3 px-4">{role}</td>
+        <td className="py-3 px-4">{scanning}</td>
+        <td className="py-3 px-4">{counts}</td>
+        <td className="py-3 px-4 text-muted-foreground text-xs">{joined}</td>
+        <td className="py-3 px-4 text-right">{actions}</td>
+      </tr>
+    );
   };
 
   return (
@@ -176,92 +337,93 @@ export function AdminUsers() {
       </div>
 
       <Dialog open={isCreateOpen} onOpenChange={handleCreateOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="flex flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+          <DialogHeader className="shrink-0 px-6 pb-4 pt-6 max-sm:pr-12">
             <DialogTitle>Create User</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="break-words">
               Create a new user with session credentials.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateUser} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="create-email">Email</Label>
-              <Input
-                id="create-email"
-                type="email"
-                placeholder="user@example.com"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                required
-                disabled={createMutation.isPending}
-              />
-            </div>
-            {isCreateOpen && (
-              <AdminPasswordInput
-                id="create-password"
-                label="Initial Password"
-                value={newPassword}
-                onChange={setNewPassword}
-                disabled={createMutation.isPending}
-              />
-            )}
-            <div className="space-y-3 pt-2 border-t">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="create-is-admin" className="cursor-pointer">
-                  Admin Privileges
-                </Label>
-                <Switch
-                  id="create-is-admin"
-                  checked={newIsAdmin}
-                  onCheckedChange={setNewIsAdmin}
+          <form onSubmit={handleCreateUser} className="flex min-h-0 flex-col">
+            <DialogBody className="space-y-4 break-words">
+              <div className="space-y-2">
+                <Label htmlFor="create-email">Email</Label>
+                <Input
+                  id="create-email"
+                  type="email"
+                  placeholder="user@example.com"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  required
                   disabled={createMutation.isPending}
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label
-                    htmlFor="create-must-change"
-                    className="cursor-pointer block"
-                  >
-                    Force password change on first sign in
+              {isCreateOpen && (
+                <AdminPasswordInput
+                  id="create-password"
+                  label="Initial Password"
+                  value={newPassword}
+                  onChange={setNewPassword}
+                  disabled={createMutation.isPending}
+                />
+              )}
+              <div className="space-y-3 pt-2 border-t">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="create-is-admin" className="cursor-pointer">
+                    Admin Privileges
                   </Label>
-                  <span className="text-xs text-muted-foreground">
-                    User must change this password after signing in
-                  </span>
+                  <Switch
+                    id="create-is-admin"
+                    checked={newIsAdmin}
+                    onCheckedChange={setNewIsAdmin}
+                    disabled={createMutation.isPending}
+                  />
                 </div>
-                <Switch
-                  id="create-must-change"
-                  checked={newMustChangePassword}
-                  onCheckedChange={setNewMustChangePassword}
-                  disabled={createMutation.isPending}
-                />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label
+                      htmlFor="create-must-change"
+                      className="cursor-pointer block"
+                    >
+                      Force password change on first sign in
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      User must change this password after signing in
+                    </span>
+                  </div>
+                  <Switch
+                    id="create-must-change"
+                    checked={newMustChangePassword}
+                    onCheckedChange={setNewMustChangePassword}
+                    disabled={createMutation.isPending}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label
+                    htmlFor="create-scanning-enabled"
+                    className="cursor-pointer"
+                  >
+                    Scanning Enabled
+                  </Label>
+                  <Switch
+                    id="create-scanning-enabled"
+                    checked={newScanningEnabled}
+                    onCheckedChange={setNewScanningEnabled}
+                    disabled={createMutation.isPending}
+                  />
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <Label
-                  htmlFor="create-scanning-enabled"
-                  className="cursor-pointer"
+
+              {createError && (
+                <div
+                  role="alert"
+                  className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
                 >
-                  Scanning Enabled
-                </Label>
-                <Switch
-                  id="create-scanning-enabled"
-                  checked={newScanningEnabled}
-                  onCheckedChange={setNewScanningEnabled}
-                  disabled={createMutation.isPending}
-                />
-              </div>
-            </div>
-
-            {createError && (
-              <div
-                role="alert"
-                className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
-              >
-                {createError}
-              </div>
-            )}
-
-            <DialogFooter className="gap-2 sm:gap-0">
+                  {createError}
+                </div>
+              )}
+            </DialogBody>
+            <DialogFooter className="shrink-0 border-t px-6 py-4">
               <Button
                 type="button"
                 variant="outline"
@@ -295,38 +457,42 @@ export function AdminUsers() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="flex flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+          <DialogHeader className="shrink-0 px-6 pb-4 pt-6 max-sm:pr-12">
             <DialogTitle>Reset Password</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="break-words">
               Set a temporary password for {resetUser?.email}.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            {resetUser && (
-              <AdminPasswordInput
-                id="row-reset-password"
-                label="New Temporary Password"
-                value={resetPassword}
-                onChange={setResetPassword}
-                disabled={resettingPassword}
-              />
-            )}
-            <div className="rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
-              The user will be required to create a new password immediately
-              upon their next sign-in.
-            </div>
-
-            {resetError && (
-              <div
-                role="alert"
-                className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
-              >
-                {resetError}
+          <form
+            onSubmit={handleResetPassword}
+            className="flex min-h-0 flex-col"
+          >
+            <DialogBody className="space-y-4 break-words">
+              {resetUser && (
+                <AdminPasswordInput
+                  id="row-reset-password"
+                  label="New Temporary Password"
+                  value={resetPassword}
+                  onChange={setResetPassword}
+                  disabled={resettingPassword}
+                />
+              )}
+              <div className="rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
+                The user will be required to create a new password immediately
+                upon their next sign-in.
               </div>
-            )}
 
-            <DialogFooter className="gap-2 sm:gap-0">
+              {resetError && (
+                <div
+                  role="alert"
+                  className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+                >
+                  {resetError}
+                </div>
+              )}
+            </DialogBody>
+            <DialogFooter className="shrink-0 border-t px-6 py-4">
               <Button
                 type="button"
                 variant="outline"
@@ -424,134 +590,34 @@ export function AdminUsers() {
           />
         </Card>
       ) : (
-        <div className="rounded-md border bg-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 border-b">
-                <tr>
-                  <th className="py-3 px-4 text-left font-medium">User</th>
-                  <th className="py-3 px-4 text-left font-medium">Role</th>
-                  <th className="py-3 px-4 text-left font-medium">
-                    Scanning access
-                  </th>
-                  <th className="py-3 px-4 text-left font-medium">
-                    Scans (Total / Set to Active)
-                  </th>
-                  <th className="py-3 px-4 text-left font-medium">Joined</th>
-                  <th className="py-3 px-4 text-right font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {data.users.map((u) => {
-                  const isUpdating = updatingUserId === u.id;
-                  return (
-                    <tr
-                      key={u.id}
-                      className="hover:bg-muted/30 transition-colors"
-                    >
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-foreground">
-                          {u.email}
-                        </div>
-                        <div className="text-xs text-muted-foreground font-mono">
-                          {u.id}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex flex-col items-start gap-1">
-                          {u.is_admin ? (
-                            <Badge variant="default" className="gap-1">
-                              <Shield className="h-3 w-3" /> Admin
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="gap-1">
-                              <UserIcon className="h-3 w-3" /> User
-                            </Badge>
-                          )}
-                          {u.must_change_password && (
-                            <Badge
-                              variant="outline"
-                              className="text-amber-600 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-[10px] py-0 px-1.5"
-                            >
-                              Password change required
-                            </Badge>
-                          )}
-                          {!u.is_invited && (
-                            <Badge
-                              variant="outline"
-                              className="text-muted-foreground text-[10px] py-0 px-1.5"
-                            >
-                              Not invited
-                            </Badge>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            aria-label={`Scanning access for ${u.email}`}
-                            checked={u.scanning_enabled}
-                            disabled={isUpdating || updateMutation.isPending}
-                            onCheckedChange={() =>
-                              handleToggleScanning(u.id, u.scanning_enabled)
-                            }
-                          />
-                          <span
-                            className={`text-xs font-medium ${
-                              u.scanning_enabled
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-amber-600 dark:text-amber-400"
-                            }`}
-                          >
-                            {u.scanning_enabled ? "Enabled" : "Suspended"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-medium">{u.total_scans}</span>{" "}
-                        total (
-                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                          {u.active_scans} active
-                        </span>
-                        )
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground text-xs">
-                        {new Date(u.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {authMode === "session" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setResetUser(u);
-                                setResetPassword("");
-                                setResetError(null);
-                              }}
-                              className="gap-1 text-muted-foreground hover:text-foreground"
-                              aria-label={`Reset password for ${u.email}`}
-                            >
-                              <KeyRound className="h-3.5 w-3.5" />
-                              Reset
-                            </Button>
-                          )}
-                          <Button asChild variant="ghost" size="sm">
-                            <Link
-                              to={`/admin/users/${u.id}`}
-                              className="inline-flex items-center gap-1"
-                            >
-                              Details <ExternalLink className="h-3 w-3" />
-                            </Link>
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        <div className="min-w-0 rounded-md border bg-card overflow-hidden">
+          {compact ? (
+            <ul aria-label="Users" className="divide-y md:hidden">
+              {data.users.map(renderRow)}
+            </ul>
+          ) : (
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 border-b">
+                  <tr>
+                    <th className="py-3 px-4 text-left font-medium">User</th>
+                    <th className="py-3 px-4 text-left font-medium">Role</th>
+                    <th className="py-3 px-4 text-left font-medium">
+                      Scanning access
+                    </th>
+                    <th className="py-3 px-4 text-left font-medium">
+                      Scans (Total / Set to Active)
+                    </th>
+                    <th className="py-3 px-4 text-left font-medium">Joined</th>
+                    <th className="py-3 px-4 text-right font-medium">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">{data.users.map(renderRow)}</tbody>
+              </table>
+            </div>
+          )}
           <AdminPagination
             page={page}
             pageSize={pageSize}

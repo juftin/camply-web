@@ -60,7 +60,7 @@ export function ChangePasswordRequired() {
             <KeyRound className="h-6 w-6" />
           </div>
           <CardTitle className="text-xl">Password Change Required</CardTitle>
-          <CardDescription className="text-sm">
+          <CardDescription className="break-words text-sm">
             An administrator created your account ({user?.email}) and requires
             you to change your temporary password before continuing.
           </CardDescription>
@@ -115,13 +115,17 @@ export function ChangePasswordRequired() {
             {error && (
               <div
                 role="alert"
-                className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+                className="rounded-md bg-destructive/10 p-3 break-words text-sm text-destructive"
               >
                 {error}
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={submitting}>
+            <Button
+              type="submit"
+              className="min-h-11 w-full sm:min-h-0"
+              disabled={submitting}
+            >
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

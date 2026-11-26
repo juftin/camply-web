@@ -295,6 +295,7 @@ describe("Application authentication", () => {
     expect(
       screen.queryByRole("button", { name: "Sign Up" }),
     ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.getByRole("link", { name: "Get Started" })).toHaveAttribute(
       "href",
       appPath("/dashboard"),

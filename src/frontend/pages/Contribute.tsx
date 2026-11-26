@@ -24,7 +24,7 @@ export function Contribute() {
           <HeartHandshake className="h-16 w-16 text-primary mx-auto mb-4" />
         </div>
         {/*<h1 className="text-4xl font-bold mb-4">Contribute to camply</h1>*/}
-        <h1 className="text-5xl font-bold mb-6">
+        <h1 className="text-4xl font-bold mb-6 sm:text-5xl">
           <span className="text-primary"> Contribute </span>
           to camply
         </h1>
@@ -131,7 +131,7 @@ export function Contribute() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
                 <Button variant="outline" className="h-12">
                   $5
                 </Button>
@@ -178,7 +178,7 @@ export function Contribute() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 border rounded">
+                <div className="flex flex-wrap justify-between items-center gap-2 p-3 border rounded">
                   <div>
                     <div className="font-medium">Coffee Contributor</div>
                     <div className="text-sm text-muted-foreground">
@@ -187,7 +187,7 @@ export function Contribute() {
                   </div>
                   <div className="text-lg font-bold">$3/mo</div>
                 </div>
-                <div className="flex justify-between items-center p-3 border rounded">
+                <div className="flex flex-wrap justify-between items-center gap-2 p-3 border rounded">
                   <div>
                     <div className="font-medium">Trail Contributor</div>
                     <div className="text-sm text-muted-foreground">
@@ -196,7 +196,7 @@ export function Contribute() {
                   </div>
                   <div className="text-lg font-bold">$5/mo</div>
                 </div>
-                <div className="flex justify-between items-center p-3 border rounded">
+                <div className="flex flex-wrap justify-between items-center gap-2 p-3 border rounded">
                   <div>
                     <div className="font-medium">Summit Contributor</div>
                     <div className="text-sm text-muted-foreground">

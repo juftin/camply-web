@@ -89,4 +89,4 @@ In `src/frontend/tooling/run-snapshots.ts`:
   - `ScanForm` dialog and open check-in calendar popover at `375×667`
   - All 9 Admin routes (Overview + trends table, Users + Create User password reveal, User Detail, Invitations, Scans, Scan Detail, Target Detail, Operations, Audit)
   - Public/Auth/Account routes (`Auth`, `Providers`, `HowItWorks`, `FAQ`, `Contact`, `Ethos`, `Contribute`, `Privacy`, `Dashboard empty`, `Profile` with Active Sessions, `Home search dropdown`, `Map selected`, `Scan delete error`)
-- Existing desktop baselines (`1280×800`) MUST pass `task snapshot:docker -- --check` with zero unintended diffs.
+- Existing desktop baselines (`1280×800`) MUST pass `task frontend:snapshot -- --check --filter desktop` with zero unintended diffs using the locked Chromium build and matching fonts.

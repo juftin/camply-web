@@ -13,6 +13,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
+  DialogBody,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -512,10 +513,14 @@ export function ScanForm({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        {trigger ?? <Button>{scan ? "Edit Scan" : "New Scan"}</Button>}
+        {trigger ?? (
+          <Button className="min-h-11 sm:min-h-0">
+            {scan ? "Edit Scan" : "New Scan"}
+          </Button>
+        )}
       </DialogTrigger>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-[500px]">
-        <DialogHeader>
+      <DialogContent className="flex flex-col gap-0 overflow-hidden p-0 sm:max-w-[500px]">
+        <DialogHeader className="shrink-0 px-6 pb-3 pt-6 max-sm:pr-12">
           <DialogTitle>{scan ? "Edit Scan" : "Create a New Scan"}</DialogTitle>
           <DialogDescription>
             {scan
@@ -527,399 +532,408 @@ export function ScanForm({
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate
-          className="space-y-4"
+          className="flex min-h-0 flex-col"
         >
-          {/* ---- Campground selection ---- */}
-          <div className="space-y-2">
-            <Label htmlFor="campground-search">Destination</Label>
-            {hasCampground ? (
-              <div className="flex items-center justify-between rounded-md border p-3">
-                <div>
-                  <p className="font-medium">{campground.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    ID: {campground.id} &middot; Provider:{" "}
-                    {selectedProvider?.name ?? providerId}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setCampground(null);
-                    setClearedFilters([]);
-                    setSearchTerm("");
-                  }}
-                >
-                  Change
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Input
-                  id="campground-search"
-                  placeholder="Search for a campground..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                />
-                {searching && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Searching...
-                  </div>
-                )}
-                {searchError && (
-                  <p className="text-sm text-destructive">{searchError}</p>
-                )}
-                {searchResults.length > 0 && (
-                  <div className="max-h-40 overflow-y-auto rounded-md border">
-                    {searchResults
-                      .filter(
-                        (r) =>
-                          (r.entity_type === "Campground" && r.campground_id) ||
-                          (r.entity_type === "RecreationArea" &&
-                            r.recreation_area_id),
-                      )
-                      .slice(0, 10)
-                      .map((r) => (
-                        <button
-                          key={r.id}
-                          type="button"
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted border-b last:border-b-0"
-                          onClick={() => selectCampground(r)}
-                        >
-                          <span className="font-medium">
-                            {r.campground_name ?? r.recreation_area_name}
-                          </span>
-                          {r.recreation_area_name && (
-                            <span className="ml-1 text-muted-foreground">
-                              &mdash; {r.recreation_area_name}
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {destinationType === "recreation_area" && campground && (
-            <AreaCoveragePicker
-              key={`${providerId}:${campground.id}`}
-              providerId={providerId}
-              areaId={campground.id}
-              mode={coverageMode}
-              onModeChange={(mode) => {
-                setCoverageMode(mode);
-                if (mode === "all") setSelectedChoices({});
-              }}
-              selected={selectedChoices}
-              onSelectedChange={setSelectedChoices}
-            />
-          )}
-          {/* ---- Quick Presets ---- */}
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-xs text-muted-foreground font-medium">
-              Quick Dates:
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs px-2.5"
-              onClick={() => applyWeekendPreset(0)}
-            >
-              Next Weekend
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs px-2.5"
-              onClick={() => applyWeekendPreset(1)}
-            >
-              In 2 Weeks
-            </Button>
-          </div>
-
-          {/* ---- Date range ---- */}
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="start_date">Check-in</Label>
-                <DatePicker
-                  id="start_date"
-                  name="start_date"
-                  value={startDate}
-                  onChange={handleStartDateChange}
-                  minDate={todayStr}
-                  placeholder="Select check-in"
-                  error={!!errors.start_date}
-                />
-                {errors.start_date && (
-                  <p className="text-xs text-destructive">
-                    {errors.start_date.message}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="end_date">Check-out</Label>
-                <DatePicker
-                  id="end_date"
-                  name="end_date"
-                  value={endDate}
-                  onChange={handleEndDateChange}
-                  minDate={minEndDate}
-                  defaultMonth={startDate || todayStr}
-                  startDate={startDate}
-                  placeholder="Select check-out"
-                  error={!!errors.end_date}
-                  align="right"
-                />
-                {errors.end_date && (
-                  <p className="text-xs text-destructive">
-                    {errors.end_date.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Stay duration preview */}
-            {hasValidRange && (
-              <div className="flex items-center justify-between rounded-md bg-muted/60 px-3 py-1.5 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">
-                  {nights} {nights === 1 ? "night" : "nights"}
-                </span>
-                <span>
-                  {formatDisplayDate(startDate, false)} &ndash;{" "}
-                  {formatDisplayDate(endDate, false)}
-                </span>
-              </div>
-            )}
-          </div>
-
-          <fieldset
-            className="space-y-2"
-            aria-describedby="night-selection-help"
-          >
-            <legend className="text-sm font-medium">Nights of the week</legend>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setValue("allowed_weekdays", [4, 5], { shouldValidate: true })
-                }
-              >
-                Weekends
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setValue("allowed_weekdays", [...ALL_WEEKDAYS], {
-                    shouldValidate: true,
-                  })
-                }
-              >
-                Any night
-              </Button>
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {WEEKDAY_NAMES.map((name, day) => (
-                <Button
-                  key={name}
-                  type="button"
-                  variant={
-                    allowedWeekdays.includes(day) ? "default" : "outline"
-                  }
-                  className="min-h-11 px-0 text-xs"
-                  aria-label={name}
-                  aria-pressed={allowedWeekdays.includes(day)}
-                  onClick={() =>
-                    setValue(
-                      "allowed_weekdays",
-                      allowedWeekdays.includes(day)
-                        ? allowedWeekdays.filter((value) => value !== day)
-                        : [...allowedWeekdays, day].sort((a, b) => a - b),
-                      { shouldValidate: true },
-                    )
-                  }
-                >
-                  {name.slice(0, 3)}
-                </Button>
-              ))}
-            </div>
-            <p
-              id="night-selection-help"
-              className="text-xs text-muted-foreground"
-            >
-              Choose the nights you will stay. Friday and Saturday nights check
-              out Sunday. Set a two-night minimum for a full weekend.
-            </p>
-            {errors.allowed_weekdays && (
-              <p role="alert" className="text-xs text-destructive">
-                {errors.allowed_weekdays.message}
-              </p>
-            )}
-          </fieldset>
-
-          {/* ---- Min stay ---- */}
-          <div className="space-y-1">
-            <Label htmlFor="min_stay_length">Minimum Stay (nights)</Label>
-            <Input
-              id="min_stay_length"
-              type="number"
-              min={1}
-              {...register("min_stay_length", {
-                onChange: (e) => {
-                  const val = Number(e.target.value);
-                  if (startDate && val > 0) {
-                    const currentNights = endDate
-                      ? daysBetween(startDate, endDate)
-                      : 0;
-                    if (currentNights < val) {
-                      setValue("end_date", addDays(startDate, val), {
-                        shouldValidate: true,
-                      });
-                    }
-                  }
-                },
-              })}
-            />
-          </div>
-
-          {/* ---- Preferred types ---- */}
-          {filterCaps.preferred_types && (
+          <DialogBody className="space-y-4">
+            {/* ---- Campground selection ---- */}
             <div className="space-y-2">
-              <Label>Preferred Campsite Types</Label>
-              <div className="flex flex-wrap gap-2">
-                {CAMPSITE_TYPES.map((t) => (
-                  <Badge
-                    key={t.value}
-                    variant={
-                      preferredTypes?.includes(t.value) ? "default" : "outline"
-                    }
-                    className="cursor-pointer"
-                    onClick={() => toggleType(t.value)}
+              <Label htmlFor="campground-search">Destination</Label>
+              {hasCampground ? (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 [&>div]:min-w-0 [&>div]:break-words">
+                  <div>
+                    <p className="font-medium">{campground.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      ID: {campground.id} &middot; Provider:{" "}
+                      {selectedProvider?.name ?? providerId}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setCampground(null);
+                      setClearedFilters([]);
+                      setSearchTerm("");
+                    }}
                   >
-                    {t.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ---- Electric hookup ---- */}
-          {filterCaps.require_electric && (
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div>
-                <Label htmlFor="require_electric">
-                  Electric Hookup Required
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Only alert if the site has electric hookup
-                </p>
-              </div>
-              <Switch
-                id="require_electric"
-                checked={requireElectric}
-                onCheckedChange={(v) => setValue("require_electric", v)}
-              />
-            </div>
-          )}
-
-          {/* ---- ADA Accessible ---- */}
-          {filterCaps.require_accessible && (
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div>
-                <Label htmlFor="require_accessible">
-                  ADA Accessible Required
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Only alert on ADA-accessible campsites
-                </p>
-              </div>
-              <Switch
-                id="require_accessible"
-                checked={requireAccessible}
-                onCheckedChange={(v) => setValue("require_accessible", v)}
-              />
-            </div>
-          )}
-
-          {/* ---- Minimum RV / Trailer length ---- */}
-          {filterCaps.min_rv_length && (
-            <div className="space-y-2">
-              <Label htmlFor="min_rv_length">
-                Minimum RV / Trailer Length (ft)
-              </Label>
-              <Input
-                id="min_rv_length"
-                type="number"
-                min={1}
-                max={200}
-                step={1}
-                placeholder="Any length"
-                {...register("min_rv_length")}
-              />
-              {errors.min_rv_length?.message && (
-                <p className="text-xs text-destructive">
-                  {String(errors.min_rv_length.message)}
-                </p>
+                    Change
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Input
+                    id="campground-search"
+                    placeholder="Search for a campground..."
+                    value={searchTerm}
+                    onChange={(e) => handleSearch(e.target.value)}
+                  />
+                  {searching && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Searching...
+                    </div>
+                  )}
+                  {searchError && (
+                    <p className="text-sm text-destructive">{searchError}</p>
+                  )}
+                  {searchResults.length > 0 && (
+                    <div className="max-h-40 overflow-y-auto rounded-md border">
+                      {searchResults
+                        .filter(
+                          (r) =>
+                            (r.entity_type === "Campground" &&
+                              r.campground_id) ||
+                            (r.entity_type === "RecreationArea" &&
+                              r.recreation_area_id),
+                        )
+                        .slice(0, 10)
+                        .map((r) => (
+                          <button
+                            key={r.id}
+                            type="button"
+                            className="w-full px-3 py-2 text-left text-sm hover:bg-muted border-b last:border-b-0"
+                            onClick={() => selectCampground(r)}
+                          >
+                            <span className="font-medium">
+                              {r.campground_name ?? r.recreation_area_name}
+                            </span>
+                            {r.recreation_area_name && (
+                              <span className="ml-1 text-muted-foreground">
+                                &mdash; {r.recreation_area_name}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-          )}
 
-          {/* ---- Unsupported provider filters notice ---- */}
-          {unsupportedFilterLabels.length > 0 && (
-            <div
-              role="status"
-              className="flex items-start gap-2 rounded-md border bg-muted/50 p-3 text-xs text-muted-foreground"
+            {destinationType === "recreation_area" && campground && (
+              <AreaCoveragePicker
+                key={`${providerId}:${campground.id}`}
+                providerId={providerId}
+                areaId={campground.id}
+                mode={coverageMode}
+                onModeChange={(mode) => {
+                  setCoverageMode(mode);
+                  if (mode === "all") setSelectedChoices({});
+                }}
+                selected={selectedChoices}
+                onSelectedChange={setSelectedChoices}
+              />
+            )}
+            {/* ---- Quick Presets ---- */}
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-xs text-muted-foreground font-medium">
+                Quick Dates:
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="min-h-9 h-7 text-xs px-2.5 sm:min-h-0"
+                onClick={() => applyWeekendPreset(0)}
+              >
+                Next Weekend
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="min-h-9 h-7 text-xs px-2.5 sm:min-h-0"
+                onClick={() => applyWeekendPreset(1)}
+              >
+                In 2 Weeks
+              </Button>
+            </div>
+
+            {/* ---- Date range ---- */}
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="start_date">Check-in</Label>
+                  <DatePicker
+                    id="start_date"
+                    name="start_date"
+                    value={startDate}
+                    onChange={handleStartDateChange}
+                    minDate={todayStr}
+                    placeholder="Select check-in"
+                    error={!!errors.start_date}
+                  />
+                  {errors.start_date && (
+                    <p className="text-xs text-destructive">
+                      {errors.start_date.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="end_date">Check-out</Label>
+                  <DatePicker
+                    id="end_date"
+                    name="end_date"
+                    value={endDate}
+                    onChange={handleEndDateChange}
+                    minDate={minEndDate}
+                    defaultMonth={startDate || todayStr}
+                    startDate={startDate}
+                    placeholder="Select check-out"
+                    error={!!errors.end_date}
+                    align="right"
+                  />
+                  {errors.end_date && (
+                    <p className="text-xs text-destructive">
+                      {errors.end_date.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Stay duration preview */}
+              {hasValidRange && (
+                <div className="flex items-center justify-between rounded-md bg-muted/60 px-3 py-1.5 text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    {nights} {nights === 1 ? "night" : "nights"}
+                  </span>
+                  <span>
+                    {formatDisplayDate(startDate, false)} &ndash;{" "}
+                    {formatDisplayDate(endDate, false)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <fieldset
+              className="space-y-2"
+              aria-describedby="night-selection-help"
             >
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <div className="space-y-1">
-                <p className="font-medium text-foreground">
-                  Some filters aren&apos;t available for{" "}
-                  {selectedProvider?.name ?? "this provider"}
+              <legend className="text-sm font-medium">
+                Nights of the week
+              </legend>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setValue("allowed_weekdays", [4, 5], {
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  Weekends
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setValue("allowed_weekdays", [...ALL_WEEKDAYS], {
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  Any night
+                </Button>
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {WEEKDAY_NAMES.map((name, day) => (
+                  <Button
+                    key={name}
+                    type="button"
+                    variant={
+                      allowedWeekdays.includes(day) ? "default" : "outline"
+                    }
+                    className="min-h-11 px-0 text-xs"
+                    aria-label={name}
+                    aria-pressed={allowedWeekdays.includes(day)}
+                    onClick={() =>
+                      setValue(
+                        "allowed_weekdays",
+                        allowedWeekdays.includes(day)
+                          ? allowedWeekdays.filter((value) => value !== day)
+                          : [...allowedWeekdays, day].sort((a, b) => a - b),
+                        { shouldValidate: true },
+                      )
+                    }
+                  >
+                    {name.slice(0, 3)}
+                  </Button>
+                ))}
+              </div>
+              <p
+                id="night-selection-help"
+                className="text-xs text-muted-foreground"
+              >
+                Choose the nights you will stay. Friday and Saturday nights
+                check out Sunday. Set a two-night minimum for a full weekend.
+              </p>
+              {errors.allowed_weekdays && (
+                <p role="alert" className="text-xs text-destructive">
+                  {errors.allowed_weekdays.message}
                 </p>
-                <p>
-                  Hidden because this provider doesn&apos;t report that site
-                  metadata: {unsupportedFilterLabels.join(", ")}.
-                </p>
-                {clearedFilters.length > 0 && (
-                  <p>
-                    Cleared unsupported selection(s):{" "}
-                    {clearedFilters.join(", ")}.
+              )}
+            </fieldset>
+
+            {/* ---- Min stay ---- */}
+            <div className="space-y-1">
+              <Label htmlFor="min_stay_length">Minimum Stay (nights)</Label>
+              <Input
+                id="min_stay_length"
+                type="number"
+                min={1}
+                {...register("min_stay_length", {
+                  onChange: (e) => {
+                    const val = Number(e.target.value);
+                    if (startDate && val > 0) {
+                      const currentNights = endDate
+                        ? daysBetween(startDate, endDate)
+                        : 0;
+                      if (currentNights < val) {
+                        setValue("end_date", addDays(startDate, val), {
+                          shouldValidate: true,
+                        });
+                      }
+                    }
+                  },
+                })}
+              />
+            </div>
+
+            {/* ---- Preferred types ---- */}
+            {filterCaps.preferred_types && (
+              <div className="space-y-2">
+                <Label>Preferred Campsite Types</Label>
+                <div className="flex flex-wrap gap-2">
+                  {CAMPSITE_TYPES.map((t) => (
+                    <Badge
+                      key={t.value}
+                      variant={
+                        preferredTypes?.includes(t.value)
+                          ? "default"
+                          : "outline"
+                      }
+                      className="min-h-9 cursor-pointer sm:min-h-0"
+                      onClick={() => toggleType(t.value)}
+                    >
+                      {t.label}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ---- Electric hookup ---- */}
+            {filterCaps.require_electric && (
+              <div className="flex items-center justify-between gap-2 rounded-lg border p-3">
+                <div>
+                  <Label htmlFor="require_electric">
+                    Electric Hookup Required
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Only alert if the site has electric hookup
+                  </p>
+                </div>
+                <Switch
+                  id="require_electric"
+                  checked={requireElectric}
+                  onCheckedChange={(v) => setValue("require_electric", v)}
+                />
+              </div>
+            )}
+
+            {/* ---- ADA Accessible ---- */}
+            {filterCaps.require_accessible && (
+              <div className="flex items-center justify-between gap-2 rounded-lg border p-3">
+                <div>
+                  <Label htmlFor="require_accessible">
+                    ADA Accessible Required
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Only alert on ADA-accessible campsites
+                  </p>
+                </div>
+                <Switch
+                  id="require_accessible"
+                  checked={requireAccessible}
+                  onCheckedChange={(v) => setValue("require_accessible", v)}
+                />
+              </div>
+            )}
+
+            {/* ---- Minimum RV / Trailer length ---- */}
+            {filterCaps.min_rv_length && (
+              <div className="space-y-2">
+                <Label htmlFor="min_rv_length">
+                  Minimum RV / Trailer Length (ft)
+                </Label>
+                <Input
+                  id="min_rv_length"
+                  type="number"
+                  min={1}
+                  max={200}
+                  step={1}
+                  placeholder="Any length"
+                  {...register("min_rv_length")}
+                />
+                {errors.min_rv_length?.message && (
+                  <p className="text-xs text-destructive">
+                    {String(errors.min_rv_length.message)}
                   </p>
                 )}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ---- Error ---- */}
-          {error && (
-            <div
-              role="alert"
-              className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
-            >
-              {error}
-            </div>
-          )}
+            {/* ---- Unsupported provider filters notice ---- */}
+            {unsupportedFilterLabels.length > 0 && (
+              <div
+                role="status"
+                className="flex items-start gap-2 rounded-md border bg-muted/50 p-3 text-xs text-muted-foreground"
+              >
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">
+                    Some filters aren&apos;t available for{" "}
+                    {selectedProvider?.name ?? "this provider"}
+                  </p>
+                  <p>
+                    Hidden because this provider doesn&apos;t report that site
+                    metadata: {unsupportedFilterLabels.join(", ")}.
+                  </p>
+                  {clearedFilters.length > 0 && (
+                    <p>
+                      Cleared unsupported selection(s):{" "}
+                      {clearedFilters.join(", ")}.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
-          {/* ---- Suspension Alert ---- */}
-          {user?.scanning_enabled === false && (
-            <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-3 text-sm text-amber-800 dark:text-amber-200">
-              Scanning is currently disabled for your account. Please contact an
-              administrator to re-enable scanning.
-            </div>
-          )}
+            {/* ---- Error ---- */}
+            {error && (
+              <div
+                role="alert"
+                className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+              >
+                {error}
+              </div>
+            )}
 
-          {/* ---- Footer ---- */}
-          <DialogFooter>
+            {/* ---- Suspension Alert ---- */}
+            {user?.scanning_enabled === false && (
+              <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-3 text-sm text-amber-800 dark:text-amber-200">
+                Scanning is currently disabled for your account. Please contact
+                an administrator to re-enable scanning.
+              </div>
+            )}
+
+            {/* ---- Footer ---- */}
+          </DialogBody>
+          <DialogFooter className="shrink-0 border-t px-6 py-4">
             <Button
               type="button"
               variant="outline"

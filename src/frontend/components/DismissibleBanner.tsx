@@ -1,5 +1,6 @@
 import * as React from "react";
 import { X, LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface DismissibleBannerProps {
   id: string;
@@ -44,16 +45,22 @@ export function DismissibleBanner({
 
   return (
     <div className={className}>
-      <div className="container mx-auto relative">
-        <div className="flex items-center justify-center gap-2">
+      <div
+        className={cn(
+          "container relative mx-auto",
+          dismissible && "max-sm:flex max-sm:items-center max-sm:gap-2",
+        )}
+      >
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
           {Icon && <Icon className="h-5 w-5 flex-shrink-0" />}
           {children}
           {Icon && <Icon className="h-5 w-5 flex-shrink-0" />}
         </div>
         {dismissible && (
           <button
+            type="button"
             onClick={handleDismiss}
-            className={`absolute right-0 top-1/2 -translate-y-1/2 p-1 rounded ${closeButtonClassName}`}
+            className={`grid h-11 w-11 shrink-0 place-items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:absolute sm:right-0 sm:top-1/2 sm:h-auto sm:w-auto sm:-translate-y-1/2 sm:p-1 ${closeButtonClassName}`}
             aria-label="Close banner"
           >
             <X className="h-4 w-4" />

@@ -31,7 +31,7 @@ description: "Dependency-ordered task list for the full 26-route mobile-responsi
 
 **Purpose**: Confirm baseline health and initialize the route-by-route audit tracking record
 
-- [ ] T001 Confirm the existing frontend baseline passes (`task frontend:check && task frontend:lint && task frontend:test`) and initialize `docs/specs/034-mobile-responsive-audit/audit-report.md` with the 26-route inventory table from `docs/specs/034-mobile-responsive-audit/data-model.md`
+- [x] T001 Confirm the existing frontend baseline passes (`task frontend:check && task frontend:lint && task frontend:test`) and initialize `docs/specs/034-mobile-responsive-audit/audit-report.md` with the 26-route inventory table from `docs/specs/034-mobile-responsive-audit/data-model.md`
 
 ---
 
@@ -41,12 +41,12 @@ description: "Dependency-ordered task list for the full 26-route mobile-responsi
 
 **⚠️ CRITICAL**: Complete this phase before beginning User Stories 1–5.
 
-- [ ] T002 Create the `@radix-ui/react-dialog`-backed slide-over drawer primitive (`Sheet`, `SheetTrigger`, `SheetOverlay`, `SheetContent` with `side?: "left" | "right"`, `w-[min(85vw,320px)] h-dvh`, dimmed backdrop `bg-black/80`, `44×44 px` close button, focus trap, Escape/backdrop close, and `motion-reduce:transition-none`) in `src/frontend/components/ui/sheet.tsx` with unit tests in `src/frontend/components/ui/sheet.test.tsx`
-- [ ] T003 [P] Upgrade `DialogContent` (`w-[calc(100vw-2rem)] sm:w-full max-w-lg max-h-[calc(100dvh-2rem)] rounded-lg`, `44×44 px` close hit area), `DialogFooter` (`flex-col-reverse gap-2 sm:flex-row sm:justify-end`), and add `DialogBody` (pinned header/footer flex-scroll layout) in `src/frontend/components/ui/dialog.tsx`
-- [ ] T004 [P] Update `Input` in `src/frontend/components/ui/input.tsx` to use `text-base sm:text-sm` (16 px on mobile, 14 px on `sm+`) to prevent iOS Safari focus auto-zoom while preserving desktop typography
-- [ ] T005 [P] Harden `DatePicker` in `src/frontend/components/ui/date-picker.tsx` and update tests in `src/frontend/components/ui/date-picker.test.tsx`: clamp popover width with `w-[min(calc(100vw-3rem),316px)] max-w-full`, align cleanly inside narrow dialogs without horizontal clipping, use `text-base sm:text-xs` on month/year `<select>` controls, and enlarge prev/next month and day button touch ergonomics
-- [ ] T006 Refactor `Header` in `src/frontend/components/Header.tsx` (depends on T002) to keep `<header>` consistently `sticky top-0 z-50` (removing mobile hide-on-scroll), replace the inline sticky dropdown with `Sheet` (`min-h-11 min-w-11` menu trigger with `aria-expanded`, auto-close on `location.pathname` change, route tap, backdrop tap, and Escape), and add/update tests in `src/frontend/components/Layout.test.tsx`
-- [ ] T007 [P] Audit and refine footer link wrapping/touch targets in `src/frontend/components/Layout.tsx` and mobile horizontal scrolling/active-item visibility in `src/frontend/components/AdminNav.tsx`
+- [x] T002 Create the `@radix-ui/react-dialog`-backed slide-over drawer primitive (`Sheet`, `SheetTrigger`, `SheetOverlay`, `SheetContent` with `side?: "left" | "right"`, `w-[min(85vw,320px)] h-dvh`, dimmed backdrop `bg-black/80`, `44×44 px` close button, focus trap, Escape/backdrop close, and `motion-reduce:transition-none`) in `src/frontend/components/ui/sheet.tsx` with unit tests in `src/frontend/components/ui/sheet.test.tsx`
+- [x] T003 [P] Upgrade `DialogContent` (`w-[calc(100vw-2rem)] sm:w-full max-w-lg max-h-[calc(100dvh-2rem)] rounded-lg`, `44×44 px` close hit area), `DialogFooter` (`flex-col-reverse gap-2 sm:flex-row sm:justify-end`), and add `DialogBody` (pinned header/footer flex-scroll layout) in `src/frontend/components/ui/dialog.tsx`
+- [x] T004 [P] Update `Input` in `src/frontend/components/ui/input.tsx` to use `text-base sm:text-sm` (16 px on mobile, 14 px on `sm+`) to prevent iOS Safari focus auto-zoom while preserving desktop typography
+- [x] T005 [P] Harden `DatePicker` in `src/frontend/components/ui/date-picker.tsx` and update tests in `src/frontend/components/ui/date-picker.test.tsx`: clamp popover width with `w-[min(calc(100vw-3rem),316px)] max-w-full`, align cleanly inside narrow dialogs without horizontal clipping, use `text-base sm:text-xs` on month/year `<select>` controls, and enlarge prev/next month and day button touch ergonomics
+- [x] T006 Refactor `Header` in `src/frontend/components/Header.tsx` (depends on T002) to keep `<header>` consistently `sticky top-0 z-50` (removing mobile hide-on-scroll), replace the inline sticky dropdown with `Sheet` (`min-h-11 min-w-11` menu trigger with `aria-expanded`, auto-close on `location.pathname` change, route tap, backdrop tap, and Escape), and add/update tests in `src/frontend/components/Layout.test.tsx`
+- [x] T007 [P] Audit and refine footer link wrapping/touch targets in `src/frontend/components/Layout.tsx` and mobile horizontal scrolling/active-item visibility in `src/frontend/components/AdminNav.tsx`
 
 **Checkpoint**: Shared primitives (`Sheet`, `Dialog`/`DialogBody`, `Input`, `DatePicker`, sticky `Header`, `Layout`, `AdminNav`) are verified and pass Vitest; user stories can now proceed in parallel.
 
@@ -60,14 +60,14 @@ description: "Dependency-ordered task list for the full 26-route mobile-responsi
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T008 [P] [US1] Add/update mobile layout and interaction assertions for search dropdown clamping, Explore filter controls, destination headers, and Dashboard scan group wrapping in `src/frontend/pages/SearchPage.test.tsx`, `src/frontend/pages/Dashboard.test.tsx`, `src/frontend/pages/Campground.test.tsx`, and `src/frontend/pages/RecreationArea.test.tsx`
+- [x] T008 [P] [US1] Add/update mobile layout and interaction assertions for search dropdown clamping, Explore filter controls, destination headers, and Dashboard scan group wrapping in `src/frontend/pages/SearchPage.test.tsx`, `src/frontend/pages/Dashboard.test.tsx`, `src/frontend/pages/Campground.test.tsx`, and `src/frontend/pages/RecreationArea.test.tsx`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [P] [US1] Audit and polish `src/frontend/pages/Home.tsx`, `src/frontend/components/SearchBar.tsx`, and `src/frontend/components/SearchDropdown.tsx` for viewport-clamped autocomplete suggestions, clean long-name truncation, and `44×44 px` touch targets on `375 px` / `390 px` viewports
-- [ ] T010 [P] [US1] Audit and polish `src/frontend/pages/SearchPage.tsx` and `src/frontend/components/ExploreMap.tsx` for stacked mobile filters, touch-friendly filter/RV buttons, unobstructed map toggle and selected-pin preview card, and tappable pagination controls
-- [ ] T011 [P] [US1] Audit and polish `src/frontend/pages/Campground.tsx`, `src/frontend/pages/RecreationArea.tsx`, and `src/frontend/components/DestinationDetails.tsx` so long destination titles, provider badges, monitoring CTAs, child campground rows, and the photo viewer dialog wrap and fit cleanly without overflow
-- [ ] T012 [US1] Audit and polish `src/frontend/pages/Dashboard.tsx`, `src/frontend/components/ScanCard.tsx`, and `src/frontend/pages/ScanDetail.tsx` (verifying stat card grids, campground group headers, empty state, badge/pill wrapping, and `FoundCampsites` calendar/cards/grid ergonomics at `375 px`)
+- [x] T009 [P] [US1] Audit and polish `src/frontend/pages/Home.tsx`, `src/frontend/components/SearchBar.tsx`, and `src/frontend/components/SearchDropdown.tsx` for viewport-clamped autocomplete suggestions, clean long-name truncation, and `44×44 px` touch targets on `375 px` / `390 px` viewports
+- [x] T010 [P] [US1] Audit and polish `src/frontend/pages/SearchPage.tsx` and `src/frontend/components/ExploreMap.tsx` for stacked mobile filters, touch-friendly filter/RV buttons, unobstructed map toggle and selected-pin preview card, and tappable pagination controls
+- [x] T011 [P] [US1] Audit and polish `src/frontend/pages/Campground.tsx`, `src/frontend/pages/RecreationArea.tsx`, and `src/frontend/components/DestinationDetails.tsx` so long destination titles, provider badges, monitoring CTAs, child campground rows, and the photo viewer dialog wrap and fit cleanly without overflow
+- [x] T012 [US1] Audit and polish `src/frontend/pages/Dashboard.tsx`, `src/frontend/components/ScanCard.tsx`, and `src/frontend/pages/ScanDetail.tsx` (verifying stat card grids, campground group headers, empty state, badge/pill wrapping, and `FoundCampsites` calendar/cards/grid ergonomics at `375 px`)
 
 **Checkpoint**: User Story 1 (MVP) delivers clean, overflow-free mobile camper discovery and monitoring across all core routes.
 
@@ -81,14 +81,14 @@ description: "Dependency-ordered task list for the full 26-route mobile-responsi
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T013 [P] [US2] Add/update Vitest component tests covering pinned `ScanForm` header/footer and stacked mobile date fields, `Profile` / `NotificationSettings` / `ActiveSessions` long-string containment, and `InviteOnly` / `ChangePasswordRequired` form accessibility in `src/frontend/components/ScanForm.test.tsx`, `src/frontend/pages/Profile.test.tsx`, `src/frontend/pages/InviteOnly.test.tsx`, and `src/frontend/components/ActiveSessions.test.tsx`
+- [x] T013 [P] [US2] Add/update Vitest component tests covering pinned `ScanForm` header/footer and stacked mobile date fields, `Profile` / `NotificationSettings` / `ActiveSessions` long-string containment, and `InviteOnly` / `ChangePasswordRequired` form accessibility in `src/frontend/components/ScanForm.test.tsx`, `src/frontend/pages/Profile.test.tsx`, `src/frontend/pages/InviteOnly.test.tsx`, and `src/frontend/components/ActiveSessions.test.tsx`
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Refactor `src/frontend/components/ScanForm.tsx` and `src/frontend/components/AreaCoveragePicker.tsx` to use viewport-bounded `DialogContent` with pinned `DialogHeader`/`DialogFooter` and scrollable `DialogBody` (fitting `375×667`), stacked `grid-cols-1 sm:grid-cols-2` Check-in/Check-out `DatePicker` fields, `text-base sm:text-sm` native `<select>` controls, and non-overflowing campground selection rows
-- [ ] T015 [P] [US2] Audit and polish `src/frontend/pages/Auth.tsx`, `src/frontend/pages/InviteOnly.tsx`, and `src/frontend/components/ChangePasswordRequired.tsx` for auto-zoom-safe `text-base sm:text-sm` inputs, stacked actions, clean error alert wrapping, and `44×44 px` touch targets
-- [ ] T016 [P] [US2] Audit and polish `src/frontend/pages/Profile.tsx`, `src/frontend/components/NotificationSettings.tsx`, and `src/frontend/components/ActiveSessions.tsx` so long emails, custom ntfy server URLs, topics, access tokens, and session user-agents wrap safely (`min-w-0 break-all` / `break-words`) with tappable copy, test, save, and revoke controls
-- [ ] T017 [P] [US2] Audit and polish scan delete confirmation and delete-error dialogs in `src/frontend/components/ScanCard.tsx` using bounded `DialogContent` and spaced stacked `DialogFooter` actions
+- [x] T014 [US2] Refactor `src/frontend/components/ScanForm.tsx` and `src/frontend/components/AreaCoveragePicker.tsx` to use viewport-bounded `DialogContent` with pinned `DialogHeader`/`DialogFooter` and scrollable `DialogBody` (fitting `375×667`), stacked `grid-cols-1 sm:grid-cols-2` Check-in/Check-out `DatePicker` fields, `text-base sm:text-sm` native `<select>` controls, and non-overflowing campground selection rows
+- [x] T015 [P] [US2] Audit and polish `src/frontend/pages/Auth.tsx`, `src/frontend/pages/InviteOnly.tsx`, and `src/frontend/components/ChangePasswordRequired.tsx` for auto-zoom-safe `text-base sm:text-sm` inputs, stacked actions, clean error alert wrapping, and `44×44 px` touch targets
+- [x] T016 [P] [US2] Audit and polish `src/frontend/pages/Profile.tsx`, `src/frontend/components/NotificationSettings.tsx`, and `src/frontend/components/ActiveSessions.tsx` so long emails, custom ntfy server URLs, topics, access tokens, and session user-agents wrap safely (`min-w-0 break-all` / `break-words`) with tappable copy, test, save, and revoke controls
+- [x] T017 [P] [US2] Audit and polish scan delete confirmation and delete-error dialogs in `src/frontend/components/ScanCard.tsx` using bounded `DialogContent` and spaced stacked `DialogFooter` actions
 
 **Checkpoint**: User Stories 1 and 2 together make every camper discovery, scan-creation, authentication, and account-management flow smooth on small phones.
 
@@ -102,9 +102,9 @@ description: "Dependency-ordered task list for the full 26-route mobile-responsi
 
 ### Implementation for User Story 3
 
-- [ ] T018 [P] [US3] Audit and polish `src/frontend/pages/Providers.tsx`, `src/frontend/pages/HowItWorks.tsx`, and `src/frontend/pages/FAQ.tsx` for responsive grid stacking, badge wrapping, `44 px` accordion triggers, and consistent mobile spacing/contrast
-- [ ] T019 [P] [US3] Audit and polish `src/frontend/pages/Contact.tsx`, `src/frontend/pages/Ethos.tsx`, `src/frontend/pages/Contribute.tsx`, `src/frontend/pages/PrivacyPolicy.tsx`, and `src/frontend/pages/TermsOfService.tsx` for `text-base sm:text-sm` form inputs, clean prose/URL wrapping, and mobile padding
-- [ ] T020 [US3] Audit the `768×1024` tablet breakpoint transition in `src/frontend/components/Header.tsx` and public/camper grid layouts to confirm zero awkward header link wrapping or right-edge clipping
+- [x] T018 [P] [US3] Audit and polish `src/frontend/pages/Providers.tsx`, `src/frontend/pages/HowItWorks.tsx`, and `src/frontend/pages/FAQ.tsx` for responsive grid stacking, badge wrapping, `44 px` accordion triggers, and consistent mobile spacing/contrast
+- [x] T019 [P] [US3] Audit and polish `src/frontend/pages/Contact.tsx`, `src/frontend/pages/Ethos.tsx`, `src/frontend/pages/Contribute.tsx`, `src/frontend/pages/PrivacyPolicy.tsx`, and `src/frontend/pages/TermsOfService.tsx` for `text-base sm:text-sm` form inputs, clean prose/URL wrapping, and mobile padding
+- [x] T020 [US3] Audit the `768×1024` tablet breakpoint transition in `src/frontend/components/Header.tsx` and public/camper grid layouts to confirm zero awkward header link wrapping or right-edge clipping
 
 **Checkpoint**: All public, informational, legal, and community routes plus tablet breakpoint handoffs are polished and consistent.
 
@@ -118,15 +118,15 @@ description: "Dependency-ordered task list for the full 26-route mobile-responsi
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T021 [P] [US4] Update and expand Vitest admin tests to cover hybrid mobile cards alongside desktop tables without query ambiguity and pinned Create/Reset Password dialogs in `src/frontend/pages/admin/AdminPages.test.tsx`, `src/frontend/pages/admin/AdminInvites.test.tsx`, `src/frontend/pages/admin/AdminUsersCreate.test.tsx`, `src/frontend/pages/admin/AdminInteractions.test.tsx`, and `src/frontend/pages/admin/AdminUserDetail.test.tsx`
+- [x] T021 [P] [US4] Update and expand Vitest admin tests to cover hybrid mobile cards alongside desktop tables without query ambiguity and pinned Create/Reset Password dialogs in `src/frontend/pages/admin/AdminPages.test.tsx`, `src/frontend/pages/admin/AdminInvites.test.tsx`, `src/frontend/pages/admin/AdminUsersCreate.test.tsx`, `src/frontend/pages/admin/AdminInteractions.test.tsx`, and `src/frontend/pages/admin/AdminUserDetail.test.tsx`
 
 ### Implementation for User Story 4
 
-- [ ] T022 [P] [US4] Add stacked mobile user cards (`md:hidden`) alongside the existing desktop table (`hidden md:block overflow-x-auto`), wrapping filter bar, and pinned `DialogBody` Create User & Reset Password dialogs (with `break-all` temporary password reveal/copy) in `src/frontend/pages/admin/AdminUsers.tsx`
-- [ ] T023 [P] [US4] Add stacked mobile invitation cards (`md:hidden`) alongside the existing desktop table (`hidden md:block overflow-x-auto`) with `44 px` Approve/Revoke buttons and wrapping status tabs in `src/frontend/pages/admin/AdminInvites.tsx`
-- [ ] T024 [P] [US4] Add stacked mobile scan cards (`md:hidden`) alongside the existing desktop table (`hidden md:block overflow-x-auto`) with wrapping filter bar and pause/resume/delete controls in `src/frontend/pages/admin/AdminScans.tsx`
-- [ ] T025 [P] [US4] Harden mobile metadata grids (`grid-cols-1 sm:grid-cols-2`, `min-w-0 break-all` for UUIDs/emails), pinned Reset Password dialog, and self-contained `overflow-x-auto` tables in `src/frontend/pages/admin/AdminUserDetail.tsx`, `src/frontend/pages/admin/AdminScanDetail.tsx`, and `src/frontend/pages/admin/AdminTargetDetail.tsx`
-- [ ] T026 [P] [US4] Harden mobile KPI grids, Recharts axis/legend legibility, wrapping time-window/filter controls, pinned task detail dialog, and self-contained `overflow-x-auto` tables (`min-w-0` parent wrappers) in `src/frontend/pages/admin/AdminOverview.tsx`, `src/frontend/components/admin/AdminTrendsPanel.tsx`, `src/frontend/pages/admin/AdminOperations.tsx`, and `src/frontend/pages/admin/AdminAudit.tsx`
+- [x] T022 [P] [US4] Add stacked mobile user cards (`md:hidden`) alongside the existing desktop table (`hidden md:block overflow-x-auto`), wrapping filter bar, and pinned `DialogBody` Create User & Reset Password dialogs (with `break-all` temporary password reveal/copy) in `src/frontend/pages/admin/AdminUsers.tsx`
+- [x] T023 [P] [US4] Add stacked mobile invitation cards (`md:hidden`) alongside the existing desktop table (`hidden md:block overflow-x-auto`) with `44 px` Approve/Revoke buttons and wrapping status tabs in `src/frontend/pages/admin/AdminInvites.tsx`
+- [x] T024 [P] [US4] Add stacked mobile scan cards (`md:hidden`) alongside the existing desktop table (`hidden md:block overflow-x-auto`) with a wrapping filter bar, pause/resume, and detail access in `src/frontend/pages/admin/AdminScans.tsx`
+- [x] T025 [P] [US4] Harden mobile metadata grids (`grid-cols-1 sm:grid-cols-2`, `min-w-0 break-all` for UUIDs/emails), pinned Reset Password dialog, and self-contained `overflow-x-auto` tables in `src/frontend/pages/admin/AdminUserDetail.tsx`, `src/frontend/pages/admin/AdminScanDetail.tsx`, and `src/frontend/pages/admin/AdminTargetDetail.tsx`
+- [x] T026 [P] [US4] Harden mobile KPI grids, Recharts axis/legend legibility, wrapping time-window/filter controls, pinned task detail dialog, and self-contained `overflow-x-auto` tables (`min-w-0` parent wrappers) in `src/frontend/pages/admin/AdminOverview.tsx`, `src/frontend/components/admin/AdminTrendsPanel.tsx`, `src/frontend/pages/admin/AdminOperations.tsx`, and `src/frontend/pages/admin/AdminAudit.tsx`
 
 **Checkpoint**: All 9 Admin screens are fully usable on mobile with hybrid cards, contained tables, legible charts, and bounded dialogs.
 
@@ -136,14 +136,14 @@ description: "Dependency-ordered task list for the full 26-route mobile-responsi
 
 **Goal**: Lock in the audit permanently with automated document-level zero-overflow enforcement across all 26 routes (`375 px`, `390 px`, `768 px`) and one representative mobile visual baseline (balancing light and dark themes) for every previously desktop-only route and critical overlay.
 
-**Independent Test**: Run `task snapshot:docker -- --check` and confirm all existing desktop baselines pass with zero unintended diffs, all newly added mobile visual baselines pass, and every single route passes the automated `document.documentElement.scrollWidth <= window.innerWidth` assertion.
+**Independent Test**: Run `task frontend:snapshot -- --check` and confirm all existing desktop baselines pass with zero unintended diffs, all newly added mobile visual baselines pass, and every single route passes the automated `document.documentElement.scrollWidth <= window.innerWidth` assertion.
 
 ### Implementation for User Story 5
 
-- [ ] T027 [US5] Add automated `document.documentElement.scrollWidth <= window.innerWidth` enforcement to every mobile/tablet scenario (`viewport.width <= 768`) and add an automated 26-route overflow sweep at `375 px`, `390 px`, and `768 px` in `src/frontend/tooling/run-snapshots.ts`
-- [ ] T028 [US5] Add one representative mobile visual snapshot scenario (balancing `light` and `dark` across the suite) for every previously desktop-only route and critical overlay in `src/frontend/tooling/run-snapshots.ts` (open mobile nav drawer, `Auth`, `Providers`, `HowItWorks`, `FAQ`, `Contact`, `Ethos`, `Contribute`, `Privacy`, `Home search dropdown`, `Map selected`, `Dashboard empty`, `Profile` with Active Sessions, `ScanForm` dialog & check-in calendar at `375×667`, `Scan delete error`, `AdminUsers` list + Create User password reveal, `AdminUserDetail`, `AdminInvites`, `AdminScans`, `AdminScanDetail`, `AdminTargetDetail`, `AdminAudit`, and `AdminTrendsPanel` API table)
-- [ ] T029 [US5] Capture new and intentionally updated mobile visual baselines in `tests/frontend/snapshots/baselines/` via `task snapshot:docker -- --update --filter mobile` and verify both mobile and desktop suites pass `task snapshot:docker -- --check` with zero unintended desktop diffs
-- [ ] T030 [US5] Generate and inspect the visual comparison gallery (`task snapshot:report` → `tmp/snapshots/report.html`) to confirm visual polish, alignment, and light/dark contrast across all audited views
+- [x] T027 [US5] Add automated `document.documentElement.scrollWidth <= window.innerWidth` enforcement to every mobile/tablet scenario (`viewport.width <= 768`) and add an automated 26-route overflow sweep at `375 px`, `390 px`, and `768 px` in `src/frontend/tooling/run-snapshots.ts`
+- [x] T028 [US5] Add one representative mobile visual snapshot scenario (balancing `light` and `dark` across the suite) for every previously desktop-only route and critical overlay in `src/frontend/tooling/run-snapshots.ts` (open mobile nav drawer, `Auth`, `Providers`, `HowItWorks`, `FAQ`, `Contact`, `Ethos`, `Contribute`, `Privacy`, `Home search dropdown`, `Map selected`, `Dashboard empty`, `Profile` with Active Sessions, `ScanForm` dialog & check-in calendar at `375×667`, `Scan delete error`, `AdminUsers` list + Create User password reveal, `AdminUserDetail`, `AdminInvites`, `AdminScans`, `AdminScanDetail`, `AdminTargetDetail`, `AdminAudit`, and `AdminTrendsPanel` API table)
+- [x] T029 [US5] Capture new and intentionally updated mobile visual baselines in `tests/frontend/snapshots/baselines/` via `task frontend:snapshot -- --update --filter mobile` and verify both mobile and desktop suites pass `task frontend:snapshot -- --check` with zero unintended desktop diffs
+- [x] T030 [US5] Generate and inspect the visual comparison gallery (`task snapshot:report` → `tmp/snapshots/report.html`) to confirm visual polish, alignment, and light/dark contrast across all audited views
 
 **Checkpoint**: Automated zero-overflow and visual regression gates permanently protect all 26 routes on mobile and desktop.
 
@@ -153,10 +153,10 @@ description: "Dependency-ordered task list for the full 26-route mobile-responsi
 
 **Purpose**: Complete traceability documentation, close roadmap item `T4.1.6`, and run final quality gates
 
-- [ ] T031 [P] Complete the route-by-route audit findings and remediation summary across all 26 routes in `docs/specs/034-mobile-responsive-audit/audit-report.md` (`FR-015` / `SC-007`)
-- [ ] T032 [P] Update `docs/architecture/DESIGN_FRONTEND.md` to document the `Sheet` slide-over mobile drawer, viewport-bounded pinned `DialogBody`, clamped `DatePicker`, and hybrid Admin mobile card/table patterns
-- [ ] T033 [P] Mark `T4.1.6` complete in `docs/CHECKLIST.md`, mark Phase 4 Polish complete in `docs/PLAN.md`, and add spec `034` to `docs/specs/index.md`
-- [ ] T034 Run the full verification pipeline per `docs/specs/034-mobile-responsive-audit/quickstart.md` (`task frontend:fix && task frontend:check && task frontend:lint && task frontend:test && task snapshot:docker -- --check`) and confirm zero errors, zero warnings, and 100% passing checks
+- [x] T031 [P] Complete the route-by-route audit findings and remediation summary across all 26 routes in `docs/specs/034-mobile-responsive-audit/audit-report.md` (`FR-015` / `SC-007`)
+- [x] T032 [P] Update `docs/architecture/DESIGN_FRONTEND.md` to document the `Sheet` slide-over mobile drawer, viewport-bounded pinned `DialogBody`, clamped `DatePicker`, and hybrid Admin mobile card/table patterns
+- [x] T033 [P] Mark `T4.1.6` complete in `docs/CHECKLIST.md`, mark Phase 4 Polish complete in `docs/PLAN.md`, and add spec `034` to `docs/specs/index.md`
+- [x] T034 Run the full verification pipeline per `docs/specs/034-mobile-responsive-audit/quickstart.md` (`task frontend:fix && task frontend:check && task frontend:lint && task frontend:test && task frontend:snapshot -- --check`) and confirm zero errors, zero warnings, and 100% passing checks
 
 ---
 
@@ -215,12 +215,36 @@ Task: "T033 [P] Update docs/CHECKLIST.md, docs/PLAN.md, and docs/specs/index.md"
 1. Add Phase 4 (`US2` — pinned `ScanForm`, clamped `DatePicker`, Auth/Profile/Active Sessions).
 2. Add Phase 5 (`US3` — public/informational routes & `768 px` tablet handoff).
 3. Add Phase 6 (`US4` — hybrid Admin cards, contained telemetry/log tables, legible charts, bounded admin dialogs).
-4. Complete Phase 7 (`US5` — 26-route overflow enforcement + representative mobile baselines in Docker Playwright) and Phase 8 (audit report, docs, `T4.1.6` closure).
+4. Complete Phase 7 (`US5` — 26-route overflow enforcement + representative mobile baselines in Playwright) and Phase 8 (audit report, docs, `T4.1.6` closure).
 
 ---
 
 ## Notes
 
+- T024 covers the existing admin scan actions. The admin API supports read and pause/resume operations. Admin deletion would require a separate backend feature outside this spec's frontend-only scope.
+- Local Playwright verification closes T029, T034, and T042. It used the project-locked Chromium build and fonts extracted from the CI image.
+
 - `[P]` marks tasks touching independent files that can run concurrently.
 - `[US#]` links each task to its user story in `spec.md` for end-to-end traceability.
-- Note on environments without Docker/Chromium: if `task snapshot:docker` cannot run inside a sandboxed container without a Docker daemon, run all Vitest/typecheck/lint gates locally and capture/verify the new Playwright baselines in a Docker-enabled host or CI runner before merging.
+
+## Phase 9: Convergence
+
+- [x] T035 Make the date clear action a separate keyboard-accessible control in `src/frontend/components/ui/date-picker.tsx` and return focus to the coverage trigger on Escape in `src/frontend/components/AreaCoveragePicker.tsx`. Add tests for clearing and nested dismissal while keeping `ScanForm` open per FR-004, US2/AC1–2, T005, and T014 (partial).
+- [x] T036 Give the native sort select in `src/frontend/components/FoundCampsites.tsx` a computed mobile font size of at least 16 px and associate the Explore sort label with its select in `src/frontend/pages/SearchPage.tsx`. Verify mobile font size, accessible names, and unchanged sort behavior per FR-005 and T012 (partial).
+- [x] T037 Add representative mobile Playwright scenarios and baselines for the app-owned Auth0 signup screen, session forced password change, and the open Operations task-detail dialog in `src/frontend/tooling/run-snapshots.ts` and `tests/frontend/snapshots/baselines/`. Exercise a reachable primary action in each state using synthetic fixtures per FR-014, SC-005, US2/AC3, and T028 (missing).
+- [x] T038 Extend `src/frontend/tooling/run-snapshots.ts` with layout checks for primary overlays at 375, 390, and 768 px in light and dark, including the 375×667 scan form and a focused 360 px smoke check. Assert viewport containment, reachable picker options, and that header and footer actions stay visible as the dialog body scrolls. Use synthetic long destination, notification, session, and admin metadata values to exercise containment. Keep these checks separate from the visual baseline count per SC-001, SC-003, US2/AC1–4, T013, and T027 (partial).
+- [x] T039 Honor reduced-motion preferences in the shared dialog and date picker in `src/frontend/components/ui/` and in programmatic navigation scrolling in `src/frontend/components/Header.tsx`. Verify open, close, and navigation behavior with reduced motion enabled, preserving ordinary transitions per the reduced-motion edge case and plan constraints (contradicts).
+- [x] T040 Improve the dismissible banner close control and the adjacent Cards/Grid buttons in `src/frontend/components/DismissibleBanner.tsx` and `src/frontend/components/FoundCampsites.tsx`. Verify a 44×44 px effective mobile target or non-crowded spacing and visible keyboard focus per FR-002, SC-002, and T012 (partial).
+- [x] T041 Reconcile the delete clause of T024 with the frontend-only scope. Confirm the supported admin scan actions against `src/frontend/lib/api/generated/schema.ts` and `src/frontend/pages/admin/AdminScans.tsx`, preserve pause/resume and detail access, and record the agreed scope in the audit and task status. Track any newly requested admin delete endpoint separately per T024 and the plan's frontend-only constraint (partial).
+- [x] T042 After the convergence fixes, refresh the affected baselines and check both mobile and desktop snapshots using the project-locked Chromium build and matching fonts. Run the route and overlay sweeps, frontend formatting, lint, type checks, and tests, then record the local verification evidence in `audit-report.md` per FR-013, SC-006, T029, and T034 (partial).
+- [x] T043 After resolving T024 and passing the visual and frontend gates, update `docs/specs/034-mobile-responsive-audit/audit-report.md` with the final route and overlay evidence and close T4.1.6 and Phase 4 Polish in `docs/CHECKLIST.md` and `docs/PLAN.md` per FR-015, SC-007, and T033 (partial).
+
+## Phase 10: Convergence
+
+- [x] T044 Clamp Home autocomplete to the available visible viewport in `src/frontend/components/SearchBar.tsx` and `src/frontend/components/SearchDropdown.tsx`. Allow opening above the field when needed and wrap or truncate long provider, location, and echoed-query text inside the scroll region. Add Playwright checks at 375×667 and 390×844 for viewport containment and tapping a result, including long synthetic values, and verify the desktop capture per FR-006, US1/AC1, and T009 (partial).
+- [x] T045 Respect reduced motion for the autocomplete panel's scale transition and selected-row scrolling in `src/frontend/components/SearchDropdown.tsx`. Verify that arrow-key selection reveals the active result with no smooth scroll or scale animation when reduced motion is enabled per the reduced-motion edge case and plan constraints (contradicts).
+- [x] T046 Require route-specific ready content for each entry in the 26-route overflow sweep in `src/frontend/tooling/run-snapshots.ts` and `src/frontend/tooling/snapshot-navigation.ts` before measuring layout. Add a regression check that a same-path error or loading screen cannot satisfy the expected route, then rerun the 78 local route-width checks per FR-001, FR-014, SC-005, and T027 (partial).
+
+## Phase 11: Convergence
+
+- [x] T047 Align the workflow table and Wave 5 baseline-capture instructions in `docs/specs/034-mobile-responsive-audit/plan.md` with the local Playwright checks in `quickstart.md` and the UI contract. Document the locked Chromium build and matching fonts per plan Wave 5 and T042 (partial).

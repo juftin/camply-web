@@ -78,7 +78,7 @@ export function AdminPasswordInput({
         required
         disabled={disabled || copying}
       />
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 [&>button]:min-h-11 sm:[&>button]:min-h-0">
         <Button
           type="button"
           variant="outline"

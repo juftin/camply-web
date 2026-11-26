@@ -124,13 +124,13 @@ export function Campground() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
-            <div className="flex items-center space-x-3">
+            <div className="flex min-w-0 items-start gap-3">
               <Tent className="h-8 w-8 text-primary shrink-0" />
-              <div>
-                <h1 className="text-3xl font-bold">
+              <div className="min-w-0">
+                <h1 className="break-words text-2xl font-bold sm:text-3xl">
                   {toTitleCase(campground.name)}
                 </h1>
-                <p className="text-muted-foreground flex items-center space-x-2">
+                <p className="flex flex-wrap items-center gap-x-2 break-words text-muted-foreground">
                   <span>Provided by {toTitleCase(provider.name)}</span>
                   {provider.url && (
                     <a
@@ -176,7 +176,7 @@ export function Campground() {
               }}
               preselectedProviderId={provider.id}
               trigger={
-                <Button size="default" className="shrink-0">
+                <Button size="default" className="min-h-11 shrink-0 sm:min-h-0">
                   <Bell className="h-4 w-4 mr-1.5" />
                   Monitor
                 </Button>
@@ -294,8 +294,8 @@ export function Campground() {
                             )
                           }
                         >
-                          <div className="flex justify-between items-center">
-                            <h4 className="font-medium">
+                          <div className="flex flex-wrap justify-between items-center gap-2">
+                            <h4 className="min-w-0 break-words font-medium">
                               {toTitleCase(otherCampground.name)}
                             </h4>
                             <div className="flex items-center space-x-2">

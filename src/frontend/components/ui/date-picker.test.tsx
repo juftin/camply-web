@@ -20,6 +20,23 @@ describe("DatePicker", () => {
     ).toBeInTheDocument();
   });
 
+  it("clears from a separate keyboard target and restores trigger focus", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<DatePicker value="2027-01-15" onChange={onChange} />);
+    const trigger = screen.getByRole("button", { name: /jan 15, 2027/i });
+    const clear = screen.getByRole("button", { name: "Clear date" });
+    expect(trigger).not.toContainElement(clear);
+    trigger.focus();
+    await user.tab();
+    expect(clear).toHaveFocus();
+    await user.keyboard(" ");
+    expect(onChange).toHaveBeenCalledOnce();
+    expect(onChange).toHaveBeenCalledWith("");
+    expect(trigger).toHaveFocus();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("opens popover on click and closes on Escape", async () => {
     const user = userEvent.setup();
     render(<DatePicker id="test-date" value="2027-01-15" />);
@@ -159,4 +176,15 @@ describe("DatePicker", () => {
 
     expect(handleChange).toHaveBeenCalledWith("");
   });
+});
+
+it("keeps the picker in the form flow on compact screens", async () => {
+  const user = userEvent.setup();
+  render(<DatePicker />);
+  await user.click(screen.getByRole("button", { name: "Select date" }));
+  expect(screen.getByRole("dialog")).toHaveClass("sm:absolute", "max-w-full");
+  expect(screen.getByRole("combobox", { name: "Select month" })).toHaveClass(
+    "text-base",
+    "sm:text-xs",
+  );
 });

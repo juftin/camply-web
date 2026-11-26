@@ -127,12 +127,12 @@ export function ActiveSessions() {
             return (
               <li
                 key={session.id}
-                className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between"
+                className="flex min-w-0 flex-col gap-2 break-words rounded-md border p-3 [&_button]:min-h-11 sm:[&_button]:min-h-0 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span
-                      className="text-sm font-medium truncate"
+                      className="min-w-0 break-words text-sm font-medium"
                       title={session.user_agent ?? undefined}
                     >
                       {formatSessionDevice(session.user_agent)}

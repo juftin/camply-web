@@ -132,7 +132,7 @@ export function ScanDetail() {
                 href={campground.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-9 items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                className="inline-flex min-h-11 items-center sm:min-h-9 gap-1.5 text-sm font-medium text-primary hover:underline"
               >
                 {scan.destination_type === "recreation_area"
                   ? "View recreation area on provider"

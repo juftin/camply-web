@@ -93,7 +93,7 @@ export function AdminTargetDetail() {
         </Button>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
+            <h1 className="flex min-w-0 items-center gap-2 break-all text-2xl font-bold sm:text-3xl [&>svg]:shrink-0">
               <TargetIcon className="h-7 w-7 text-primary" />{" "}
               {target.campground_name}
             </h1>
@@ -120,7 +120,7 @@ export function AdminTargetDetail() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <span className="text-xs text-muted-foreground block">
                   Provider
@@ -135,7 +135,7 @@ export function AdminTargetDetail() {
                 <span className="text-xs text-muted-foreground block">
                   Campground ID
                 </span>
-                <span className="font-mono text-xs">
+                <span className="min-w-0 break-all font-mono text-xs">
                   {target.campground_id}
                 </span>
               </div>
@@ -153,7 +153,7 @@ export function AdminTargetDetail() {
                   Unique Target Hash
                 </span>
                 <span
-                  className="font-mono text-xs truncate block"
+                  className="min-w-0 break-all font-mono text-xs truncate block"
                   title={target.hash}
                 >
                   {target.hash}
@@ -250,7 +250,7 @@ export function AdminTargetDetail() {
           </Card>
         ) : (
           <div className="rounded-md border bg-card overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="min-w-0 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 border-b">
                   <tr>

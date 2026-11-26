@@ -92,6 +92,22 @@ describe("ScanForm editing", () => {
     const user = userEvent.setup();
     renderForm();
     await user.click(screen.getByRole("button", { name: "Edit Scan" }));
+    const dialog = screen.getByRole("dialog", { name: "Edit Scan" });
+    const checkIn = screen.getByLabelText("Check-in");
+    const fields = checkIn.closest(".grid-cols-1");
+    expect(fields).toHaveClass("sm:grid-cols-2");
+    const scrollBody = checkIn.closest<HTMLElement>(".overflow-y-auto");
+    expect(dialog).toContainElement(scrollBody);
+    expect(scrollBody).not.toContainElement(
+      screen.getByRole("button", { name: "Save Changes" }),
+    );
+    expect(scrollBody).not.toContainElement(
+      screen.getByRole("heading", { name: "Edit Scan" }),
+    );
+    await user.click(checkIn);
+    await user.keyboard("{Escape}");
+    expect(dialog).toBeInTheDocument();
+    expect(checkIn).toHaveFocus();
     await selectDate(user, "Check-in", "2027-07-20");
     expect(screen.getByLabelText("Check-out")).toHaveTextContent(
       formatDisplayDate("2027-07-22"),
@@ -417,6 +433,10 @@ describe("ScanForm editing", () => {
       await screen.findByRole("checkbox", { name: "Pine Creek" }),
     );
     await user.keyboard("{Escape}");
+    expect(
+      screen.getByRole("dialog", { name: "Create a New Scan" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pine Creek" })).toHaveFocus();
     await selectDate(user, "Check-in", "2027-07-01");
     await selectDate(user, "Check-out", "2027-07-04");
     await user.click(screen.getByRole("button", { name: "Create Scan" }));

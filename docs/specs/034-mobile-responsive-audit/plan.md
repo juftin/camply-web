@@ -16,7 +16,7 @@ Conduct a systematic, route-by-route mobile-responsive UI audit and polish acros
 
 **Storage**: N/A (frontend-only UI refinements; zero backend, API, or database changes)
 
-**Testing**: Vitest 5 + Testing Library (`task frontend:test`), Playwright visual snapshot & horizontal-overflow runner (`src/frontend/tooling/run-snapshots.ts`, `task snapshot:docker`), Oxlint + Oxfmt (`task frontend:lint`), native TypeScript typecheck (`task frontend:check`)
+**Testing**: Vitest 5 + Testing Library (`task frontend:test`), Playwright visual snapshot & horizontal-overflow runner (`src/frontend/tooling/run-snapshots.ts`, `task frontend:snapshot`), Oxlint + Oxfmt (`task frontend:lint`), native TypeScript typecheck (`task frontend:check`)
 
 **Target Platform**: Responsive web browsers on smartphones (375×667, 375×812, 390×844; graceful usability down to 360 px), tablets (768×1024 transition breakpoint), and desktop regression guard (1280×800), in both light and dark modes
 
@@ -36,7 +36,7 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 | :----------------------------------------- | :--------- | :---------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **I. Reliability & Precision**             | PASS       | PASS        | Frontend-only UI polish; preserves all availability, alert, and booking link accuracy without altering API/polling logic.                                        |
 | **II. Type Safety & Static Analysis**      | PASS       | PASS        | All React/TypeScript edits and snapshot tooling updates must pass `task frontend:check` (`tsc`), `task frontend:lint` (`oxlint` + `oxfmt`).                      |
-| **III. Modern Workflow & Automation**      | PASS       | PASS        | Uses `task frontend:*` and `task snapshot:docker` workflows; zero ad-hoc build steps.                                                                            |
+| **III. Modern Workflow & Automation**      | PASS       | PASS        | Uses the local `task frontend:*` workflows for frontend checks and Playwright verification.                                                                      |
 | **IV. Monorepos & Separation of Concerns** | PASS       | PASS        | Strictly scoped to `src/frontend/`, `tests/frontend/snapshots/baselines/`, and `docs/`; zero backend/Python boundary changes.                                    |
 | **V. Automated Verification**              | PASS       | PASS        | Colocated Vitest unit/component tests written/updated alongside primitive & page changes, plus Playwright mobile overflow assertions and visual baselines in CI. |
 
@@ -148,5 +148,5 @@ docs/
 ### Wave 5 — Automated Verification, Baselines & Audit Record (`FR-013`, `FR-014`, `FR-015`)
 
 - Enforce `document.documentElement.scrollWidth <= window.innerWidth` in `src/frontend/tooling/run-snapshots.ts` across all mobile scenarios and add a 26-route automated overflow sweep covering 375 px, 390 px, and 768 px.
-- Add representative mobile visual snapshot scenarios (balancing light and dark themes) for all previously desktop-only routes and critical overlays; capture baselines via `task snapshot:docker -- --update` and verify zero regressions on existing desktop baselines.
+- Add representative mobile snapshots in light and dark themes for previously desktop-only routes and critical overlays. Use the project-locked Playwright Chromium build and the CI image’s fonts locally. Follow the [quickstart](quickstart.md) to update affected baselines and check mobile and desktop captures for unintended diffs.
 - Record route-by-route findings and fixes in `docs/specs/034-mobile-responsive-audit/audit-report.md`, update `docs/architecture/DESIGN_FRONTEND.md`, and check off `T4.1.6` in `docs/CHECKLIST.md` and Phase 4 Polish in `docs/PLAN.md`.

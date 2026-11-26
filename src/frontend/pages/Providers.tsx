@@ -295,7 +295,7 @@ export function Providers() {
         <div className="mb-6">
           <Caravan className="h-16 w-16 text-primary mx-auto mb-4" />
         </div>
-        <h1 className="text-5xl font-bold mb-6">
+        <h1 className="text-4xl font-bold mb-6 sm:text-5xl">
           Supported <span className="text-primary">Providers</span>
         </h1>
         <p className="text-xl text-muted-foreground mb-8 max-w-4xl mx-auto leading-relaxed">
@@ -360,7 +360,7 @@ export function Providers() {
                       className="max-w-full object-contain self-start rounded bg-white p-2 box-content"
                     />
                   )}
-                  <CardTitle className="flex items-center justify-between">
+                  <CardTitle className="flex items-center justify-between max-sm:flex-wrap max-sm:gap-2">
                     {provider.name}
                     <a
                       href={provider.website}
@@ -442,7 +442,7 @@ export function Providers() {
                     className="max-w-full object-contain self-start rounded bg-white p-2 box-content"
                   />
                 )}
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex items-center justify-between max-sm:flex-wrap max-sm:gap-2">
                   {provider.name}
                   <a
                     href={provider.website}
@@ -495,7 +495,7 @@ export function Providers() {
           We're constantly adding support for new booking platforms and
           recreation systems. Have a specific provider you'd like us to support?
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center [&_a]:min-h-11 sm:[&_a]:min-h-0">
           <Button size="lg" asChild>
             <a
               href="https://github.com/juftin/camply-web/issues/new?template=feature_request.md"

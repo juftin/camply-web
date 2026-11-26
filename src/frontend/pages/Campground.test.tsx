@@ -223,7 +223,9 @@ describe("Campground location coordinates", () => {
       });
       vi.mocked(api.getCampgrounds).mockResolvedValue([]);
       open();
-      await screen.findByRole("heading", { name: "Synthetic zero" });
+      expect(
+        await screen.findByRole("heading", { name: "Synthetic zero" }),
+      ).toHaveClass("break-words");
       expect(screen.queryByTestId("map")).not.toBeInTheDocument();
     },
   );

@@ -164,7 +164,9 @@ describe("InviteOnly", () => {
     expect(emailInput).toHaveValue("camper@example.test");
 
     await user.type(screen.getByLabelText("Name (optional)"), "Sam");
-    await user.click(screen.getByRole("button", { name: "Request Access" }));
+    const submit = screen.getByRole("button", { name: "Request Access" });
+    expect(submit).toHaveClass("min-h-11");
+    await user.click(submit);
 
     await waitFor(() => {
       expect(api.submitAccessRequest).toHaveBeenCalledWith({

@@ -86,9 +86,9 @@ export function ScanCard({
         className="block rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
+          <div className="flex flex-wrap items-start justify-between gap-y-2">
             <div className="min-w-0 flex-1 pr-2">
-              <CardTitle className="text-base truncate">
+              <CardTitle className="text-base break-words sm:truncate">
                 {toTitleCase(
                   scan.destination_name ||
                     scan.campground_name ||
@@ -106,12 +106,12 @@ export function ScanCard({
                 </p>
               )}
               {scan.recreation_area_name && scan.campground_name && (
-                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                <p className="text-xs text-muted-foreground break-words sm:truncate mt-0.5">
                   {toTitleCase(scan.recreation_area_name)}
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {isPastEnd && (
                 <Badge variant="warning" className="text-[10px] px-1.5 py-0">
                   Ended
@@ -196,7 +196,7 @@ export function ScanCard({
         </CardContent>
       </Link>
 
-      <CardFooter className="border-t pt-3 flex justify-between">
+      <CardFooter className="border-t pt-3 flex flex-wrap justify-between gap-2 [&_button[aria-label]]:min-h-11 [&_button[aria-label]]:min-w-11 sm:[&_button[aria-label]]:min-h-0 sm:[&_button[aria-label]]:min-w-0">
         <div className="flex items-center gap-2">
           <Switch
             id={`active-${scan.id}`}
@@ -251,7 +251,7 @@ export function ScanCard({
             </DialogDescription>
           </DialogHeader>
           {deleteError && (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="break-words text-sm text-destructive">
               {deleteError}
             </p>
           )}

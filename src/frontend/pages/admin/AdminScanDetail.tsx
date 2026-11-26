@@ -91,7 +91,7 @@ export function AdminScanDetail() {
         </Button>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
+            <h1 className="flex min-w-0 items-center gap-2 break-all text-2xl font-bold sm:text-3xl [&>svg]:shrink-0">
               {scan.destination_name ||
                 scan.campground_name ||
                 scan.recreation_area_name}
@@ -141,7 +141,7 @@ export function AdminScanDetail() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <span className="text-xs text-muted-foreground block">
                   Scan Owner
@@ -160,7 +160,7 @@ export function AdminScanDetail() {
                 {scan.target_id ? (
                   <Link
                     to={`/admin/targets/${scan.target_id}`}
-                    className="font-mono text-xs text-primary hover:underline flex items-center gap-1"
+                    className="min-w-0 break-all font-mono text-xs text-primary hover:underline flex items-center gap-1"
                   >
                     <Target className="h-3 w-3" /> {scan.target_id.slice(0, 8)}
                     ...
@@ -323,7 +323,7 @@ export function AdminScanDetail() {
           </Card>
         ) : (
           <div className="rounded-md border bg-card overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="min-w-0 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 border-b">
                   <tr>

@@ -161,7 +161,7 @@ export const ExploreMap = ({
   );
   const placeSummary = (item: MapSearchResult) => (
     <div className="space-y-2">
-      <h3 className="font-semibold">
+      <h3 className="break-words font-semibold">
         {toTitleCase(
           item.campground_name || item.recreation_area_name || "Place",
         )}
@@ -173,7 +173,7 @@ export const ExploreMap = ({
           ? ` · ${[item.city, item.state, item.country].filter(Boolean).join(", ")}`
           : ""}
       </p>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2 [&_a]:min-h-11 [&_button]:min-h-11 sm:[&_a]:min-h-0 sm:[&_button]:min-h-0">
         <Button size="sm" variant="outline" asChild>
           <Link to={detailUrl(item)}>Details</Link>
         </Button>
@@ -289,10 +289,10 @@ export const ExploreMap = ({
             placeSummary(selected.item)
           ) : (
             <>
-              <h3 className="font-semibold">
+              <h3 className="break-words font-semibold">
                 {selected.group.count} places in this group
               </h3>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2 [&_a]:min-h-11 [&_button]:min-h-11 sm:[&_a]:min-h-0 sm:[&_button]:min-h-0">
                 <Button
                   variant="outline"
                   size="sm"

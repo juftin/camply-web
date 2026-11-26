@@ -23,7 +23,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogBody,
+  DialogFooter,
   DialogDescription,
   DialogHeader,
   DialogTitle,
@@ -158,7 +161,7 @@ export function AdminOperations() {
       );
     }
     return (
-      <span className="font-mono text-xs">
+      <span className="min-w-0 break-all font-mono text-xs">
         {entityType}: {entityId.slice(0, 8)}…
       </span>
     );
@@ -175,7 +178,7 @@ export function AdminOperations() {
             15 seconds.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap">
           <Button
             size="sm"
             onClick={handleSyncProviders}
@@ -219,7 +222,7 @@ export function AdminOperations() {
 
       {/* Freshness and connection indicator */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/40 rounded-lg border text-sm mb-6">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5">
             <span className="font-medium text-muted-foreground">
               {standalone ? "Scheduler:" : "Task Queue:"}
@@ -463,7 +466,7 @@ export function AdminOperations() {
                 processes may be offline.
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="min-w-0 overflow-x-auto">
                 <p className="text-xs text-muted-foreground mb-3">
                   {standalone
                     ? "Background work runs in the application process."
@@ -669,7 +672,7 @@ export function AdminOperations() {
               No recent task results match these filters.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="min-w-0 overflow-x-auto">
               <table className="w-full min-w-[950px] text-sm">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground text-xs font-medium">
@@ -692,7 +695,7 @@ export function AdminOperations() {
                       className="hover:bg-muted/30"
                     >
                       <td className="py-2.5">
-                        <div className="font-mono text-xs font-medium">
+                        <div className="min-w-0 break-all font-mono text-xs font-medium">
                           {taskLabel(task.task_name)}
                         </div>
                         <div className="text-[11px] text-muted-foreground font-mono">
@@ -785,7 +788,7 @@ export function AdminOperations() {
                   {Math.min((page + 1) * pageSize, tasksData.total)} of{" "}
                   {tasksData.total}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -818,8 +821,8 @@ export function AdminOperations() {
           if (!open) setSelectedTask(null);
         }}
       >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
+        <DialogContent className="flex max-w-md flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="shrink-0 px-6 pb-4 pt-6 max-sm:pr-12">
             <DialogTitle className="text-base font-semibold">
               Task Execution Details
             </DialogTitle>
@@ -828,125 +831,144 @@ export function AdminOperations() {
             </DialogDescription>
           </DialogHeader>
 
-          {selectedTask && (
-            <div className="space-y-3 py-2 text-sm">
-              <div className="flex justify-between items-start border-b pb-2">
-                <span className="text-muted-foreground text-xs">Attempt:</span>
-                <span>{selectedTask.attempt ?? "Not recorded"}</span>
-              </div>
-              <div className="flex justify-between items-start border-b pb-2">
-                <span className="text-muted-foreground text-xs">Task ID:</span>
-                <span className="font-mono text-xs break-all text-right max-w-[240px]">
-                  {selectedTask.task_id}
-                </span>
-              </div>
-              <div className="flex justify-between items-start border-b pb-2">
-                <span className="text-muted-foreground text-xs">
-                  Task Name:
-                </span>
-                <div className="text-right">
-                  <div className="font-medium text-xs">
-                    {taskLabel(selectedTask.task_name)}
-                  </div>
-                  <div className="font-mono text-[11px] text-muted-foreground">
-                    {selectedTask.task_name}
-                  </div>
-                </div>
-              </div>
-              {taskDescription(selectedTask.task_name) && (
-                <div className="border-b pb-2">
-                  <div className="text-muted-foreground text-xs mb-1">
-                    Description:
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {taskDescription(selectedTask.task_name)}
-                  </p>
-                </div>
-              )}
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-muted-foreground text-xs">Provider:</span>
-                <span>
-                  {selectedTask.provider_name ? (
-                    <Badge variant="outline">
-                      {selectedTask.provider_name}
-                    </Badge>
-                  ) : selectedTask.provider_id ? (
-                    <Badge variant="outline">
-                      {selectedTask.provider_id === 1
-                        ? "Recreation.gov"
-                        : `Provider ${selectedTask.provider_id}`}
-                    </Badge>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">—</span>
-                  )}
-                </span>
-              </div>
-              {(selectedTask.search_name || selectedTask.search_dates) && (
+          <DialogBody className="break-words">
+            {selectedTask && (
+              <div className="space-y-3 py-2 text-sm [&>div]:gap-3 [&>div>*]:min-w-0">
                 <div className="flex justify-between items-start border-b pb-2">
                   <span className="text-muted-foreground text-xs">
-                    Search / Target:
+                    Attempt:
+                  </span>
+                  <span>{selectedTask.attempt ?? "Not recorded"}</span>
+                </div>
+                <div className="flex justify-between items-start border-b pb-2">
+                  <span className="text-muted-foreground text-xs">
+                    Task ID:
+                  </span>
+                  <span className="min-w-0 break-all font-mono text-xs break-all text-right max-w-[240px]">
+                    {selectedTask.task_id}
+                  </span>
+                </div>
+                <div className="flex justify-between items-start border-b pb-2">
+                  <span className="text-muted-foreground text-xs">
+                    Task Name:
                   </span>
                   <div className="text-right">
                     <div className="font-medium text-xs">
-                      {selectedTask.search_name}
+                      {taskLabel(selectedTask.task_name)}
                     </div>
-                    {selectedTask.search_dates && (
-                      <div className="text-xs text-muted-foreground font-mono">
-                        {selectedTask.search_dates}
-                      </div>
-                    )}
+                    <div className="font-mono text-[11px] text-muted-foreground">
+                      {selectedTask.task_name}
+                    </div>
                   </div>
                 </div>
-              )}
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-muted-foreground text-xs">
-                  Worker Node:
-                </span>
-                <span className="font-mono text-xs text-right">
-                  {selectedTask.worker}
-                </span>
-              </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-muted-foreground text-xs">Outcome:</span>
-                <span>{getOutcomeBadge(selectedTask.outcome)}</span>
-              </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-muted-foreground text-xs">Duration:</span>
-                <span className="font-mono text-xs">
-                  {formatDuration(selectedTask.duration_ms)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-muted-foreground text-xs">
-                  Finished At:
-                </span>
-                <span className="text-xs">
-                  {formatTimestamp(selectedTask.finished_at)}
-                </span>
-              </div>
-              {selectedTask.entity_type && (
+                {taskDescription(selectedTask.task_name) && (
+                  <div className="border-b pb-2">
+                    <div className="text-muted-foreground text-xs mb-1">
+                      Description:
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {taskDescription(selectedTask.task_name)}
+                    </p>
+                  </div>
+                )}
                 <div className="flex justify-between items-center border-b pb-2">
-                  <span className="text-muted-foreground text-xs">Entity:</span>
+                  <span className="text-muted-foreground text-xs">
+                    Provider:
+                  </span>
                   <span>
-                    {renderEntityLink(
-                      selectedTask.entity_type,
-                      selectedTask.entity_id,
+                    {selectedTask.provider_name ? (
+                      <Badge variant="outline">
+                        {selectedTask.provider_name}
+                      </Badge>
+                    ) : selectedTask.provider_id ? (
+                      <Badge variant="outline">
+                        {selectedTask.provider_id === 1
+                          ? "Recreation.gov"
+                          : `Provider ${selectedTask.provider_id}`}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
                     )}
                   </span>
                 </div>
-              )}
-              {selectedTask.reason && (
-                <div className="border-b pb-2">
-                  <div className="text-muted-foreground text-xs mb-1">
-                    Reason:
+                {(selectedTask.search_name || selectedTask.search_dates) && (
+                  <div className="flex justify-between items-start border-b pb-2">
+                    <span className="text-muted-foreground text-xs">
+                      Search / Target:
+                    </span>
+                    <div className="text-right">
+                      <div className="font-medium text-xs">
+                        {selectedTask.search_name}
+                      </div>
+                      {selectedTask.search_dates && (
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {selectedTask.search_dates}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="font-mono text-xs p-2 bg-muted rounded border text-muted-foreground">
-                    {selectedTask.reason}
-                  </div>
+                )}
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-muted-foreground text-xs">
+                    Worker Node:
+                  </span>
+                  <span className="min-w-0 break-all font-mono text-xs text-right">
+                    {selectedTask.worker}
+                  </span>
                 </div>
-              )}
-            </div>
-          )}
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-muted-foreground text-xs">
+                    Outcome:
+                  </span>
+                  <span>{getOutcomeBadge(selectedTask.outcome)}</span>
+                </div>
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-muted-foreground text-xs">
+                    Duration:
+                  </span>
+                  <span className="min-w-0 break-all font-mono text-xs">
+                    {formatDuration(selectedTask.duration_ms)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-muted-foreground text-xs">
+                    Finished At:
+                  </span>
+                  <span className="text-xs">
+                    {formatTimestamp(selectedTask.finished_at)}
+                  </span>
+                </div>
+                {selectedTask.entity_type && (
+                  <div className="flex justify-between items-center border-b pb-2">
+                    <span className="text-muted-foreground text-xs">
+                      Entity:
+                    </span>
+                    <span>
+                      {renderEntityLink(
+                        selectedTask.entity_type,
+                        selectedTask.entity_id,
+                      )}
+                    </span>
+                  </div>
+                )}
+                {selectedTask.reason && (
+                  <div className="border-b pb-2">
+                    <div className="text-muted-foreground text-xs mb-1">
+                      Reason:
+                    </div>
+                    <div className="min-w-0 break-all font-mono text-xs p-2 bg-muted rounded border text-muted-foreground">
+                      {selectedTask.reason}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogBody>
+          <DialogFooter className="shrink-0 border-t px-6 py-4">
+            <DialogClose asChild>
+              <Button variant="outline">Done</Button>
+            </DialogClose>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

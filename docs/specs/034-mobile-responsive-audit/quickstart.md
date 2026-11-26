@@ -6,7 +6,7 @@
 ## Prerequisites
 
 - Node >=24 and `pnpm` installed (`task frontend:install`)
-- Docker available for deterministic CI-parity Playwright snapshots (`task snapshot:docker`), or local Chromium system libraries for `task frontend:snapshot`
+- The project-locked Playwright Chromium build and its system libraries (`task frontend:browser:install`). Use the CI image's fonts locally to match baseline rendering.
 
 ## 1. Static Checks & Unit / Component Tests
 
@@ -29,14 +29,17 @@ task frontend:test
 
 ## 2. Automated Mobile Visual & Zero-Overflow Verification
 
-Update newly added or intentionally refined mobile baselines in the CI Playwright Docker container, then verify the entire baseline suite (both mobile and desktop):
+Run the mobile and desktop visual comparisons, the 26-route overflow sweep, and the overlay matrix with local Chromium.
 
 ```bash
-task snapshot:docker -- --update --filter mobile
-task snapshot:docker -- --check
+task frontend:browser:install
+task frontend:snapshot -- --check --filter mobile
+task frontend:snapshot -- --check --filter desktop
+task frontend:snapshot -- --overflow-only
+task frontend:snapshot -- --overlay-only
 ```
 
-To inspect visual diffs interactively in the local comparison gallery:
+Review visual diffs in the comparison gallery. For an intentional change, replace the affected baseline with its reviewed capture or run `task frontend:snapshot -- --update --filter <scenario>` and repeat its check.
 
 ```bash
 task snapshot:report

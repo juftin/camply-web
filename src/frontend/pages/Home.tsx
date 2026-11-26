@@ -43,7 +43,7 @@ export function Home() {
       <section className="py-20 px-4">
         <div className="container mx-auto text-center">
           <CamplyLogo variant="icon" height={96} className="mx-auto mb-8" />
-          <h1 className="text-5xl font-bold mb-6">
+          <h1 className="text-4xl font-bold mb-6 sm:text-5xl">
             Find Campsites at
             <span className="text-primary"> Sold-Out</span> Campgrounds
           </h1>
@@ -65,21 +65,21 @@ export function Home() {
           <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
             <Link
               to="/search?q=National+Park"
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
+              className="flex min-h-11 items-center gap-1 hover:text-foreground sm:min-h-0 transition-colors"
             >
               <MapPin className="h-4 w-4" />
               National Parks
             </Link>
             <Link
               to="/search?q=State+Park"
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
+              className="flex min-h-11 items-center gap-1 hover:text-foreground sm:min-h-0 transition-colors"
             >
               <MapPin className="h-4 w-4" />
               State Parks
             </Link>
             <Link
               to="/search"
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
+              className="flex min-h-11 items-center gap-1 hover:text-foreground sm:min-h-0 transition-colors"
             >
               <MapPin className="h-4 w-4" />
               All Campgrounds

@@ -23,7 +23,7 @@ export function Layout({ children }: LayoutProps) {
             <Link to="/" aria-label="camply home" className="mb-4 md:mb-0">
               <CamplyLogo height={32} />
             </Link>
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-5 md:gap-x-6 text-sm text-muted-foreground [&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center md:[&_a]:min-h-0">
               <a
                 href={`${import.meta.env.BASE_URL}docs/`}
                 className="hover:text-foreground"
