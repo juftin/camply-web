@@ -2,7 +2,7 @@
 
 **Feature**: `034-mobile-responsive-audit`
 **Date**: 2026-11-26
-**Spec**: [spec.md](spec.md)
+**Spec**: [spec.md](../spec.md)
 
 This contract defines the shared component interfaces, layout invariants, and automated verification gates that all audited routes and primitives must satisfy.
 
