@@ -2658,8 +2658,12 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
   if (scenario.action) {
     await scenario.action(page);
   }
-  if (scenario.name.startsWith("map-"))
+  if (scenario.name.startsWith("map-")) {
+    // Foreground the page before scrolling back to the map so Chromium paints
+    // the WebGL canvas even when other snapshot workers have opened tabs.
+    await page.bringToFront();
     await page.evaluate(() => window.scrollTo(0, 0));
+  }
   await waitForSnapshotAssets(page);
 
   if (scenario.overflowOnly) {
