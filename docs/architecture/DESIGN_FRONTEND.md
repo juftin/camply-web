@@ -25,3 +25,11 @@ The web client lives in `src/frontend/` and uses React 18, TypeScript, Vite 8, T
 Production frontend builds (`vite build`) compile VitePress docs under `docs/` and copy them into `dist/docs/` alongside the SPA bundle. In Python distributions, the Hatchling build hook embeds `build/frontend/` into `camply/server/static/` without staging generated files into Git-tracked source.
 
 Public map tile overrides (`VITE_MAP_TILE_URL`, `VITE_MAP_ATTRIBUTION_*`) are build-time environment variables documented in [Environment Variables](../operations/CONFIGURATION.md).
+
+## Responsive layout
+
+The sticky header switches from a Radix `Sheet` navigation drawer below 768 px to inline navigation at 768 px. The drawer traps focus, restores it to the menu button, and closes on navigation, Escape, or a backdrop click.
+
+Multi-field dialogs bound their height to the dynamic viewport. `DialogBody` scrolls between the header and actions. Date and campground pickers expand in the form flow on phones so their controls remain reachable inside that scroll area. The date picker limits its width to the available space, and form inputs and native selectors use at least 16 px type on phones to avoid Safari focus zoom.
+
+Admin Users, Invitations, and Scans render stacked cards below 768 px and tables at wider widths. Operational, trend, audit, and detail tables scroll inside their own containers. The Playwright snapshot runner checks document width for mobile capture states and sweeps all 26 production routes at 375, 390, and 768 px.

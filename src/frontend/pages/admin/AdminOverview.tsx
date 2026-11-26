@@ -74,7 +74,7 @@ export function AdminOverview() {
 
       {data.overdue_targets > 0 && (
         <div className="mb-6 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-amber-950/20 p-4 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
             <div>
               <p className="font-semibold text-sm">

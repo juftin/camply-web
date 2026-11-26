@@ -2,12 +2,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminUsers } from "./AdminUsers";
 import { AdminTargetDetail } from "./AdminTargetDetail";
 import { useAuth, AuthConfigContext, AuthProvider } from "@/hooks/useAuth";
 import * as api from "@/lib/api";
 import type { AdminUserItem, AdminTargetDetailResponse } from "@/lib/structs";
+
+afterEach(() => vi.unstubAllGlobals());
 
 vi.mock("@/lib/api", async (original) => ({
   ...(await original<typeof import("@/lib/api")>()),
@@ -111,19 +113,31 @@ function setup(path = "/admin/users") {
 }
 
 describe("Admin interactions", () => {
-  it("shows suspension failures and preserves the displayed state", async () => {
-    vi.mocked(api.updateAdminUser).mockRejectedValue(
-      new Error("Synthetic save failure"),
-    );
-    const browser = setup();
-    await browser.click(
-      await screen.findByRole("switch", { name: /Scanning access/ }),
-    );
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Synthetic save failure",
-    );
-    expect(screen.getByRole("switch")).toBeChecked();
-  });
+  it.each([false, true])(
+    "shows suspension failures and preserves the displayed state (mobile: %s)",
+    async (mobile) => {
+      vi.stubGlobal("matchMedia", () => ({
+        matches: mobile,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }));
+      vi.mocked(api.updateAdminUser).mockRejectedValue(
+        new Error("Synthetic save failure"),
+      );
+      const browser = setup();
+      await browser.click(
+        await screen.findByRole("switch", { name: /Scanning access/ }),
+      );
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Synthetic save failure",
+      );
+      expect(
+        screen.getByRole("switch", { name: /Scanning access/ }),
+      ).toBeChecked();
+      expect(Boolean(screen.queryByRole("table"))).toBe(!mobile);
+      if (mobile) expect(screen.getByRole("list")).toBeInTheDocument();
+    },
+  );
 
   it("paginates and resets pagination when a search changes", async () => {
     const browser = setup("/admin/users?status=suspended&page=1");

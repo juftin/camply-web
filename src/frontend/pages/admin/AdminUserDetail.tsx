@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
+  DialogBody,
   DialogHeader,
   DialogTitle,
   DialogDescription,
@@ -239,7 +240,7 @@ export function AdminUserDetail() {
         </Button>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
+            <h1 className="flex min-w-0 items-center gap-2 break-all text-2xl font-bold sm:text-3xl [&>svg]:shrink-0">
               {user.email}
               {user.is_admin ? (
                 <Badge variant="default" className="text-xs">
@@ -264,7 +265,7 @@ export function AdminUserDetail() {
             </p>
           </div>
           {authMode === "session" && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -292,38 +293,42 @@ export function AdminUserDetail() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="flex flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+          <DialogHeader className="shrink-0 px-6 pb-4 pt-6 max-sm:pr-12">
             <DialogTitle>Reset Password</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="break-words">
               Set a temporary password for {user.email}.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            {isResetPasswordOpen && (
-              <AdminPasswordInput
-                id="detail-reset-password"
-                label="New Temporary Password"
-                value={resetPassword}
-                onChange={setResetPassword}
-                disabled={resettingPassword}
-              />
-            )}
-            <div className="rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
-              The user will be required to create a new password immediately
-              upon their next sign-in.
-            </div>
-
-            {resetError && (
-              <div
-                role="alert"
-                className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
-              >
-                {resetError}
+          <form
+            onSubmit={handleResetPassword}
+            className="flex min-h-0 flex-col"
+          >
+            <DialogBody className="space-y-4 break-words">
+              {isResetPasswordOpen && (
+                <AdminPasswordInput
+                  id="detail-reset-password"
+                  label="New Temporary Password"
+                  value={resetPassword}
+                  onChange={setResetPassword}
+                  disabled={resettingPassword}
+                />
+              )}
+              <div className="rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
+                The user will be required to create a new password immediately
+                upon their next sign-in.
               </div>
-            )}
 
-            <DialogFooter className="gap-2 sm:gap-0">
+              {resetError && (
+                <div
+                  role="alert"
+                  className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+                >
+                  {resetError}
+                </div>
+              )}
+            </DialogBody>
+            <DialogFooter className="shrink-0 border-t px-6 py-4">
               <Button
                 type="button"
                 variant="outline"
@@ -364,7 +369,7 @@ export function AdminUserDetail() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <span className="text-xs text-muted-foreground block">
                   Email
@@ -375,7 +380,7 @@ export function AdminUserDetail() {
                 <span className="text-xs text-muted-foreground block">
                   Auth0 ID
                 </span>
-                <span className="font-mono text-xs">
+                <span className="min-w-0 break-all font-mono text-xs">
                   {user.auth0_id ?? "No Auth0 identity"}
                 </span>
               </div>
@@ -575,7 +580,7 @@ export function AdminUserDetail() {
           </Card>
         ) : (
           <div className="rounded-md border bg-card overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="min-w-0 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 border-b">
                   <tr>
@@ -631,7 +636,7 @@ export function AdminUserDetail() {
                           {s.start_date} → {s.end_date}
                         </td>
                         <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <Switch
                               aria-label={`Saved active scan at ${destination}`}
                               checked={s.is_active}

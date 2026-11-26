@@ -49,14 +49,15 @@ describe("ChangePasswordRequired", () => {
     renderComponent();
     expect(screen.getByText("Password Change Required")).toBeInTheDocument();
     expect(screen.getByText(/tempuser@example.com/)).toBeInTheDocument();
-    expect(
-      screen.getByLabelText(/Current \/ Temporary Password/i),
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/Current \/ Temporary Password/i)).toHaveClass(
+      "text-base",
+      "sm:text-sm",
+    );
     expect(screen.getByLabelText(/^New Password/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Confirm New Password/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Update Password" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Update Password" })).toHaveClass(
+      "min-h-11",
+    );
     expect(
       screen.getByRole("button", { name: "Sign Out" }),
     ).toBeInTheDocument();

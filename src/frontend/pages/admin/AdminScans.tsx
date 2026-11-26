@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminNav } from "@/components/AdminNav";
+import { useCompactAdminList } from "@/hooks/useCompactAdminList";
 import { useAdminLocation } from "@/hooks/useAdminLocation";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminFeedback } from "@/components/admin/AdminFeedback";
@@ -13,7 +14,10 @@ import { getApiErrorMessage } from "@/lib/api";
 import { parseDateTime } from "@/lib/utils";
 import { useAdminScans, useUpdateAdminScan } from "@/hooks/useAdmin";
 
+import type { AdminScanItem } from "@/lib/structs";
+
 export function AdminScans() {
+  const compact = useCompactAdminList();
   const { params, page, update, setPage } = useAdminLocation();
   const activeFilter = params.get("status") ?? "all";
   const eligibleFilter = params.get("eligibility") ?? "all";
@@ -70,6 +74,144 @@ export function AdminScans() {
     } finally {
       setUpdatingScanId(null);
     }
+  };
+
+  const renderRow = (s: AdminScanItem) => {
+    const isUpdating = updatingScanId === s.id;
+    const destination =
+      s.destination_name || s.campground_name || "Unknown Destination";
+
+    const owner = (
+      <>
+        <Link
+          to={`/admin/users/${s.user_id}`}
+          className="font-medium hover:underline text-foreground block"
+        >
+          {s.user_email}
+        </Link>
+        {!s.user_scanning_enabled && (
+          <Badge variant="warning" className="text-[10px] mt-0.5">
+            Scanning suspended
+          </Badge>
+        )}
+      </>
+    );
+    const place = (
+      <>
+        <div className="font-medium">{destination}</div>
+        <div className="text-xs text-muted-foreground">
+          {s.provider_id === 1 ? "Recreation.gov" : `Provider ${s.provider_id}`}
+          {s.destination_type === "recreation_area" && (
+            <>
+              {" · "}
+              {s.coverage_mode === "all"
+                ? "All campgrounds"
+                : "Selected campgrounds"}
+            </>
+          )}
+        </div>
+      </>
+    );
+    const dates = `${s.start_date} → ${s.end_date}`;
+    const setting = (
+      <div className="flex items-center gap-2">
+        <Switch
+          aria-label={`Saved active scan for ${s.user_email} at ${destination}`}
+          checked={s.is_active}
+          disabled={isUpdating || updateScanMutation.isPending}
+          onCheckedChange={() =>
+            handleToggleScan(s.id, s.is_active, s.user_scanning_enabled)
+          }
+        />
+        <span className="text-xs">{s.is_active ? "Active" : "Paused"}</span>
+      </div>
+    );
+    const eligibility = s.is_eligible ? (
+      <Badge variant="success" className="text-xs">
+        Eligible
+      </Badge>
+    ) : (
+      <Badge variant="secondary" className="text-xs">
+        {s.user_scanning_enabled ? "Scan paused" : "Owner scanning suspended"}
+      </Badge>
+    );
+    const lastChecked = s.last_checked_at ? (
+      <>
+        <time dateTime={s.last_checked_at}>
+          {parseDateTime(s.last_checked_at).toLocaleString()}
+        </time>
+        <p className="text-muted-foreground">
+          {Math.max(
+            0,
+            Math.floor(
+              (Date.now() - parseDateTime(s.last_checked_at).getTime()) / 1000,
+            ),
+          )}
+          s ago
+        </p>
+      </>
+    ) : (
+      "Never"
+    );
+    const target = (
+      <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
+        <Link
+          to={
+            s.target_id
+              ? `/admin/targets/${s.target_id}`
+              : `/admin/scans/${s.id}`
+          }
+          className="gap-1"
+        >
+          <Target className="h-3 w-3 text-primary" /> Target
+        </Link>
+      </Button>
+    );
+    const actions = (
+      <Button asChild variant="ghost" size="sm">
+        <Link
+          to={`/admin/scans/${s.id}`}
+          className="inline-flex items-center gap-1"
+        >
+          Details <ExternalLink className="h-3 w-3" />
+        </Link>
+      </Button>
+    );
+    if (compact) {
+      return (
+        <li
+          key={s.id}
+          className="min-w-0 break-words space-y-2 p-4 [&_a]:min-h-11 [&_button:not([role=switch])]:min-h-11 [&_button[role=switch]]:relative [&_button[role=switch]]:before:absolute [&_button[role=switch]]:before:-inset-y-3 [&_button[role=switch]]:before:inset-x-0"
+        >
+          {place}
+          {owner}
+          <p className="text-sm">{dates}</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {setting}
+            {eligibility}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Last checked {lastChecked}
+          </div>
+          <div className="flex items-center gap-2">
+            {target}
+            {actions}
+          </div>
+        </li>
+      );
+    }
+    return (
+      <tr key={s.id} className="hover:bg-muted/30 transition-colors">
+        <td className="py-3 px-4">{owner}</td>
+        <td className="py-3 px-4">{place}</td>
+        <td className="py-3 px-4 text-xs whitespace-nowrap">{dates}</td>
+        <td className="py-3 px-4">{setting}</td>
+        <td className="py-3 px-4">{eligibility}</td>
+        <td className="py-3 px-4 text-xs">{lastChecked}</td>
+        <td className="py-3 px-4">{target}</td>
+        <td className="py-3 px-4 text-right">{actions}</td>
+      </tr>
+    );
   };
 
   return (
@@ -210,171 +352,40 @@ export function AdminScans() {
           />
         </Card>
       ) : (
-        <div className="rounded-md border bg-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 border-b">
-                <tr>
-                  <th className="py-3 px-4 text-left font-medium">Owner</th>
-                  <th className="py-3 px-4 text-left font-medium">
-                    Campground
-                  </th>
-                  <th className="py-3 px-4 text-left font-medium">Dates</th>
-                  <th className="py-3 px-4 text-left font-medium">
-                    Scan setting
-                  </th>
-                  <th className="py-3 px-4 text-left font-medium">
-                    Eligibility
-                  </th>
-                  <th className="py-3 px-4 text-left font-medium">
-                    Last Checked
-                  </th>
-                  <th className="py-3 px-4 text-left font-medium">Target</th>
-                  <th className="py-3 px-4 text-right font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {data.scans.map((s) => {
-                  const isUpdating = updatingScanId === s.id;
-                  const destination =
-                    s.destination_name ||
-                    s.campground_name ||
-                    "Unknown Destination";
-                  return (
-                    <tr
-                      key={s.id}
-                      className="hover:bg-muted/30 transition-colors"
-                    >
-                      <td className="py-3 px-4">
-                        <Link
-                          to={`/admin/users/${s.user_id}`}
-                          className="font-medium hover:underline text-foreground block"
-                        >
-                          {s.user_email}
-                        </Link>
-                        {!s.user_scanning_enabled && (
-                          <Badge
-                            variant="warning"
-                            className="text-[10px] mt-0.5"
-                          >
-                            Scanning suspended
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="font-medium">{destination}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {s.provider_id === 1
-                            ? "Recreation.gov"
-                            : `Provider ${s.provider_id}`}
-                          {s.destination_type === "recreation_area" && (
-                            <>
-                              {" · "}
-                              {s.coverage_mode === "all"
-                                ? "All campgrounds"
-                                : "Selected campgrounds"}
-                            </>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-xs whitespace-nowrap">
-                        {s.start_date} → {s.end_date}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            aria-label={`Saved active scan for ${s.user_email} at ${destination}`}
-                            checked={s.is_active}
-                            disabled={
-                              isUpdating || updateScanMutation.isPending
-                            }
-                            onCheckedChange={() =>
-                              handleToggleScan(
-                                s.id,
-                                s.is_active,
-                                s.user_scanning_enabled,
-                              )
-                            }
-                          />
-                          <span className="text-xs">
-                            {s.is_active ? "Active" : "Paused"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        {s.is_eligible ? (
-                          <Badge variant="success" className="text-xs">
-                            Eligible
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs">
-                            {s.user_scanning_enabled
-                              ? "Scan paused"
-                              : "Owner scanning suspended"}
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-xs">
-                        {s.last_checked_at ? (
-                          <>
-                            <time dateTime={s.last_checked_at}>
-                              {parseDateTime(
-                                s.last_checked_at,
-                              ).toLocaleString()}
-                            </time>
-                            <p className="text-muted-foreground">
-                              {Math.max(
-                                0,
-                                Math.floor(
-                                  (Date.now() -
-                                    parseDateTime(
-                                      s.last_checked_at,
-                                    ).getTime()) /
-                                    1000,
-                                ),
-                              )}
-                              s ago
-                            </p>
-                          </>
-                        ) : (
-                          "Never"
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs"
-                        >
-                          <Link
-                            to={
-                              s.target_id
-                                ? `/admin/targets/${s.target_id}`
-                                : `/admin/scans/${s.id}`
-                            }
-                            className="gap-1"
-                          >
-                            <Target className="h-3 w-3 text-primary" /> Target
-                          </Link>
-                        </Button>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <Button asChild variant="ghost" size="sm">
-                          <Link
-                            to={`/admin/scans/${s.id}`}
-                            className="inline-flex items-center gap-1"
-                          >
-                            Details <ExternalLink className="h-3 w-3" />
-                          </Link>
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        <div className="min-w-0 rounded-md border bg-card overflow-hidden">
+          {compact ? (
+            <ul aria-label="Scans" className="divide-y md:hidden">
+              {data.scans.map(renderRow)}
+            </ul>
+          ) : (
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 border-b">
+                  <tr>
+                    <th className="py-3 px-4 text-left font-medium">Owner</th>
+                    <th className="py-3 px-4 text-left font-medium">
+                      Campground
+                    </th>
+                    <th className="py-3 px-4 text-left font-medium">Dates</th>
+                    <th className="py-3 px-4 text-left font-medium">
+                      Scan setting
+                    </th>
+                    <th className="py-3 px-4 text-left font-medium">
+                      Eligibility
+                    </th>
+                    <th className="py-3 px-4 text-left font-medium">
+                      Last Checked
+                    </th>
+                    <th className="py-3 px-4 text-left font-medium">Target</th>
+                    <th className="py-3 px-4 text-right font-medium">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">{data.scans.map(renderRow)}</tbody>
+              </table>
+            </div>
+          )}
           <AdminPagination
             page={page}
             pageSize={pageSize}

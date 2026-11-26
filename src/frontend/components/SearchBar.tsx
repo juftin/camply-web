@@ -138,7 +138,7 @@ export function SearchBar({
     <div className={className}>
       <div className="relative" ref={searchRef}>
         <div className="flex gap-3">
-          <div className="relative flex-1">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
             <Input
               ref={inputRef}
@@ -151,13 +151,14 @@ export function SearchBar({
                   setIsDropdownOpen(true);
                 }
               }}
-              className="pl-12 h-12 text-lg bg-gray-50 border-gray-300 dark:bg-background dark:border-border"
+              className="pl-12 h-12 text-lg sm:h-12 sm:text-lg bg-gray-50 border-gray-300 dark:bg-background dark:border-border"
             />
           </div>
         </div>
 
         {/* Search Dropdown */}
         <SearchDropdown
+          anchorRef={searchRef}
           results={searchResults}
           isLoading={isLoading}
           error={error}

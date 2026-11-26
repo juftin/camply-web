@@ -90,7 +90,11 @@ beforeEach(() => {
 describe("Profile", () => {
   it("renders the user's email", () => {
     renderProfile();
-    expect(screen.getByDisplayValue("test@example.com")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("test@example.com")).toHaveClass(
+      "min-w-0",
+      "text-base",
+      "sm:text-sm",
+    );
   });
 
   it("renders the pushover key input", () => {

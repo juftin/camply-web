@@ -13,13 +13,20 @@ import http from "http";
 import os from "os";
 import { fileURLToPath } from "url";
 import { spawn, execSync, type ChildProcess } from "child_process";
-import { chromium, type Browser, type Page } from "@playwright/test";
+import {
+  chromium,
+  type Browser,
+  type Locator,
+  type Page,
+} from "@playwright/test";
 import { PNG } from "pngjs";
 import { setupAdminSnapshotMocks } from "./admin-snapshot-mocks";
 import { destinationDetails } from "../test/destination-details";
 import {
   navigateToSnapshot,
   waitForSnapshotAssets,
+  waitForSnapshotContent,
+  type SnapshotReadyContent,
 } from "./snapshot-navigation";
 import {
   generateHtmlReport,
@@ -67,6 +74,12 @@ interface Scenario {
   missingMeasurements?: boolean;
   manyCampsites?: boolean;
   enrichment?: boolean;
+  overflowOnly?: boolean;
+  readyContent?: SnapshotReadyContent;
+  authState?: "signup" | "forced-password";
+  longValues?: boolean;
+  reducedMotion?: boolean;
+  touch?: boolean;
   action?: (page: Page) => Promise<void>;
 }
 
@@ -1139,6 +1152,607 @@ for (const mobile of [false, true]) {
   });
 }
 
+const compactPhone = { width: 375, height: 667 };
+const phone = { width: 390, height: 844 };
+
+const desktopScenariosWithMobile = [
+  ["auth", "light"],
+  ["providers", "light"],
+  ["how-it-works", "dark"],
+  ["faq", "light"],
+  ["ethos", "light"],
+  ["home-search-dropdown", "light"],
+  ["map-selected", "dark"],
+  ["dashboard-empty", "light"],
+  ["scan-form-dialog", "light", compactPhone],
+  ["scan-form-checkin-calendar", "light", compactPhone],
+  ["scan-form-checkout-calendar", "dark", compactPhone],
+  ["scan-delete-error", "dark"],
+  ["admin-users", "light"],
+  ["admin-create-user-password", "dark"],
+  ["admin-user-detail", "light"],
+  ["admin-user-detail-reset-password", "dark"],
+  ["admin-scans", "dark"],
+  ["admin-scan-detail", "light"],
+  ["admin-target-detail", "dark"],
+  ["admin-audit", "light"],
+  ["admin-api-trends-table", "dark"],
+] as const;
+
+for (const [name, theme, viewport = phone] of desktopScenariosWithMobile) {
+  const desktop = SCENARIOS.find(({ name: source }) =>
+    source.startsWith(`${name}-desktop-`),
+  );
+  if (!desktop) throw new Error(`Missing desktop snapshot for ${name}`);
+  SCENARIOS.push({
+    ...desktop,
+    name: `${name}-mobile-${theme}`,
+    viewport,
+    theme,
+    description: desktop.description.replace(/ \(Desktop, (Light|Dark)\)$/, ""),
+  });
+}
+
+for (const [route, theme, description] of [
+  ["/contact", "light", "Contact form"],
+  ["/contribute", "dark", "Community contribution options"],
+  ["/privacy", "light", "Privacy policy"],
+  ["/terms", "dark", "Terms of service"],
+  ["/admin/invitations", "light", "Invitation cards with review actions"],
+] as const) {
+  SCENARIOS.push({
+    name: `${route.slice(1).replace("/", "-")}-mobile-${theme}`,
+    route,
+    viewport: phone,
+    theme,
+    description,
+  });
+}
+
+SCENARIOS.push(
+  {
+    name: "mobile-nav-drawer-mobile-dark",
+    route: "/",
+    viewport: phone,
+    theme: "dark",
+    description: "Open mobile navigation drawer",
+    action: async (page) => {
+      const trigger = page.getByRole("button", { name: "Toggle mobile menu" });
+      const drawer = page.getByRole("dialog", { name: "Navigation" });
+      await trigger.click();
+      await drawer.waitFor();
+      await page.keyboard.press("Escape");
+      await drawer.waitFor({ state: "hidden" });
+      await trigger.click();
+      await drawer.waitFor();
+      await page.mouse.click(4, 44);
+      await drawer.waitFor({ state: "hidden" });
+      await trigger.click();
+      await drawer.waitFor();
+    },
+  },
+  {
+    name: "profile-mobile-light",
+    route: "/profile",
+    viewport: phone,
+    theme: "light",
+    description: "Pushover settings and active sessions",
+    action: async (page) => {
+      await page.getByText("Active Sessions", { exact: true }).waitFor();
+      await page.getByRole("button", { name: "Revoke" }).first().waitFor();
+    },
+  },
+);
+
+async function openTaskDetails(page: Page) {
+  const details = page
+    .getByRole("button", { name: "Details", exact: true })
+    .first();
+  await details.click();
+  const dialog = page.getByRole("dialog", { name: "Task Execution Details" });
+  await dialog.waitFor();
+  return dialog;
+}
+
+SCENARIOS.push(
+  {
+    name: "auth-signup-mobile-dark",
+    route: "/auth?mode=signup",
+    viewport: phone,
+    theme: "dark",
+    authState: "signup",
+    description: "App signup handoff to Auth0",
+    action: async (page) => {
+      const authorize = page.waitForRequest(
+        "https://auth.snapshot.test/authorize?*",
+      );
+      await page
+        .getByRole("button", { name: "Create Account", exact: true })
+        .click();
+      const request = await authorize;
+      if (new URL(request.url()).searchParams.get("screen_hint") !== "signup") {
+        throw new Error("Signup did not send the Auth0 signup hint");
+      }
+    },
+  },
+  {
+    name: "auth-forced-password-mobile-light",
+    route: "/dashboard",
+    viewport: compactPhone,
+    theme: "light",
+    authState: "forced-password",
+    emptyScans: true,
+    description: "Required session password rotation and inline validation",
+    action: async (page) => {
+      await page
+        .getByLabel("Current / Temporary Password")
+        .fill("SyntheticCurrent!");
+      await page
+        .getByLabel("New Password", { exact: true })
+        .fill("SyntheticNew!");
+      await page.getByLabel("Confirm New Password").fill("SyntheticMismatch!");
+      await page.getByRole("button", { name: "Update Password" }).click();
+      await page.getByRole("alert").filter({ hasText: /match/i }).waitFor();
+    },
+  },
+  {
+    name: "admin-operations-task-detail-mobile-dark",
+    route: "/admin/operations",
+    viewport: compactPhone,
+    theme: "dark",
+    description: "Operations task details with pinned dismissal action",
+    action: async (page) => {
+      const dialog = await openTaskDetails(page);
+      await dialog.getByRole("button", { name: "Done" }).click();
+      await dialog.waitFor({ state: "hidden" });
+      await openTaskDetails(page);
+    },
+  },
+);
+
+// Use a success-only landmark or fixture value, including on routes whose
+// loading and error views repeat the page title.
+const AUDIT_ROUTES = [
+  ["/", "Find Campsites at Sold-Out Campgrounds"],
+  ["/search?q=yosemite", "Upper Pines Campground", "text"],
+  ["/providers", "Supported Providers"],
+  ["/how-it-works", "How camply Works"],
+  ["/faq", "Frequently Asked Questions"],
+  ["/contact", "Get in Touch"],
+  ["/ethos", "Making the Great Outdoors Accessible to All"],
+  ["/contribute", "Contribute to camply"],
+  ["/privacy", "Privacy Policy"],
+  ["/terms", "Terms of Service"],
+  ["/auth", "Sign In"],
+  ["/invite-only", "Request Access", "button"],
+  ["/dashboard", "Upper Pines Campground"],
+  ["/dashboard/scans/scan-mock-1", "Found campsites"],
+  ["/profile", "Notification provider", "combobox"],
+  ["/campground/1/232447", "Upper Pines Campground"],
+  ["/rec-area/1/2991", "Yosemite National Park"],
+  ["/admin", "Shared Targets"],
+  ["/admin/users", "camper@example.test", "text"],
+  ["/admin/users/user-snap-2", "Account Profile & Status"],
+  ["/admin/invitations", "hiker@example.test", "text"],
+  ["/admin/scans", "Upper Pines Campground", "text"],
+  ["/admin/scans/scan-mock-1", "Scan Configuration"],
+  ["/admin/targets/target-mock-1", "Shared Availability Target"],
+  ["/admin/operations", "celery@worker-1", "text"],
+  ["/admin/audit", "admin@example.test", "text"],
+] as const satisfies readonly (readonly [
+  string,
+  string,
+  SnapshotReadyContent["role"]?,
+])[];
+
+const OVERFLOW_SWEEP: Scenario[] = AUDIT_ROUTES.flatMap(([route, name, role]) =>
+  [{ width: 375, height: 812 }, phone, { width: 768, height: 1024 }].map(
+    (viewport) => ({
+      name: `overflow-${viewport.width}-${route === "/" ? "home" : route.slice(1)}`,
+      route,
+      viewport,
+      theme: "light",
+      description: `Document overflow check for ${route}`,
+      overflowOnly: true,
+      readyContent: { name, role },
+    }),
+  ),
+);
+
+async function assertViewportBounds(locator: Locator) {
+  await locator.waitFor();
+  const bounds = await locator.evaluate((element) => {
+    const { top, left, bottom, right } = element.getBoundingClientRect();
+    return { top, left, bottom, right, width: innerWidth, height: innerHeight };
+  });
+  if (
+    bounds.top < -1 ||
+    bounds.left < -1 ||
+    bounds.right > bounds.width + 1 ||
+    bounds.bottom > bounds.height + 1
+  ) {
+    throw new Error(
+      `Element exceeds viewport bounds: ${JSON.stringify(bounds)}`,
+    );
+  }
+}
+
+async function assertPinnedDialog(dialog: Locator, requireScroll = false) {
+  await assertViewportBounds(dialog);
+  const header = dialog.locator("[data-dialog-header]");
+  const footer = dialog.locator("[data-dialog-footer]");
+  const close = dialog.getByRole("button", { name: "Close", exact: true });
+  const body = dialog.locator("[data-dialog-body]");
+  const initial = await Promise.all([
+    header.boundingBox(),
+    footer.boundingBox(),
+    close.boundingBox(),
+  ]);
+  const scrollTop = await body.evaluate((element) => {
+    if (element.scrollWidth > element.clientWidth) {
+      throw new Error("Dialog body scrolls horizontally");
+    }
+    element.scrollTop = element.scrollHeight;
+    return element.scrollTop;
+  });
+  if (requireScroll && scrollTop === 0)
+    throw new Error("Expected the dialog body to scroll");
+  const scrolled = await Promise.all([
+    header.boundingBox(),
+    footer.boundingBox(),
+    close.boundingBox(),
+  ]);
+  if (
+    initial.some(
+      (box, index) =>
+        !box || !scrolled[index] || Math.abs(box.y - scrolled[index].y) > 1,
+    )
+  ) {
+    throw new Error(
+      "Dialog header, footer, or close button moved while scrolling",
+    );
+  }
+  for (const part of [header, footer, close]) await assertViewportBounds(part);
+  await body.evaluate((element) => {
+    element.scrollTop = 0;
+  });
+}
+
+async function assertTouchTarget(button: Locator) {
+  const box = await button.boundingBox();
+  if (!box || box.width < 44 || box.height < 44)
+    throw new Error("Expected a 44 × 44px touch target");
+  await button.focus();
+  if (
+    !(await button.evaluate((element) => element.matches(":focus-visible")))
+  ) {
+    throw new Error("Expected a keyboard-visible focus state");
+  }
+}
+
+const overlayChecks: Omit<Scenario, "viewport" | "theme">[] = [
+  {
+    name: "scan-calendars",
+    route: "/dashboard",
+    description: "Pinned scan actions and reachable calendars",
+    action: async (page) => {
+      await page.getByRole("button", { name: "New Scan", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Create a New Scan" });
+      await assertPinnedDialog(dialog, page.viewportSize()!.height === 667);
+      for (const field of ["Check-in", "Check-out"]) {
+        const trigger = dialog.getByLabel(field, { exact: true });
+        await trigger.click();
+        const calendar = dialog.getByRole("dialog", { name: "Choose a date" });
+        const select = calendar.getByRole("combobox", { name: "Select month" });
+        await select.click({ trial: true });
+        await assertViewportBounds(select);
+        const option = calendar
+          .getByRole("button", { name: /^\d+$/ })
+          .and(calendar.locator("button:enabled"))
+          .first();
+        await option.click({ trial: true });
+        await assertViewportBounds(option);
+        await page.keyboard.press("Escape");
+        await calendar.waitFor({ state: "hidden" });
+      }
+      await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+      await dialog.waitFor({ state: "hidden" });
+    },
+  },
+  {
+    name: "coverage",
+    route: "/rec-area/1/2991",
+    longValues: true,
+    description: "Long destination title and area choices",
+    action: async (page) => {
+      await page
+        .getByRole("button", { name: "Monitor recreation area" })
+        .click();
+      const dialog = page.getByRole("dialog", { name: "Create a New Scan" });
+      await assertPinnedDialog(dialog);
+      await dialog.getByLabel("Selected campgrounds").click();
+      await dialog.getByRole("button", { name: "Select campgrounds…" }).click();
+      const choice = dialog.getByRole("checkbox", {
+        name: "Upper Pines Campground",
+      });
+      await choice.click();
+      await assertViewportBounds(choice);
+      await page.keyboard.press("Escape");
+      await dialog
+        .getByRole("button", { name: "Upper Pines Campground", exact: true })
+        .waitFor();
+    },
+  },
+  {
+    name: "task-detail",
+    route: "/admin/operations",
+    longValues: true,
+    description: "Pinned task details with long worker metadata",
+    action: async (page) => {
+      const dialog = await openTaskDetails(page);
+      await assertPinnedDialog(dialog);
+      await dialog.getByRole("button", { name: "Done" }).click();
+      await dialog.waitFor({ state: "hidden" });
+    },
+  },
+  {
+    name: "admin-passwords",
+    route: "/admin/users",
+    description: "Pinned create and reset password actions",
+    action: async (page) => {
+      for (const [trigger, title] of [
+        ["Create User", "Create User"],
+        ["Reset password for camper@example.test", "Reset Password"],
+      ]) {
+        await page.getByRole("button", { name: trigger, exact: true }).click();
+        const dialog = page.getByRole("dialog", { name: title, exact: true });
+        await revealSnapshotPassword(page);
+        await assertPinnedDialog(dialog);
+        await dialog
+          .getByRole("button", { name: "Copy password" })
+          .click({ trial: true });
+        await dialog.getByRole("button", { name: "Cancel" }).click();
+        await dialog.waitFor({ state: "hidden" });
+      }
+    },
+  },
+  {
+    name: "profile-long-values",
+    route: "/profile",
+    longValues: true,
+    description: "Long notification and session values",
+    action: async (page) => {
+      const server = page.getByLabel("Your ntfy server URL");
+      await server.scrollIntoViewIfNeeded();
+      await assertViewportBounds(server);
+      for (const field of [
+        server,
+        page.getByLabel("Your ntfy topic"),
+        page.getByLabel("Access token (optional)"),
+      ]) {
+        if ((await field.inputValue()).length < 100)
+          throw new Error("Expected a long notification fixture");
+      }
+      const device = page.getByTitle("SyntheticAgent".repeat(30), {
+        exact: true,
+      });
+      await device.scrollIntoViewIfNeeded();
+      await assertViewportBounds(device);
+      for (const name of [
+        "Copy ntfy server URL",
+        "Copy ntfy topic",
+        "Save notification settings",
+        "Send test notification",
+        "Revoke",
+      ]) {
+        const action = page.getByRole("button", { name, exact: true }).first();
+        await action.scrollIntoViewIfNeeded();
+        await assertViewportBounds(action);
+      }
+    },
+  },
+  {
+    name: "header",
+    route: "/",
+    reducedMotion: true,
+    description: "Touch targets and reduced-motion navigation",
+    action: async (page) => {
+      if (page.viewportSize()!.width >= 768) {
+        await page
+          .getByRole("navigation")
+          .getByRole("link", { name: "Explore" })
+          .waitFor();
+        return;
+      }
+      await assertTouchTarget(
+        page.getByRole("button", { name: "Close banner" }),
+      );
+      await page.getByRole("button", { name: "Toggle mobile menu" }).click();
+      const drawer = page.getByRole("dialog", { name: "Navigation" });
+      await assertViewportBounds(drawer);
+      await page.keyboard.press("Escape");
+      await drawer.waitFor({ state: "hidden" });
+    },
+  },
+  {
+    name: "results-controls",
+    route: "/dashboard/scans/scan-mock-1",
+    description: "Mobile sort and view control ergonomics",
+    action: async (page) => {
+      if (page.viewportSize()!.width >= 640) return;
+      const sort = page.getByRole("combobox", { name: "Sort campsites" });
+      if (
+        (await sort.evaluate((element) =>
+          parseFloat(getComputedStyle(element).fontSize),
+        )) < 16
+      ) {
+        throw new Error("Campsite sort must use at least 16px type on phones");
+      }
+      for (const name of ["Cards", "Grid"])
+        await assertTouchTarget(
+          page.getByRole("button", { name, exact: true }),
+        );
+    },
+  },
+  {
+    name: "reduced-dialogs",
+    route: "/dashboard",
+    reducedMotion: true,
+    description: "Reduced-motion dialog and calendar transitions",
+    action: async (page) => {
+      await page.getByRole("button", { name: "New Scan", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Create a New Scan" });
+      await dialog.getByLabel("Check-in", { exact: true }).click();
+      const calendar = dialog.getByRole("dialog", { name: "Choose a date" });
+      for (const overlay of [dialog, calendar]) {
+        if (
+          (await overlay.evaluate(
+            (element) => getComputedStyle(element).animationName,
+          )) !== "none"
+        ) {
+          throw new Error("Dialog or date picker animated with reduced motion");
+        }
+      }
+      await page.keyboard.press("Escape");
+      await calendar.waitFor({ state: "hidden" });
+      await page.keyboard.press("Escape");
+      await dialog.waitFor({ state: "hidden" });
+    },
+  },
+];
+
+for (const [name, baselineName] of [
+  ["photo-viewer", "enrichment-dialog-mobile-dark"],
+  ["delete-error", "scan-delete-error-mobile-dark"],
+  ["edit-scan", "scan-edit-dialog-mobile-dark"],
+] as const) {
+  const baseline = SCENARIOS.find((scenario) => scenario.name === baselineName);
+  if (!baseline) throw new Error(`Missing snapshot for ${name}`);
+  overlayChecks.push({
+    ...baseline,
+    name,
+    action: async (page) => {
+      await baseline.action?.(page);
+      const dialog = page.getByRole("dialog");
+      if (name === "edit-scan") await assertPinnedDialog(dialog);
+      else await assertViewportBounds(dialog);
+    },
+  });
+}
+
+const OVERLAY_SWEEP: Scenario[] = overlayChecks.flatMap((scenario) =>
+  [compactPhone, phone, { width: 768, height: 1024 }].flatMap((viewport) =>
+    (["light", "dark"] as const).map((theme) => ({
+      ...scenario,
+      name: `overlay-${scenario.name}-${viewport.width}-${theme}`,
+      viewport,
+      theme,
+      overflowOnly: true,
+    })),
+  ),
+);
+
+const compactScan = overlayChecks.find(
+  ({ name }) => name === "scan-calendars",
+)!;
+OVERLAY_SWEEP.push({
+  ...compactScan,
+  name: "overlay-scan-calendars-360-light",
+  viewport: { width: 360, height: 667 },
+  theme: "light",
+  overflowOnly: true,
+});
+
+for (const viewport of [compactPhone, phone]) {
+  OVERLAY_SWEEP.push({
+    name: `overlay-home-autocomplete-${viewport.width}`,
+    route: "/",
+    viewport,
+    theme: viewport.width === 375 ? "light" : "dark",
+    description:
+      "Home suggestions stay visible and tappable with long result text",
+    overflowOnly: true,
+    longValues: true,
+    reducedMotion: true,
+    touch: true,
+    action: async (page) => {
+      const input = page.getByPlaceholder("Search campgrounds...");
+      const panel = page.locator("[data-search-suggestions]");
+      await input.fill("Yosemite".repeat(24));
+      const first = panel.getByText("Synthetic Camp 1", { exact: true });
+      const last = panel.getByText("Synthetic Camp 8", { exact: true });
+      await first.waitFor();
+      // Put the search field near the bottom of the visible viewport.
+      await input.evaluate((element) => {
+        const bottom = element.getBoundingClientRect().bottom;
+        window.scrollBy(0, bottom - (innerHeight - 24));
+      });
+      await assertViewportBounds(panel);
+      const anchorBounds = (await input.boundingBox())!;
+      const panelBounds = (await panel.boundingBox())!;
+      if (panelBounds.y + panelBounds.height > anchorBounds.y) {
+        throw new Error("Autocomplete did not flip above the search field");
+      }
+      await panel.evaluate((element) => {
+        const original = element.scrollTo.bind(element);
+        element.scrollTo = (options?: number | ScrollToOptions, y?: number) => {
+          if (typeof options === "number") {
+            original(options, y ?? 0);
+          } else {
+            element.setAttribute(
+              "data-scroll-behavior",
+              options?.behavior ?? "",
+            );
+            original(options);
+          }
+        };
+      });
+      // ArrowUp wraps from the unselected input to the last result.
+      await input.press("ArrowUp");
+      await page.waitForFunction(
+        () => {
+          const panel = document.querySelector("[data-search-suggestions]");
+          return panel?.getAttribute("data-scroll-behavior") === "instant";
+        },
+        undefined,
+        { timeout: 3000 },
+      );
+      const styles = await panel.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          overflow: element.scrollWidth - element.clientWidth,
+          duration: style.transitionDuration,
+          transform: style.transform,
+        };
+      });
+      if (
+        styles.overflow > 1 ||
+        styles.duration !== "0s" ||
+        styles.transform !== "none"
+      ) {
+        throw new Error(
+          `Autocomplete overflows or animates with reduced motion: ${JSON.stringify(styles)}`,
+        );
+      }
+      const visible = await last.evaluate((element) => {
+        const panel = element
+          .closest("[data-search-suggestions]")!
+          .getBoundingClientRect();
+        const row = element.getBoundingClientRect();
+        return row.top >= panel.top && row.bottom <= panel.bottom;
+      });
+      if (!visible) throw new Error("Keyboard-selected result is clipped");
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await panel.waitFor({ state: "hidden" });
+      await input.scrollIntoViewIfNeeded();
+      await assertViewportBounds(panel);
+      await last.tap();
+      await page.waitForURL("**/campground/1/232447");
+      await page.goBack();
+    },
+  });
+}
+
 /**
  * Mock data used for consistent and deterministic rendering.
  */
@@ -1517,20 +2131,28 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
       route.fulfill({ contentType: "image/png", body: PNG.sync.write(image) }),
     );
   }
-  const invitationRequired = scenario.name.startsWith("early-access-");
-  const signedOut = scenario.route === "/auth";
+  const invitationRequired =
+    scenario.name.startsWith("early-access-") ||
+    scenario.route === "/invite-only";
+  const signedOut = scenario.route.split("?")[0] === "/auth";
+  const signup = scenario.authState === "signup";
+  if (signup) {
+    await page.route("https://auth.snapshot.test/authorize?*", (route) =>
+      route.fulfill({ status: 204 }),
+    );
+  }
   await page.route("**/api/auth-config", (route) => {
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        auth_mode: "session",
-        auth0_audience: null,
+        auth_mode: signup ? "auth0" : "session",
+        auth0_audience: signup ? "https://api.snapshot.test" : null,
         auto_login: false,
-        signup_enabled: false,
+        signup_enabled: signup,
         invite_only: invitationRequired,
-        auth0_domain: null,
-        auth0_client_id: null,
+        auth0_domain: signup ? "auth.snapshot.test" : null,
+        auth0_client_id: signup ? "synthetic-snapshot-client" : null,
       }),
     });
   });
@@ -1541,6 +2163,16 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
       contentType: "application/json",
       body: JSON.stringify({
         ...MOCK_USER,
+        ...(scenario.longValues
+          ? {
+              email: `${"synthetic".repeat(24)}@example.test`,
+              notification_provider: "ntfy",
+              ntfy_server_url: `https://ntfy.example.test/${"server".repeat(32)}`,
+              ntfy_topic: "topic".repeat(30),
+              ntfy_access_token: "token".repeat(45),
+            }
+          : {}),
+        must_change_password: scenario.authState === "forced-password",
         is_invited: !invitationRequired,
         is_admin: scenario.route.startsWith("/admin"),
         invitation_status: null,
@@ -1558,8 +2190,9 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
           : [
               {
                 id: "session-snap-1",
-                user_agent:
-                  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36",
+                user_agent: scenario.longValues
+                  ? "SyntheticAgent".repeat(30)
+                  : "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36",
                 ip_address: "198.51.100.42",
                 created_at: "2026-10-10T11:30:00Z",
                 expires_at: "2026-10-10T23:30:00Z",
@@ -1755,7 +2388,17 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
       route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(MOCK_SEARCH_ITEMS),
+        body: JSON.stringify(
+          scenario.longValues && scenario.route === "/"
+            ? Array.from({ length: 8 }, (_, index) => ({
+                ...MOCK_SEARCH_ITEMS[0],
+                id: `synthetic-search-${index}`,
+                campground_name: `Synthetic Camp ${index + 1}`,
+                provider_name: "LongProvider".repeat(15),
+                recreation_area_name: "LongLocation".repeat(15),
+              }))
+            : MOCK_SEARCH_ITEMS,
+        ),
       });
     },
   );
@@ -1879,7 +2522,9 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
       body: JSON.stringify({
         id: "2991",
         provider_id: 1,
-        name: "Yosemite National Park",
+        name: scenario.longValues
+          ? "Destination" + "Synthetic".repeat(18)
+          : "Yosemite National Park",
         description: "Synthetic recreation area for map verification.",
         latitude: 37.74,
         longitude: -119.58,
@@ -1937,7 +2582,9 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
   await page.emulateMedia({
     colorScheme: scenario.theme,
     reducedMotion:
-      scenario.enrichment || scenario.route.startsWith("/admin")
+      scenario.reducedMotion ||
+      scenario.enrichment ||
+      scenario.route.startsWith("/admin")
         ? "reduce"
         : "no-preference",
   });
@@ -1960,10 +2607,14 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
     `${BASE_URL}${scenario.route}`,
     scenario.name.startsWith("map-error"),
   );
+  if (scenario.readyContent) {
+    await waitForSnapshotContent(page, scenario.readyContent);
+  }
 
   // Enforce zero CSS animations and transitions for pixel stability
-  await page.addStyleTag({
-    content: `
+  if (!scenario.reducedMotion)
+    await page.addStyleTag({
+      content: `
       *, *::before, *::after {
         -moz-transition: none !important;
         transition: none !important;
@@ -1974,7 +2625,7 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
         caret-color: transparent !important;
       }
     `,
-  });
+    });
 
   if (scenario.route === "/dashboard" && !scenario.emptyScans) {
     try {
@@ -2007,9 +2658,30 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
   if (scenario.action) {
     await scenario.action(page);
   }
-  if (scenario.name.startsWith("map-"))
+  if (scenario.name.startsWith("map-")) {
+    // Foreground the page before scrolling back to the map so Chromium paints
+    // the WebGL canvas even when other snapshot workers have opened tabs.
+    await page.bringToFront();
     await page.evaluate(() => window.scrollTo(0, 0));
+  }
   await waitForSnapshotAssets(page);
+
+  if (scenario.overflowOnly) {
+    const expectedPath = new URL(scenario.route, BASE_URL).pathname;
+    const actualPath = new URL(page.url()).pathname;
+    if (actualPath !== expectedPath) {
+      throw new Error(`Expected ${expectedPath}, landed on ${actualPath}`);
+    }
+  }
+
+  if (scenario.viewport.width <= 768) {
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    if (overflow > 0) {
+      throw new Error(`Document overflows the viewport by ${overflow}px`);
+    }
+  }
 }
 
 /**
@@ -2145,13 +2817,23 @@ async function main(): Promise<void> {
 
   const filterArg =
     args.find((a) => a.startsWith("--filter="))?.slice(9) ||
+    (args.includes("--filter")
+      ? args[args.indexOf("--filter") + 1]
+      : undefined) ||
     (args.includes("-f") ? args[args.indexOf("-f") + 1] : undefined);
 
+  const candidates = args.includes("--overlay-only")
+    ? OVERLAY_SWEEP
+    : args.includes("--overflow-only")
+      ? OVERFLOW_SWEEP
+      : filterArg
+        ? SCENARIOS
+        : [...SCENARIOS, ...OVERFLOW_SWEEP, ...OVERLAY_SWEEP];
   const scenariosToRun = filterArg
-    ? SCENARIOS.filter(
+    ? candidates.filter(
         (s) => s.name.includes(filterArg) || s.route.includes(filterArg),
       )
-    : SCENARIOS;
+    : candidates;
 
   if (scenariosToRun.length === 0) {
     console.error(`❌ No scenarios matched filter: "${filterArg}"`);
@@ -2186,7 +2868,10 @@ async function main(): Promise<void> {
       Number(process.env.CAMPLY_SNAPSHOT_CONCURRENCY) || defaultConcurrency,
     );
 
-    const results: SnapshotResult[] = new Array(scenariosToRun.length);
+    const captures: (SnapshotResult | undefined)[] = new Array(
+      scenariosToRun.length,
+    );
+    const failures: string[] = [];
     console.log(
       `\n📸 Capturing and analyzing ${scenariosToRun.length} UI snapshot views (concurrency: ${concurrency})...\n`,
     );
@@ -2195,21 +2880,33 @@ async function main(): Promise<void> {
     const workerPromises = Array.from(
       { length: Math.min(concurrency, scenariosToRun.length) },
       async () => {
-        const context = await browser!.newContext({
+        const contextOptions = {
           timezoneId: "UTC",
           locale: "en-US",
           deviceScaleFactor: 1,
-        });
+        };
+        const context = await browser!.newContext(contextOptions);
         try {
           while (true) {
             const index = nextIndex++;
             if (index >= scenariosToRun.length) break;
             const scenario = scenariosToRun[index];
             const prefix = `[${index + 1}/${scenariosToRun.length}]`;
-            const page = await context.newPage();
+            const page = scenario.touch
+              ? await browser!.newPage({ ...contextOptions, hasTouch: true })
+              : await context.newPage();
             try {
               await preparePage(page, scenario);
-              const screenshotBuf = await page.screenshot({ fullPage: true });
+              if (scenario.overflowOnly) {
+                console.log(`  ${prefix} ${scenario.name}: fits viewport`);
+                continue;
+              }
+              // Fixed overlays belong to the visible viewport, especially after
+              // clicking a trigger below the fold scrolls the page.
+              const fullPage =
+                scenario.viewport.width > 768 ||
+                (await page.getByRole("dialog").count()) === 0;
+              const screenshotBuf = await page.screenshot({ fullPage });
               const result = recordSnapshot(
                 SNAPSHOTS_DIR,
                 {
@@ -2219,9 +2916,13 @@ async function main(): Promise<void> {
                   theme: scenario.theme,
                 },
                 screenshotBuf,
-                { update: isUpdate, baselinesDir: BASELINES_DIR },
+                {
+                  update: isUpdate,
+                  createBaseline: !isCheck,
+                  baselinesDir: BASELINES_DIR,
+                },
               );
-              results[index] = result;
+              captures[index] = result;
               const statusLabel = isUpdate
                 ? `🔄 UPDATED (${result.status.toLowerCase()})`
                 : result.status === "MODIFIED"
@@ -2230,6 +2931,10 @@ async function main(): Promise<void> {
                     ? "🆕 NEW BASELINE"
                     : "✅ MATCH";
               console.log(`  ${prefix} ${scenario.name}: ${statusLabel}`);
+            } catch (error) {
+              const failure = `${scenario.name}: ${error instanceof Error ? error.message : String(error)}`;
+              failures.push(failure);
+              console.error(`  ${prefix} ${failure}`);
             } finally {
               await page.close();
             }
@@ -2242,9 +2947,23 @@ async function main(): Promise<void> {
 
     await Promise.all(workerPromises);
 
-    writeReports(results);
+    const results = captures.filter((result) => result !== undefined);
+    if (results.length) writeReports(results);
+    if (failures.length) {
+      throw new Error(
+        `${failures.length} scenario(s) failed:\n${failures.join("\n")}`,
+      );
+    }
+    if (results.length === 0) return;
 
     const modifiedViews = results.filter((r) => r.status === "MODIFIED");
+    const newViews = results.filter((result) => result.status === "NEW");
+    if (isCheck && newViews.length) {
+      console.error(
+        `Missing baselines: ${newViews.map(({ name }) => name).join(", ")}`,
+      );
+      hasRegressions = true;
+    }
     if (isUpdate) {
       console.log(
         `Accepted baselines. The HTML gallery preserves the comparison for ${modifiedViews.length} modified views.`,
@@ -2275,9 +2994,7 @@ async function main(): Promise<void> {
   }
 
   if (hasRegressions) {
-    console.error(
-      "\n❌ Visual regression check failed: modified snapshots detected in --check mode.",
-    );
+    console.error("\n❌ Visual regression check failed in --check mode.");
     process.exit(1);
   }
 }

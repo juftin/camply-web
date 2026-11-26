@@ -288,7 +288,7 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] T4.1.5 Add the [Camply Helm chart](https://github.com/juftin/camply-web/blob/main/deploy/helm/README.md) with scalable API/workers, singleton beat, migration Job startup gates, optional PostgreSQL/Valkey/Prometheus, Ingress/Gateway API routing, configurable/existing PVCs, secret references, stable-release OCI publication as `ghcr.io/juftin/charts/camply-web` with matching image versions, and Task/CI verification; add schema validation, configurable probes with database readiness, ServiceMonitor integration, install notes, Helm connection tests, and source-image lifecycle CI with initialized Task/Python tooling and documented local disk requirements, verified locally through successful/failed upgrades and rollback, with database-backed migration checkpoints and Prometheus configuration rollouts; see the [implementation plan](specs/021-helm-chart/plan.md).
 - [x] T4.1.5a Render explicit HTTPRoute backend reference defaults (`group`, `kind`, and `weight`) to prevent ArgoCD drift, with Gateway and home-ops rendering regressions.
 - [x] T4.1.5b Publish Helm OCI chart tags `vMAJOR`, `vMAJOR.MINOR.PATCH`, seven-character SHA, and `latest`, each selecting the matching upstream image tag; include SHA/latest images and charts on successful main builds, retain unprefixed release compatibility, and verify Helm 3/4 OCI installs by digest.
-- [ ] T4.1.6 Complete a full mobile-responsive audit of the UI.
+- [x] T4.1.6 Complete a full mobile-responsive audit of the UI. [Audit report](specs/034-mobile-responsive-audit/audit-report.md).
 
 ### Documentation
 

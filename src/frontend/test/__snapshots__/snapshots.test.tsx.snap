@@ -28,10 +28,10 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin opera
     class="border-b mb-6"
   >
     <div
-      class="flex items-center space-x-1 sm:space-x-2 overflow-x-auto pb-2"
+      class="flex min-w-0 items-center space-x-1 sm:space-x-2 overflow-x-auto pb-2"
     >
       <a
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        class="inline-flex min-h-11 shrink-0 items-center sm:min-h-0 gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
         data-discover="true"
         href="/admin"
       >
@@ -80,7 +80,7 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin opera
         Overview
       </a>
       <a
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        class="inline-flex min-h-11 shrink-0 items-center sm:min-h-0 gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
         data-discover="true"
         href="/admin/users"
       >
@@ -115,7 +115,7 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin opera
         Users
       </a>
       <a
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        class="inline-flex min-h-11 shrink-0 items-center sm:min-h-0 gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
         data-discover="true"
         href="/admin/invitations"
       >
@@ -146,7 +146,7 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin opera
         Invitations
       </a>
       <a
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        class="inline-flex min-h-11 shrink-0 items-center sm:min-h-0 gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
         data-discover="true"
         href="/admin/scans"
       >
@@ -184,7 +184,8 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin opera
         Scans
       </a>
       <a
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap bg-primary text-primary-foreground shadow-sm"
+        aria-current="page"
+        class="inline-flex min-h-11 shrink-0 items-center sm:min-h-0 gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap bg-primary text-primary-foreground shadow-sm"
         data-discover="true"
         href="/admin/operations"
       >
@@ -208,7 +209,7 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin opera
         Operations
       </a>
       <a
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        class="inline-flex min-h-11 shrink-0 items-center sm:min-h-0 gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
         data-discover="true"
         href="/admin/audit"
       >
@@ -248,10 +249,11 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin overv
     class="border-b mb-6"
   >
     <div
-      class="flex items-center space-x-1 sm:space-x-2 overflow-x-auto pb-2"
+      class="flex min-w-0 items-center space-x-1 sm:space-x-2 overflow-x-auto pb-2"
     >
       <a
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap bg-primary text-primary-foreground shadow-sm"
+        aria-current="page"
+        class="inline-flex min-h-11 shrink-0 items-center sm:min-h-0 gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap bg-primary text-primary-foreground shadow-sm"
         data-discover="true"
         href="/admin"
       >
@@ -300,7 +302,7 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin overv
         Overview
       </a>
       <a
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        class="inline-flex min-h-11 shrink-0 items-center sm:min-h-0 gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
         data-discover="true"
         href="/admin/users"
       >
@@ -335,7 +337,7 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin overv
         Users
       </a>
       <a
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        class="inline-flex min-h-11 shrink-0 items-center sm:min-h-0 gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
         data-discover="true"
         href="/admin/invitations"
       >
@@ -366,7 +368,7 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin overv
         Invitations
       </a>
       <a
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        class="inline-flex min-h-11 shrink-0 items-center sm:min-h-0 gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
         data-discover="true"
         href="/admin/scans"
       >
@@ -404,7 +406,7 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin overv
         Scans
       </a>
       <a
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        class="inline-flex min-h-11 shrink-0 items-center sm:min-h-0 gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
         data-discover="true"
         href="/admin/operations"
       >
@@ -428,7 +430,7 @@ exports[`UI Component DOM Snapshots > AdminNav > matches snapshot on admin overv
         Operations
       </a>
       <a
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
+        class="inline-flex min-h-11 shrink-0 items-center sm:min-h-0 gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap text-muted-foreground hover:text-foreground hover:bg-muted"
         data-discover="true"
         href="/admin/audit"
       >
@@ -471,7 +473,7 @@ exports[`UI Component DOM Snapshots > AdminPagination > matches snapshot for emp
       No records
     </span>
     <div
-      class="flex gap-2"
+      class="flex gap-2 [&_button]:min-h-11 sm:[&_button]:min-h-0"
     >
       <button
         class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
@@ -499,7 +501,7 @@ exports[`UI Component DOM Snapshots > AdminPagination > matches snapshot for fir
       Showing 1–25 of 100
     </span>
     <div
-      class="flex gap-2"
+      class="flex gap-2 [&_button]:min-h-11 sm:[&_button]:min-h-0"
     >
       <button
         class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
@@ -526,7 +528,7 @@ exports[`UI Component DOM Snapshots > AdminPagination > matches snapshot for las
       Showing 76–100 of 100
     </span>
     <div
-      class="flex gap-2"
+      class="flex gap-2 [&_button]:min-h-11 sm:[&_button]:min-h-0"
     >
       <button
         class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
@@ -1028,24 +1030,24 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
               class="flex flex-col space-y-1.5 p-6 pb-3"
             >
               <div
-                class="flex items-start justify-between"
+                class="flex flex-wrap items-start justify-between gap-y-2"
               >
                 <div
                   class="min-w-0 flex-1 pr-2"
                 >
                   <h3
-                    class="font-semibold tracking-tight text-base truncate"
+                    class="font-semibold tracking-tight text-base break-words sm:truncate"
                   >
                     Upper Pines Campground
                   </h3>
                   <p
-                    class="text-xs text-muted-foreground truncate mt-0.5"
+                    class="text-xs text-muted-foreground break-words sm:truncate mt-0.5"
                   >
                     Yosemite National Park
                   </p>
                 </div>
                 <div
-                  class="flex items-center gap-1.5 shrink-0"
+                  class="flex items-center gap-1.5 flex-wrap"
                 >
                   <div
                     class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100 text-[10px] px-1.5 py-0"
@@ -1190,7 +1192,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
             </div>
           </a>
           <div
-            class="items-center p-6 border-t pt-3 flex justify-between"
+            class="items-center p-6 border-t pt-3 flex flex-wrap justify-between gap-2 [&_button[aria-label]]:min-h-11 [&_button[aria-label]]:min-w-11 sm:[&_button[aria-label]]:min-h-0 sm:[&_button[aria-label]]:min-w-0"
           >
             <div
               class="flex items-center gap-2"
@@ -1297,24 +1299,24 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
               class="flex flex-col space-y-1.5 p-6 pb-3"
             >
               <div
-                class="flex items-start justify-between"
+                class="flex flex-wrap items-start justify-between gap-y-2"
               >
                 <div
                   class="min-w-0 flex-1 pr-2"
                 >
                   <h3
-                    class="font-semibold tracking-tight text-base truncate"
+                    class="font-semibold tracking-tight text-base break-words sm:truncate"
                   >
                     Camp 4
                   </h3>
                   <p
-                    class="text-xs text-muted-foreground truncate mt-0.5"
+                    class="text-xs text-muted-foreground break-words sm:truncate mt-0.5"
                   >
                     Yosemite National Park
                   </p>
                 </div>
                 <div
-                  class="flex items-center gap-1.5 shrink-0"
+                  class="flex items-center gap-1.5 flex-wrap"
                 >
                   <div
                     class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100 text-[10px] px-1.5 py-0"
@@ -1454,7 +1456,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
             </div>
           </a>
           <div
-            class="items-center p-6 border-t pt-3 flex justify-between"
+            class="items-center p-6 border-t pt-3 flex flex-wrap justify-between gap-2 [&_button[aria-label]]:min-h-11 [&_button[aria-label]]:min-w-11 sm:[&_button[aria-label]]:min-h-0 sm:[&_button[aria-label]]:min-w-0"
           >
             <div
               class="flex items-center gap-2"
@@ -1561,24 +1563,24 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
               class="flex flex-col space-y-1.5 p-6 pb-3"
             >
               <div
-                class="flex items-start justify-between"
+                class="flex flex-wrap items-start justify-between gap-y-2"
               >
                 <div
                   class="min-w-0 flex-1 pr-2"
                 >
                   <h3
-                    class="font-semibold tracking-tight text-base truncate"
+                    class="font-semibold tracking-tight text-base break-words sm:truncate"
                   >
                     Lower Pines
                   </h3>
                   <p
-                    class="text-xs text-muted-foreground truncate mt-0.5"
+                    class="text-xs text-muted-foreground break-words sm:truncate mt-0.5"
                   >
                     Yosemite National Park
                   </p>
                 </div>
                 <div
-                  class="flex items-center gap-1.5 shrink-0"
+                  class="flex items-center gap-1.5 flex-wrap"
                 >
                   <div
                     class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100 text-[10px] px-1.5 py-0"
@@ -1745,7 +1747,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
             </div>
           </a>
           <div
-            class="items-center p-6 border-t pt-3 flex justify-between"
+            class="items-center p-6 border-t pt-3 flex flex-wrap justify-between gap-2 [&_button[aria-label]]:min-h-11 [&_button[aria-label]]:min-w-11 sm:[&_button[aria-label]]:min-h-0 sm:[&_button[aria-label]]:min-w-0"
           >
             <div
               class="flex items-center gap-2"
@@ -1909,7 +1911,7 @@ exports[`UI Component DOM Snapshots > DevPreview Catalog > matches snapshot for 
               Input Field
             </label>
             <input
-              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              class="flex h-11 sm:h-10 min-w-0 w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               id="preview-email"
               placeholder="camper@example.com"
               value="camper@example.com"
@@ -2073,10 +2075,10 @@ exports[`UI Component DOM Snapshots > DismissibleBanner > matches snapshot when 
     class=""
   >
     <div
-      class="container mx-auto relative"
+      class="container relative mx-auto max-sm:flex max-sm:items-center max-sm:gap-2"
     >
       <div
-        class="flex items-center justify-center gap-2"
+        class="flex min-w-0 flex-1 items-center justify-center gap-2"
       >
         <p>
           Important update announcement
@@ -2084,7 +2086,8 @@ exports[`UI Component DOM Snapshots > DismissibleBanner > matches snapshot when 
       </div>
       <button
         aria-label="Close banner"
-        class="absolute right-0 top-1/2 -translate-y-1/2 p-1 rounded "
+        class="grid h-11 w-11 shrink-0 place-items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:absolute sm:right-0 sm:top-1/2 sm:h-auto sm:w-auto sm:-translate-y-1/2 sm:p-1 "
+        type="button"
       >
         <svg
           aria-hidden="true"
@@ -2115,13 +2118,13 @@ exports[`UI Component DOM Snapshots > DismissibleBanner > matches snapshot when 
 exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticated admin 1`] = `
 <DocumentFragment>
   <header
-    class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 translate-y-0"
+    class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
   >
     <div
       class="container mx-auto px-4 py-4 flex items-center justify-between"
     >
       <div
-        class="flex items-center h-10"
+        class="flex shrink-0 items-center h-10"
       >
         <a
           aria-label="camply home"
@@ -2130,7 +2133,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         >
           <img
             alt="camply"
-            class="block shrink-0 object-contain"
+            class="block shrink-0 object-contain md:max-lg:w-28"
             height="40"
             src="/branding/camply-horizontal.svg"
             width="135"
@@ -2138,7 +2141,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         </a>
       </div>
       <nav
-        class="hidden md:flex space-x-6"
+        class="hidden md:flex whitespace-nowrap gap-2 text-sm lg:gap-6 lg:text-base"
       >
         <a
           class="text-muted-foreground hover:text-foreground "
@@ -2163,8 +2166,12 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         </a>
       </nav>
       <button
+        aria-expanded="false"
+        aria-haspopup="dialog"
         aria-label="Toggle mobile menu"
-        class="md:hidden p-2 "
+        class="md:hidden grid min-h-11 min-w-11 place-items-center "
+        data-state="closed"
+        type="button"
       >
         <svg
           aria-hidden="true"
@@ -2191,7 +2198,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         </svg>
       </button>
       <div
-        class="hidden md:flex items-center space-x-2 "
+        class="hidden md:flex items-center space-x-1 lg:space-x-2 md:max-lg:[&_button:not([aria-label])]:px-2 "
       >
         <button
           class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10"
@@ -2267,7 +2274,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-shield h-4 w-4 mr-1"
+            class="lucide lucide-shield hidden h-4 w-4 mr-1 lg:block"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -2289,7 +2296,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4 mr-1"
+            class="lucide lucide-layout-dashboard hidden h-4 w-4 mr-1 lg:block"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -2367,13 +2374,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
 exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticated user 1`] = `
 <DocumentFragment>
   <header
-    class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 translate-y-0"
+    class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
   >
     <div
       class="container mx-auto px-4 py-4 flex items-center justify-between"
     >
       <div
-        class="flex items-center h-10"
+        class="flex shrink-0 items-center h-10"
       >
         <a
           aria-label="camply home"
@@ -2382,7 +2389,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         >
           <img
             alt="camply"
-            class="block shrink-0 object-contain"
+            class="block shrink-0 object-contain md:max-lg:w-28"
             height="40"
             src="/branding/camply-horizontal.svg"
             width="135"
@@ -2390,7 +2397,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         </a>
       </div>
       <nav
-        class="hidden md:flex space-x-6"
+        class="hidden md:flex whitespace-nowrap gap-2 text-sm lg:gap-6 lg:text-base"
       >
         <a
           class="text-muted-foreground hover:text-foreground "
@@ -2415,8 +2422,12 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         </a>
       </nav>
       <button
+        aria-expanded="false"
+        aria-haspopup="dialog"
         aria-label="Toggle mobile menu"
-        class="md:hidden p-2 "
+        class="md:hidden grid min-h-11 min-w-11 place-items-center "
+        data-state="closed"
+        type="button"
       >
         <svg
           aria-hidden="true"
@@ -2443,7 +2454,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         </svg>
       </button>
       <div
-        class="hidden md:flex items-center space-x-2 "
+        class="hidden md:flex items-center space-x-1 lg:space-x-2 md:max-lg:[&_button:not([aria-label])]:px-2 "
       >
         <button
           class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10"
@@ -2519,7 +2530,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         >
           <svg
             aria-hidden="true"
-            class="lucide lucide-layout-dashboard h-4 w-4 mr-1"
+            class="lucide lucide-layout-dashboard hidden h-4 w-4 mr-1 lg:block"
             fill="none"
             height="24"
             stroke="currentColor"
@@ -2597,13 +2608,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
 exports[`UI Component DOM Snapshots > Header > matches snapshot for unauthenticated visitor 1`] = `
 <DocumentFragment>
   <header
-    class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 translate-y-0"
+    class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
   >
     <div
       class="container mx-auto px-4 py-4 flex items-center justify-between"
     >
       <div
-        class="flex items-center h-10"
+        class="flex shrink-0 items-center h-10"
       >
         <a
           aria-label="camply home"
@@ -2612,7 +2623,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for unauthentica
         >
           <img
             alt="camply"
-            class="block shrink-0 object-contain"
+            class="block shrink-0 object-contain md:max-lg:w-28"
             height="40"
             src="/branding/camply-horizontal.svg"
             width="135"
@@ -2620,7 +2631,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for unauthentica
         </a>
       </div>
       <nav
-        class="hidden md:flex space-x-6"
+        class="hidden md:flex whitespace-nowrap gap-2 text-sm lg:gap-6 lg:text-base"
       >
         <a
           class="text-muted-foreground hover:text-foreground "
@@ -2645,8 +2656,12 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for unauthentica
         </a>
       </nav>
       <button
+        aria-expanded="false"
+        aria-haspopup="dialog"
         aria-label="Toggle mobile menu"
-        class="md:hidden p-2 "
+        class="md:hidden grid min-h-11 min-w-11 place-items-center "
+        data-state="closed"
+        type="button"
       >
         <svg
           aria-hidden="true"
@@ -2673,7 +2688,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for unauthentica
         </svg>
       </button>
       <div
-        class="hidden md:flex items-center space-x-2 "
+        class="hidden md:flex items-center space-x-1 lg:space-x-2 md:max-lg:[&_button:not([aria-label])]:px-2 "
       >
         <button
           class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10"
@@ -2763,16 +2778,16 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for unauthentica
 exports[`UI Component DOM Snapshots > Header > matches snapshot without logo 1`] = `
 <DocumentFragment>
   <header
-    class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 translate-y-0"
+    class="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
   >
     <div
       class="container mx-auto px-4 py-4 flex items-center justify-center relative"
     >
       <div
-        class="flex items-center h-10"
+        class="flex shrink-0 items-center h-10"
       />
       <nav
-        class="hidden md:flex space-x-6"
+        class="hidden md:flex whitespace-nowrap gap-2 text-sm lg:gap-6 lg:text-base"
       >
         <a
           class="text-muted-foreground hover:text-foreground "
@@ -2797,8 +2812,12 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot without logo 1`]
         </a>
       </nav>
       <button
+        aria-expanded="false"
+        aria-haspopup="dialog"
         aria-label="Toggle mobile menu"
-        class="md:hidden p-2 absolute right-4"
+        class="md:hidden grid min-h-11 min-w-11 place-items-center absolute right-4"
+        data-state="closed"
+        type="button"
       >
         <svg
           aria-hidden="true"
@@ -2825,7 +2844,7 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot without logo 1`]
         </svg>
       </button>
       <div
-        class="hidden md:flex items-center space-x-2 absolute right-4"
+        class="hidden md:flex items-center space-x-1 lg:space-x-2 md:max-lg:[&_button:not([aria-label])]:px-2 absolute right-4"
       >
         <button
           class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10"
@@ -2926,24 +2945,24 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for active sca
         class="flex flex-col space-y-1.5 p-6 pb-3"
       >
         <div
-          class="flex items-start justify-between"
+          class="flex flex-wrap items-start justify-between gap-y-2"
         >
           <div
             class="min-w-0 flex-1 pr-2"
           >
             <h3
-              class="font-semibold tracking-tight text-base truncate"
+              class="font-semibold tracking-tight text-base break-words sm:truncate"
             >
               Upper Pines Campground
             </h3>
             <p
-              class="text-xs text-muted-foreground truncate mt-0.5"
+              class="text-xs text-muted-foreground break-words sm:truncate mt-0.5"
             >
               Yosemite National Park
             </p>
           </div>
           <div
-            class="flex items-center gap-1.5 shrink-0"
+            class="flex items-center gap-1.5 flex-wrap"
           >
             <div
               class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-[10px] px-1.5 py-0"
@@ -3105,7 +3124,7 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for active sca
       </div>
     </a>
     <div
-      class="items-center p-6 border-t pt-3 flex justify-between"
+      class="items-center p-6 border-t pt-3 flex flex-wrap justify-between gap-2 [&_button[aria-label]]:min-h-11 [&_button[aria-label]]:min-w-11 sm:[&_button[aria-label]]:min-h-0 sm:[&_button[aria-label]]:min-w-0"
     >
       <div
         class="flex items-center gap-2"
@@ -3217,24 +3236,24 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for ended scan
         class="flex flex-col space-y-1.5 p-6 pb-3"
       >
         <div
-          class="flex items-start justify-between"
+          class="flex flex-wrap items-start justify-between gap-y-2"
         >
           <div
             class="min-w-0 flex-1 pr-2"
           >
             <h3
-              class="font-semibold tracking-tight text-base truncate"
+              class="font-semibold tracking-tight text-base break-words sm:truncate"
             >
               Lower Pines
             </h3>
             <p
-              class="text-xs text-muted-foreground truncate mt-0.5"
+              class="text-xs text-muted-foreground break-words sm:truncate mt-0.5"
             >
               Yosemite National Park
             </p>
           </div>
           <div
-            class="flex items-center gap-1.5 shrink-0"
+            class="flex items-center gap-1.5 flex-wrap"
           >
             <div
               class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100 text-[10px] px-1.5 py-0"
@@ -3369,7 +3388,7 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for ended scan
       </div>
     </a>
     <div
-      class="items-center p-6 border-t pt-3 flex justify-between"
+      class="items-center p-6 border-t pt-3 flex flex-wrap justify-between gap-2 [&_button[aria-label]]:min-h-11 [&_button[aria-label]]:min-w-11 sm:[&_button[aria-label]]:min-h-0 sm:[&_button[aria-label]]:min-w-0"
     >
       <div
         class="flex items-center gap-2"
@@ -3481,24 +3500,24 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for paused sca
         class="flex flex-col space-y-1.5 p-6 pb-3"
       >
         <div
-          class="flex items-start justify-between"
+          class="flex flex-wrap items-start justify-between gap-y-2"
         >
           <div
             class="min-w-0 flex-1 pr-2"
           >
             <h3
-              class="font-semibold tracking-tight text-base truncate"
+              class="font-semibold tracking-tight text-base break-words sm:truncate"
             >
               Camp 4 Walk-In
             </h3>
             <p
-              class="text-xs text-muted-foreground truncate mt-0.5"
+              class="text-xs text-muted-foreground break-words sm:truncate mt-0.5"
             >
               Yosemite National Park
             </p>
           </div>
           <div
-            class="flex items-center gap-1.5 shrink-0"
+            class="flex items-center gap-1.5 flex-wrap"
           >
             <div
               class="inline-flex items-center rounded-full border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-[10px] px-1.5 py-0"
@@ -3628,7 +3647,7 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for paused sca
       </div>
     </a>
     <div
-      class="items-center p-6 border-t pt-3 flex justify-between"
+      class="items-center p-6 border-t pt-3 flex flex-wrap justify-between gap-2 [&_button[aria-label]]:min-h-11 [&_button[aria-label]]:min-w-11 sm:[&_button[aria-label]]:min-h-0 sm:[&_button[aria-label]]:min-w-0"
     >
       <div
         class="flex items-center gap-2"
@@ -3729,13 +3748,14 @@ exports[`UI Component DOM Snapshots > ScanCard > matches snapshot for paused sca
 exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot for empty results 1`] = `
 <DocumentFragment>
   <div
-    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto transition-all duration-200 opacity-100 visible transform scale-100"
+    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-[min(20rem,45dvh)] overflow-y-auto overscroll-contain motion-safe:transition-[opacity,transform] motion-safe:duration-200 opacity-100 visible motion-safe:scale-100"
+    data-search-suggestions=""
   >
     <div
       class="p-4"
     >
       <p
-        class="text-sm text-muted-foreground text-center"
+        class="break-words text-sm text-muted-foreground text-center"
       >
         No campgrounds found for "nonexistent". Try a different search term.
       </p>
@@ -3747,7 +3767,8 @@ exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot for empt
 exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot for error state 1`] = `
 <DocumentFragment>
   <div
-    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto transition-all duration-200 opacity-100 visible transform scale-100"
+    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-[min(20rem,45dvh)] overflow-y-auto overscroll-contain motion-safe:transition-[opacity,transform] motion-safe:duration-200 opacity-100 visible motion-safe:scale-100"
+    data-search-suggestions=""
   >
     <div
       class="p-4"
@@ -3765,7 +3786,8 @@ exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot for erro
 exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot for loading state 1`] = `
 <DocumentFragment>
   <div
-    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto transition-all duration-200 opacity-100 visible transform scale-100"
+    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-[min(20rem,45dvh)] overflow-y-auto overscroll-contain motion-safe:transition-[opacity,transform] motion-safe:duration-200 opacity-100 visible motion-safe:scale-100"
+    data-search-suggestions=""
   >
     <div
       class="flex items-center justify-center p-4"
@@ -3800,13 +3822,14 @@ exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot for load
 exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot with search results 1`] = `
 <DocumentFragment>
   <div
-    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto transition-all duration-200 opacity-100 visible transform scale-100"
+    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-[min(20rem,45dvh)] overflow-y-auto overscroll-contain motion-safe:transition-[opacity,transform] motion-safe:duration-200 opacity-100 visible motion-safe:scale-100"
+    data-search-suggestions=""
   >
     <div
       class="py-1 relative"
     >
       <div
-        class="px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 hover:bg-muted opacity-100"
+        class="min-h-11 px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 hover:bg-muted opacity-100"
       >
         <div
           class="flex items-start space-x-3"
@@ -3850,18 +3873,18 @@ exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot with sea
               Upper Pines Campground
             </h4>
             <p
-              class="text-xs text-muted-foreground"
+              class="break-words text-xs text-muted-foreground"
             >
               Recreation.gov
             </p>
             <p
-              class="text-xs text-muted-foreground"
+              class="break-words text-xs text-muted-foreground"
             >
               in Yosemite National Park
             </p>
           </div>
           <div
-            class="flex-shrink-0"
+            class="shrink-0"
           >
             <span
               class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
@@ -3872,7 +3895,7 @@ exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot with sea
         </div>
       </div>
       <div
-        class="px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 hover:bg-muted opacity-100"
+        class="min-h-11 px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 hover:bg-muted opacity-100"
       >
         <div
           class="flex items-start space-x-3"
@@ -3907,13 +3930,13 @@ exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot with sea
               Yosemite National Park
             </h4>
             <p
-              class="text-xs text-muted-foreground"
+              class="break-words text-xs text-muted-foreground"
             >
               Recreation.gov
             </p>
           </div>
           <div
-            class="flex-shrink-0"
+            class="shrink-0"
           >
             <span
               class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
@@ -3931,13 +3954,14 @@ exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot with sea
 exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot with selected index 1`] = `
 <DocumentFragment>
   <div
-    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto transition-all duration-200 opacity-100 visible transform scale-100"
+    class="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-[min(20rem,45dvh)] overflow-y-auto overscroll-contain motion-safe:transition-[opacity,transform] motion-safe:duration-200 opacity-100 visible motion-safe:scale-100"
+    data-search-suggestions=""
   >
     <div
       class="py-1 relative"
     >
       <div
-        class="px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 bg-primary/15 ring-1 ring-primary/20 opacity-100"
+        class="min-h-11 px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 bg-primary/15 ring-1 ring-primary/20 opacity-100"
       >
         <div
           class="flex items-start space-x-3"
@@ -3981,18 +4005,18 @@ exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot with sel
               Upper Pines Campground
             </h4>
             <p
-              class="text-xs text-muted-foreground"
+              class="break-words text-xs text-muted-foreground"
             >
               Recreation.gov
             </p>
             <p
-              class="text-xs text-muted-foreground"
+              class="break-words text-xs text-muted-foreground"
             >
               in Yosemite National Park
             </p>
           </div>
           <div
-            class="flex-shrink-0"
+            class="shrink-0"
           >
             <span
               class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
@@ -4003,7 +4027,7 @@ exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot with sel
         </div>
       </div>
       <div
-        class="px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 hover:bg-muted opacity-100"
+        class="min-h-11 px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 hover:bg-muted opacity-100"
       >
         <div
           class="flex items-start space-x-3"
@@ -4038,13 +4062,13 @@ exports[`UI Component DOM Snapshots > SearchDropdown > matches snapshot with sel
               Yosemite National Park
             </h4>
             <p
-              class="text-xs text-muted-foreground"
+              class="break-words text-xs text-muted-foreground"
             >
               Recreation.gov
             </p>
           </div>
           <div
-            class="flex-shrink-0"
+            class="shrink-0"
           >
             <span
               class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"

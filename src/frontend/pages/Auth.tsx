@@ -85,13 +85,13 @@ function Auth0Content() {
               {error && (
                 <p
                   role="alert"
-                  className="text-sm text-destructive text-center"
+                  className="break-words text-sm text-destructive text-center"
                 >
                   {error}
                 </p>
               )}
               <Button
-                className="w-full"
+                className="min-h-11 w-full sm:min-h-0"
                 onClick={isSignUp ? handleSignUp : handleLogin}
               >
                 {isSignUp ? "Create Account" : "Sign In"}
@@ -231,9 +231,15 @@ function SessionContent() {
                   />
                 </div>
                 {loginError && (
-                  <p className="text-sm text-destructive">{loginError}</p>
+                  <p className="break-words text-sm text-destructive">
+                    {loginError}
+                  </p>
                 )}
-                <Button type="submit" className="w-full" disabled={submitting}>
+                <Button
+                  type="submit"
+                  className="min-h-11 w-full sm:min-h-0"
+                  disabled={submitting}
+                >
                   {submitting ? "Signing in…" : "Sign In"}
                 </Button>
               </form>

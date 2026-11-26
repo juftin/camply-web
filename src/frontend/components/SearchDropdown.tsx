@@ -1,6 +1,12 @@
 import { Mountain, Tent, Loader2 } from "lucide-react";
 import { toTitleCase } from "@/lib/utils";
-import { useEffect, useRef } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import { SearchResult } from "@/lib/structs.ts";
 
 interface SearchDropdownProps {
@@ -13,6 +19,7 @@ interface SearchDropdownProps {
   onViewAll?: () => void;
   isFetching?: boolean;
   selectedIndex?: number;
+  anchorRef?: RefObject<HTMLDivElement>;
 }
 
 export function SearchDropdown({
@@ -25,29 +32,112 @@ export function SearchDropdown({
   onViewAll,
   isFetching,
   selectedIndex = -1,
+  anchorRef,
 }: SearchDropdownProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [placement, setPlacement] = useState<{
+    above: boolean;
+    height: number;
+  }>();
+  const visible = isOpen && query.trim().length >= 2;
 
-  // Scroll selected item into view
-  useEffect(() => {
-    if (selectedIndex >= 0 && selectedIndex < itemRefs.current.length) {
-      const selectedElement = itemRefs.current[selectedIndex];
-      if (selectedElement) {
-        selectedElement.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-        });
+  // The visual viewport also changes when an on-screen keyboard opens.
+  useLayoutEffect(() => {
+    const anchor = anchorRef?.current;
+    const panel = panelRef.current;
+    if (!visible || !anchor || !panel) return;
+    const viewport = window.visualViewport;
+    const phone = window.matchMedia("(max-width: 639.98px)");
+
+    function updatePlacement() {
+      if (!phone.matches || !anchor || !panel) {
+        setPlacement(undefined);
+        return;
       }
+      const { top, bottom } = anchor.getBoundingClientRect();
+      const viewportTop = viewport?.offsetTop ?? 0;
+      const viewportHeight = viewport?.height ?? window.innerHeight;
+      const viewportBottom = viewportTop + viewportHeight;
+      if (bottom <= viewportTop || top >= viewportBottom) {
+        setPlacement({ above: false, height: 0 });
+        return;
+      }
+      // Leave 4px next to the field and 8px at the screen edge.
+      const above = top - viewportTop - 12;
+      const below = viewportBottom - bottom - 12;
+      const desired = Math.min(
+        panel.scrollHeight + 2,
+        viewportHeight * 0.45,
+        320,
+      );
+      const placeAbove = below < desired && above > below;
+      const height = Math.floor(
+        Math.max(0, Math.min(desired, placeAbove ? above : below)),
+      );
+      setPlacement((previous) =>
+        previous?.above === placeAbove && previous.height === height
+          ? previous
+          : { above: placeAbove, height },
+      );
     }
-  }, [selectedIndex]);
+
+    updatePlacement();
+    window.addEventListener("scroll", updatePlacement, { passive: true });
+    window.addEventListener("resize", updatePlacement);
+    viewport?.addEventListener("resize", updatePlacement);
+    viewport?.addEventListener("scroll", updatePlacement);
+    return () => {
+      window.removeEventListener("scroll", updatePlacement);
+      window.removeEventListener("resize", updatePlacement);
+      viewport?.removeEventListener("resize", updatePlacement);
+      viewport?.removeEventListener("scroll", updatePlacement);
+    };
+  }, [anchorRef, visible, query, results, isLoading, error]);
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    const selected = itemRefs.current[selectedIndex];
+    if (!visible || !panel || !selected) return;
+    const bounds = panel.getBoundingClientRect();
+    const item = selected.getBoundingClientRect();
+    const delta =
+      item.top < bounds.top
+        ? item.top - bounds.top - panel.clientTop
+        : Math.max(
+            0,
+            item.bottom - bounds.top - panel.clientTop - panel.clientHeight,
+          );
+    if (delta !== 0) {
+      panel.scrollTo({
+        top: panel.scrollTop + delta,
+        behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)")
+          ?.matches
+          ? "instant"
+          : "smooth",
+      });
+    }
+  }, [selectedIndex, visible]);
 
   // Always render the dropdown container to prevent layout shifts
   return (
     <div
-      className={`absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto transition-all duration-200 ${
-        isOpen && query.trim().length >= 2
-          ? "opacity-100 visible transform scale-100"
-          : "opacity-0 invisible transform scale-95 pointer-events-none"
+      ref={panelRef}
+      data-search-suggestions=""
+      style={
+        placement && {
+          maxHeight: placement.height,
+          ...(placement.above && {
+            top: "auto",
+            bottom: "calc(100% + 0.25rem)",
+            marginTop: 0,
+          }),
+        }
+      }
+      className={`absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-[min(20rem,45dvh)] overflow-y-auto overscroll-contain motion-safe:transition-[opacity,transform] motion-safe:duration-200 ${
+        visible && placement?.height !== 0
+          ? "opacity-100 visible motion-safe:scale-100"
+          : "opacity-0 invisible motion-safe:scale-95 pointer-events-none"
       }`}
     >
       {query.trim().length >= 2 && (
@@ -68,7 +158,7 @@ export function SearchDropdown({
             </div>
           ) : results.length === 0 && !isLoading ? (
             <div className="p-4">
-              <p className="text-sm text-muted-foreground text-center">
+              <p className="break-words text-sm text-muted-foreground text-center">
                 No campgrounds found for "{query}". Try a different search term.
               </p>
             </div>
@@ -84,7 +174,7 @@ export function SearchDropdown({
                 <div
                   key={result.id}
                   ref={(el) => (itemRefs.current[index] = el)}
-                  className={`px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 ${
+                  className={`min-h-11 px-4 py-3 cursor-pointer transition-colors border-b last:border-b-0 ${
                     index === selectedIndex
                       ? "bg-primary/15 ring-1 ring-primary/20"
                       : "hover:bg-muted"
@@ -107,17 +197,17 @@ export function SearchDropdown({
                             : result.campground_name || "",
                         )}
                       </h4>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="break-words text-xs text-muted-foreground">
                         {toTitleCase(result.provider_name)}
                       </p>
                       {result.entity_type === "Campground" &&
                         result.recreation_area_name && (
-                          <p className="text-xs text-muted-foreground">
+                          <p className="break-words text-xs text-muted-foreground">
                             in {toTitleCase(result.recreation_area_name)}
                           </p>
                         )}
                     </div>
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
                         {result.entity_type === "RecreationArea"
                           ? "Area"
@@ -129,7 +219,7 @@ export function SearchDropdown({
               ))}
               {results.length > 0 && onViewAll && (
                 <div
-                  className="px-4 py-2 bg-muted/40 hover:bg-muted cursor-pointer text-center text-xs font-medium text-primary border-t transition-colors"
+                  className="min-h-11 content-center px-4 py-2 sm:min-h-0 bg-muted/40 hover:bg-muted cursor-pointer break-words text-center text-xs font-medium text-primary border-t transition-colors"
                   onClick={onViewAll}
                 >
                   View all results for "{query}" →

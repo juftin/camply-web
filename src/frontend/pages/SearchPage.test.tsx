@@ -148,6 +148,14 @@ describe("SearchPage", () => {
     expect(screen.getByText("Electric")).toBeInTheDocument();
     expect(screen.getByText("Pets Allowed")).toBeInTheDocument();
     expect(screen.getByText("Monitor")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Sort By" })).toHaveValue(
+      "relevance",
+    );
+    const filters = screen.getByRole("button", { name: "Filters" });
+    expect(filters).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(filters);
+    expect(filters).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "35'+" })).toHaveClass("min-h-9");
   });
 
   it.each(["", "&view=map", "&view=list", "&view=invalid"])(

@@ -98,6 +98,31 @@ export async function waitForSnapshotAssets(page: Page): Promise<void> {
   await waitForRenderedMaps(page);
 }
 
+export interface SnapshotReadyContent {
+  name: string;
+  role?: "heading" | "button" | "combobox" | "text";
+}
+
+/** Wait for successful route content, which loading and error views lack. */
+export async function waitForSnapshotContent(
+  page: Page,
+  { name, role = "heading" }: SnapshotReadyContent,
+  timeout = 10_000,
+): Promise<void> {
+  const content =
+    role === "text"
+      ? page.getByText(name, { exact: true })
+      : page.getByRole(role, { name, exact: true });
+  try {
+    await content.filter({ visible: true }).first().waitFor({ timeout });
+  } catch (cause) {
+    throw new Error(
+      `Expected ${role} "${name}" to become visible at ${page.url()}`,
+      { cause },
+    );
+  }
+}
+
 /** Wait for map snapshot content without depending on background network traffic. */
 export async function navigateToSnapshot(
   page: Page,

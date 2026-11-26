@@ -52,7 +52,7 @@ export function Contact() {
         <div className="mb-6">
           <MessageCircleHeart className="h-16 w-16 text-primary mx-auto mb-4" />
         </div>
-        <h1 className="text-4xl font-bold mb-4">Get in Touch</h1>
+        <h1 className="text-3xl font-bold sm:text-4xl mb-4">Get in Touch</h1>
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
           Have questions about camply? Found a bug? Want to suggest a feature?
           As an open-source project, we'd love to hear from the community.
@@ -131,12 +131,16 @@ export function Contact() {
                   placeholder="Tell us how we can help..."
                   value={formData.message}
                   onChange={handleInputChange}
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-base sm:text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                   required
                 />
               </div>
 
-              <Button type="submit" className="w-full" size="lg">
+              <Button
+                type="submit"
+                className="min-h-11 w-full sm:min-h-0"
+                size="lg"
+              >
                 <Send className="h-4 w-4 mr-2" />
                 Send Message
               </Button>
@@ -161,7 +165,11 @@ export function Contact() {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button variant="outline" className="w-full" asChild>
+              <Button
+                variant="outline"
+                className="min-h-11 w-full sm:min-h-0"
+                asChild
+              >
                 <a
                   href="https://github.com/juftin/camply-web/issues"
                   target="_blank"
@@ -183,7 +191,11 @@ export function Contact() {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button variant="outline" className="w-full" asChild>
+              <Button
+                variant="outline"
+                className="min-h-11 w-full sm:min-h-0"
+                asChild
+              >
                 <a href="mailto:camply@juftin.com">Send Email</a>
               </Button>
             </CardContent>
@@ -199,7 +211,11 @@ export function Contact() {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button variant="outline" className="w-full" asChild>
+              <Button
+                variant="outline"
+                className="min-h-11 w-full sm:min-h-0"
+                asChild
+              >
                 <a
                   href="https://github.com/juftin/camply-web/issues/new?template=bug_report.md"
                   target="_blank"
@@ -221,7 +237,11 @@ export function Contact() {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button variant="outline" className="w-full" asChild>
+              <Button
+                variant="outline"
+                className="min-h-11 w-full sm:min-h-0"
+                asChild
+              >
                 <a
                   href="https://github.com/juftin/camply-web/issues/new?template=feature_request.md"
                   target="_blank"
@@ -250,7 +270,11 @@ export function Contact() {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button variant="outline" className="w-full" asChild>
+              <Button
+                variant="outline"
+                className="min-h-11 w-full sm:min-h-0"
+                asChild
+              >
                 <Link to="/faq">View FAQ</Link>
               </Button>
             </CardContent>
@@ -263,7 +287,11 @@ export function Contact() {
               <CardDescription>See all supported campgrounds</CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button variant="outline" className="w-full" asChild>
+              <Button
+                variant="outline"
+                className="min-h-11 w-full sm:min-h-0"
+                asChild
+              >
                 <Link to="/providers">View Providers</Link>
               </Button>
             </CardContent>
@@ -277,7 +305,11 @@ export function Contact() {
                 <CardDescription>Support the camply project</CardDescription>
               </CardHeader>
               <CardContent className="text-center">
-                <Button variant="outline" className="w-full" asChild>
+                <Button
+                  variant="outline"
+                  className="min-h-11 w-full sm:min-h-0"
+                  asChild
+                >
                   <Link to="/contribute">Contribute</Link>
                 </Button>
               </CardContent>

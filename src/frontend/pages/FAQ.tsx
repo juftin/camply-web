@@ -199,7 +199,9 @@ export function FAQ() {
         <div className="mb-6">
           <CircleHelp className="h-16 w-16 text-primary mx-auto mb-4" />
         </div>
-        <h1 className="text-4xl font-bold mb-4">Frequently Asked Questions</h1>
+        <h1 className="text-3xl font-bold mb-4 sm:text-4xl">
+          Frequently Asked Questions
+        </h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           Find answers to common questions about camply, our campsite monitoring
           service, and how we help you never miss your perfect campsite.
@@ -207,7 +209,11 @@ export function FAQ() {
       </div>
 
       <div className="mb-8 flex justify-center">
-        <Button variant="outline" onClick={toggleAll} className="gap-2">
+        <Button
+          variant="outline"
+          onClick={toggleAll}
+          className="min-h-11 gap-2 sm:min-h-0"
+        >
           <HelpCircle className="h-4 w-4" />
           {openItems.size === faqs.length ? "Collapse All" : "Expand All"}
         </Button>
@@ -218,17 +224,21 @@ export function FAQ() {
           const isOpen = openItems.has(faq.id);
           return (
             <Card key={faq.id} className="transition-all duration-200">
-              <CardHeader
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => toggleItem(faq.id)}
-              >
-                <CardTitle className="flex items-center justify-between text-left">
-                  <span className="text-lg font-medium">{faq.question}</span>
-                  {isOpen ? (
-                    <ChevronUp className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                  ) : (
-                    <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                  )}
+              <CardHeader className="p-0">
+                <CardTitle>
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg p-4 text-left hover:bg-muted/50 transition-colors sm:p-6"
+                    onClick={() => toggleItem(faq.id)}
+                  >
+                    <span className="text-lg font-medium">{faq.question}</span>
+                    {isOpen ? (
+                      <ChevronUp className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    )}
+                  </button>
                 </CardTitle>
               </CardHeader>
               {isOpen && (

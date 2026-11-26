@@ -213,7 +213,11 @@ function trendMetrics(group: string): TrendMetric[] {
 /** Intercept admin GET endpoints with safe, synthetic data. */
 export async function setupAdminSnapshotMocks(
   page: Page,
-  options: { partialOperations?: boolean; missingMeasurements?: boolean } = {},
+  options: {
+    partialOperations?: boolean;
+    missingMeasurements?: boolean;
+    longValues?: boolean;
+  } = {},
 ): Promise<void> {
   await page.route("**/api/admin/**", async (route) => {
     const url = new URL(route.request().url());
@@ -440,7 +444,15 @@ export async function setupAdminSnapshotMocks(
         snapshot_at: NOW,
       };
     } else if (endpoint === "operations/tasks") {
-      body = { tasks: TASKS, total: TASKS.length, available: true };
+      const tasks = options.longValues
+        ? TASKS.map((task) => ({
+            ...task,
+            worker: "worker-" + "synthetic".repeat(15),
+            search_name: "Destination" + "Long".repeat(25),
+            reason: "SyntheticReason".repeat(18),
+          }))
+        : TASKS;
+      body = { tasks, total: tasks.length, available: true };
     } else if (endpoint.startsWith("operations/tasks/")) {
       body = TASKS.find((task) => endpoint.endsWith(task.task_id));
     } else if (endpoint === "operations/sync-providers") {

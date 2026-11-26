@@ -62,6 +62,8 @@ describe("Dashboard campground groups", () => {
     const heading = screen.getByText("Synthetic Pines");
     const group = heading.closest("details");
     expect(group).not.toBeNull();
+    expect(heading).toHaveClass("break-words");
+    expect(heading.closest("summary")).toHaveClass("min-h-11");
     expect(group).not.toHaveAttribute("open");
     expect(screen.getByText("2 scans")).toBeInTheDocument();
     expect(screen.getByText("1 scan with openings")).toBeInTheDocument();

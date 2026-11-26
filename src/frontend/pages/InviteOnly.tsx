@@ -135,7 +135,7 @@ export function InviteOnly() {
                     You have access to campsite monitoring on this instance.
                   </p>
                 </div>
-                <Button className="w-full" asChild>
+                <Button className="min-h-11 w-full sm:min-h-0" asChild>
                   <Link to="/dashboard">Continue to Dashboard</Link>
                 </Button>
               </div>
@@ -152,7 +152,7 @@ export function InviteOnly() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full"
+                    className="min-h-11 w-full sm:min-h-0"
                     disabled={refreshing}
                     onClick={handleRefresh}
                   >
@@ -168,7 +168,7 @@ export function InviteOnly() {
             ) : isRejected ? (
               <div className="space-y-3">
                 <div className="rounded-md bg-destructive/10 p-4 border border-destructive/30">
-                  <p className="text-sm text-destructive">
+                  <p className="break-words text-sm text-destructive">
                     Your request was not approved. If an administrator later
                     approves your access, refresh your status below.
                   </p>
@@ -176,7 +176,7 @@ export function InviteOnly() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="min-h-11 w-full sm:min-h-0"
                   disabled={refreshing}
                   onClick={handleRefresh}
                 >
@@ -210,7 +210,11 @@ export function InviteOnly() {
                     onChange={(e) => setName(e.target.value)}
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={submitting}>
+                <Button
+                  type="submit"
+                  className="min-h-11 w-full sm:min-h-0"
+                  disabled={submitting}
+                >
                   {submitting ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : null}
@@ -220,7 +224,7 @@ export function InviteOnly() {
             )}
 
             {error && (
-              <p role="alert" className="text-sm text-destructive">
+              <p role="alert" className="break-words text-sm text-destructive">
                 {error}
               </p>
             )}
@@ -235,7 +239,11 @@ export function InviteOnly() {
               </Link>
               .
             </p>
-            <Button variant="outline" className="w-full" asChild>
+            <Button
+              variant="outline"
+              className="min-h-11 w-full sm:min-h-0"
+              asChild
+            >
               <Link to="/">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Home

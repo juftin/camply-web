@@ -104,7 +104,7 @@ describe("RecreationArea location coordinates", () => {
         name: "View Synthetic area photo 1",
       }),
     ).toBeVisible();
-    expect(screen.getByText("Synthetic zero")).toBeVisible();
+    expect(screen.getByText("Synthetic zero")).toHaveClass("break-words");
     expect(screen.getByText("Follow the signed road.")).toBeVisible();
     const map = screen.getByTestId("map");
     const information = screen.getByRole("heading", {

@@ -234,9 +234,12 @@ export function SearchPage() {
       </div>
 
       {/* Search Bar & Mobile Filter Trigger */}
-      <div className="mb-8 flex gap-3">
-        <form onSubmit={handleSearchSubmit} className="flex-1 flex gap-2">
-          <div className="relative flex-1">
+      <div className="mb-8 flex flex-wrap gap-3">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex min-w-0 basis-full gap-2 sm:flex-1"
+        >
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               type="search"
@@ -247,7 +250,7 @@ export function SearchPage() {
                 setInitializingLocation(false);
                 setSearchInput(e.target.value);
               }}
-              className="pl-11 h-12 text-base"
+              className="pl-11 h-12 text-base sm:h-12 sm:text-base"
             />
           </div>
           <Button type="submit" size="lg" className="h-12 px-6">
@@ -259,6 +262,8 @@ export function SearchPage() {
           variant="outline"
           size="lg"
           onClick={() => setIsFilterOpen(!isFilterOpen)}
+          aria-expanded={isFilterOpen}
+          aria-controls="explore-filters"
           className="md:hidden h-12 flex items-center gap-2"
         >
           <SlidersHorizontal className="h-4 w-4" />
@@ -274,7 +279,8 @@ export function SearchPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
         {/* Filters Sidebar */}
         <aside
-          className={`space-y-6 md:block ${isFilterOpen ? "block" : "hidden"}`}
+          id="explore-filters"
+          className={`min-w-0 space-y-6 md:block ${isFilterOpen ? "block" : "hidden"}`}
         >
           <div className="p-5 border rounded-lg bg-card shadow-sm space-y-6">
             <div className="flex items-center justify-between pb-3 border-b">
@@ -389,7 +395,7 @@ export function SearchPage() {
               <Label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider block">
                 Minimum RV Length
               </Label>
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-4 gap-2 md:grid-cols-2 lg:grid-cols-4">
                 {[
                   { label: "Any", val: 0 },
                   { label: "25'", val: 25 },
@@ -404,7 +410,7 @@ export function SearchPage() {
                         rv: opt.val === minRvLength ? null : String(opt.val),
                       })
                     }
-                    className={`text-xs py-1.5 rounded border text-center transition-colors ${
+                    className={`min-h-9 sm:min-h-0 text-xs py-1.5 rounded border text-center transition-colors ${
                       minRvLength === opt.val
                         ? "bg-primary text-primary-foreground border-primary font-medium"
                         : "bg-muted/40 hover:bg-muted border-border"
@@ -418,13 +424,17 @@ export function SearchPage() {
 
             {/* Sort Order */}
             <div className="space-y-2 pt-2 border-t">
-              <Label className="text-xs font-semibold uppercase text-muted-foreground tracking-wider block">
+              <Label
+                htmlFor="explore-sort"
+                className="text-xs font-semibold uppercase text-muted-foreground tracking-wider block"
+              >
                 Sort By
               </Label>
               <select
+                id="explore-sort"
                 value={sortBy}
                 onChange={(e) => updateParams({ sort: e.target.value })}
-                className="w-full text-sm border rounded-md p-2 bg-background text-foreground border-border"
+                className="w-full min-h-11 sm:min-h-0 text-base sm:text-sm border rounded-md p-2 bg-background text-foreground border-border"
               >
                 <option value="relevance">Relevance</option>
                 <option value="name_asc">Name (A-Z)</option>
@@ -583,7 +593,7 @@ export function SearchPage() {
                       >
                         <CardContent className="p-5">
                           <div className="flex flex-col sm:flex-row justify-between gap-4">
-                            <div className="space-y-1.5 flex-1">
+                            <div className="space-y-1.5 min-w-0 flex-1 break-words">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                                   {isCampground ? (
@@ -650,7 +660,7 @@ export function SearchPage() {
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex sm:flex-col justify-end sm:justify-center gap-2 shrink-0">
+                            <div className="flex flex-wrap sm:flex-col justify-end sm:justify-center gap-2 shrink-0">
                               {item.entity_type !== "Campground" &&
                                 item.recreation_area_id && (
                                   <ScanForm
@@ -673,7 +683,10 @@ export function SearchPage() {
                                   preselectedCampground={toCampground(item)}
                                   preselectedProviderId={item.provider_id}
                                   trigger={
-                                    <Button size="sm" className="gap-1.5">
+                                    <Button
+                                      size="sm"
+                                      className="min-h-11 gap-1.5 sm:min-h-0"
+                                    >
                                       <Bell className="h-3.5 w-3.5" />
                                       Monitor
                                     </Button>
@@ -684,7 +697,7 @@ export function SearchPage() {
                                 variant="outline"
                                 size="sm"
                                 asChild
-                                className="gap-1.5"
+                                className="min-h-11 gap-1.5 sm:min-h-0"
                               >
                                 <Link to={destination}>
                                   Details
@@ -702,7 +715,7 @@ export function SearchPage() {
 
               {/* Pagination Controls */}
               {!error && totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-6">
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-6 [&>button]:min-h-11 sm:[&>button]:min-h-0">
                   <Button
                     variant="outline"
                     size="sm"

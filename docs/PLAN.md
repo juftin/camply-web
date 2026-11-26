@@ -116,7 +116,7 @@ PyPI publication remains separate work.
 
 - [ ] **Rate Limiting**: Implement proxy rotation and intelligent backoff strategies.
 - [x] **Observability**: Native Admin UI monitoring backed by Prometheus for usage trends, API/worker performance, scan outcomes, and queue visibility; replaced legacy Grafana deployment as part of the [Admin UI plan](specs/002-admin-ui/plan.md).
-- [ ] **Polish**: Full mobile-responsive UI/UX with Shadcn/UI refinements.
+- [x] **Polish**: Full mobile-responsive UI/UX with Shadcn/UI refinements. [Audit report](specs/034-mobile-responsive-audit/audit-report.md).
 
 ---
 

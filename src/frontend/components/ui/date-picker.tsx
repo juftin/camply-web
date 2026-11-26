@@ -1,11 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  useMemo,
-  type ReactElement,
-  type MouseEvent,
-} from "react";
+import { useState, useEffect, useRef, useMemo, type ReactElement } from "react";
 import { CalendarIcon, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 import {
@@ -37,18 +30,18 @@ export interface DatePickerProps {
 }
 
 const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
   "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 const DAYS_OF_WEEK = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -91,12 +84,19 @@ export function DatePicker({
   }, [value, defaultMonth, isOpen]);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && window.matchMedia?.("(max-width: 639.98px)")?.matches) {
+      calendarRef.current?.scrollIntoView({ block: "nearest" });
+    }
+  }, [isOpen]);
 
   // Close on outside click
   useEffect(() => {
     if (!isOpen) return;
 
-    const handlePointerDown = (e: MouseEvent | TouchEvent | Event) => {
+    const handlePointerDown = (e: Event) => {
       if (
         containerRef.current &&
         !containerRef.current.contains(e.target as Node)
@@ -107,18 +107,20 @@ export function DatePicker({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        e.stopPropagation();
         setIsOpen(false);
+        containerRef.current?.querySelector("button")?.focus();
       }
     };
 
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("touchstart", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, true);
 
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("touchstart", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown, true);
     };
   }, [isOpen]);
 
@@ -264,9 +266,10 @@ export function DatePicker({
     setIsOpen(false);
   };
 
-  const handleClear = (e?: MouseEvent) => {
-    e?.stopPropagation();
+  const handleClear = () => {
     onChange?.("");
+    setIsOpen(false);
+    containerRef.current?.querySelector("button")?.focus();
   };
 
   // Quick preset calculations
@@ -325,59 +328,56 @@ export function DatePicker({
         data-testid={id ? `${id}-hidden` : undefined}
       />
 
-      {/* Trigger Button */}
-      <button
-        type="button"
-        id={id}
-        disabled={disabled}
-        onClick={() => {
-          if (!disabled) {
-            setIsOpen((prev) => !prev);
-          }
-        }}
-        aria-expanded={isOpen}
-        aria-haspopup="dialog"
-        className={cn(
-          "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm text-left ring-offset-background transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-          !value && "text-muted-foreground",
-          error && "border-destructive focus-visible:ring-destructive",
-          className,
-        )}
-      >
-        <div className="flex items-center gap-2.5 overflow-hidden truncate">
-          <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className={cn("truncate font-medium", !value && "font-normal")}>
-            {formattedDisplay}
-          </span>
-        </div>
-
+      <div className="relative">
+        <button
+          type="button"
+          id={id}
+          disabled={disabled}
+          onClick={() => {
+            if (!disabled) {
+              setIsOpen((prev) => !prev);
+            }
+          }}
+          aria-expanded={isOpen}
+          aria-haspopup="dialog"
+          className={cn(
+            "flex h-11 sm:h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm text-left ring-offset-background transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+            !value && "text-muted-foreground",
+            value && !disabled && "pr-11 sm:pr-8",
+            error && "border-destructive focus-visible:ring-destructive",
+            className,
+          )}
+        >
+          <div className="flex items-center gap-2.5 overflow-hidden truncate">
+            <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span
+              className={cn("truncate font-medium", !value && "font-normal")}
+            >
+              {formattedDisplay}
+            </span>
+          </div>
+        </button>
         {value && !disabled && (
-          <span
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
             onClick={handleClear}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.stopPropagation();
-                handleClear();
-              }
-            }}
-            className="ml-auto rounded-sm p-0.5 hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+            className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:right-2 sm:inset-y-auto sm:top-1/2 sm:h-6 sm:w-6 sm:-translate-y-1/2"
             aria-label="Clear date"
           >
             <X className="h-3.5 w-3.5" />
-          </span>
+          </button>
         )}
-      </button>
+      </div>
 
       {/* Calendar Popover */}
       {isOpen && (
         <div
+          ref={calendarRef}
           role="dialog"
-          aria-modal="true"
+          aria-label="Choose a date"
           className={cn(
-            "absolute top-full z-50 mt-1.5 w-[290px] sm:w-[316px] rounded-lg border bg-popover p-3 text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95",
-            align === "right" ? "right-0" : "left-0",
+            "relative sm:absolute sm:top-full z-50 mt-1.5 w-[min(calc(100vw-3rem),316px)] max-w-full sm:max-w-none rounded-lg border bg-popover p-2 sm:p-3 text-popover-foreground shadow-xl motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95",
+            align === "right" ? "sm:right-0" : "sm:left-0",
           )}
         >
           {/* Header Month / Year controls */}
@@ -385,18 +385,18 @@ export function DatePicker({
             <button
               type="button"
               onClick={handlePrevMonth}
-              className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="h-10 w-10 shrink-0 sm:h-9 sm:w-9 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
               aria-label="Previous month"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex min-w-0 items-center gap-1.5">
               <select
                 aria-label="Select month"
                 value={viewState.month}
                 onChange={(e) => handleMonthSelect(Number(e.target.value))}
-                className="h-7 rounded-md border border-input bg-background px-1.5 text-xs font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="h-9 min-w-0 rounded-md border border-input bg-background px-1 text-base sm:h-7 sm:px-1.5 sm:text-xs font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
                 {MONTH_NAMES.map((name, idx) => (
                   <option key={name} value={idx}>
@@ -409,7 +409,7 @@ export function DatePicker({
                 aria-label="Select year"
                 value={viewState.year}
                 onChange={(e) => handleYearSelect(Number(e.target.value))}
-                className="h-7 rounded-md border border-input bg-background px-1.5 text-xs font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="h-9 shrink-0 rounded-md border border-input bg-background px-1 text-base sm:h-7 sm:px-1.5 sm:text-xs font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
                 {yearOptions.map((y) => (
                   <option key={y} value={y}>
@@ -422,7 +422,7 @@ export function DatePicker({
             <button
               type="button"
               onClick={handleNextMonth}
-              className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="h-10 w-10 shrink-0 sm:h-9 sm:w-9 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
               aria-label="Next month"
             >
               <ChevronRight className="h-4 w-4" />
@@ -445,7 +445,7 @@ export function DatePicker({
                 return (
                   <div
                     key={`overflow-${idx}`}
-                    className="h-8 w-8 sm:h-8.5 sm:w-8.5 mx-auto flex items-center justify-center text-xs text-muted-foreground/30 pointer-events-none select-none"
+                    className="h-9 w-full sm:h-8 sm:w-8 mx-auto flex items-center justify-center text-xs text-muted-foreground/30 pointer-events-none select-none"
                   >
                     {day.dayNumber}
                   </div>
@@ -461,7 +461,7 @@ export function DatePicker({
                   onMouseEnter={() => setHoveredDate(day.dateStr)}
                   onMouseLeave={() => setHoveredDate(null)}
                   className={cn(
-                    "h-8 w-8 sm:h-8.5 sm:w-8.5 mx-auto flex items-center justify-center rounded-md text-xs sm:text-sm transition-all relative font-medium",
+                    "h-9 w-full sm:h-8 sm:w-8 mx-auto flex items-center justify-center rounded-md text-xs sm:text-sm transition-all relative font-medium",
                     // Today outline
                     day.isToday &&
                       !day.isSelected &&

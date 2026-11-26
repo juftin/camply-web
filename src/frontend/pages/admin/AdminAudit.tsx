@@ -44,7 +44,7 @@ export function AdminAudit() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+          <h1 className="flex min-w-0 items-center gap-2 break-all text-2xl font-bold sm:text-3xl [&>svg]:shrink-0">
             <History className="h-7 w-7 text-primary" /> Admin Audit Log
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -82,7 +82,7 @@ export function AdminAudit() {
         </Card>
       ) : (
         <div className="rounded-md border bg-card overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="min-w-0 overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 border-b">
                 <tr>
@@ -108,7 +108,10 @@ export function AdminAudit() {
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <Badge variant="outline" className="font-mono text-xs">
+                      <Badge
+                        variant="outline"
+                        className="min-w-0 break-all font-mono text-xs"
+                      >
                         {ACTION_LABELS[e.action] ?? e.action}
                       </Badge>
                     </td>
@@ -122,21 +125,21 @@ export function AdminAudit() {
                       {e.subject_type === "user" ? (
                         <Link
                           to={`/admin/users/${e.subject_id}`}
-                          className="font-mono text-xs text-primary hover:underline"
+                          className="min-w-0 break-all font-mono text-xs text-primary hover:underline"
                         >
                           {e.subject_id.slice(0, 8)}...
                         </Link>
                       ) : e.subject_type === "access_request" ? (
                         <Link
                           to="/admin/invitations"
-                          className="font-mono text-xs text-primary hover:underline"
+                          className="min-w-0 break-all font-mono text-xs text-primary hover:underline"
                         >
                           {e.subject_id.slice(0, 8)}...
                         </Link>
                       ) : (
                         <Link
                           to={`/admin/scans/${e.subject_id}`}
-                          className="font-mono text-xs text-primary hover:underline"
+                          className="min-w-0 break-all font-mono text-xs text-primary hover:underline"
                         >
                           {e.subject_id.slice(0, 8)}...
                         </Link>

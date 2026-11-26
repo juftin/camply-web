@@ -61,6 +61,7 @@ export function AreaCoveragePicker({
         event.preventDefault();
         event.stopPropagation();
         setOpen(false);
+        dropdownRef.current?.querySelector("button")?.focus();
       }
     };
 
@@ -123,7 +124,7 @@ export function AreaCoveragePicker({
               aria-haspopup="listbox"
               onClick={() => setOpen((prev) => !prev)}
               className={cn(
-                "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm text-left ring-offset-background transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "flex h-11 w-full sm:h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm text-left ring-offset-background transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 selectedEntries.length === 0 && "text-muted-foreground",
               )}
             >
@@ -136,7 +137,7 @@ export function AreaCoveragePicker({
               />
             </button>
             {open && (
-              <div className="absolute top-full left-0 z-50 mt-1.5 w-full rounded-md border bg-popover p-2 text-popover-foreground shadow-lg space-y-2">
+              <div className="relative sm:absolute sm:top-full sm:left-0 z-50 mt-1.5 w-full rounded-md border bg-popover p-2 text-popover-foreground shadow-lg space-y-2">
                 <Input
                   type="search"
                   aria-label="Search area campgrounds"
@@ -173,7 +174,7 @@ export function AreaCoveragePicker({
                   {choices.data?.items.map((item) => (
                     <label
                       key={item.id}
-                      className="flex items-start gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer break-words"
+                      className="flex min-h-11 items-center gap-2 rounded-sm sm:min-h-0 px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer break-words"
                     >
                       <input
                         type="checkbox"
@@ -204,7 +205,7 @@ export function AreaCoveragePicker({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-8 px-2.5 text-xs"
+                    className="h-11 px-2.5 text-xs sm:h-8"
                     disabled={!offset}
                     onClick={() =>
                       setOffset((value) => Math.max(0, value - 50))
@@ -216,7 +217,7 @@ export function AreaCoveragePicker({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-8 px-2.5 text-xs"
+                    className="h-11 px-2.5 text-xs sm:h-8"
                     disabled={!choices.data?.has_more}
                     onClick={() => setOffset((value) => value + 50)}
                   >
@@ -238,7 +239,7 @@ export function AreaCoveragePicker({
                     type="button"
                     aria-label={`Remove ${name || id}`}
                     onClick={() => remove(id)}
-                    className="rounded-sm p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
+                    className="grid min-h-9 min-w-9 shrink-0 place-items-center rounded-sm p-0.5 sm:min-h-0 sm:min-w-0 text-muted-foreground hover:bg-background hover:text-foreground"
                   >
                     <X className="h-3 w-3" />
                   </button>

@@ -160,7 +160,7 @@ describe("ActiveSessions", () => {
     renderActiveSessions();
 
     expect(await screen.findByText("Chrome on macOS")).toBeInTheDocument();
-    expect(screen.getByText("Unknown device")).toBeInTheDocument();
+    expect(screen.getByText("Unknown device")).toHaveClass("break-words");
     expect(screen.getByText("Current")).toBeInTheDocument();
     expect(screen.getByText("IP 198.51.100.10")).toBeInTheDocument();
     expect(

@@ -37,7 +37,7 @@ export function HowItWorks() {
         <div className="mb-6">
           <Tent className="h-16 w-16 text-primary mx-auto mb-4" />
         </div>
-        <h1 className="text-5xl font-bold mb-6">
+        <h1 className="text-4xl font-bold mb-6 sm:text-5xl">
           How camply
           <span className="text-primary"> Works</span>
         </h1>
@@ -60,7 +60,7 @@ export function HowItWorks() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-4 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="text-center">
                 <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold mx-auto mb-4">
                   1

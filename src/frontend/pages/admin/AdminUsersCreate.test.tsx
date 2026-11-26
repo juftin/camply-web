@@ -107,6 +107,13 @@ describe("AdminUsers Create User Dialog", () => {
     expect(
       screen.getByRole("heading", { name: "Create User" }),
     ).toBeInTheDocument();
+    const scrollBody = screen
+      .getByLabelText("Email")
+      .closest(".overflow-y-auto");
+    expect(scrollBody).toBeInTheDocument();
+    expect(scrollBody).not.toContainElement(
+      screen.getByRole("button", { name: "Create User" }),
+    );
 
     await user.type(screen.getByLabelText(/^Email/i), "newperson@example.com");
     await user.type(

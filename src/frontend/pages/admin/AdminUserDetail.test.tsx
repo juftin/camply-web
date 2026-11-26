@@ -181,6 +181,13 @@ describe("AdminUserDetail Permissions", () => {
     expect(
       screen.getByRole("heading", { name: "Reset Password" }),
     ).toBeInTheDocument();
+    const scrollBody = screen
+      .getByLabelText("New Temporary Password")
+      .closest(".overflow-y-auto");
+    expect(scrollBody).toBeInTheDocument();
+    expect(scrollBody).not.toContainElement(
+      screen.getByRole("button", { name: "Reset Password" }),
+    );
 
     const input = screen.getByLabelText(/New Temporary Password/i);
     await user.type(input, "TemporaryPass456!");

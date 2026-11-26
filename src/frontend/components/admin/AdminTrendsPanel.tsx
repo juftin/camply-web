@@ -160,7 +160,7 @@ export function AdminTrendsPanel({
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Range selection */}
-          <div className="flex items-center space-x-1 border rounded-md p-0.5 bg-background">
+          <div className="flex flex-wrap items-center gap-1 border rounded-md p-0.5 bg-background">
             {(["24h", "7d", "30d"] as const).map((r) => (
               <Button
                 key={r}
@@ -182,7 +182,7 @@ export function AdminTrendsPanel({
           </div>
 
           {/* Accessible Table vs Chart Toggle */}
-          <div className="flex items-center space-x-1 border rounded-md p-0.5 bg-background">
+          <div className="flex flex-wrap items-center gap-1 border rounded-md p-0.5 bg-background">
             <Button
               size="sm"
               variant={viewMode === "charts" ? "default" : "ghost"}
@@ -329,7 +329,7 @@ export function AdminTrendsPanel({
                       No measurements available for this time range.
                     </div>
                   ) : viewMode === "charts" ? (
-                    <div className="h-56 w-full">
+                    <div className="h-64 min-w-0 w-full sm:h-56 max-sm:[&_.recharts-default-legend]:flex max-sm:[&_.recharts-default-legend]:flex-wrap max-sm:[&_.recharts-default-legend]:justify-center">
                       <ResponsiveContainer width="100%" height="100%">
                         {metric.chart_type === "bar" ? (
                           <BarChart data={chartData}>
@@ -340,6 +340,7 @@ export function AdminTrendsPanel({
                             <XAxis
                               dataKey="timestamp"
                               tickFormatter={formatTimestamp}
+                              minTickGap={16}
                               tick={{ fontSize: 10 }}
                               stroke="#888888"
                             />
@@ -393,6 +394,7 @@ export function AdminTrendsPanel({
                             <XAxis
                               dataKey="timestamp"
                               tickFormatter={formatTimestamp}
+                              minTickGap={16}
                               tick={{ fontSize: 10 }}
                               stroke="#888888"
                             />
@@ -448,7 +450,7 @@ export function AdminTrendsPanel({
                     </div>
                   ) : (
                     /* Accessible Table Alternative */
-                    <div className="overflow-x-auto max-h-56">
+                    <div className="min-w-0 overflow-x-auto max-h-56">
                       <table className="w-full text-xs text-left">
                         <thead className="bg-muted/50 sticky top-0">
                           <tr>
