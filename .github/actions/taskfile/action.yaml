@@ -147,5 +147,6 @@ runs:
         badge-title: ${{ inputs.coverage-title && format('{0} Coverage', inputs.coverage-title) || 'Coverage' }}
         junitxml-title: ${{ inputs.coverage-title && format('{0} Tests', inputs.coverage-title) || '' }}
         coverage-path-prefix: ${{ inputs.coverage-path-prefix }}
+        report-only-changed-files: "true"
         pytest-xml-coverage-path: tmp/ci-reports/coverage/coverage.xml
         junitxml-path: tmp/ci-reports/junit.xml
