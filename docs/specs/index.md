@@ -42,6 +42,9 @@ This catalog indexes all feature specifications, technical implementation plans,
 - **[017: Compact Results View](017-compact-results/spec.md)**
   - [Plan](017-compact-results/plan.md) | [Tasks](017-compact-results/tasks.md)
 
+- **[034: Campsite Discovery & Alert Experience](034-campsite-discovery/status.md)**
+  - [Original Specification](034-campsite-discovery/spec.md) | [Original Plan](034-campsite-discovery/plan.md) | [Original Tasks](034-campsite-discovery/tasks.md)
+
 ## Phase 4: Scale, Polish & Infrastructure
 
 - **[018: Python Distribution Consolidation](018-python-package/spec.md)**

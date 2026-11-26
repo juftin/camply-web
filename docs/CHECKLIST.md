@@ -2,6 +2,13 @@
 
 This checklist tracks the granular progress of `camply`. Agents **MUST** update this file by marking tasks as completed (`[x]`) before finalizing any PR.
 
+## Campsite discovery and alert experience (034)
+
+- [x] Capture the discovery-to-alert design, acceptance scenarios, and clickable wireframe.
+- [x] Reconcile the October plan with shipped behavior. See the [current assessment](specs/034-campsite-discovery/status.md).
+- [ ] Validate the remaining search, draft recovery, and alert-readiness work with campers and assistive technology.
+- [ ] Agree on the remaining date wording and notification setup behavior before implementing the revised scope.
+
 ## Found campsites UI rework (033)
 
 - [x] Specify, plan, task out, and implement the Found Campsites & Scan Detail UI rework: interactive availability calendar with single-night and check-in/check-out range filtering, deduplicated campsite cards with capability badges and inline stay expansion, Cards ↔ Sites × Dates Availability Grid view switcher with inline stay inspection, cohesive Scan Detail header consolidation, structured recreation-area coverage summary with relative timestamps, updated snapshot scenarios, and full Vitest/typecheck/lint coverage. [Spec](specs/033-found-campsites-ui/spec.md) | [Plan](specs/033-found-campsites-ui/plan.md) | [Tasks](specs/033-found-campsites-ui/tasks.md).
