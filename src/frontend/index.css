@@ -1,51 +1,53 @@
+@import "./fonts/fonts.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --background: 38 42% 96%;
+    --foreground: 188 38% 12%;
+    --card: 40 60% 99%;
+    --card-foreground: 188 38% 12%;
+    --popover: 40 60% 99%;
+    --popover-foreground: 188 38% 12%;
+    --primary: 28 68% 38%;
+    --primary-foreground: 40 50% 98%;
+    --secondary: 37 26% 90%;
+    --secondary-foreground: 188 34% 16%;
+    --muted: 37 24% 91%;
+    --muted-foreground: 30 12% 42%;
+    --accent: 186 24% 90%;
+    --accent-foreground: 188 55% 18%;
+    --destructive: 4 72% 46%;
+    --destructive-foreground: 40 50% 98%;
+    --border: 35 22% 84%;
+    --input: 35 22% 84%;
+    --ring: 28 68% 38%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
+    --background: 28 16% 9%;
+    --foreground: 38 28% 93%;
+    --card: 28 14% 12%;
+    --card-foreground: 38 28% 93%;
+    --popover: 28 14% 12%;
+    --popover-foreground: 38 28% 93%;
+    --primary: 33 80% 54%;
+    --primary-foreground: 28 35% 10%;
+    --secondary: 28 13% 18%;
+    --secondary-foreground: 38 28% 92%;
+    --muted: 28 12% 17%;
+    --muted-foreground: 34 12% 64%;
+    --accent: 184 26% 20%;
+    --accent-foreground: 176 42% 76%;
+    --destructive: 4 62% 44%;
+    --destructive-foreground: 38 28% 95%;
+    --border: 28 12% 22%;
+    --input: 28 12% 22%;
+    --ring: 33 80% 54%;
   }
 }
 
@@ -55,6 +57,15 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: "Source Sans 3", system-ui, sans-serif;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Bitter", Georgia, serif;
   }
 }
 
@@ -75,13 +86,13 @@
   font-weight: 700;
 }
 .camply-map-camp {
-  background: #2563eb;
+  background: #a35b1f;
 }
 .camply-map-area {
-  background: #15803d;
+  background: #003d47;
 }
 .camply-map-group {
-  background: #334155;
+  background: #3d342b;
 }
 .camply-map .camply-map-marker:focus-visible {
   outline: 3px solid #f97316;

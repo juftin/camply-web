@@ -37,10 +37,27 @@ export function AdminNav() {
     const nav = navRef.current;
     const active = nav?.querySelector<HTMLElement>('[aria-current="page"]');
     if (!nav || !active) return;
-    const { left, right } = active.getBoundingClientRect();
-    const bounds = nav.getBoundingClientRect();
-    if (left < bounds.left) nav.scrollLeft += left - bounds.left;
-    if (right > bounds.right) nav.scrollLeft += right - bounds.right;
+
+    const revealActiveTab = () => {
+      const { left, right } = active.getBoundingClientRect();
+      const bounds = nav.getBoundingClientRect();
+      if (left < bounds.left) nav.scrollLeft += left - bounds.left;
+      if (right > bounds.right) nav.scrollLeft += right - bounds.right;
+    };
+
+    if (!document.fonts) {
+      revealActiveTab();
+      return;
+    }
+
+    // Fallback text widths can leave the active tab clipped after the font swaps.
+    let cancelled = false;
+    void document.fonts.ready.then(() => {
+      if (!cancelled) revealActiveTab();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [location.pathname]);
 
   const isActive = (item: (typeof NAV_ITEMS)[0]) => {
