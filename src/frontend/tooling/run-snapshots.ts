@@ -2116,7 +2116,11 @@ async function ensureServerRunning(): Promise<ChildProcess | null> {
  * scenario : Scenario
  *     Auth and scan state needed for the requested snapshot.
  */
-async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
+async function setupPageMocks(
+  page: Page,
+  scenario: Scenario,
+  unexpectedOsmRequests: string[],
+): Promise<void> {
   await setupAdminSnapshotMocks(page, scenario);
   if (scenario.enrichment) {
     const image = new PNG({ width: 640, height: 480 });
@@ -2425,13 +2429,49 @@ async function setupPageMocks(page: Page, scenario: Scenario): Promise<void> {
     raster.data[i + 2] = 219;
     raster.data[i + 3] = 255;
   }
-  await page.route("https://tile.openstreetmap.org/**", (route) =>
+  const rasterBytes = PNG.sync.write(raster);
+  const openFreeMapStyle = JSON.stringify({
+    version: 8,
+    sources: {
+      openmaptiles: {
+        type: "raster",
+        tiles: ["https://tiles.openfreemap.org/fixture-tiles/{z}/{x}/{y}.png"],
+        tileSize: 256,
+        minzoom: 0,
+        maxzoom: 19,
+        attribution:
+          '<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> <a href="https://www.openmaptiles.org/" target="_blank">&copy; OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+      },
+    },
+    layers: [
+      {
+        id: "openmaptiles",
+        type: "raster",
+        source: "openmaptiles",
+        paint: { "raster-fade-duration": 0 },
+      },
+    ],
+  });
+  await page.route("https://tiles.openfreemap.org/styles/**", (route) =>
     route.fulfill({
-      contentType: "image/png",
+      status: 200,
+      contentType: "application/json",
       headers: { "Access-Control-Allow-Origin": "*" },
-      body: PNG.sync.write(raster),
+      body: openFreeMapStyle,
     }),
   );
+  await page.route("https://tiles.openfreemap.org/fixture-tiles/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "image/png",
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: rasterBytes,
+    }),
+  );
+  await page.route("https://tile.openstreetmap.org/**", (route) => {
+    unexpectedOsmRequests.push(route.request().url());
+    return route.abort("blockedbyclient");
+  });
   const bounds = { west: -119.61, east: -119.55, south: 37.73, north: 37.75 };
   await page.route("**/api/search/map/summary*", (route) =>
     route.fulfill({
@@ -2600,7 +2640,8 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
     { theme: scenario.theme },
   );
 
-  await setupPageMocks(page, scenario);
+  const unexpectedOsmRequests: string[] = [];
+  await setupPageMocks(page, scenario, unexpectedOsmRequests);
 
   await navigateToSnapshot(
     page,
@@ -2672,6 +2713,12 @@ async function preparePage(page: Page, scenario: Scenario): Promise<void> {
     if (actualPath !== expectedPath) {
       throw new Error(`Expected ${expectedPath}, landed on ${actualPath}`);
     }
+  }
+
+  if (unexpectedOsmRequests.length > 0) {
+    throw new Error(
+      `Unexpected tile.openstreetmap.org requests during ${scenario.name}: ${unexpectedOsmRequests.join(", ")}`,
+    );
   }
 
   if (scenario.viewport.width <= 768) {

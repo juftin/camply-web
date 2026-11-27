@@ -84,8 +84,10 @@
   background: #334155;
 }
 .camply-map .maplibregl-ctrl-attrib {
+  max-width: 100%;
   background: #fffe;
   color: #111827;
+  line-height: 1.35;
 }
 .camply-map .maplibregl-ctrl-attrib a {
   color: #166534;

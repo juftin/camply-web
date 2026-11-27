@@ -239,7 +239,7 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] T3.3.7 Link Explore map zoom/pan to paginated list bounds, initialize unfiltered visits from approximate IP location with fallback, and show hover/focus marker information; see [interaction plan](specs/013-map-list-interaction/plan.md).
 - [x] T3.3.8 Refresh Explore list results during continuous map movement, including camera events without DOM metadata; verify with an unreleased browser drag.
 - [x] T3.3.9 Wait for a narrowed Explore response when verifying animated zooms, allowing intermediate camera responses while still requiring fewer matching results.
-- [ ] T3.3.6 Configure production tile hosting or caching (e.g. MapTiler, Stadia Maps, Cloudflare reverse proxy cache, or self-hosted PMTiles) via `VITE_MAP_*` build variables to adhere to OpenStreetMap's public tile usage policy for high-traffic releases.
+- [x] T3.3.6 Replace OpenStreetMap's public raster tile server as the default basemap with OpenFreeMap vector styles (`VITE_MAP_STYLE_URL` defaulting to `https://tiles.openfreemap.org/styles/liberty`) at $0/month with zero additional infrastructure, while preserving backwards-compatible custom raster overrides (`VITE_MAP_TILE_URL` + `VITE_MAP_ATTRIBUTION_*`) and offline-safe automated verification; see [OpenFreeMap tiles spec](specs/036-openfreemap-production-tiles/spec.md) and [plan](specs/036-openfreemap-production-tiles/plan.md).
 
 ---
 
