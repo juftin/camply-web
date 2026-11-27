@@ -5,7 +5,7 @@ All project workflows run through [go-task](https://taskfile.dev/) (`Taskfile.ya
 ## Prerequisites
 
 - **Python >= 3.11** (development and primary CI default to 3.14) managed by [uv](https://docs.astral.sh/uv/)
-- **Node.js >= 24** and **pnpm 12.15.0** (enable with `corepack enable`)
+- **Node.js >= 24** and the **pnpm** version pinned in `package.json` (enable with `corepack enable`)
 - **Docker & Docker Compose** (for PostgreSQL, Valkey, and container smoke tests)
 - **go-task** and **GitHub CLI (`gh`)**
 
@@ -80,6 +80,10 @@ task docs:serve
 Run `task docs:build` to render `build/docs/`, or `task docs:check` to build and verify all rendered links, navigation rules, and publishing config.
 
 Every production frontend build compiles the VitePress site into `docs/` inside the static bundle (served at `/docs/` from standalone Python, Nginx, and Cloudflare Pages). Successful pushes to `main` also publish a mirror to GitHub Pages (`https://juftin.com/camply-web/`).
+
+## Capacitor mobile client
+
+The [mobile development guide](MOBILE.md) lists the Android SDK and Xcode dependencies, shows how to build and run both apps, and covers release signing and backend configuration.
 
 ## Spec-Kit feature workflows
 

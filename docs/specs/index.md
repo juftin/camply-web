@@ -84,5 +84,7 @@ This catalog indexes all feature specifications, technical implementation plans,
   - [Plan](034-provider-availability-cassettes/plan.md) | [Tasks](034-provider-availability-cassettes/tasks.md) | [Verification](034-provider-availability-cassettes/quickstart.md) | [Requirements Checklist](034-provider-availability-cassettes/checklists/requirements.md)
 - **[035: Provider Metadata Cassettes](035-provider-metadata-cassettes/spec.md)**
   - [Plan](035-provider-metadata-cassettes/plan.md) | [Tasks](035-provider-metadata-cassettes/tasks.md) | [Verification](035-provider-metadata-cassettes/quickstart.md)
+- **[036: Capacitor Mobile Client](036-capacitor-mobile/spec.md)**
+  - [Plan](036-capacitor-mobile/plan.md) | [Tasks](036-capacitor-mobile/tasks.md) | [Development Guide](../development/MOBILE.md)
 - **[036: OpenFreeMap Production Map Tiles](036-openfreemap-production-tiles/spec.md)**
   - [Plan](036-openfreemap-production-tiles/plan.md) | [Tasks](036-openfreemap-production-tiles/tasks.md) | [Data Model](036-openfreemap-production-tiles/data-model.md) | [Research](036-openfreemap-production-tiles/research.md) | [Basemap Config Contract](036-openfreemap-production-tiles/contracts/map-basemap-config.md) | [Validation](036-openfreemap-production-tiles/quickstart.md) | [Requirements Checklist](036-openfreemap-production-tiles/checklists/requirements.md)

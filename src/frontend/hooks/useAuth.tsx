@@ -10,6 +10,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { useAuth0 } from "@auth0/auth0-react";
+import { Button } from "@/components/ui/button";
+import { auth0BrowserOptions, mobileAuthCallback } from "@/lib/mobile-auth";
 import {
   getMe,
   logoutSession,
@@ -39,7 +41,7 @@ export interface AuthState {
   isReady: boolean;
   refresh: () => Promise<void>;
   updatePushoverToken: (token: string | null) => Promise<void>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
   login: () => void;
   authMode: AuthMode;
   inviteOnly: boolean;
@@ -215,6 +217,7 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
   const [initialLoading, setInitialLoading] = useState(true);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [signedOut, setSignedOut] = useState(false);
+  const [logoutBrowserUrl, setLogoutBrowserUrl] = useState<string | null>(null);
   const lastSubRef = useRef<string | undefined>(auth0User?.sub);
   const wasAuthenticatedRef = useRef<boolean>(isAuthenticated);
 
@@ -272,6 +275,7 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
       clearProtectedCaches("remove", true);
       setSessionError(null);
       setSignedOut(false);
+      setLogoutBrowserUrl(null);
       lastSubRef.current = currentSub;
       wasAuthenticatedRef.current = isAuthenticated;
       return;
@@ -283,6 +287,7 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
     } else if (!wasAuthenticatedRef.current && isAuthenticated) {
       setSessionError(null);
       setSignedOut(false);
+      setLogoutBrowserUrl(null);
       if (queryClient.getQueryData(["me"]) === null) {
         queryClient.removeQueries({ queryKey: ["me"] });
       }
@@ -361,7 +366,25 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
     await refetch();
   }, [refetch]);
 
+  const openLogoutBrowser = useCallback(async (url: string) => {
+    const { openUrl } = auth0BrowserOptions();
+    try {
+      await openUrl?.(url);
+      setLogoutBrowserUrl(null);
+    } catch {
+      // Complete the SDK's local logout and retain the browser URL for a retry.
+      setLogoutBrowserUrl(url);
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
+    const native = Boolean(auth0BrowserOptions().openUrl);
+    await logout({
+      ...(native && { openUrl: openLogoutBrowser }),
+      logoutParams: {
+        returnTo: native ? mobileAuthCallback : window.location.origin,
+      },
+    });
     lastSubRef.current = undefined;
     setSessionError(null);
     setSignedOut(true);
@@ -369,13 +392,12 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
     queryClient.setQueryData(["me"], null);
     queryClient.removeQueries({ queryKey: ["scans"] });
     queryClient.removeQueries({ queryKey: ["admin"] });
-    logout({ logoutParams: { returnTo: window.location.origin } });
-  }, [queryClient, logout]);
+  }, [queryClient, logout, openLogoutBrowser]);
 
   const login = useCallback(() => {
     setSessionError(null);
     setSignedOut(false);
-    loginWithRedirect();
+    loginWithRedirect(auth0BrowserOptions());
   }, [loginWithRedirect]);
 
   const effectiveLoading =
@@ -414,7 +436,25 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
           : "/auth",
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {signedOut && logoutBrowserUrl && (
+        <div role="alert" className="space-y-2 border-b p-4 text-center">
+          <p>
+            Signed out of Camply. Could not open the browser to finish signing
+            out of Auth0.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => void openLogoutBrowser(logoutBrowserUrl)}
+          >
+            Try again
+          </Button>
+        </div>
+      )}
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 // ---------------------------------------------------------------------------

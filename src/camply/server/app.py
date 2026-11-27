@@ -20,7 +20,8 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import Response
 
 from camply.server.__about__ import __application__, __version__
-from camply.server.config import RuntimeMode, backend_config
+from camply.server.auth import NATIVE_SESSION_TOKEN_HEADER
+from camply.server.config import NATIVE_WEBVIEW_ORIGINS, RuntimeMode, backend_config
 from camply.server.routers.access import access_router
 from camply.server.routers.admin import admin_router
 from camply.server.routers.auth_config import auth_config_router
@@ -107,11 +108,12 @@ app = FastAPI(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=backend_config.cors_origins,
+    allow_origins=[*backend_config.cors_origins, *NATIVE_WEBVIEW_ORIGINS],
     allow_origin_regex=backend_config.cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=[NATIVE_SESSION_TOKEN_HEADER],
 )
 
 if backend_config.runtime_mode == RuntimeMode.DISTRIBUTED:

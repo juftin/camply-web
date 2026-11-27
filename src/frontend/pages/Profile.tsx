@@ -1,4 +1,5 @@
 import { useNavigate, Link } from "react-router-dom";
+import { useState } from "react";
 import {
   Loader2,
   LogOut,
@@ -19,10 +20,13 @@ import { Label } from "@/components/ui/label";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { ActiveSessions } from "@/components/ActiveSessions";
 import { useAuth } from "@/hooks/useAuth";
+import { getApiErrorMessage } from "@/lib/api";
 
 export function Profile() {
   const { user, isLoading, refresh, signOut, authMode, autoLogin } = useAuth();
   const navigate = useNavigate();
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -40,9 +44,17 @@ export function Profile() {
     );
   }
 
-  const handleSignOut = () => {
-    signOut();
-    navigate("/", { replace: true });
+  const handleSignOut = async () => {
+    setSignOutError(null);
+    setSigningOut(true);
+    try {
+      await signOut();
+      navigate("/", { replace: true });
+    } catch (error) {
+      setSignOutError(getApiErrorMessage(error));
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   return (
@@ -100,10 +112,16 @@ export function Profile() {
                 variant="destructive"
                 className="min-h-11 w-full sm:min-h-0"
                 onClick={handleSignOut}
+                disabled={signingOut}
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
+            )}
+            {signOutError && (
+              <p role="alert" className="text-sm text-destructive">
+                {signOutError}
+              </p>
             )}
           </div>
         </CardContent>

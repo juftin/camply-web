@@ -25,6 +25,7 @@ class AuthConfigResponse(BaseModel):
     invite_only: bool
     auto_login: bool
     signup_enabled: bool
+    native_password_sessions: bool = False
 
 
 @auth_config_router.get("/auth-config")
@@ -38,4 +39,5 @@ async def auth_config() -> AuthConfigResponse:
         invite_only=backend_config.invite_only,
         auto_login=backend_config.auto_login,
         signup_enabled=backend_config.signup_enabled,
+        native_password_sessions=backend_config.auth_mode == AuthMode.SESSION,
     )

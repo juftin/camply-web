@@ -13,6 +13,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/hooks/useAuth";
 import { communityPagesEnabled } from "@/lib/features";
 import { CamplyLogo } from "@/components/CamplyLogo";
+import { MobileServerSettings } from "@/components/MobileServerSettings";
+import { getMobileServer } from "@/lib/mobile-server";
 
 interface HeaderProps {
   showLogo?: boolean;
@@ -23,6 +25,7 @@ export function Header({ showLogo = true }: HeaderProps) {
   const navigate = useNavigate();
   const { user, signupEnabled, autoLogin } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const mobileServer = getMobileServer();
 
   const isAuthenticated = user !== null;
 
@@ -143,6 +146,9 @@ export function Header({ showLogo = true }: HeaderProps) {
             className={`hidden md:flex items-center space-x-1 lg:space-x-2 md:max-lg:[&_button:not([aria-label])]:px-2 ${!showLogo ? "absolute right-4" : ""}`}
           >
             <ThemeToggle />
+            {mobileServer && (
+              <MobileServerSettings server={mobileServer} compact />
+            )}
             {isAuthenticated ? (
               <>
                 {user?.is_admin && (
@@ -250,6 +256,7 @@ export function Header({ showLogo = true }: HeaderProps) {
           <div className="pt-4 border-t space-y-3">
             <div className="flex items-center justify-between">
               <ThemeToggle />
+              {mobileServer && <MobileServerSettings server={mobileServer} />}
             </div>
             <div className="flex flex-col space-y-2">
               {isAuthenticated ? (

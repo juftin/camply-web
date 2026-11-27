@@ -5,7 +5,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { Auth0Provider } from "@auth0/auth0-react";
+import { Auth0Provider, type AppState } from "@auth0/auth0-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
 import { Home } from "@/pages/Home";
@@ -40,8 +40,25 @@ import { AuthProvider, AuthConfigContext } from "@/hooks/useAuth";
 import { fetchAuthConfig, type AuthConfig } from "@/lib/api";
 import { communityPagesEnabled } from "@/lib/features";
 import { authReturnTo } from "@/lib/authRedirect";
+import { mobileAuthCallback } from "@/lib/mobile-auth";
+import { MobileAuthCallback } from "@/components/MobileAuthCallback";
+import { MobileServerSettings } from "@/components/MobileServerSettings";
+import { Button } from "@/components/ui/button";
+import { defaultMobileServerUrl, getMobileServer } from "@/lib/mobile-server";
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function restoreAuthDestination(appState?: AppState) {
+  const destination = authReturnTo(appState?.returnTo ?? null);
+  window.history.replaceState(
+    {},
+    document.title,
+    destination.startsWith(`${basename}/`)
+      ? destination
+      : `${basename}/dashboard`,
+  );
+  window.dispatchEvent(new PopStateEvent("popstate"));
+}
 
 function AppRoutes() {
   return (
@@ -202,6 +219,8 @@ function AppRoutes() {
 function App() {
   const [config, setConfig] = useState<AuthConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [connectionAttempt, setConnectionAttempt] = useState(0);
+  const [mobileServer] = useState(getMobileServer);
 
   useEffect(() => {
     fetchAuthConfig()
@@ -225,12 +244,53 @@ function App() {
           "Unable to load authentication configuration. Please reload to try again.",
         ),
       );
-  }, []);
+  }, [connectionAttempt]);
 
-  if (error) {
+  const isAuth0 = config?.auth_mode === "auth0" && !config.auto_login;
+  const clientId = mobileServer
+    ? mobileServer.auth0ClientId ||
+      (mobileServer.url === defaultMobileServerUrl
+        ? import.meta.env.VITE_MOBILE_AUTH0_CLIENT_ID
+        : undefined)
+    : config?.auth0_client_id;
+  let message = error;
+  if (mobileServer) {
+    if (error) {
+      message = `Could not connect to ${new URL(mobileServer.url).host}.`;
+    } else if (
+      config?.auth_mode === "session" &&
+      !config.native_password_sessions
+    ) {
+      message =
+        "Open Camply in your browser to use this deployment’s password sign-in.";
+    } else if (isAuth0 && !clientId) {
+      message =
+        "Enter the deployment’s native Auth0 client ID in Server settings.";
+    }
+  }
+
+  if (message) {
     return (
-      <div role="alert" className="p-8 text-center">
-        {error}
+      <div className="space-y-3 p-8 text-center">
+        <p role="alert">{message}</p>
+        {mobileServer && (
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            {error && (
+              <Button
+                onClick={() => {
+                  setError(null);
+                  setConnectionAttempt((attempt) => attempt + 1);
+                }}
+              >
+                Try again
+              </Button>
+            )}
+            <a href={mobileServer.url} className="text-primary underline">
+              Open Camply in browser
+            </a>
+            <MobileServerSettings server={mobileServer} />
+          </div>
+        )}
       </div>
     );
   }
@@ -243,35 +303,32 @@ function App() {
     );
   }
 
-  const isAuth0 = !config.auto_login && config.auth_mode === "auth0";
+  if (isAuth0 && clientId) {
+    const native = mobileServer !== null;
+    const redirectUri = native
+      ? mobileAuthCallback
+      : new URL(import.meta.env.BASE_URL, window.location.origin).href;
 
-  if (isAuth0) {
     return (
       <Auth0Provider
         domain={config.auth0_domain!}
-        clientId={config.auth0_client_id!}
+        clientId={clientId}
         authorizationParams={{
-          redirect_uri: new URL(
-            import.meta.env.BASE_URL,
-            window.location.origin,
-          ).href,
+          redirect_uri: redirectUri,
           audience: config.auth0_audience!,
         }}
         cacheLocation="memory"
         useRefreshTokens={true}
-        useRefreshTokensFallback={true}
-        onRedirectCallback={(appState) => {
-          const destination = authReturnTo(appState?.returnTo ?? null);
-          window.history.replaceState(
-            {},
-            document.title,
-            destination.startsWith(`${basename}/`)
-              ? destination
-              : `${basename}/dashboard`,
-          );
-          window.dispatchEvent(new PopStateEvent("popstate"));
-        }}
+        useRefreshTokensFallback={!native}
+        skipRedirectCallback={native}
+        onRedirectCallback={restoreAuthDestination}
       >
+        {native && (
+          <MobileAuthCallback
+            redirectUri={redirectUri}
+            onRedirect={restoreAuthDestination}
+          />
+        )}
         <AuthConfigContext.Provider value={config}>
           <AuthProvider>
             <AppRoutes />

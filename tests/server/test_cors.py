@@ -16,6 +16,8 @@ from fastapi.testclient import TestClient
         "https://my-macbook.ts.net",
         "http://camply-server.tailnet-xyz.ts.net:5173",
         "https://camply.rocks",
+        "https://localhost",
+        "capacitor://localhost",
         "https://camply-81r.pages.dev",
         "https://da37cb45.camply-81r.pages.dev",
         "https://feature-branch.camply-81r.pages.dev",
@@ -47,6 +49,7 @@ def test_cors_allowed_origins(test_client: TestClient, origin: str) -> None:
     "origin",
     [
         "https://unauthorized-domain.com",
+        "capacitor://untrusted.example",
         "https://other-project.pages.dev",
         "https://da37cb45.other-project.pages.dev",
         "http://da37cb45.camply-81r.pages.dev",

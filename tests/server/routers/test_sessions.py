@@ -52,6 +52,99 @@ def test_session_login_logout(session_mode: None, test_client: TestClient) -> No
     assert test_client.get("/api/me").status_code == 401
 
 
+@pytest.mark.parametrize("origin", ["https://localhost", "capacitor://localhost"])
+def test_native_password_session_can_rotate_and_revoke(
+    session_mode: None,
+    test_client: TestClient,
+    origin: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Native password sessions use bearer credentials through rotation and revocation."""
+    monkeypatch.setattr(
+        backend_config, "admin_email", f"native-{uuid.uuid4().hex}@example.com"
+    )
+    credentials = {"username": "test-admin", "password": "synthetic-test-password"}
+    preflight = test_client.options(
+        "/api/login",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type,x-camply-session-transport",
+        },
+    )
+    assert preflight.status_code == 200
+    assert preflight.headers["Access-Control-Allow-Origin"] == origin
+    response = test_client.post(
+        "/api/login",
+        headers={"Origin": origin, "X-Camply-Session-Transport": "bearer"},
+        json=credentials,
+    )
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert (
+        "x-camply-session-token"
+        in response.headers["Access-Control-Expose-Headers"].lower()
+    )
+    assert "set-cookie" not in response.headers
+    token = response.headers["X-Camply-Session-Token"]
+    bearer = {"Authorization": f"Bearer {token}"}
+
+    assert test_client.get("/api/me", headers=bearer).status_code == 200
+    assert len(test_client.get("/api/me/sessions", headers=bearer).json()["items"]) == 1
+    test_client.cookies.set("camply_session", token)
+    assert test_client.get("/api/me").status_code == 401
+    test_client.cookies.clear()
+
+    rotation = test_client.post(
+        "/api/change-password",
+        headers=bearer,
+        json={
+            "current_password": credentials["password"],
+            "new_password": "Synthetic-Rotated-Password123",
+        },
+    )
+    assert rotation.status_code == 200
+    assert "set-cookie" not in rotation.headers
+    new_token = rotation.headers["X-Camply-Session-Token"]
+    assert test_client.get("/api/me", headers=bearer).status_code == 401
+
+    new_bearer = {"Authorization": f"Bearer {new_token}"}
+    assert test_client.get("/api/me", headers=new_bearer).status_code == 200
+    assert test_client.post("/api/logout", headers=new_bearer).status_code == 204
+    assert test_client.get("/api/me", headers=new_bearer).status_code == 401
+
+
+def test_browser_cookie_is_rejected_as_bearer(
+    session_mode: None, test_client: TestClient
+) -> None:
+    """A web session cookie cannot be presented as a bearer to skip its CSRF proof."""
+    _login(test_client)
+    token = test_client.cookies["camply_session"]
+    test_client.cookies.clear()
+    assert (
+        test_client.post(
+            "/api/logout", headers={"Authorization": f"Bearer {token}"}
+        ).status_code
+        == 401
+    )
+
+
+def test_web_origin_cannot_request_native_token(
+    session_mode: None, test_client: TestClient
+) -> None:
+    """Ordinary web origins never receive the native response token."""
+    response = test_client.post(
+        "/api/login",
+        headers={
+            "Origin": "https://camply.rocks",
+            "X-Camply-Session-Transport": "bearer",
+        },
+        json={"username": "test-admin", "password": "synthetic-test-password"},
+    )
+    assert response.status_code == 403
+    assert "x-camply-session-token" not in response.headers
+
+
 @pytest.mark.parametrize("scheme", ["http", "https"])
 def test_session_scan_requests(
     session_mode: None,

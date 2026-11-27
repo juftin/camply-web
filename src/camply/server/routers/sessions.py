@@ -5,15 +5,18 @@ import re
 import secrets
 import time
 import uuid
+from typing import Annotated, Any, Literal
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from camply.db.models import User as UserDB
 from camply.db.models import UserSession
 from camply.server.auth import (
+    NATIVE_SESSION_AUDIENCE,
+    NATIVE_SESSION_TOKEN_HEADER,
     CurrentUserDep,
     _get_or_create_admin_user,
     hash_password,
@@ -22,7 +25,7 @@ from camply.server.auth import (
     session_signing_key,
     verify_password,
 )
-from camply.server.config import AuthMode, backend_config
+from camply.server.config import NATIVE_WEBVIEW_ORIGINS, AuthMode, backend_config
 from camply.server.dependencies import SessionDep
 from camply.server.routers.me import build_me_response, get_invitation_status
 from camply.server.schemas import (
@@ -38,6 +41,16 @@ session_router = APIRouter(tags=["auth"])
 _SESSION_PRUNE_GRACE_DAYS: int = 7
 _MAX_USER_AGENT_LENGTH: int = 512
 _MAX_IP_ADDRESS_LENGTH: int = 64
+_SESSION_RESPONSE: dict[int | str, dict[str, Any]] = {
+    200: {
+        "headers": {
+            NATIVE_SESSION_TOKEN_HEADER: {
+                "description": "Bearer credential issued for a native password session.",
+                "schema": {"type": "string"},
+            }
+        }
+    }
+}
 
 
 def _extract_client_ip(request: Request) -> str | None:
@@ -78,20 +91,28 @@ async def _create_user_session(
     return db_session
 
 
-def _set_session_cookies(
-    response: Response, user: UserDB, csrf: str, session_id: uuid.UUID
+def _issue_password_session(
+    response: Response, user: UserDB, session_id: uuid.UUID, *, native: bool
 ) -> None:
-    """Issue a bounded session tied to current credentials and preserve its CSRF proof."""
+    """Issue a bounded credential for the selected password-session transport."""
+    claims = {
+        "sub": user.email,
+        "jti": str(session_id),
+        "credentials": session_credential_version(user),
+        "exp": int(time.time()) + backend_config.session_max_age,
+    }
+    response.headers["Cache-Control"] = "no-store"
+    if native:
+        response.headers[NATIVE_SESSION_TOKEN_HEADER] = jwt.encode(
+            {**claims, "aud": NATIVE_SESSION_AUDIENCE},
+            session_signing_key(),
+            algorithm="HS256",
+        )
+        return
+
+    csrf = secrets.token_urlsafe(32)
     cookie = jwt.encode(
-        {
-            "sub": user.email,
-            "jti": str(session_id),
-            "csrf": csrf,
-            "credentials": session_credential_version(user),
-            "exp": int(time.time()) + backend_config.session_max_age,
-        },
-        session_signing_key(),
-        algorithm="HS256",
+        {**claims, "csrf": csrf}, session_signing_key(), algorithm="HS256"
     )
     response.set_cookie(
         key="camply_session",
@@ -108,7 +129,6 @@ def _set_session_cookies(
         secure=backend_config.session_cookie_secure,
         samesite="strict",
     )
-    response.headers["Cache-Control"] = "no-store"
 
 
 def _clear_session_cookies(response: Response) -> None:
@@ -148,13 +168,23 @@ def require_trusted_origin(request: Request) -> None:
         raise HTTPException(status_code=403, detail="Untrusted login origin")
 
 
-@session_router.post("/login")
+@session_router.post("/login", responses=_SESSION_RESPONSE)
 async def login(
-    body: SessionLoginRequest, request: Request, response: Response, session: SessionDep
+    body: SessionLoginRequest,
+    request: Request,
+    response: Response,
+    session: SessionDep,
+    transport: Annotated[
+        Literal["bearer"] | None, Header(alias="X-Camply-Session-Transport")
+    ] = None,
 ) -> MeResponse:
     """Validate credentials and establish an expiring signed session."""
     require_session_mode()
-    require_trusted_origin(request)
+    if transport == "bearer":
+        if request.headers.get("Origin") not in NATIVE_WEBVIEW_ORIGINS:
+            raise HTTPException(status_code=403, detail="Untrusted native login origin")
+    else:
+        require_trusted_origin(request)
 
     is_bootstrap_login = secrets.compare_digest(
         body.username.encode(), (backend_config.login_username or "").encode()
@@ -181,16 +211,16 @@ async def login(
         user_id=user.id,
         email=user.email,
     )
-    _set_session_cookies(
+    _issue_password_session(
         response,
         user=user,
-        csrf=secrets.token_urlsafe(32),
         session_id=session_id,
+        native=transport == "bearer",
     )
     return build_me_response(user=user, invitation_status=invitation_status)
 
 
-@session_router.post("/change-password")
+@session_router.post("/change-password", responses=_SESSION_RESPONSE)
 async def change_password(
     body: ChangePasswordRequest,
     request: Request,
@@ -241,11 +271,11 @@ async def change_password(
         user_id=user.id,
         email=user.email,
     )
-    _set_session_cookies(
+    _issue_password_session(
         response,
         user=user,
-        csrf=secrets.token_urlsafe(32),
         session_id=new_session_id,
+        native=current_user.native_session,
     )
     return build_me_response(user=user, invitation_status=invitation_status)
 
@@ -267,7 +297,8 @@ async def logout(current_user: CurrentUserDep, session: SessionDep) -> Response:
         )
         await session.commit()
     response = Response(status_code=204, headers={"Cache-Control": "no-store"})
-    _clear_session_cookies(response)
+    if not current_user.native_session:
+        _clear_session_cookies(response)
     return response
 
 

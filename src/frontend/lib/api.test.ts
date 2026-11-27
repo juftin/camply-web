@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { AxiosError, type AxiosInstance } from "axios";
+import { AxiosError, AxiosHeaders, type AxiosInstance } from "axios";
 
 // We'll mock axios.create to return a controlled instance
 const mockGet = vi.fn();
@@ -91,6 +91,71 @@ describe("API Client", () => {
     expect(createCall!.baseURL).toBeDefined();
     expect(createCall!.timeout).toBeGreaterThan(0);
     expect(createCall!.withCredentials).toBe(true);
+  });
+
+  it("uses the hydrated native server with an in-memory bearer that rotates and clears", async () => {
+    vi.resetModules();
+    const api = await import("./api");
+    const request = mockUseFn.mock.lastCall![0];
+    const profile = { id: "synthetic-user" };
+    const defaults = { ...mockAxiosInstance.defaults };
+    try {
+      api.configureMobileApi({
+        url: "https://camply.example/trips/",
+        auth0ClientId: "",
+      });
+      expect(mockAxiosInstance.defaults).toMatchObject({
+        baseURL: "https://camply.example/trips/api",
+        withCredentials: false,
+        withXSRFToken: false,
+      });
+      mockPost.mockResolvedValueOnce({
+        data: profile,
+        headers: { "x-camply-session-token": "first-native-token" },
+      });
+      await expect(
+        api.loginSession("test-user", "synthetic-password"),
+      ).resolves.toEqual(profile);
+      expect(mockPost).toHaveBeenLastCalledWith(
+        "/login",
+        { username: "test-user", password: "synthetic-password" },
+        { headers: { "X-Camply-Session-Transport": "bearer" } },
+      );
+      expect(mockGet).not.toHaveBeenCalled();
+      const original = await request({
+        url: "/me",
+        headers: new AxiosHeaders(),
+      });
+      expect(original.headers.get("Authorization")).toBe(
+        "Bearer first-native-token",
+      );
+
+      mockPost.mockResolvedValueOnce({
+        data: profile,
+        headers: { "x-camply-session-token": "rotated-native-token" },
+      });
+      await api.changePassword({
+        current_password: "synthetic-password",
+        new_password: "synthetic-rotated-password",
+      });
+      const rotated = await request({
+        url: "/me",
+        headers: new AxiosHeaders(),
+      });
+      expect(rotated.headers.get("Authorization")).toBe(
+        "Bearer rotated-native-token",
+      );
+      mockPost.mockResolvedValueOnce({});
+      await api.logoutSession();
+      const loggedOut = await request({
+        url: "/me",
+        headers: new AxiosHeaders(),
+      });
+      expect(loggedOut.headers.has("Authorization")).toBe(false);
+    } finally {
+      mockAxiosInstance.defaults = defaults;
+      vi.resetModules();
+    }
   });
 
   it("confirms the session cookie before returning a login profile", async () => {

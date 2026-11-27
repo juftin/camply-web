@@ -46,6 +46,8 @@ logger = structlog.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 bearer_scheme = HTTPBearer(auto_error=False)
+NATIVE_SESSION_AUDIENCE = "camply-native-session"
+NATIVE_SESSION_TOKEN_HEADER = "X-Camply-Session-Token"
 
 # ---------------------------------------------------------------------------
 # Auth0 helpers
@@ -398,6 +400,7 @@ class CurrentUser(BaseModel):
     ntfy_access_token: str | None = Field(default=None, repr=False)
     must_change_password: bool = False
     session_id: uuid.UUID | None = None
+    native_session: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -456,17 +459,21 @@ def _as_utc(value: datetime.datetime) -> datetime.datetime:
     return value.astimezone(datetime.timezone.utc)
 
 
-def verify_session(request: Request) -> dict:
-    """Validate the signed session and require CSRF proof for state changes."""
-    cookie = request.cookies.get("camply_session")
-    if not cookie:
+def verify_session(request: Request, bearer: str | None = None) -> dict:
+    """Validate the session transport and require CSRF proof for cookie mutations."""
+    token = bearer if bearer is not None else request.cookies.get("camply_session")
+    if not token:
         raise HTTPException(status_code=401, detail="Sign in required")
+    required = ["exp", "sub", "credentials", "jti"]
+    if bearer is None:
+        required.append("csrf")
     try:
         payload = jwt.decode(
-            cookie,
+            token,
             session_signing_key(),
             algorithms=["HS256"],
-            options={"require": ["exp", "sub", "csrf", "credentials", "jti"]},
+            audience=NATIVE_SESSION_AUDIENCE if bearer is not None else None,
+            options={"require": required},
         )
     except jwt.InvalidTokenError as exc:
         raise HTTPException(
@@ -481,7 +488,7 @@ def verify_session(request: Request) -> dict:
         raise HTTPException(
             status_code=401, detail="Session expired or invalid"
         ) from exc
-    if request.method not in {"GET", "HEAD", "OPTIONS"}:
+    if bearer is None and request.method not in {"GET", "HEAD", "OPTIONS"}:
         token = request.headers.get("X-CSRF-Token", "")
         if not secrets.compare_digest(token.encode(), str(payload["csrf"]).encode()):
             raise HTTPException(status_code=403, detail="Invalid CSRF token")
@@ -812,7 +819,7 @@ async def resolve_current_user(
         Automatically uses the configured admin identity without credentials.
 
     **session mode**
-        Validates the cookie established through the in-app login form.
+        Validates the browser cookie or native bearer established by password login.
 
     **auth0 mode**
         Validates the bearer JWT, looks up (or creates) the user in the
@@ -821,7 +828,9 @@ async def resolve_current_user(
     if backend_config.auto_login or backend_config.auth_mode == AuthMode.SESSION:
         session_id: uuid.UUID | None = None
         if backend_config.auth_mode == AuthMode.SESSION:
-            payload = verify_session(request)
+            payload = verify_session(
+                request, credentials.credentials if credentials is not None else None
+            )
             sub = str(payload.get("sub", ""))
             jti_uuid = uuid.UUID(str(payload["jti"]))
             stmt = select(User).where(func.lower(User.email) == sub.lower())
@@ -871,6 +880,7 @@ async def resolve_current_user(
                 and user.must_change_password
             ),
             session_id=session_id,
+            native_session=session_id is not None and credentials is not None,
         )
 
     # --- Auth0 mode ---

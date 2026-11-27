@@ -7,10 +7,16 @@
 `CAMPLY_AUTH_MODE` selects authentication independently of `CAMPLY_ENVIRONMENT`:
 
 - **`none` (default):** Signs every request in as the shared admin account and hides login/logout UI.
-- **`session`:** Authenticates via `POST /api/login` using signed HTTP-only JWT session cookies (`jti` backed by `user_sessions`) and `X-CSRF-Token` validation on mutations. Password changes or `DELETE /api/me/sessions/{id}` revoke sessions immediately.
+- **`session`:** Authenticates via `POST /api/login`. Web clients use signed HTTP-only JWT session cookies and supply `X-CSRF-Token` on mutations. Native clients use the bearer transport described below. Both transports use `jti` backed by `user_sessions`. Password changes or `DELETE /api/me/sessions/{id}` revoke sessions immediately.
 - **`auth0`:** Validates RS256 bearer tokens against Auth0 JWKS (with bounded `/userinfo` fallback caching when email claims are absent). The React SDK keeps tokens strictly in memory (`cacheLocation="memory"`, refresh token rotation) to avoid `localStorage` XSS exposure; `Axios` retries at most one `401` on idempotent `GET`/`HEAD`/`OPTIONS` calls and never replays mutations.
 
 camply never merges accounts by email automatically: verified email collisions across distinct identities return `409 Conflict` (`ERR_EMAIL_CONFLICT`), and missing verified emails return `403 Forbidden`.
+
+### Native password sessions
+
+`GET /api/auth-config` advertises `native_password_sessions` in session mode. A native login sends `X-Camply-Session-Transport: bearer` and must originate from `https://localhost` or `capacitor://localhost`. The login returns the user profile and `X-Camply-Session-Token` with `Cache-Control: no-store`. The CORS response exposes that header to the app.
+
+Send the token in `Authorization: Bearer …`. The token has a native-only audience, and each request checks expiration, the user's current credentials, and the stored session record. The API rejects a web cookie presented as a bearer and a native token presented as a cookie. Password changes issue a replacement credential via the same transport. `/api/logout` revokes the session.
 
 ## Invite-only access
 
