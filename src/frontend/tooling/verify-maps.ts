@@ -49,6 +49,78 @@ for (let i = 0; i < image.data.length; i += 4) {
   image.data[i + 3] = 255;
 }
 const tile = PNG.sync.write(image);
+const openFreeMapStyle = JSON.stringify({
+  version: 8,
+  sources: {
+    openmaptiles: {
+      type: "raster",
+      tiles: ["https://tiles.openfreemap.org/fixture-tiles/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      minzoom: 0,
+      maxzoom: 19,
+      attribution:
+        '<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> <a href="https://www.openmaptiles.org/" target="_blank">&copy; OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+    },
+  },
+  layers: [
+    {
+      id: "openmaptiles",
+      type: "raster",
+      source: "openmaptiles",
+      paint: { "raster-fade-duration": 0 },
+    },
+  ],
+});
+async function installOpenFreeMapRoutes(
+  targetPage: Page,
+  options: {
+    styleRequests?: string[];
+    tileRequests?: string[];
+    osmRequests?: string[];
+    checkHeaders?: boolean;
+  } = {},
+) {
+  await targetPage.route("https://tile.openstreetmap.org/**", async (route) => {
+    options.osmRequests?.push(route.request().url());
+    await route.abort("blockedbyclient");
+  });
+  await targetPage.route(
+    "https://tiles.openfreemap.org/styles/**",
+    async (route) => {
+      if (options.checkHeaders) {
+        const headers = route.request().headers();
+        expect(headers.authorization).toBeUndefined();
+        expect(headers["x-csrf-token"]).toBeUndefined();
+        expect(new URL(headers.referer).pathname).toBe("/");
+      }
+      options.styleRequests?.push(route.request().url());
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "Access-Control-Allow-Origin": "*" },
+        body: openFreeMapStyle,
+      });
+    },
+  );
+  await targetPage.route(
+    "https://tiles.openfreemap.org/fixture-tiles/**",
+    async (route) => {
+      if (options.checkHeaders) {
+        const headers = route.request().headers();
+        expect(headers.authorization).toBeUndefined();
+        expect(headers["x-csrf-token"]).toBeUndefined();
+        expect(new URL(headers.referer).pathname).toBe("/");
+      }
+      options.tileRequests?.push(route.request().url());
+      await route.fulfill({
+        status: 200,
+        contentType: "image/png",
+        headers: { "Access-Control-Allow-Origin": "*" },
+        body: tile,
+      });
+    },
+  );
+}
 mkdirSync("tmp", { recursive: true });
 const report: Record<string, unknown> = {
   platform: os.platform(),
@@ -57,7 +129,7 @@ const report: Record<string, unknown> = {
   cpu: os.cpus()[0]?.model,
   fixture:
     "deterministic 5000 matching places; 130 overlapping; two unmappable",
-  tileSource: "intercepted deterministic 256px raster",
+  tileSource: "intercepted deterministic OpenFreeMap style + 256px tiles",
 };
 const configFile = new URL("../vite.config.ts", import.meta.url).pathname;
 const server = await createServer({
@@ -76,19 +148,15 @@ try {
     viewport: { width: 1440, height: 1000 },
   });
   const errors: string[] = [];
+  const styleRequests: string[] = [];
   const tileRequests: string[] = [];
+  const osmRequests: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.route("https://tile.openstreetmap.org/**", async (route) => {
-    const headers = route.request().headers();
-    expect(headers.authorization).toBeUndefined();
-    expect(headers["x-csrf-token"]).toBeUndefined();
-    expect(new URL(headers.referer).pathname).toBe("/");
-    tileRequests.push(route.request().url());
-    await route.fulfill({
-      contentType: "image/png",
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: tile,
-    });
+  await installOpenFreeMapRoutes(page, {
+    styleRequests,
+    tileRequests,
+    osmRequests,
+    checkHeaders: true,
   });
   const origin = server.resolvedUrls!.local[0];
   let searchCompleted = 0;
@@ -125,7 +193,11 @@ try {
     page.getByText(/2 matching places cannot be mapped/),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "© OpenStreetMap contributors" }),
+    page.getByRole("link", { name: "OpenFreeMap", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: /OpenMapTiles/ })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "OpenStreetMap", exact: true }),
   ).toBeVisible();
   const group = page
     .locator('.camply-map-marker[aria-label$="places"]')
@@ -360,6 +432,12 @@ try {
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       ).toBe(true);
+      await expect(
+        page.getByRole("link", { name: "OpenFreeMap", exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: "OpenStreetMap", exact: true }),
+      ).toBeVisible();
       await page.screenshot({
         path: `tmp/maps-${width}-${colorScheme}.png`,
         fullPage: true,
@@ -412,19 +490,48 @@ try {
     .first()
     .waitFor();
   const failTiles = (route: Route) => route.abort("failed");
-  await page.route("https://tile.openstreetmap.org/**", failTiles);
+  await page.route("https://tiles.openfreemap.org/fixture-tiles/**", failTiles);
   await page.goto(`${origin}search?q=Synthetic`);
   await expect(page.getByRole("button", { name: "Retry tiles" })).toBeVisible();
   await expect(
     page.getByRole("link", { name: /Synthetic Pines/ }).first(),
   ).toBeVisible();
-  await page.unroute("https://tile.openstreetmap.org/**", failTiles);
+  await page.unroute(
+    "https://tiles.openfreemap.org/fixture-tiles/**",
+    failTiles,
+  );
   await page.getByRole("button", { name: "Retry tiles" }).click();
   await expect(
     page.getByRole("button", { name: "Retry tiles" }),
   ).not.toBeVisible();
+
+  const failStyle = (route: Route) =>
+    route.fulfill({
+      status: 503,
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: "Style unavailable",
+    });
+  await page.route("https://tiles.openfreemap.org/styles/**", failStyle);
+  await page.goto(`${origin}search?q=Synthetic`);
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Retry map", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Loading map…", { exact: true }),
+  ).not.toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Synthetic Pines/ }).first(),
+  ).toBeVisible();
+  await page.unroute("https://tiles.openfreemap.org/styles/**", failStyle);
+  await page.getByRole("button", { name: "Retry map", exact: true }).click();
+  await page
+    .locator(".camply-map-marker")
+    .first()
+    .waitFor({ state: "visible" });
+  await expect(page.getByRole("alert")).toHaveCount(0);
   report.independent_failure_recovery =
-    "passed: summary, viewport, group members and tiles";
+    "passed: summary, viewport, group members, tiles and style";
   await page.goto(`${origin}${destination?.replace(/^\//, "")}`);
   await expect(page.getByLabel("Interactive campground map")).toBeVisible();
   await page.goto(`${origin}rec-area/1/area`);
@@ -450,7 +557,9 @@ try {
   }
   report.detail_coordinate_fallback =
     "passed: placeholder, missing and invalid campground coordinates inherit the parent; unusable parent locations omit maps";
+  expect(styleRequests.length).toBeGreaterThan(0);
   expect(tileRequests.length).toBeGreaterThan(0);
+  expect(osmRequests).toEqual([]);
   expect(errors).toEqual([]);
 
   const touchPage = await browser.newPage({
@@ -458,13 +567,7 @@ try {
     hasTouch: true,
     isMobile: true,
   });
-  await touchPage.route("https://tile.openstreetmap.org/**", (route) =>
-    route.fulfill({
-      contentType: "image/png",
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: tile,
-    }),
-  );
+  await installOpenFreeMapRoutes(touchPage, { osmRequests });
   await touchPage.goto(`${origin}search?q=Synthetic&page=2`);
   await touchPage.locator(".camply-map-marker").first().waitFor();
   await expectStackedResults(touchPage);
@@ -499,13 +602,7 @@ try {
   const unavailablePage = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
   });
-  await unavailablePage.route("https://tile.openstreetmap.org/**", (route) =>
-    route.fulfill({
-      contentType: "image/png",
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: tile,
-    }),
-  );
+  await installOpenFreeMapRoutes(unavailablePage, { osmRequests });
   await unavailablePage.addInitScript(`{
     const original = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function(kind, ...args) {
@@ -562,8 +659,9 @@ try {
     VITE_MAP_ATTRIBUTION_URL: "https://example.test/license",
     VITE_MAP_MAX_NATIVE_ZOOM: "4",
   };
+  const trackedKeys = [...Object.keys(publicSettings), "VITE_MAP_STYLE_URL"];
   const previousSettings = Object.fromEntries(
-    Object.keys(publicSettings).map((key) => [key, process.env[key]]),
+    trackedKeys.map((key) => [key, process.env[key]]),
   );
   Object.assign(process.env, publicSettings);
   try {
@@ -678,9 +776,37 @@ try {
         invalidPage.getByRole("link", { name: /Synthetic Pines/ }).first(),
       ).toBeVisible();
       await invalidPage.close();
-      report.invalid_source_recovery = "passed";
     } finally {
       await invalidServer.close();
+    }
+    delete process.env.VITE_MAP_TILE_URL;
+    delete process.env.VITE_MAP_ATTRIBUTION_TEXT;
+    delete process.env.VITE_MAP_ATTRIBUTION_URL;
+    delete process.env.VITE_MAP_MAX_NATIVE_ZOOM;
+    process.env.VITE_MAP_STYLE_URL = "http://insecure.example/style.json";
+    const invalidStyleServer = await createServer({
+      configFile,
+      server: { host: "127.0.0.1", port: 0 },
+    });
+    await invalidStyleServer.listen();
+    try {
+      const invalidStylePage = await browser.newPage({
+        viewport: { width: 1440, height: 1000 },
+      });
+      await invalidStylePage.goto(
+        `${invalidStyleServer.resolvedUrls!.local[0]}search?q=Synthetic`,
+      );
+      await expect(invalidStylePage.getByRole("alert")).toContainText(
+        /Map style/i,
+      );
+      await expect(
+        invalidStylePage.getByRole("link", { name: /Synthetic Pines/ }).first(),
+      ).toBeVisible();
+      await invalidStylePage.close();
+      report.invalid_source_recovery =
+        "passed: invalid native zoom and invalid style URL";
+    } finally {
+      await invalidStyleServer.close();
     }
   } finally {
     for (const [key, value] of Object.entries(previousSettings)) {
@@ -688,7 +814,10 @@ try {
       else process.env[key] = value;
     }
   }
+  expect(osmRequests).toEqual([]);
+  report.style_requests_intercepted = styleRequests.length;
   report.tile_requests_intercepted = tileRequests.length;
+  report.osm_requests = osmRequests.length;
   report.console_errors = errors;
   report.behavior_checks = [
     "exact-provider monitor and details",

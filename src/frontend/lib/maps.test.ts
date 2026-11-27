@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_MAP_STYLE_URL,
   basemapConfig,
   hasMappableCoordinates,
   regionalBounds,
@@ -56,25 +57,155 @@ describe("map geometry and configuration", () => {
       north: 90,
     });
   });
-  it("supplies keyless defaults and rejects unsafe or misleading source configuration", () => {
-    expect(basemapConfig({}).url).toBe(
-      "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  it("defaults to OpenFreeMap liberty vector style with zero OSM references", () => {
+    const defaultConfig = basemapConfig({});
+    expect(defaultConfig).toEqual({
+      kind: "style",
+      styleUrl: DEFAULT_MAP_STYLE_URL,
+    });
+    expect(DEFAULT_MAP_STYLE_URL).toBe(
+      "https://tiles.openfreemap.org/styles/liberty",
     );
-    expect(() =>
-      basemapConfig({ VITE_MAP_TILE_URL: "/tiles/{z}/{x}/{y}.png" }),
-    ).toThrow(/attribution/i);
-    expect(() => basemapConfig({ VITE_MAP_MAX_NATIVE_ZOOM: "20" })).toThrow();
-    expect(() =>
-      basemapConfig({ VITE_MAP_ATTRIBUTION_URL: "javascript:alert(1)" }),
-    ).toThrow();
+    expect(JSON.stringify(defaultConfig)).not.toContain(
+      "tile.openstreetmap.org",
+    );
+    expect(basemapConfig({ VITE_MAP_MAX_NATIVE_ZOOM: "19" })).toEqual({
+      kind: "style",
+      styleUrl: DEFAULT_MAP_STYLE_URL,
+    });
+    expect(
+      basemapConfig({
+        VITE_MAP_STYLE_URL: "   ",
+        VITE_MAP_TILE_URL: "  ",
+        VITE_MAP_MAX_NATIVE_ZOOM: "25",
+        VITE_MAP_ATTRIBUTION_URL: "javascript:alert(1)",
+      }),
+    ).toEqual({
+      kind: "style",
+      styleUrl: DEFAULT_MAP_STYLE_URL,
+    });
+  });
+
+  it("supports custom vector styles, raster precedence, and rejects unsafe basemap configuration", () => {
+    expect(
+      basemapConfig({
+        VITE_MAP_STYLE_URL: "  https://tiles.openfreemap.org/styles/bright  ",
+      }),
+    ).toEqual({
+      kind: "style",
+      styleUrl: "https://tiles.openfreemap.org/styles/bright",
+    });
+    expect(
+      basemapConfig({ VITE_MAP_STYLE_URL: "/styles/liberty.json" }),
+    ).toEqual({
+      kind: "style",
+      styleUrl: "/styles/liberty.json",
+    });
+
+    for (const invalidStyleUrl of [
+      "http://insecure.example/style.json",
+      "//example.com/style.json",
+      "javascript:alert(1)",
+      "data:application/json,{}",
+      "styles/liberty.json",
+      "https://tiles.example.test/styles/bad style.json",
+      "https://tiles.example.test/styles/line\nbreak.json",
+      "https://user:pass@tiles.example/style.json",
+      "https://:pass@tiles.example/style.json",
+      "https://[invalid",
+    ]) {
+      expect(() =>
+        basemapConfig({ VITE_MAP_STYLE_URL: invalidStyleUrl }),
+      ).toThrow(/style/i);
+    }
+
+    expect(
+      basemapConfig({
+        VITE_MAP_STYLE_URL: "https://tiles.openfreemap.org/styles/bright",
+        VITE_MAP_TILE_URL: " /tiles/{z}/{x}/{y}.png ",
+        VITE_MAP_ATTRIBUTION_TEXT: " Fixture ",
+        VITE_MAP_ATTRIBUTION_URL: " https://example.com/license ",
+        VITE_MAP_MAX_NATIVE_ZOOM: "4",
+      }),
+    ).toEqual({
+      kind: "raster",
+      url: "/tiles/{z}/{x}/{y}.png",
+      text: "Fixture",
+      link: "https://example.com/license",
+      maxNativeZoom: 4,
+    });
+    expect(
+      basemapConfig({
+        VITE_MAP_TILE_URL: "https://tiles.example.test/{z}/{x}/{y}.png",
+        VITE_MAP_ATTRIBUTION_TEXT: "Example Tiles",
+        VITE_MAP_ATTRIBUTION_URL: "https://example.test/license",
+      }),
+    ).toEqual({
+      kind: "raster",
+      url: "https://tiles.example.test/{z}/{x}/{y}.png",
+      text: "Example Tiles",
+      link: "https://example.test/license",
+      maxNativeZoom: 19,
+    });
     expect(
       basemapConfig({
         VITE_MAP_TILE_URL: "/tiles/{z}/{x}/{y}.png",
-        VITE_MAP_ATTRIBUTION_TEXT: "Fixture",
+        VITE_MAP_ATTRIBUTION_TEXT: "Min Zoom",
+        VITE_MAP_ATTRIBUTION_URL: "https://example.test/license",
+        VITE_MAP_MAX_NATIVE_ZOOM: "0",
+      }),
+    ).toMatchObject({ kind: "raster", maxNativeZoom: 0 });
+
+    expect(() =>
+      basemapConfig({ VITE_MAP_TILE_URL: "/tiles/{z}/{x}/{y}.png" }),
+    ).toThrow(/attribution/i);
+    expect(() =>
+      basemapConfig({
+        VITE_MAP_TILE_URL: "/tiles/{z}/{x}/{y}.png",
+        VITE_MAP_ATTRIBUTION_TEXT: "   ",
         VITE_MAP_ATTRIBUTION_URL: "https://example.com/license",
-        VITE_MAP_MAX_NATIVE_ZOOM: "4",
-      }).maxNativeZoom,
-    ).toBe(4);
+      }),
+    ).toThrow(/attribution/i);
+    for (const invalidAttrUrl of [
+      "http://example.com/license",
+      "javascript:alert(1)",
+      "https://user:pass@example.com/license",
+      "https://[invalid",
+    ]) {
+      expect(() =>
+        basemapConfig({
+          VITE_MAP_TILE_URL: "/tiles/{z}/{x}/{y}.png",
+          VITE_MAP_ATTRIBUTION_TEXT: "Fixture",
+          VITE_MAP_ATTRIBUTION_URL: invalidAttrUrl,
+        }),
+      ).toThrow();
+    }
+    for (const invalidTileUrl of [
+      "http://insecure.example/{z}/{x}/{y}.png",
+      "//example.com/{z}/{x}/{y}.png",
+      "javascript:bad",
+      "/tiles/{z}/{x}.png",
+      "https://user:pass@tiles.example/{z}/{x}/{y}.png",
+      "https://[invalid/{z}/{x}/{y}.png",
+    ]) {
+      expect(() =>
+        basemapConfig({
+          VITE_MAP_TILE_URL: invalidTileUrl,
+          VITE_MAP_ATTRIBUTION_TEXT: "Fixture",
+          VITE_MAP_ATTRIBUTION_URL: "https://example.com/license",
+        }),
+      ).toThrow();
+    }
+    for (const invalidZoom of ["20", "25", "-1", "14.5", "abc", "Infinity"]) {
+      expect(() =>
+        basemapConfig({
+          VITE_MAP_TILE_URL: "/tiles/{z}/{x}/{y}.png",
+          VITE_MAP_ATTRIBUTION_TEXT: "Fixture",
+          VITE_MAP_ATTRIBUTION_URL: "https://example.com/license",
+          VITE_MAP_MAX_NATIVE_ZOOM: invalidZoom,
+        }),
+      ).toThrow(/native zoom/i);
+    }
   });
   it("preserves zeros and exact provider identity when prefilling a scan", () => {
     const result = toCampground({

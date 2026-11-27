@@ -190,6 +190,9 @@ def test_manifest_records_only_supported_public_settings(
 ) -> None:
     """Public build options affect freshness without serializing unrelated environment."""
     monkeypatch.setenv(
+        "VITE_MAP_STYLE_URL", "https://tiles.example.invalid/styles/liberty"
+    )
+    monkeypatch.setenv(
         "VITE_MAP_TILE_URL", "https://tiles.example.invalid/{z}/{x}/{y}.png"
     )
     monkeypatch.setenv("VITE_UNSUPPORTED_PRIVATE", "synthetic-private-option")
@@ -197,7 +200,8 @@ def test_manifest_records_only_supported_public_settings(
     prepare(project, monkeypatch)
     manifest = json.loads((project / "build/frontend-manifest.json").read_text())
     assert manifest["settings"] == {
-        "VITE_MAP_TILE_URL": "https://tiles.example.invalid/{z}/{x}/{y}.png"
+        "VITE_MAP_STYLE_URL": "https://tiles.example.invalid/styles/liberty",
+        "VITE_MAP_TILE_URL": "https://tiles.example.invalid/{z}/{x}/{y}.png",
     }
     assert "synthetic-private-option" not in json.dumps(manifest)
     assert "wrong.example.invalid" not in json.dumps(manifest)

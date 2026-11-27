@@ -110,50 +110,104 @@ export const fitLocations = (
   };
 };
 
+export const DEFAULT_MAP_STYLE_URL =
+  "https://tiles.openfreemap.org/styles/liberty";
+
+export interface VectorStyleBasemapConfig {
+  kind: "style";
+  styleUrl: string;
+}
+
+export interface RasterTileBasemapConfig {
+  kind: "raster";
+  url: string;
+  text: string;
+  link: string;
+  maxNativeZoom: number;
+}
+
+export type BasemapConfig = VectorStyleBasemapConfig | RasterTileBasemapConfig;
+
+const hasWhitespaceOrControl = (value: string): boolean => {
+  for (let i = 0; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    if (code <= 0x20 || code === 0x7f) return true;
+  }
+  return /\s/.test(value);
+};
+
+const isHttpsOrRootRelative = (value: string): boolean =>
+  value.startsWith("https://") ||
+  (value.startsWith("/") && !value.startsWith("//"));
+
 export const basemapConfig = (
   env: Record<string, string | undefined> = import.meta.env,
-) => {
-  const custom = env.VITE_MAP_TILE_URL;
-  const url = custom || "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-  const text =
-    env.VITE_MAP_ATTRIBUTION_TEXT ||
-    (custom ? "" : "© OpenStreetMap contributors");
-  const link =
-    env.VITE_MAP_ATTRIBUTION_URL ||
-    (custom ? "" : "https://www.openstreetmap.org/copyright");
-  const maxNativeZoom = Number(env.VITE_MAP_MAX_NATIVE_ZOOM || "19");
-  if (!text || !link)
-    throw new Error("Custom map source requires attribution text and URL.");
-  if (!/^https:\/\//.test(link))
-    throw new Error("Map attribution must use an HTTPS URL.");
-  new URL(link);
-  if (
-    !(
-      url.startsWith("https://") ||
-      (url.startsWith("/") && !url.startsWith("//"))
-    ) ||
-    !["{z}", "{x}", "{y}"].every((token) => url.includes(token))
-  )
-    throw new Error("Map source must be an HTTPS or same-origin XYZ tile URL.");
-  const parsedUrl = new URL(
-    url.replace(/\{[zxy]\}/g, "0"),
-    "https://camply.invalid",
-  );
-  if (
-    parsedUrl.protocol !== "https:" ||
-    parsedUrl.username ||
-    parsedUrl.password
-  )
-    throw new Error(
-      "Map source must be a public HTTPS or same-origin XYZ tile URL.",
+): BasemapConfig => {
+  const customTileUrl = env.VITE_MAP_TILE_URL?.trim() ?? "";
+  if (customTileUrl) {
+    const text = env.VITE_MAP_ATTRIBUTION_TEXT?.trim() ?? "";
+    const link = env.VITE_MAP_ATTRIBUTION_URL?.trim() ?? "";
+    const maxNativeZoom = Number(env.VITE_MAP_MAX_NATIVE_ZOOM?.trim() || "19");
+    if (!text || !link)
+      throw new Error("Custom map source requires attribution text and URL.");
+    if (!/^https:\/\//.test(link) || hasWhitespaceOrControl(link))
+      throw new Error("Map attribution must use an HTTPS URL.");
+    const parsedLink = new URL(link);
+    if (
+      parsedLink.protocol !== "https:" ||
+      parsedLink.username ||
+      parsedLink.password
+    )
+      throw new Error("Map attribution must use a public HTTPS URL.");
+    if (
+      hasWhitespaceOrControl(customTileUrl) ||
+      !isHttpsOrRootRelative(customTileUrl) ||
+      !["{z}", "{x}", "{y}"].every((token) => customTileUrl.includes(token))
+    )
+      throw new Error(
+        "Map source must be an HTTPS or same-origin XYZ tile URL.",
+      );
+    const parsedUrl = new URL(
+      customTileUrl.replace(/\{[zxy]\}/g, "0"),
+      "https://camply.invalid",
     );
+    if (
+      parsedUrl.protocol !== "https:" ||
+      parsedUrl.username ||
+      parsedUrl.password ||
+      (customTileUrl.startsWith("/") &&
+        parsedUrl.origin !== "https://camply.invalid")
+    )
+      throw new Error(
+        "Map source must be a public HTTPS or same-origin XYZ tile URL.",
+      );
+    if (
+      !Number.isInteger(maxNativeZoom) ||
+      maxNativeZoom < 0 ||
+      maxNativeZoom > 19
+    )
+      throw new Error("Map native zoom must be an integer from 0 to 19.");
+    return { kind: "raster", url: customTileUrl, text, link, maxNativeZoom };
+  }
+
+  const styleUrl = env.VITE_MAP_STYLE_URL?.trim() || DEFAULT_MAP_STYLE_URL;
+  if (hasWhitespaceOrControl(styleUrl) || !isHttpsOrRootRelative(styleUrl))
+    throw new Error("Map style must be a public HTTPS or same-origin URL.");
+  let parsedStyleUrl: URL;
+  try {
+    parsedStyleUrl = new URL(styleUrl, "https://camply.invalid");
+  } catch {
+    throw new Error("Map style must be a valid HTTPS or same-origin URL.");
+  }
   if (
-    !Number.isInteger(maxNativeZoom) ||
-    maxNativeZoom < 0 ||
-    maxNativeZoom > 19
+    parsedStyleUrl.protocol !== "https:" ||
+    parsedStyleUrl.username ||
+    parsedStyleUrl.password ||
+    (styleUrl.startsWith("/") &&
+      parsedStyleUrl.origin !== "https://camply.invalid")
   )
-    throw new Error("Map native zoom must be an integer from 0 to 19.");
-  return { url, text, link, maxNativeZoom };
+    throw new Error("Map style must be a public HTTPS or same-origin URL.");
+  return { kind: "style", styleUrl };
 };
 
 export const toCampground = (

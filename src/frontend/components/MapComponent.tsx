@@ -14,6 +14,7 @@ import {
   NavigationControl,
   AttributionControl,
   type MapEventType,
+  type StyleSpecification,
   setWorkerUrl,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -81,6 +82,7 @@ const MapCanvas = ({
   const [ready, setReady] = useState(false);
   const [idle, setIdle] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const failedSources = useRef<Set<string>>(new Set());
   const lastFit = useRef<string | null>(null);
   const locations = useMemo<MapPin[]>(
     () =>
@@ -113,30 +115,23 @@ const MapCanvas = ({
 
   useEffect(() => {
     if (!container.current) return;
+    const trackedFailedSources = failedSources.current;
     let instance: LibreMap | undefined;
     try {
       const config = basemapConfig();
+      trackedFailedSources.clear();
       setReady(false);
       setIdle(false);
-      const credit = document.createElement("a");
-      credit.href = config.link;
-      credit.textContent = config.text;
-      credit.target = "_blank";
-      credit.rel = "noopener noreferrer";
-      instance = new LibreMap({
-        container: container.current,
-        center: initial.current
-          ? [initial.current.lng, initial.current.lat]
-          : [0, 20],
-        zoom: initial.current?.zoom ?? 2,
-        minZoom: 0,
-        maxZoom: 19,
-        maxPitch: 0,
-        dragRotate: false,
-        renderWorldCopies: true,
-        attributionControl: false,
-        fadeDuration: 0,
-        style: {
+      let style: string | StyleSpecification;
+      if (config.kind === "style") {
+        style = config.styleUrl;
+      } else {
+        const credit = document.createElement("a");
+        credit.href = config.link;
+        credit.textContent = config.text;
+        credit.target = "_blank";
+        credit.rel = "noopener noreferrer";
+        style = {
           version: 8,
           sources: {
             basemap: {
@@ -156,7 +151,22 @@ const MapCanvas = ({
               paint: { "raster-fade-duration": 0 },
             },
           ],
-        },
+        };
+      }
+      instance = new LibreMap({
+        container: container.current,
+        center: initial.current
+          ? [initial.current.lng, initial.current.lat]
+          : [0, 20],
+        zoom: initial.current?.zoom ?? 2,
+        minZoom: 0,
+        maxZoom: 19,
+        maxPitch: 0,
+        dragRotate: false,
+        renderWorldCopies: true,
+        attributionControl: false,
+        fadeDuration: 0,
+        style,
         transformRequest: (url) => ({
           url,
           credentials: "same-origin",
@@ -194,9 +204,16 @@ const MapCanvas = ({
         );
       };
       const failure = (event: MapEventType["error"]) => {
-        if ("sourceId" in event && event.sourceId === "basemap")
+        if (
+          "sourceId" in event &&
+          typeof event.sourceId === "string" &&
+          event.sourceId.length > 0
+        ) {
+          trackedFailedSources.add(event.sourceId);
           setTileError(true);
-        else setError(event.error.message || "Map could not load.");
+        } else {
+          setError(event.error?.message || "Map could not load.");
+        }
       };
       const loaded = () => setReady(true);
       const markBusy = () => setIdle(false);
@@ -219,6 +236,7 @@ const MapCanvas = ({
       setError("");
       setTileError(false);
       return () => {
+        trackedFailedSources.clear();
         observer.disconnect();
         instance?.off("load", loaded);
         instance?.off("movestart", markBusy);
@@ -417,6 +435,7 @@ const MapCanvas = ({
             variant="outline"
             size="sm"
             onClick={() => {
+              failedSources.current.clear();
               setMap(null);
               setAttempt((n) => n + 1);
             }}
@@ -434,7 +453,9 @@ const MapCanvas = ({
             size="sm"
             onClick={() => {
               setTileError(false);
-              map?.refreshTiles("basemap");
+              for (const sourceId of failedSources.current)
+                map?.refreshTiles(sourceId);
+              failedSources.current.clear();
             }}
           >
             Retry tiles

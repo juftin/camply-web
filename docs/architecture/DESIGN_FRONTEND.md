@@ -24,7 +24,7 @@ The web client lives in `src/frontend/` and uses React 18, TypeScript, Vite 8, T
 
 Production frontend builds (`vite build`) compile VitePress docs under `docs/` and copy them into `dist/docs/` alongside the SPA bundle. In Python distributions, the Hatchling build hook embeds `build/frontend/` into `camply/server/static/` without staging generated files into Git-tracked source.
 
-Public map tile overrides (`VITE_MAP_TILE_URL`, `VITE_MAP_ATTRIBUTION_*`) are build-time environment variables documented in [Environment Variables](../operations/CONFIGURATION.md).
+Public map basemap settings default to OpenFreeMap vector styles (`VITE_MAP_STYLE_URL`) with backwards-compatible custom raster tile overrides (`VITE_MAP_TILE_URL`, `VITE_MAP_ATTRIBUTION_*`, `VITE_MAP_MAX_NATIVE_ZOOM`); all are build-time environment variables documented in [Environment Variables](../operations/CONFIGURATION.md).
 
 ## Responsive layout
 

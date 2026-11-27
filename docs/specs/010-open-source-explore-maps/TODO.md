@@ -1,16 +1,18 @@
 # Open-Source Maps: Production Tile Hosting & Caching TODO
 
+> **Resolved**: Production tile hosting (`T3.3.6`) is resolved by defaulting all interactive maps to OpenFreeMap vector styles (`https://tiles.openfreemap.org/styles/liberty` via `VITE_MAP_STYLE_URL`) while keeping backwards-compatible custom raster overrides (`VITE_MAP_TILE_URL` + `VITE_MAP_ATTRIBUTION_*`). See [Spec 036: OpenFreeMap Production Map Tiles](../036-openfreemap-production-tiles/spec.md) and its [implementation plan](../036-openfreemap-production-tiles/plan.md).
+
 ## Background
 
-The map surfaces (Explore, Campground detail, and Recreation Area detail) default to OpenStreetMap's public raster tile server (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`).
+Previously, the map surfaces (Explore, Campground detail, and Recreation Area detail) defaulted to OpenStreetMap's public raster tile server (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`).
 
-While this default provides an immediate, zero-credential development experience and automated tests intercept requests with synthetic fixtures, OpenStreetMap's [Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/) establishes that:
+While that default provided an immediate, zero-credential development experience and automated tests intercepted requests with synthetic fixtures, OpenStreetMap's [Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/) establishes that:
 
 - Public tile servers are operated on community donations with strict capacity limits.
 - High-volume, public, or automated production traffic must not rely directly on `tile.openstreetmap.org`.
 - Bulk downloading and pre-rendering are prohibited.
 
-Before launching high-traffic public production releases, configure an appropriate hosted, cached, or self-hosted tile backend.
+Default builds now use OpenFreeMap vector tiles at $0/month with zero additional infrastructure; operators with strict SLA or air-gapped requirements can still configure an alternate vector style (`VITE_MAP_STYLE_URL`) or custom raster XYZ backend (`VITE_MAP_TILE_URL`).
 
 ---
 
@@ -54,7 +56,7 @@ Since the frontend is deployed to Cloudflare Pages, set up a Cloudflare Worker o
 
 ## Implementation Checklist
 
-- [ ] Select preferred production tile strategy (Managed SaaS, Cloudflare Cache, or PMTiles).
-- [ ] Configure `VITE_MAP_TILE_URL`, `VITE_MAP_ATTRIBUTION_TEXT`, `VITE_MAP_ATTRIBUTION_URL`, and `VITE_MAP_MAX_NATIVE_ZOOM` in production deployment pipeline (Cloudflare Pages environment secrets / Docker build arguments).
-- [ ] Verify that custom attribution text and links render cleanly at 375px mobile and 1440px desktop viewports.
-- [ ] Verify that map zoom levels and max native zoom behave properly without blurry or missing tile errors.
+- [x] Select preferred production tile strategy (OpenFreeMap vector styles by default; Managed SaaS, reverse-proxy cache, or self-hosted PMTiles supported via `VITE_MAP_STYLE_URL` / `VITE_MAP_TILE_URL` — see [Spec 036](../036-openfreemap-production-tiles/spec.md)).
+- [x] Forward `VITE_MAP_STYLE_URL`, `VITE_MAP_TILE_URL`, `VITE_MAP_ATTRIBUTION_TEXT`, `VITE_MAP_ATTRIBUTION_URL`, and `VITE_MAP_MAX_NATIVE_ZOOM` across frontend builds, Hatchling packaging, and Docker/Compose build arguments.
+- [x] Verify that attribution text and links render cleanly at 375px mobile and 1440px desktop viewports with zero horizontal overflow.
+- [x] Verify that vector styles and custom raster max native zoom behave properly with local retry recovery on tile and style failures.

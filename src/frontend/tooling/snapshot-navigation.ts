@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-/** Wait for visible MapLibre maps to finish loading and painting raster tiles. */
+/** Wait for visible MapLibre maps to finish loading and painting basemap tiles. */
 async function waitForRenderedMaps(page: Page): Promise<void> {
   const hasVisibleTrackedMap = await page.evaluate(() =>
     Array.from(
