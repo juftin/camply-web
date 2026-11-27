@@ -21,8 +21,8 @@ def test_migration_config_uses_packaged_history() -> None:
     """Runtime configuration finds the unchanged graph without developer hooks."""
     config = get_alembic_config()
     scripts = ScriptDirectory.from_config(config)
-    assert scripts.get_heads() == ["a1c3e5f7b9d2"]
-    assert len(list(scripts.walk_revisions())) == 32
+    assert scripts.get_heads() == ["b2d4f6a8c0e1"]
+    assert len(list(scripts.walk_revisions())) == 33
     assert config.config_file_name is None
     assert config.get_section("post_write_hooks") is None
     assert (Path(scripts.dir) / "env.py").is_file()
@@ -55,7 +55,7 @@ def test_migration_upgrade_is_cwd_independent(
     with sqlite3.connect(database_file) as connection:
         assert connection.execute(
             "SELECT version_num FROM alembic_version"
-        ).fetchone() == ("a1c3e5f7b9d2",)
+        ).fetchone() == ("b2d4f6a8c0e1",)
         if earlier_revision:
             assert connection.execute(
                 "SELECT name FROM providers WHERE id = 999"
@@ -108,6 +108,7 @@ async def test_delete_database_removes_sqlite_file_and_sidecars(
         database_path.with_name("camply.db-journal"),
         database_path.with_name("camply.db-shm"),
         database_path.with_name("camply.db-wal"),
+        database_path.with_name("camply.db.key"),
     )
     for path in (database_path, *sidecars):
         path.touch()

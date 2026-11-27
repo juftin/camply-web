@@ -4,6 +4,8 @@ annotations:
   reloader.stakater.com/auto: "true"
 database:
   existingSecret: camply-home-ops
+encryption:
+  existingSecret: camply-home-ops
 env:
   CAMPLY_AUTH_MODE: session
   CAMPLY_APP_URL: https://camply.example.com

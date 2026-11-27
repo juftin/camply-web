@@ -15,8 +15,11 @@ from camply.db.migration import upgrade_database
     os.environ.get("CAMPLY_POSTGRES_SMOKE") != "1",
     reason="Run task backend:migration:test",
 )
-def test_postgres_populated_upgrade() -> None:
+def test_postgres_populated_upgrade(monkeypatch: pytest.MonkeyPatch) -> None:
     """Upgrade a populated prior release in a disposable, loopback-only database."""
+    from cryptography.fernet import Fernet
+
+    monkeypatch.setenv("CAMPLY_ENCRYPTION_KEY", Fernet.generate_key().decode())
     container = subprocess.check_output(
         [
             "docker",

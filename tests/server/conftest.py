@@ -179,11 +179,15 @@ def test_client() -> TestClient:
 
 
 def pytest_unconfigure() -> None:
-    """Remove the temp database."""
-    try:
-        _db_path.unlink(missing_ok=True)
-    except OSError:
-        pass
+    """Remove the temp database and any sidecar encryption key file."""
+    for path in (
+        _db_path,
+        _db_path.with_name(f"{_db_path.name}.key"),
+    ):
+        try:
+            path.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 @pytest.fixture(autouse=True)

@@ -68,7 +68,7 @@ class MeResponse(BaseModel):
     is_invited: bool
     is_admin: bool = False
     scanning_enabled: bool = True
-    pushover_token: Optional[str] = None
+    pushover_token: Optional[str] = Field(default=None, repr=False)
     notification_provider: Literal["pushover", "ntfy"] = "pushover"
     ntfy_topic: str | None = None
     ntfy_server_url: str | None = Field(
@@ -91,7 +91,7 @@ class MeResponse(BaseModel):
 class MeUpdateRequest(BaseModel):
     """Payload for ``PATCH /me``; omitted fields are preserved."""
 
-    pushover_token: Optional[str] = None
+    pushover_token: Optional[str] = Field(default=None, repr=False)
     ntfy_topic: str | None = Field(
         default=None, min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$"
     )

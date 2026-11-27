@@ -391,7 +391,7 @@ class CurrentUser(BaseModel):
     is_invited: bool
     is_admin: bool = False
     scanning_enabled: bool = True
-    pushover_token: Optional[str] = None
+    pushover_token: Optional[str] = Field(default=None, repr=False)
     notification_provider: Literal["pushover", "ntfy"] = "pushover"
     ntfy_topic: str | None = None
     ntfy_server_url: str | None = None

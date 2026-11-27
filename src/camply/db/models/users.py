@@ -12,6 +12,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.engine.default import DefaultExecutionContext
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from camply.db.encryption import EncryptedString
 from camply.db.models.base import Base
 
 if TYPE_CHECKING:
@@ -53,7 +54,7 @@ class User(Base):
         "is_early_access_user", Boolean, default=False
     )
     """Invitation eligibility, backed by the existing access column."""
-    pushover_token: Mapped[str | None] = mapped_column(String(255))
+    pushover_token: Mapped[str | None] = mapped_column(EncryptedString())
     ntfy_topic: Mapped[str] = mapped_column(
         String(64),
         unique=True,
@@ -66,7 +67,7 @@ class User(Base):
     )
     ntfy_server_url: Mapped[str | None] = mapped_column(String(2048))
     """Optional user-selected custom server; absent means deployment defaults."""
-    ntfy_access_token: Mapped[str | None] = mapped_column(String(1024))
+    ntfy_access_token: Mapped[str | None] = mapped_column(EncryptedString())
     is_admin: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=func.false()
     )

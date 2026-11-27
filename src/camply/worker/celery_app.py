@@ -115,11 +115,16 @@ import camply.worker.telemetry  # noqa: E402, F401
 
 @worker_init.connect
 def _on_worker_init(**kwargs: object) -> None:
-    """Start the Prometheus metrics HTTP server when the worker initializes.
+    """Validate encryption settings and start the Prometheus metrics HTTP server.
 
     Uses worker_init (main process, before pool fork) rather than
-    worker_ready so the metrics server is ready before children start.
+    worker_ready so invalid config fails fast and metrics are ready before
+    children start.
     """
+    from camply.db.config import db
+    from camply.db.encryption import validate_encryption_config
+
+    validate_encryption_config(db)
     if worker_config.metrics_port > 0:
         from camply.worker.metrics import start_metrics_server
 

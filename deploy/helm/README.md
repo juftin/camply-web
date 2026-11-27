@@ -13,6 +13,13 @@ Create the namespace and provision a Secret named `camply-db` with a
 or stored in chart defaults. To use another Secret, set `database.existingSecret`
 and optionally `database.passwordKey`.
 
+Because the Helm chart uses PostgreSQL, also supply `CAMPLY_ENCRYPTION_KEY` (a
+Fernet key generated with `python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'`)
+so user notification secrets are encrypted at rest. Set
+`encryption.existingSecret` (and optionally `encryption.key`, defaulting to
+`CAMPLY_ENCRYPTION_KEY`) to inject it into the migration Job, backend, worker,
+and beat deployments (excluding the Nginx frontend), or pass it via `env`/`envFrom`.
+
 Copy one of the examples into your own values file, replacing the example
 domain, secret references, and storage class. Charts are published to
 `oci://ghcr.io/juftin/charts/camply-web`, with image defaults matching each OCI tag:

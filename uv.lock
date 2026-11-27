@@ -236,6 +236,7 @@ dependencies = [
     { name = "aiosqlite" },
     { name = "alembic" },
     { name = "click" },
+    { name = "cryptography" },
     { name = "fake-useragent" },
     { name = "httpx2" },
     { name = "ijson" },
@@ -263,7 +264,6 @@ sentry = [
     { name = "sentry-sdk" },
 ]
 server = [
-    { name = "cryptography" },
     { name = "fastapi" },
     { name = "gunicorn", marker = "sys_platform != 'win32'" },
     { name = "orjson" },
@@ -298,7 +298,7 @@ requires-dist = [
     { name = "alembic", specifier = "==1.20.1" },
     { name = "celery", extras = ["redis"], marker = "extra == 'distributed'", specifier = "==5.7.0" },
     { name = "click", specifier = "==8.5.1" },
-    { name = "cryptography", marker = "extra == 'server'", specifier = "==50.0.2" },
+    { name = "cryptography", specifier = "==50.0.2" },
     { name = "fake-useragent", specifier = "==2.2.0" },
     { name = "fastapi", marker = "extra == 'server'", specifier = "==0.163.2" },
     { name = "gunicorn", marker = "sys_platform != 'win32' and extra == 'server'", specifier = "==27.0.1" },

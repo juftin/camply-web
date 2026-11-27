@@ -101,6 +101,20 @@ class DatabaseConfig(BaseSettings):
         if self.DRIVERNAME == DatabaseDrivers.SQLITE:
             from sqlalchemy import event
 
+            from camply.db.encryption import register_sqlite_dialect
+
+            sqlite_path = (
+                None
+                if self.HOST == ":memory:"
+                or self.url.database in (None, "", ":memory:")
+                or self.url.query.get("mode") == "memory"
+                else Path(str(self.url.database)).expanduser().resolve()
+            )
+            register_sqlite_dialect(
+                dialect=engine.sync_engine.dialect,
+                database_path=sqlite_path,
+            )
+
             @event.listens_for(engine.sync_engine, "connect")
             def configure_connection(connection: Any, record: Any) -> None:
                 """Enforce references and bound local write contention on every connection."""

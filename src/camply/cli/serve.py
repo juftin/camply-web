@@ -36,7 +36,6 @@ def _require_server(*modules: str) -> None:
             "uvicorn",
             "orjson",
             "jwt",
-            "cryptography",
             "prometheus_client",
             *modules,
         ),

@@ -144,7 +144,10 @@ def test_migration_startup_failed_upgrade_and_rollback(cluster: dict[str, str]) 
         "apiVersion": "v1",
         "kind": "Secret",
         "metadata": {"name": "camply-db"},
-        "stringData": {"POSTGRES_PASSWORD": "synthetic-helm-test-password"},
+        "stringData": {
+            "POSTGRES_PASSWORD": "synthetic-helm-test-password",
+            "CAMPLY_ENCRYPTION_KEY": "Y2FtcGx5LWhlbG0tc21va2UtdGVzdC1rZXktMDAwMDA=",
+        },
     }
     run(cluster, "kubectl", "apply", "-f", "-", data=json.dumps(secret))
     repository, tag = cluster["CAMPLY_HELM_TEST_IMAGE"].rsplit(":", 1)
@@ -157,6 +160,8 @@ def test_migration_startup_failed_upgrade_and_rollback(cluster: dict[str, str]) 
         f"image.tag={tag}",
         "--set",
         "image.pullPolicy=Never",
+        "--set",
+        "encryption.existingSecret=camply-db",
         "--set",
         "prometheus.enabled=false",
         "--set",

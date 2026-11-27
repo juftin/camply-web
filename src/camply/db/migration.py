@@ -8,6 +8,7 @@ from alembic.config import Config
 from sqlalchemy import Connection, inspect, text
 
 from camply.db.config import DatabaseConfig, DatabaseDrivers
+from camply.db.encryption import sqlite_key_path
 from camply.db.models import Base
 
 
@@ -65,6 +66,7 @@ def _delete_sqlite_database_files(database_path: Path) -> None:
         database_path.with_name(f"{database_path.name}-journal"),
         database_path.with_name(f"{database_path.name}-shm"),
         database_path.with_name(f"{database_path.name}-wal"),
+        sqlite_key_path(database_path),
     ):
         path.unlink(missing_ok=True)
 
