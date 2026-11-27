@@ -25,6 +25,8 @@ export function Header({ showLogo = true }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const isAuthenticated = user !== null;
+  const isHowItWorks =
+    location.pathname === "/" && location.hash === "#how-it-works";
 
   const handleAuthNavigation = (mode?: "signup") => {
     if (location.pathname === "/auth") {
@@ -104,9 +106,9 @@ export function Header({ showLogo = true }: HeaderProps) {
               Providers
             </Link>
             <Link
-              to="/how-it-works"
+              to="/#how-it-works"
               className={`text-muted-foreground hover:text-foreground ${
-                location.pathname === "/how-it-works" ? "text-foreground" : ""
+                isHowItWorks ? "text-foreground" : ""
               }`}
             >
               How It Works
@@ -217,9 +219,9 @@ export function Header({ showLogo = true }: HeaderProps) {
             Providers
           </Link>
           <Link
-            to="/how-it-works"
+            to="/#how-it-works"
             className={`flex min-h-11 items-center rounded-md px-2 text-muted-foreground hover:text-foreground ${
-              location.pathname === "/how-it-works" ? "text-foreground" : ""
+              isHowItWorks ? "text-foreground" : ""
             }`}
             onClick={() => setIsMobileMenuOpen(false)}
           >

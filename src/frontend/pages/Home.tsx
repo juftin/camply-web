@@ -1,22 +1,22 @@
 import { useAuth } from "@/hooks/useAuth";
-import { MapPin, Clock, Shield, Star, Heart, Tent } from "lucide-react";
+import { MapPin, Tent } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { DismissibleBanner } from "@/components/DismissibleBanner";
 import { SearchBar } from "@/components/SearchBar";
 import { CamplyLogo } from "@/components/CamplyLogo";
 
 export function Home() {
-  const { accountPath } = useAuth();
+  const { accountPath, signupEnabled } = useAuth();
+  const accountLabel =
+    accountPath === "/dashboard"
+      ? "Go to dashboard"
+      : signupEnabled
+        ? "Create an account"
+        : "Sign in";
+
   return (
     <>
-      {/* Development Banner */}
       <DismissibleBanner
         id="home-development"
         icon={Tent}
@@ -25,8 +25,8 @@ export function Home() {
         storageType="session"
       >
         <p className="text-sm font-medium text-center">
-          camply is currently in development and not ready for use yet. Follow
-          our progress on{" "}
+          camply is still in development and isn’t ready to use. Follow our
+          progress on{" "}
           <a
             href="https://github.com/juftin/camply-web"
             target="_blank"
@@ -39,27 +39,20 @@ export function Home() {
         </p>
       </DismissibleBanner>
 
-      {/* Hero Section */}
-      <section className="py-20 px-4">
+      <section className="px-4 py-12 sm:py-16">
         <div className="container mx-auto text-center">
-          <CamplyLogo variant="icon" height={96} className="mx-auto mb-8" />
-          <h1 className="text-4xl font-bold mb-6 sm:text-5xl">
-            Find Campsites at
-            <span className="text-primary"> Sold-Out</span> Campgrounds
+          <CamplyLogo variant="icon" height={96} className="mx-auto mb-6" />
+          <h1 className="text-4xl font-bold mb-4 sm:text-5xl">
+            Campsite availability alerts
           </h1>
-          <p className="text-xl text-muted-foreground mb-4 max-w-2xl mx-auto">
-            Never miss out on your dream camping spot again. camply monitors
-            availability and alerts you when cancellations open up at popular
-            campgrounds.
-          </p>
-          <p className="text-lg font-medium text-primary mb-8">
-            🏕️ Free and Open Source 🏕
+          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            camply alerts you when it finds an open campsite for your dates.
+            Book directly on the provider’s website.
           </p>
 
-          {/* Search Bar */}
           <SearchBar
             placeholder="Search campgrounds..."
-            className="max-w-3xl mx-auto mb-8"
+            className="max-w-3xl mx-auto mb-4"
           />
 
           <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
@@ -86,133 +79,41 @@ export function Home() {
             </Link>
           </div>
 
-          {/* Let's Go Camping CTA */}
-          <div className="mt-8">
-            <Button size="lg" asChild className="text-lg px-8 py-3">
-              <Link to={accountPath}>⛺️ Let's Go Camping</Link>
+          <div className="mt-6">
+            <Button size="lg" asChild>
+              <Link to={accountPath}>{accountLabel}</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4 bg-muted/50">
-        <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Why Choose camply?
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card>
-              <CardHeader>
-                <Clock className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Real-Time Monitoring</CardTitle>
-                <CardDescription>
-                  We check availability every few minutes, so you'll know the
-                  instant a spot opens up.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <Shield className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Instant Alerts</CardTitle>
-                <CardDescription>
-                  Get notified immediately via email, SMS, or push notification
-                  when your desired campsite becomes available.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <Star className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Easy Setup</CardTitle>
-                <CardDescription>
-                  Set up alerts in seconds. Just select your campground, dates,
-                  and notification preferences.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <Heart className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>Always Free</CardTitle>
-                <CardDescription>
-                  100% free and open source. No hidden fees, no subscriptions.
-                  Built by campers, for campers.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 px-4">
-        <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
-          <div className="max-w-4xl mx-auto">
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                  1
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Search & Select</h3>
-                <p className="text-muted-foreground">
-                  Find your desired campground and select your preferred dates
-                  and campsite types.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                  2
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Set Up Alerts</h3>
-                <p className="text-muted-foreground">
-                  Choose how you want to be notified and we'll start monitoring
-                  availability for you.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                  3
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Get Notified</h3>
-                <p className="text-muted-foreground">
-                  Receive instant alerts when campsites become available and
-                  book quickly through official sites.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 px-4 bg-primary text-primary-foreground">
-        <div className="container mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            Ready to Find Your Perfect Campsite?
-          </h2>
-          <p className="text-xl opacity-90 mb-8">
-            Join thousands of campers who never miss out on their favorite
-            spots. Check our{" "}
-            <Link to="/providers" className="underline hover:no-underline">
-              supported campgrounds
-            </Link>{" "}
-            and{" "}
-            <Link to="/faq" className="underline hover:no-underline">
-              FAQ
-            </Link>
-            .
-          </p>
-          <Button size="lg" variant="secondary" asChild>
-            <Link to={accountPath}>Get Started</Link>
-          </Button>
+      <section
+        id="how-it-works"
+        className="scroll-mt-20 bg-muted/50 px-4 py-12"
+      >
+        <div className="mx-auto max-w-4xl">
+          <h2 className="text-2xl font-bold mb-6">How it works</h2>
+          <ol className="grid list-decimal gap-6 pl-5 marker:font-semibold marker:text-primary md:grid-cols-3 md:gap-8">
+            <li>
+              <h3 className="font-semibold">Find a campground</h3>
+              <p className="text-muted-foreground">
+                Search by campground or park name.
+              </p>
+            </li>
+            <li>
+              <h3 className="font-semibold">Create a scan</h3>
+              <p className="text-muted-foreground">
+                Choose your dates and any campsite preferences.
+              </p>
+            </li>
+            <li>
+              <h3 className="font-semibold">Get alerts</h3>
+              <p className="text-muted-foreground">
+                Set up notifications in your profile or check your dashboard for
+                openings.
+              </p>
+            </li>
+          </ol>
         </div>
       </section>
     </>
