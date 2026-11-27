@@ -1,4 +1,5 @@
 import { Capacitor } from "@capacitor/core";
+import { Preferences } from "@capacitor/preferences";
 
 export const defaultMobileServerUrl = "https://camply.rocks/";
 const storageKey = "camply-mobile-server";
@@ -7,6 +8,8 @@ export interface MobileServer {
   url: string;
   auth0ClientId: string;
 }
+
+let activeServer: MobileServer | null = null;
 
 function normalizeServerUrl(value: string): string {
   const input = value.trim();
@@ -34,10 +37,12 @@ function normalizeServerUrl(value: string): string {
 }
 
 export function getMobileServer(): MobileServer | null {
-  if (!Capacitor.isNativePlatform()) return null;
+  return activeServer;
+}
 
+function readMobileServer(value: string | null): MobileServer | null {
   try {
-    const saved = JSON.parse(localStorage.getItem(storageKey) ?? "null");
+    const saved = JSON.parse(value ?? "null");
     if (
       typeof saved?.url === "string" &&
       typeof saved.auth0ClientId === "string"
@@ -48,19 +53,38 @@ export function getMobileServer(): MobileServer | null {
       };
     }
   } catch {
-    // An unreadable preference should not prevent the app from starting.
+    // Ignore invalid serialized preferences from previous builds.
   }
-  return { url: defaultMobileServerUrl, auth0ClientId: "" };
+  return null;
 }
 
-export function saveMobileServer(
+export async function loadMobileServer(): Promise<MobileServer | null> {
+  if (!Capacitor.isNativePlatform()) {
+    activeServer = null;
+    return null;
+  }
+
+  const { value } = await Preferences.get({ key: storageKey });
+  let server = readMobileServer(value);
+  if (value === null) {
+    const legacy = readMobileServer(localStorage.getItem(storageKey));
+    if (legacy) {
+      server = await saveMobileServer(legacy.url, legacy.auth0ClientId);
+      localStorage.removeItem(storageKey);
+    }
+  }
+  activeServer = server ?? { url: defaultMobileServerUrl, auth0ClientId: "" };
+  return activeServer;
+}
+
+export async function saveMobileServer(
   url: string,
   auth0ClientId: string,
-): MobileServer {
+): Promise<MobileServer> {
   const server = {
     url: normalizeServerUrl(url),
     auth0ClientId: auth0ClientId.trim(),
   };
-  localStorage.setItem(storageKey, JSON.stringify(server));
+  await Preferences.set({ key: storageKey, value: JSON.stringify(server) });
   return server;
 }

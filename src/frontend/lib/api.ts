@@ -1,6 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { validCoordinates, type GeoBounds } from "./maps";
-import { getMobileServer } from "./mobile-server";
+import type { MobileServer } from "./mobile-server";
 import type {
   SearchResult,
   RecreationArea,
@@ -45,22 +45,31 @@ import type {
 // Axios instance
 // ---------------------------------------------------------------------------
 
-const mobileServer = getMobileServer();
-const apiUrl = mobileServer
-  ? `${mobileServer.url}api`
-  : import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
+let isMobileApi = false;
+let mobileSessionToken: string | null = null;
 
 const api = axios.create({
   baseURL: apiUrl || "/api",
   timeout: 10000,
-  withCredentials: !mobileServer,
+  withCredentials: true,
   xsrfCookieName: "camply_csrf",
   xsrfHeaderName: "X-CSRF-Token",
-  withXSRFToken: !mobileServer,
+  withXSRFToken: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+/** Select the mobile API after reading preferences and before mounting the app. */
+export function configureMobileApi(server: MobileServer | null): void {
+  if (!server) return;
+  isMobileApi = true;
+  mobileSessionToken = null;
+  api.defaults.baseURL = `${server.url}api`;
+  api.defaults.withCredentials = false;
+  api.defaults.withXSRFToken = false;
+}
 
 // ---------------------------------------------------------------------------
 // Token acquisition classification & bearer/renewal interceptors
@@ -317,6 +326,13 @@ async function acquireAccessToken(
 
 api.interceptors.request.use(async (config) => {
   const retryConfig = config as RetryableRequestConfig;
+  if (mobileSessionToken && config.url !== "/login") {
+    config.headers = setBearerHeader(
+      config.headers,
+      mobileSessionToken,
+    ) as InternalAxiosRequestConfig["headers"];
+    return config;
+  }
   if (
     _getAccessToken &&
     !(retryConfig._retried && hasAuthorizationHeader(config.headers))
@@ -432,6 +448,7 @@ export interface AuthConfig {
   invite_only: boolean;
   auto_login: boolean;
   signup_enabled: boolean;
+  native_password_sessions?: boolean;
 }
 
 export async function fetchAuthConfig(): Promise<AuthConfig> {
@@ -609,11 +626,32 @@ export async function submitAccessRequest(
   return response.data;
 }
 
-/** Sign in and verify that the browser retained the HTTP-only session. */
+function rememberMobileSession(headers: { [key: string]: unknown }): void {
+  const token = headers["x-camply-session-token"];
+  if (typeof token !== "string" || !token) {
+    mobileSessionToken = null;
+    throw new Error(
+      "The server did not return an app session. Try signing in again.",
+    );
+  }
+  mobileSessionToken = token;
+}
+
+/** Sign in with a native bearer or verify that the browser retained its cookie. */
 export async function loginSession(
   username: string,
   password: string,
 ): Promise<MeResponse> {
+  if (isMobileApi) {
+    const response = await api.post<MeResponse>(
+      "/login",
+      { username, password },
+      { headers: { "X-Camply-Session-Transport": "bearer" } },
+    );
+    rememberMobileSession(response.headers);
+    return response.data;
+  }
+
   await api.post<MeResponse>("/login", { username, password });
   try {
     return await getMe();
@@ -627,15 +665,24 @@ export async function loginSession(
   }
 }
 
-/** End the cookie session without storing credentials in the frontend. */
+/** Revoke the session and discard its bearer if the app had one. */
 export async function logoutSession(): Promise<void> {
-  await api.post("/logout");
+  try {
+    await api.post("/logout");
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      mobileSessionToken = null;
+    }
+    throw error;
+  }
+  mobileSessionToken = null;
 }
 
 export async function changePassword(
   payload: ChangePasswordRequest,
 ): Promise<MeResponse> {
   const response = await api.post<MeResponse>("/change-password", payload);
+  if (isMobileApi) rememberMobileSession(response.headers);
   return response.data;
 }
 

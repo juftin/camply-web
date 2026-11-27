@@ -30,11 +30,14 @@ export function MobileServerSettings({
   const [url, setUrl] = useState(server.url);
   const [auth0ClientId, setAuth0ClientId] = useState(server.auth0ClientId);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  function connect(event: FormEvent) {
+  async function connect(event: FormEvent) {
     event.preventDefault();
+    setError("");
+    setSaving(true);
     try {
-      const selected = saveMobileServer(url, auth0ClientId);
+      const selected = await saveMobileServer(url, auth0ClientId);
       if (
         server.url === selected.url &&
         server.auth0ClientId === selected.auth0ClientId
@@ -51,6 +54,8 @@ export function MobileServerSettings({
           ? cause.message
           : "Could not save server settings.",
       );
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -91,6 +96,7 @@ export function MobileServerSettings({
               inputMode="url"
               autoCapitalize="none"
               spellCheck={false}
+              disabled={saving}
               value={url}
               onChange={(event) => {
                 setUrl(event.target.value);
@@ -104,6 +110,7 @@ export function MobileServerSettings({
               <Label htmlFor={`${id}-auth0`}>Native Auth0 client ID</Label>
               <Input
                 id={`${id}-auth0`}
+                disabled={saving}
                 value={auth0ClientId}
                 onChange={(event) => setAuth0ClientId(event.target.value)}
               />
@@ -118,6 +125,7 @@ export function MobileServerSettings({
             <Button
               type="button"
               variant="outline"
+              disabled={saving}
               onClick={() => {
                 setUrl(defaultMobileServerUrl);
                 setAuth0ClientId("");
@@ -126,7 +134,9 @@ export function MobileServerSettings({
             >
               Use camply.rocks
             </Button>
-            <Button type="submit">Connect</Button>
+            <Button type="submit" disabled={saving}>
+              Connect
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

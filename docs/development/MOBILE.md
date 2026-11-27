@@ -20,11 +20,13 @@ task mobile:open -- ios
 
 ## Choose a server
 
-Open **Server settings** in the app and enter the Camply web URL, including any path prefix. The app resolves `/api` beneath that URL. Select **Connect** to save the choice on the device and start a fresh app session. Settings are available from the navigation menu and on connection or sign-in errors. To restore the default, select **Use camply.rocks**, then **Connect**.
+Open **Server settings** in the app and enter the Camply web URL, including any path prefix. The app resolves `/api` beneath that URL. Select **Connect** to save the choice in native device preferences and start a fresh app session. Settings are available from the navigation menu and on connection or sign-in errors. To restore the default, select **Use camply.rocks**, then **Connect**.
 
 ## Deployment settings
 
-For an Auth0 or automatic-login deployment, add the exact WebView origins `https://localhost` (Android) and `capacitor://localhost` (iOS) to the server's `CAMPLY_CORS_ORIGINS`, retaining your existing web origins. Cookie-session deployments use the web app for password sign-in. Do not expose an automatic-login backend publicly to enable mobile access.
+Deploy the updated Camply backend to enable native password sign-in. The API permits the exact WebView origins `https://localhost` (Android) and `capacitor://localhost` (iOS) alongside configured web origins. If a reverse proxy handles CORS, allow both origins and forward the login request and response headers. Older password-session deployments offer browser sign-in. Do not expose an automatic-login backend publicly to enable mobile access.
+
+Password sessions use an in-memory bearer in the app. Sign in again after restarting the app or switching servers. Password changes rotate the app credential, and logout or session revocation invalidates it on the server. See the [API contract](../architecture/DESIGN_API.md#authentication-modes).
 
 For Auth0, create a public **Native** application on the same tenant as the deployment's SPA. Set its token endpoint authentication method to **None** and set both Allowed Callback URLs and Allowed Logout URLs to `com.camply.mobile://auth/callback`. Add the two WebView origins under Allowed Origins (CORS), then enable refresh token rotation for the native client and offline access for the API audience. In **Server settings**, open **Auth0 options** and enter that public client ID. A build can also supply `VITE_MOBILE_AUTH0_CLIENT_ID` for the default `camply.rocks` deployment. Tokens stay in memory, so reopening the app after the operating system terminates it requires sign-in again. See the [Auth0 Capacitor guide](https://auth0.com/docs/quickstart/native/ionic-react).
 

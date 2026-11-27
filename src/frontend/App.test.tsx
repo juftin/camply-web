@@ -27,7 +27,7 @@ import {
 } from "@/lib/api";
 import type { AuthConfig } from "@/lib/api";
 import { useScans, useScanDetail } from "@/hooks/useScans";
-import { getMobileServer, saveMobileServer } from "@/lib/mobile-server";
+import { loadMobileServer, saveMobileServer } from "@/lib/mobile-server";
 
 const auth0 = vi.hoisted(() => ({
   isAuthenticated: false,
@@ -48,6 +48,15 @@ vi.mock("@capacitor/browser", () => ({
 }));
 vi.mock("@capacitor/core", () => ({
   Capacitor: { isNativePlatform: vi.fn(() => false) },
+}));
+vi.mock("@capacitor/preferences", () => ({
+  Preferences: {
+    get: async ({ key }: { key: string }) => ({
+      value: localStorage.getItem(`test-preference:${key}`),
+    }),
+    set: async ({ key, value }: { key: string; value: string }) =>
+      localStorage.setItem(`test-preference:${key}`, value),
+  },
 }));
 
 vi.mock("@auth0/auth0-react", () => ({
@@ -142,10 +151,17 @@ function renderApp(config: AuthConfig = localConfig, path = "/") {
   };
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.clearAllMocks();
   localStorage.clear();
   sessionStorage.clear();
+  vi.mocked(Capacitor.isNativePlatform).mockReturnValue(false);
+  await loadMobileServer();
+  vi.mocked(NativeApp.addListener).mockResolvedValue({
+    remove: vi.fn().mockResolvedValue(undefined),
+  });
+  vi.mocked(NativeApp.getLaunchUrl).mockResolvedValue(undefined);
+  vi.mocked(Browser.open).mockResolvedValue(undefined);
   auth0.isAuthenticated = false;
   auth0.isLoading = false;
   auth0.user = undefined;
@@ -267,6 +283,7 @@ describe("Community pages feature flag", () => {
 describe("Application authentication", () => {
   it("uses the native Auth0 client and accepts only its app callback", async () => {
     vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+    await loadMobileServer();
     vi.stubEnv("VITE_MOBILE_AUTH0_CLIENT_ID", "native-client");
     const redirectUri = "com.camply.mobile://auth/callback";
     const nativeCallback = `${redirectUri}?code=synthetic-code&state=synthetic-state`;
@@ -330,7 +347,8 @@ describe("Application authentication", () => {
 
   it("explains cookie-session availability in native builds", async () => {
     vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
-    saveMobileServer("https://camply.example/camply", "");
+    await saveMobileServer("https://camply.example/camply", "");
+    await loadMobileServer();
     try {
       renderApp(sessionConfig);
       expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -345,9 +363,111 @@ describe("Application authentication", () => {
     }
   });
 
+  it("signs in natively when the server advertises password-session support", async () => {
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+    await loadMobileServer();
+    renderApp({ ...sessionConfig, native_password_sessions: true }, "/auth");
+    fireEvent.change(await screen.findByLabelText("Username"), {
+      target: { value: "test-user" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "synthetic-password" },
+    });
+    fireEvent.click(
+      screen
+        .getAllByRole("button", { name: "Sign In" })
+        .find((button) => button.getAttribute("type") === "submit")!,
+    );
+    await waitFor(() =>
+      expect(loginSession).toHaveBeenCalledWith(
+        "test-user",
+        "synthetic-password",
+      ),
+    );
+    expect(await screen.findByText("Scan dashboard")).toBeInTheDocument();
+  });
+
+  it.each([false, true])(
+    "allows retry when the Auth0 browser fails to open (signup=%s)",
+    async (signup) => {
+      vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+      await saveMobileServer("https://camply.example", "native-client");
+      await loadMobileServer();
+      const authorizeUrl = "https://test.example.com/authorize";
+      auth0.loginWithRedirect.mockImplementationOnce(
+        async ({ openUrl }) => await openUrl(authorizeUrl),
+      );
+      vi.mocked(Browser.open).mockRejectedValueOnce(
+        new Error("Unable to display URL"),
+      );
+      renderApp(auth0Config, signup ? "/auth?mode=signup" : "/auth");
+      const name = signup ? "Create Account" : "Sign In";
+      await screen.findByText(
+        signup
+          ? "Sign up to start monitoring campsite availability"
+          : "Sign in to your camply account",
+      );
+      const button = screen
+        .getAllByRole("button", { name })
+        .find((candidate) => candidate.classList.contains("w-full"))!;
+      fireEvent.click(button);
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Could not open the sign-in page",
+      );
+      expect(button).toBeEnabled();
+      auth0.loginWithRedirect.mockImplementationOnce(
+        async ({ openUrl }) => await openUrl(authorizeUrl),
+      );
+      fireEvent.click(button);
+      await waitFor(() => expect(Browser.open).toHaveBeenCalledTimes(2));
+      expect(screen.queryByRole("alert")).toBeNull();
+    },
+  );
+
+  it("waits for the logout browser and lets the user retry after local sign-out", async () => {
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+    await saveMobileServer("https://camply.example", "native-client");
+    await loadMobileServer();
+    auth0.isAuthenticated = true;
+    auth0.user = { sub: "test-user" };
+    vi.mocked(getMe).mockResolvedValue(user);
+    const logoutUrl = "https://test.example.com/v2/logout";
+    auth0.logout.mockImplementationOnce(
+      async ({ openUrl }) => await openUrl(logoutUrl),
+    );
+    let rejectBrowser!: (error: Error) => void;
+    vi.mocked(Browser.open).mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectBrowser = reject;
+        }),
+    );
+    const { client } = renderApp(auth0Config, "/profile");
+    fireEvent.click(await screen.findByRole("button", { name: "Sign Out" }));
+    await waitFor(() =>
+      expect(Browser.open).toHaveBeenCalledWith({ url: logoutUrl }),
+    );
+    expect(window.location.pathname).toBe(appPath("/profile"));
+    await act(async () => rejectBrowser(new Error("Unable to display URL")));
+    expect(
+      await screen.findByText(
+        /Could not open the browser to finish signing out/,
+      ),
+    ).toBeVisible();
+    expect(client.getQueryData(["me"])).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(Browser.open).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(
+        screen.queryByText(/Could not open the browser to finish signing out/),
+      ).toBeNull(),
+    );
+  });
+
   it("allows server recovery when the selected deployment is unavailable", async () => {
     vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
-    saveMobileServer("https://unavailable.example/camply", "old-client");
+    await saveMobileServer("https://unavailable.example/camply", "old-client");
+    await loadMobileServer();
     const replace = vi.fn();
     vi.stubGlobal("location", { replace });
     sessionStorage.setItem("previous-auth-transaction", "synthetic-state");
@@ -368,11 +488,16 @@ describe("Application authentication", () => {
         target: { value: "http://camply.example" },
       });
       fireEvent.click(screen.getByRole("button", { name: "Connect" }));
-      expect(screen.getByText(/Enter an HTTPS server URL/)).toBeVisible();
+      expect(
+        await screen.findByText(/Enter an HTTPS server URL/),
+      ).toBeVisible();
       fireEvent.click(screen.getByRole("button", { name: "Use camply.rocks" }));
       expect(serverUrl).toHaveValue("https://camply.rocks/");
       fireEvent.click(screen.getByRole("button", { name: "Connect" }));
-      expect(getMobileServer()).toEqual({
+      await waitFor(() =>
+        expect(replace).toHaveBeenCalledWith(import.meta.env.BASE_URL),
+      );
+      expect(await loadMobileServer()).toEqual({
         url: "https://camply.rocks/",
         auth0ClientId: "",
       });
@@ -387,7 +512,8 @@ describe("Application authentication", () => {
   it("does not reuse the hosted Auth0 client ID on a different server", async () => {
     vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
     vi.stubEnv("VITE_MOBILE_AUTH0_CLIENT_ID", "hosted-client");
-    saveMobileServer("https://camply.example/trips", "");
+    await saveMobileServer("https://camply.example/trips", "");
+    await loadMobileServer();
     try {
       renderApp(auth0Config, "/auth");
       expect(await screen.findByRole("alert")).toHaveTextContent(

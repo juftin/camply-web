@@ -187,6 +187,9 @@ importers:
       '@capacitor/core':
         specifier: 8.6.3
         version: 8.6.3
+      '@capacitor/preferences':
+        specifier: 8.0.1
+        version: 8.0.1(@capacitor/core@8.6.3)
       '@hookform/resolvers':
         specifier: ^7.0.8
         version: 7.0.8(@standard-schema/spec@1.1.0)(react-hook-form@7.92.0(@types/react@18.3.31)(react@18.3.1))(zod@4.6.7)
@@ -513,6 +516,11 @@ packages:
     resolution: {integrity: sha512-6J51zrE2pjH5SuQJ7n8WfffDGKeK1N504cydhxiuY5R0gfndyIajnhmhPlyA6BYKXObVC3ylwXPBdwFiInGvTA==}
     peerDependencies:
       '@capacitor/core': ^8.6.0
+
+  '@capacitor/preferences@8.0.1':
+    resolution: {integrity: sha512-T6no3ebi79XJCk91U3Jp/liJUwgBdvHR+s6vhvPkPxSuch7z3zx5Rv1bdWM6sWruNx+pViuEGqZvbfCdyBvcHQ==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   '@chevrotain/cst-dts-gen@13.2.0':
     resolution: {integrity: sha512-bA9dvWlhAUcHkNwU+8w9yiUxJPlj/Lm3VqS7MD+NbIR/7LmpNLuK/AWNFdCo/T3SK5ND0/UHf3IJvl/Jn/i6yg==}
@@ -5337,6 +5345,10 @@ snapshots:
       tslib: 2.9.1
 
   '@capacitor/ios@8.6.3(@capacitor/core@8.6.3)':
+    dependencies:
+      '@capacitor/core': 8.6.3
+
+  '@capacitor/preferences@8.0.1(@capacitor/core@8.6.3)':
     dependencies:
       '@capacitor/core': 8.6.3
 

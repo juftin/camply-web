@@ -365,7 +365,8 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 
 - [x] Bundle the existing React app for Android and iOS, wire native Auth0 sign-in, and document the [mobile development workflow](development/MOBILE.md).
 - [x] Let users switch HTTPS backends on the device and restore the default `camply.rocks` deployment.
-- [ ] Implement native cookie-session authentication for self-hosted deployments.
+- [x] Implement native password sessions, durable server settings, and Auth0 browser retry handling.
+- [ ] Deploy the mobile-compatible API for `camply.rocks` and validate native sign-in on both platforms.
 - [ ] Add server-sent push and verify signed builds and notification taps on physical Android and iOS devices.
 
 ### Dependency Maintenance

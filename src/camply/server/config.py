@@ -9,6 +9,8 @@ from typing import ClassVar, Optional
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+NATIVE_WEBVIEW_ORIGINS = ("https://localhost", "capacitor://localhost")
+
 
 class AuthMode(str, Enum):
     """Owner-selected authentication: automatic login, sessions, or Auth0."""

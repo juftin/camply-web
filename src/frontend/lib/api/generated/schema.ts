@@ -1778,6 +1778,11 @@ export interface components {
             auto_login: boolean;
             /** Signup Enabled */
             signup_enabled: boolean;
+            /**
+             * Native Password Sessions
+             * @default false
+             */
+            native_password_sessions: boolean;
         };
         /**
          * AuthMode
@@ -3048,7 +3053,9 @@ export interface operations {
     login_api_login_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Camply-Session-Transport"?: "bearer" | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -3061,6 +3068,8 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description Bearer credential issued for a native password session. */
+                    "X-Camply-Session-Token"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3094,6 +3103,8 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description Bearer credential issued for a native password session. */
+                    "X-Camply-Session-Token"?: string;
                     [name: string]: unknown;
                 };
                 content: {

@@ -82,6 +82,48 @@ describe("Cloudflare Pages API proxy", () => {
     expect(response.status).toBe(204);
   });
 
+  it("preserves native password login and its exposed bearer header", async () => {
+    const mobileOrigin = "capacitor://localhost";
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json(
+        { id: "synthetic-user" },
+        {
+          headers: {
+            "Access-Control-Allow-Origin": mobileOrigin,
+            "Access-Control-Expose-Headers": "X-Camply-Session-Token",
+            "X-Camply-Session-Token": "synthetic-native-token",
+          },
+        },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await onRequest({
+      env,
+      request: new Request(`${origin}/api/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: mobileOrigin,
+          "X-Camply-Session-Transport": "bearer",
+        },
+        body: JSON.stringify({ username: "synthetic", password: "synthetic" }),
+      }),
+    });
+    const forwarded = fetchMock.mock.calls[0][0] as Request;
+    expect(forwarded.headers.get("Origin")).toBe(mobileOrigin);
+    expect(forwarded.headers.get("X-Camply-Session-Transport")).toBe("bearer");
+    expect(response.headers.get("X-Camply-Session-Token")).toBe(
+      "synthetic-native-token",
+    );
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+      mobileOrigin,
+    );
+    expect(response.headers.get("Access-Control-Expose-Headers")).toBe(
+      "X-Camply-Session-Token",
+    );
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+  });
+
   it("keeps backend redirects on the frontend host and preserves denied responses", async () => {
     const fetchMock = vi
       .fn()

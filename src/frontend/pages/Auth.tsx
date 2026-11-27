@@ -26,6 +26,8 @@ function Auth0Content() {
   const { isReady, user, signupEnabled, error } = useAuth();
   const isSignUp = signupEnabled && searchParams.get("mode") === "signup";
   const returnTo = authReturnTo(searchParams.get("returnTo"));
+  const [browserError, setBrowserError] = React.useState<string | null>(null);
+  const [openingBrowser, setOpeningBrowser] = React.useState(false);
 
   // Restore the destination from the notification after signing in.
   React.useEffect(() => {
@@ -34,28 +36,22 @@ function Auth0Content() {
     }
   }, [isReady, user, navigate, returnTo]);
 
-  const handleLogin = () => {
-    loginWithRedirect({
-      ...auth0BrowserOptions(),
-      appState: {
-        returnTo: `${import.meta.env.BASE_URL.replace(/\/$/, "")}${returnTo}`,
-      },
-      authorizationParams: {
-        screen_hint: "login",
-      },
-    });
-  };
-
-  const handleSignUp = () => {
-    loginWithRedirect({
-      ...auth0BrowserOptions(),
-      appState: {
-        returnTo: `${import.meta.env.BASE_URL.replace(/\/$/, "")}${returnTo}`,
-      },
-      authorizationParams: {
-        screen_hint: "signup",
-      },
-    });
+  const handleLogin = async () => {
+    setBrowserError(null);
+    setOpeningBrowser(true);
+    try {
+      await loginWithRedirect({
+        ...auth0BrowserOptions(),
+        appState: {
+          returnTo: `${import.meta.env.BASE_URL.replace(/\/$/, "")}${returnTo}`,
+        },
+        authorizationParams: { screen_hint: isSignUp ? "signup" : "login" },
+      });
+    } catch {
+      setBrowserError("Could not open the sign-in page. Please try again.");
+    } finally {
+      setOpeningBrowser(false);
+    }
   };
 
   return (
@@ -85,17 +81,18 @@ function Auth0Content() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {error && (
+              {(browserError || error) && (
                 <p
                   role="alert"
                   className="break-words text-sm text-destructive text-center"
                 >
-                  {error}
+                  {browserError || error}
                 </p>
               )}
               <Button
                 className="min-h-11 w-full sm:min-h-0"
-                onClick={isSignUp ? handleSignUp : handleLogin}
+                onClick={handleLogin}
+                disabled={openingBrowser}
               >
                 {isSignUp ? "Create Account" : "Sign In"}
               </Button>

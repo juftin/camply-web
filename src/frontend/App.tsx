@@ -255,7 +255,10 @@ function App() {
   if (mobileServer) {
     if (error) {
       message = `Could not connect to ${new URL(mobileServer.url).host}. Check the server settings or open the site in your browser.`;
-    } else if (config?.auth_mode === "session") {
+    } else if (
+      config?.auth_mode === "session" &&
+      !config.native_password_sessions
+    ) {
       message =
         "Open Camply in your browser to use this deployment’s password sign-in.";
     } else if (isAuth0 && !clientId) {
