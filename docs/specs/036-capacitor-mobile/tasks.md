@@ -4,6 +4,7 @@
 - [x] Check in Android and iOS projects and wire build, sync, and local run tasks.
 - [x] Test callback validation, Auth0 browser handoff, and cold-start handling with synthetic platform events.
 - [x] Document mobile setup and supported deployment settings, then sync both projects and run automated checks.
+- [x] Default to camply.rocks, persist server settings, and verify app restart and recovery when switching deployments.
 
 ## Release follow-up
 

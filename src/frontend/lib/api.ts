@@ -1,5 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { validCoordinates, type GeoBounds } from "./maps";
+import { getMobileServer } from "./mobile-server";
 import type {
   SearchResult,
   RecreationArea,
@@ -44,15 +45,18 @@ import type {
 // Axios instance
 // ---------------------------------------------------------------------------
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const mobileServer = getMobileServer();
+const apiUrl = mobileServer
+  ? `${mobileServer.url}api`
+  : import.meta.env.VITE_API_URL;
 
 const api = axios.create({
   baseURL: apiUrl || "/api",
   timeout: 10000,
-  withCredentials: true,
+  withCredentials: !mobileServer,
   xsrfCookieName: "camply_csrf",
   xsrfHeaderName: "X-CSRF-Token",
-  withXSRFToken: true,
+  withXSRFToken: !mobileServer,
   headers: {
     "Content-Type": "application/json",
   },

@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { AxiosError, type AxiosInstance } from "axios";
+import { Capacitor } from "@capacitor/core";
+import { saveMobileServer } from "./mobile-server";
+
+vi.mock("@capacitor/core", () => ({
+  Capacitor: { isNativePlatform: vi.fn(() => false) },
+}));
 
 // We'll mock axios.create to return a controlled instance
 const mockGet = vi.fn();
@@ -91,6 +97,29 @@ describe("API Client", () => {
     expect(createCall!.baseURL).toBeDefined();
     expect(createCall!.timeout).toBeGreaterThan(0);
     expect(createCall!.withCredentials).toBe(true);
+  });
+
+  it("uses the selected native deployment without browser session credentials", async () => {
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+    try {
+      for (const server of [null, "https://camply.example/trips"]) {
+        if (server) saveMobileServer(server, "");
+        vi.resetModules();
+        const { default: axios } = await import("axios");
+        await import("./api");
+        expect(axios.create).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            baseURL: `${server ?? "https://camply.rocks"}/api`,
+            withCredentials: false,
+            withXSRFToken: false,
+          }),
+        );
+      }
+    } finally {
+      localStorage.clear();
+      vi.mocked(Capacitor.isNativePlatform).mockReturnValue(false);
+      vi.resetModules();
+    }
   });
 
   it("confirms the session cookie before returning a login profile", async () => {

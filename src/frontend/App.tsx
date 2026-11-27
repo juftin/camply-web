@@ -6,7 +6,6 @@ import {
   Navigate,
 } from "react-router-dom";
 import { Auth0Provider, type AppState } from "@auth0/auth0-react";
-import { Capacitor } from "@capacitor/core";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
 import { Home } from "@/pages/Home";
@@ -43,6 +42,8 @@ import { communityPagesEnabled } from "@/lib/features";
 import { authReturnTo } from "@/lib/authRedirect";
 import { mobileAuthCallback } from "@/lib/mobile-auth";
 import { MobileAuthCallback } from "@/components/MobileAuthCallback";
+import { MobileServerSettings } from "@/components/MobileServerSettings";
+import { defaultMobileServerUrl, getMobileServer } from "@/lib/mobile-server";
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -217,6 +218,7 @@ function AppRoutes() {
 function App() {
   const [config, setConfig] = useState<AuthConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mobileServer] = useState(getMobileServer);
 
   useEffect(() => {
     fetchAuthConfig()
@@ -242,10 +244,38 @@ function App() {
       );
   }, []);
 
-  if (error) {
+  const isAuth0 = config?.auth_mode === "auth0" && !config.auto_login;
+  const clientId = mobileServer
+    ? mobileServer.auth0ClientId ||
+      (mobileServer.url === defaultMobileServerUrl
+        ? import.meta.env.VITE_MOBILE_AUTH0_CLIENT_ID
+        : undefined)
+    : config?.auth0_client_id;
+  let message = error;
+  if (mobileServer) {
+    if (error) {
+      message = `Could not connect to ${new URL(mobileServer.url).host}. Check the server settings or open the site in your browser.`;
+    } else if (config?.auth_mode === "session") {
+      message =
+        "Open Camply in your browser to use this deployment’s password sign-in.";
+    } else if (isAuth0 && !clientId) {
+      message =
+        "Enter the deployment’s native Auth0 client ID in Server settings.";
+    }
+  }
+
+  if (message) {
     return (
-      <div role="alert" className="p-8 text-center">
-        {error}
+      <div className="space-y-3 p-8 text-center">
+        <p role="alert">{message}</p>
+        {mobileServer && (
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <a href={mobileServer.url} className="text-primary underline">
+              Open Camply in browser
+            </a>
+            <MobileServerSettings server={mobileServer} />
+          </div>
+        )}
       </div>
     );
   }
@@ -258,37 +288,8 @@ function App() {
     );
   }
 
-  const isAuth0 = !config.auto_login && config.auth_mode === "auth0";
-  const native = Capacitor.isNativePlatform();
-
-  if (native && config.auth_mode === "session") {
-    const siteUrl = import.meta.env.VITE_MOBILE_SITE_URL;
-    return (
-      <div className="space-y-3 p-8 text-center">
-        <p role="alert">
-          Open Camply in your browser to use this deployment’s password sign-in.
-        </p>
-        {siteUrl && (
-          <a href={siteUrl} className="text-primary underline">
-            Open Camply in browser
-          </a>
-        )}
-      </div>
-    );
-  }
-
-  if (isAuth0) {
-    const clientId = native
-      ? import.meta.env.VITE_MOBILE_AUTH0_CLIENT_ID
-      : config.auth0_client_id;
-    if (!clientId) {
-      return (
-        <p role="alert" className="p-8 text-center">
-          This build needs a native Auth0 client ID. Contact your Camply
-          administrator.
-        </p>
-      );
-    }
+  if (isAuth0 && clientId) {
+    const native = mobileServer !== null;
     const redirectUri = native
       ? mobileAuthCallback
       : new URL(import.meta.env.BASE_URL, window.location.origin).href;

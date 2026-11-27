@@ -3,6 +3,7 @@ import { Github } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { CamplyLogo } from "@/components/CamplyLogo";
+import { getMobileServer } from "@/lib/mobile-server";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,7 +26,7 @@ export function Layout({ children }: LayoutProps) {
             </Link>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-5 md:gap-x-6 text-sm text-muted-foreground [&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center md:[&_a]:min-h-0">
               <a
-                href={`${import.meta.env.VITE_MOBILE_SITE_URL ?? import.meta.env.BASE_URL}docs/`}
+                href={`${getMobileServer()?.url ?? import.meta.env.BASE_URL}docs/`}
                 className="hover:text-foreground"
               >
                 Docs

@@ -7,5 +7,4 @@ interface ImportMetaEnv {
   readonly VITE_MAP_ATTRIBUTION_URL?: string;
   readonly VITE_MAP_MAX_NATIVE_ZOOM?: string;
   readonly VITE_MOBILE_AUTH0_CLIENT_ID?: string;
-  readonly VITE_MOBILE_SITE_URL?: string;
 }

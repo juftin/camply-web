@@ -27,6 +27,7 @@ import {
 } from "@/lib/api";
 import type { AuthConfig } from "@/lib/api";
 import { useScans, useScanDetail } from "@/hooks/useScans";
+import { getMobileServer, saveMobileServer } from "@/lib/mobile-server";
 
 const auth0 = vi.hoisted(() => ({
   isAuthenticated: false,
@@ -329,7 +330,7 @@ describe("Application authentication", () => {
 
   it("explains cookie-session availability in native builds", async () => {
     vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
-    vi.stubEnv("VITE_MOBILE_SITE_URL", "https://camply.example/camply/");
+    saveMobileServer("https://camply.example/camply", "");
     try {
       renderApp(sessionConfig);
       expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -338,6 +339,60 @@ describe("Application authentication", () => {
       expect(
         screen.getByRole("link", { name: "Open Camply in browser" }),
       ).toHaveAttribute("href", "https://camply.example/camply/");
+      expect(Auth0Provider).not.toHaveBeenCalled();
+    } finally {
+      vi.mocked(Capacitor.isNativePlatform).mockReturnValue(false);
+    }
+  });
+
+  it("allows server recovery when the selected deployment is unavailable", async () => {
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+    saveMobileServer("https://unavailable.example/camply", "old-client");
+    const replace = vi.fn();
+    vi.stubGlobal("location", { replace });
+    sessionStorage.setItem("previous-auth-transaction", "synthetic-state");
+    try {
+      vi.mocked(fetchAuthConfig).mockRejectedValueOnce(new Error("Offline"));
+      render(
+        <QueryClientProvider client={new QueryClient()}>
+          <App />
+        </QueryClientProvider>,
+      );
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "unavailable.example",
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Server settings" }));
+      const serverUrl = screen.getByLabelText("Server URL");
+      expect(serverUrl).toHaveValue("https://unavailable.example/camply/");
+      fireEvent.change(serverUrl, {
+        target: { value: "http://camply.example" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+      expect(screen.getByText(/Enter an HTTPS server URL/)).toBeVisible();
+      fireEvent.click(screen.getByRole("button", { name: "Use camply.rocks" }));
+      expect(serverUrl).toHaveValue("https://camply.rocks/");
+      fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+      expect(getMobileServer()).toEqual({
+        url: "https://camply.rocks/",
+        auth0ClientId: "",
+      });
+      expect(sessionStorage.getItem("previous-auth-transaction")).toBeNull();
+      expect(replace).toHaveBeenCalledWith(import.meta.env.BASE_URL);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.mocked(Capacitor.isNativePlatform).mockReturnValue(false);
+    }
+  });
+
+  it("does not reuse the hosted Auth0 client ID on a different server", async () => {
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+    vi.stubEnv("VITE_MOBILE_AUTH0_CLIENT_ID", "hosted-client");
+    saveMobileServer("https://camply.example/trips", "");
+    try {
+      renderApp(auth0Config, "/auth");
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "native Auth0 client ID",
+      );
       expect(Auth0Provider).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllEnvs();

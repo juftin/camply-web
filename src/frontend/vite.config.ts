@@ -4,7 +4,6 @@ import path from "path";
 import fs from "fs";
 import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
-import { mobileApiUrl } from "./tooling/mobile-build.ts";
 
 function syncRootBuild(): Plugin {
   let output = "";
@@ -55,7 +54,6 @@ function syncRootBuild(): Plugin {
 // https://vitejs.dev/config/
 const mobile = process.env.CAMPLY_MOBILE_BUILD === "1";
 const rootBuild = mobile || process.env.CAMPLY_STANDALONE_BUILD === "1";
-const apiUrl = mobile ? mobileApiUrl(process.env.CAMPLY_MOBILE_URL) : undefined;
 
 export default defineConfig({
   plugins: [react(), !mobile && syncRootBuild()],
@@ -77,14 +75,6 @@ export default defineConfig({
       : "/",
   publicDir: "public",
   envDir: rootBuild ? false : undefined,
-  define: apiUrl
-    ? {
-        "import.meta.env.VITE_API_URL": JSON.stringify(apiUrl),
-        "import.meta.env.VITE_MOBILE_SITE_URL": JSON.stringify(
-          new URL(".", apiUrl).href,
-        ),
-      }
-    : undefined,
   build: {
     outDir: path.resolve(
       import.meta.dirname,

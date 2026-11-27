@@ -364,6 +364,7 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 ### Capacitor mobile client (036)
 
 - [x] Bundle the existing React app for Android and iOS, wire native Auth0 sign-in, and document the [mobile development workflow](development/MOBILE.md).
+- [x] Let users switch HTTPS backends on the device and restore the default `camply.rocks` deployment.
 - [ ] Implement native cookie-session authentication for self-hosted deployments.
 - [ ] Add server-sent push and verify signed builds and notification taps on physical Android and iOS devices.
 
