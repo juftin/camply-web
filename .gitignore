@@ -25,6 +25,8 @@ cover/
 # Environments
 .env
 .env.*
+.dev.vars
+.dev.vars.*
 !.env.example
 !docs/examples/.env.example
 .venv

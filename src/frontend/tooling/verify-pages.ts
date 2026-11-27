@@ -98,6 +98,8 @@ async function main(): Promise<void> {
         frontend,
         "pages",
         "dev",
+        "--binding",
+        "CAMPLY_API_ORIGIN=https://upstream.invalid",
         "--ip",
         "127.0.0.1",
         "--port",
@@ -158,9 +160,15 @@ async function main(): Promise<void> {
       assert.equal(response.headers.get("Cache-Control"), "no-store");
       assert.match(
         ((await response.json()) as { detail: string }).detail,
-        /CAMPLY_API_ORIGIN/,
+        /CAMPLY_API_PROXY_SECRET/,
       );
     }
+    const crossOrigin = await fetch(`${base}/api/search`, {
+      headers: { Origin: "https://other.example.test" },
+    });
+    assert.equal(crossOrigin.status, 403);
+    assert.equal(crossOrigin.headers.get("Cache-Control"), "no-store");
+    assert.equal((await fetch(`${base}/api/health`)).status, 404);
     console.log(
       "Pages config discovery, Function bundling, static HTTP and proxy HTTP checks passed.",
     );

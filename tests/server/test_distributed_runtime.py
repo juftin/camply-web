@@ -69,6 +69,10 @@ def _verify_default_runtime() -> None:
                 response = client.get(path, headers={"Accept": "text/html"})
                 assert response.status_code == 404
                 assert response.json() == {"detail": "Not Found"}
+            for campground in ("synthetic-one", "synthetic-two"):
+                assert client.get(f"/api/campground/1/{campground}").status_code == 404
+            for method in ("SYNTHETICONE", "SYNTHETICTWO"):
+                assert client.request(method, "/api/unregistered").status_code == 404
 
             metrics = client.get("/metrics")
             assert metrics.status_code == 200
@@ -89,6 +93,17 @@ def _verify_default_runtime() -> None:
                 sample.name == "camply_total_scans" and sample.value == 0
                 for sample in samples
             )
+            requests = {
+                (sample.labels["endpoint"], sample.labels["method"]): sample.value
+                for sample in samples
+                if sample.name == "camply_http_requests_total"
+            }
+            assert requests == {
+                ("/api/ping", "GET"): 1,
+                ("/api/campground/{provider}/{id}", "GET"): 2,
+                ("/unmatched", "GET"): 3,
+                ("/unmatched", "OTHER"): 2,
+            }
 
         runner.assert_not_called()
         open_database.assert_not_called()

@@ -34,6 +34,7 @@ from camply.server.schemas import (
 )
 
 search_router = APIRouter(tags=["search"])
+MAX_EXPLORE_OFFSET = 50_000
 
 
 def _row_to_result(row: Search) -> SearchResultResponse:
@@ -163,11 +164,17 @@ async def search_explore(
     """
     Faceted, paginated exploration endpoint for the dedicated discovery UI.
     """
+    offset = (page - 1) * page_size
+    if offset > MAX_EXPLORE_OFFSET:
+        raise HTTPException(
+            status_code=422,
+            detail="Explore pagination exceeds the maximum offset. Refine your filters.",
+        )
+
     search_term = q if q is not None else query
     start = time.monotonic()
     TOTAL_SEARCH_REQUESTS.inc()
 
-    offset = (page - 1) * page_size
     provider_ids = [provider_id] if provider_id is not None else None
     entity_types = [entity_type] if entity_type else None
 
@@ -191,7 +198,9 @@ async def search_explore(
     )
     SEARCH_DURATION_SECONDS.observe(time.monotonic() - start)
 
-    total_pages = max(1, math.ceil(total / page_size)) if total > 0 else 1
+    total_pages = max(
+        1, min(math.ceil(total / page_size), MAX_EXPLORE_OFFSET // page_size + 1)
+    )
 
     return SearchExploreResponse(
         items=[_row_to_result(row) for row in search_rows],

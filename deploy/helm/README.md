@@ -207,6 +207,22 @@ variables for database/broker connections, metrics paths/ports, runtime mode,
 backend proxy target, and `SKIP_MIGRATIONS` take precedence over `env`/`envFrom`.
 Configure these through the corresponding chart settings.
 
+For a hosted Cloudflare Pages gateway, reference an existing Kubernetes Secret from the backend's role-specific environment. Configure session or Auth0 authentication and shared Valkey through the chart, then enable the gate after the Pages Function has the matching encrypted runtime secret and the separate HTTPS origin reaches the backend. [Hosted rollout steps](../../docs/operations/CONFIGURATION.md#enable-hosted-gateway-enforcement)
+
+```yaml
+backend:
+  env:
+    CAMPLY_API_PROXY_REQUIRED: "true"
+    CAMPLY_API_RATE_LIMIT_STORAGE: valkey
+    CAMPLY_API_PROXY_SECRET:
+      valueFrom:
+        secretKeyRef:
+          name: camply-api-gateway
+          key: proxy-secret
+```
+
+Keep the backend Service at `ClusterIP`. If Pages is the frontend, point the public frontend hostname to Pages and configure separate HTTPS origin ingress for the API. The chart's normal Ingress and HTTPRoute include `/api/health`. Add a controller-specific rule to deny that path and `/metrics` on public listeners. Keep Kubernetes probes and Prometheus on the private backend Service.
+
 Set notification credentials (`PUSHOVER_APP_TOKEN`) on both the backend (for Profile test sends) and workers, provider credentials,
 Sentry configuration, or polling intervals using these environment settings.
 Use `annotations` (global or per component) for optional reloader integration,

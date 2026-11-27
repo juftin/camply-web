@@ -295,7 +295,8 @@ source_modules = ["camply.server"]
 forbidden_modules = ["celery", "redis"]
 ignore_imports = [
   "camply.server.services.operations -> celery",
-  "camply.server.services.operations -> redis"
+  "camply.server.services.operations -> redis",
+  "camply.server.rate_limits -> redis"
 ]
 unmatched_ignore_imports_alerting = "error"
 

@@ -72,6 +72,35 @@ For recreation-area and selected-campground scans, worker round deadlines scale 
 
 ---
 
+## API abuse protection
+
+| Variable                        | Description                                                                                                           | Default                                                                   |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `CAMPLY_API_PROXY_REQUIRED`     | Require valid gateway provenance and session or Auth0 authentication. Exact liveness and readiness probes are exempt. | `false`                                                                   |
+| `CAMPLY_API_PROXY_SECRET`       | High-entropy server-to-server credential of at least 32 characters. Set the same runtime secret on Pages and the API. | Unset                                                                     |
+| `CAMPLY_API_RATE_LIMIT_STORAGE` | `memory` or `valkey`. Valkey uses the existing `CAMPLY_VALKEY_URL` and requires the `distributed` installation extra. | `valkey` for gateway-required distributed deployments, `memory` otherwise |
+
+Select Valkey for combined limits when running multiple workers or API replicas. Protected distributed deployments require Valkey. Its counters are shared across API processes, and requests return HTTP 503 with a short retry interval during a store outage. The memory store is process-local and clears on restart. Rate limits use a verified gateway client address, or the ASGI peer in direct deployments. Gunicorn and Uvicorn can update the peer from forwarding headers sent by a trusted proxy. Set `FORWARDED_ALLOW_IPS` only to known proxies that sanitize forwarding headers, or set it to an empty value for the raw connection peer. Clients behind the same proxy or IPv4 network address can share an IP budget. IPv6 quotas group clients by /64.
+
+| Operation                            | Default budget                      |
+| ------------------------------------ | ----------------------------------- |
+| Other public API requests            | 240 per minute per IP               |
+| Discovery, including search and maps | 120 per minute per IP               |
+| Private routes before authentication | 240 per minute per IP               |
+| Password login attempts              | 10 per five minutes per IP          |
+| Access requests                      | 5 per hour per IP                   |
+| Authenticated writes                 | 30 per minute per account           |
+| Notification tests                   | 3 per ten minutes per account       |
+| Manual provider syncs                | 3 per ten minutes per admin account |
+
+Each exhausted budget returns HTTP 429 with `Retry-After` in seconds. A request can consume both an IP and an account budget. Automatic login uses a shared account. Body size is limited to 128 KiB, and Explore pagination supports offsets up to 50,000.
+
+Hosted notification processes can make outbound requests to user-configured ntfy servers. For public or multi-tenant deployments, restrict API and worker egress so notification destinations cannot reach private networks and other sensitive addresses. Keep operator-managed private ntfy destinations on an allowlist where required. The API throttle limits test-notification frequency and destination restrictions must be enforced separately.
+
+To enable hosted routing, follow [Cloudflare Pages frontend](#cloudflare-pages-frontend).
+
+---
+
 ## Runtime selection
 
 | Variable              | Description                                                    | Default                                                                       |
@@ -184,16 +213,26 @@ When migrating Git-integrated Pages, change the hosted project root to `src/fron
 
 Deploy through Pages Git integration or Wrangler so the Function is included; uploading only `build/frontend` through a static-files mechanism omits it. The build copies `src/frontend/public/_routes.json` into output to invoke the Function only for `/api` and `/api/*`. The checked-in compatibility date supports standard Fetch `cache: "no-store"`; [older runtimes require the corresponding flag](https://developers.cloudflare.com/changelog/post/2024-11-11-cache-no-store/).
 
-| Variable            | Where to set it                                                                        | Value                                                                                               |
-| ------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `CAMPLY_API_ORIGIN` | Pages Settings → Variables and Secrets, for each Production/Preview environment in use | HTTPS backend origin, e.g. `https://api.example.com`, without `/api`, credentials, or query strings |
-| `VITE_API_URL`      | Pages build environment                                                                | Unset (defaults to `/api`) or `/api`; an absolute backend URL bypasses the proxy                    |
+| Variable                  | Where to set it                                                                 | Value                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `CAMPLY_API_ORIGIN`       | `vars` in Wrangler configuration, or Pages runtime variables in dashboard mode  | Distinct HTTPS backend origin, e.g. `https://api.example.com`, without `/api` or other URL parts      |
+| `CAMPLY_API_PROXY_SECRET` | Encrypted Pages runtime secret for each trusted environment and backend runtime | The same secret value at both ends. For example, generate 32 random bytes with `openssl rand -hex 32` |
+| `VITE_API_URL`            | Pages build environment                                                         | Unset (defaults to `/api`) or `/api`                                                                  |
 
-Redeploy after changing these settings. The browser sends all API traffic to the Pages frontend host; the Function forwards it to the backend and relays both session cookies unchanged. The session cookie remains `HttpOnly`, `Secure`, and `SameSite=Strict`, and the readable CSRF cookie belongs to the frontend host. The backend must still trust the frontend origin through `CAMPLY_CORS_ORIGINS` or `CAMPLY_CORS_ORIGIN_REGEX`, since the proxy preserves `Origin` for password-login validation. API responses are not cached; missing/invalid proxy configuration returns 503, and an unreachable backend returns 502.
+The browser sends its API traffic to the Pages origin. The Function injects its gateway credential, copies the Cloudflare-managed visitor address, and relays both session cookies unchanged. The backend must still trust the frontend origin through `CAMPLY_CORS_ORIGINS` or `CAMPLY_CORS_ORIGIN_REGEX` for password-login validation. The gateway rejects explicit cross-origin browser requests and returns `503` if its runtime configuration or Cloudflare visitor address is missing. An unreachable upstream returns `502`. Keep the Cloudflare visitor IP header available to the Function. [Cloudflare visitor IP handling](https://developers.cloudflare.com/fundamentals/reference/http-headers/#cf-connecting-ip-in-worker-subrequests)
+
+#### Enable hosted gateway enforcement
+
+1. Configure a separate HTTPS origin whose `/api` routes reach the backend without passing through the Pages Function. If Pages is taking over `camply.rocks`, update the checked-in `CAMPLY_API_ORIGIN` value first. Check the backend's other ingress hosts, direct listeners and service aliases. Deny public access to `/metrics` and database-backed `/api/health` at the origin ingress, and run readiness checks on the private backend listener. Pages excludes `/api/health` from its public proxy and can still proxy lightweight `/api/ping`.
+2. Deploy the updated backend with shared Valkey available. Set `CAMPLY_AUTH_MODE=session` or `auth0` and configure credentials for the selected mode. For session auth, replace any development password and session secret and set `CAMPLY_SESSION_COOKIE_SECURE=true`. Set `CAMPLY_API_RATE_LIMIT_STORAGE=valkey` and load `CAMPLY_API_PROXY_SECRET` from your server-side secret store. Leave `CAMPLY_API_PROXY_REQUIRED=false` during this staging step. Compose passes these settings to the backend. Keep its published backend, database and Valkey ports restricted to your private network for hosted use. [Helm deployment](../self-hosting/containers.md#kubernetes-with-helm)
+3. Add the matching secret as an encrypted runtime binding in Pages and deploy. Keep the secret out of `wrangler.jsonc`, `VITE_*` settings and browser assets. Use a separate backend and credential for previews that run untrusted code. Verify browsing, sign-in and a signed-in action through the frontend. If needed, switch the public frontend hostname to the tested Pages deployment.
+4. Set `CAMPLY_API_PROXY_REQUIRED=true` on the backend and redeploy. After every instance is updated, repeat the frontend checks. Verify ordinary direct requests to the backend and its aliases receive `403`, and internal liveness/readiness and monitoring still work.
+
+To roll back Pages while keeping enforcement active, restore a Pages deployment with a working gateway binding and the same upstream. Rolling back to an older gateway without credential forwarding requires restricting direct backend access at the ingress first, then reverting the matching backend rollout. Coordinate shared-secret changes on both ends since a mismatched credential causes `403` until both deployments agree.
 
 The default backend regex trusts `https://camply-81r.pages.dev` and its HTTPS deployment-hash and branch-alias origins, such as `https://da37cb45.camply-81r.pages.dev`. It does not trust other Pages projects, HTTP Pages origins, or nested subdomains. If the backend overrides `CAMPLY_CORS_ORIGIN_REGEX`, include the project-scoped pattern `https://(?:[a-z0-9-]+\.)?camply-81r\.pages\.dev` in the override or remove the override to use the default. Self-hosted deployments using another Pages project must explicitly configure their own trusted origins. Restart/redeploy the backend after changing this policy; a login response of `403 Untrusted login origin` indicates the frontend origin is not trusted.
 
-See the [Pages Functions setup](https://developers.cloudflare.com/pages/functions/get-started/) and [environment variable documentation](https://developers.cloudflare.com/pages/functions/bindings/#environment-variables).
+For API development without Pages, use `task frontend:dev` with the ordinary backend. For local Pages gateway work, bind a synthetic credential and test HTTPS origin in the ignored `src/frontend/.dev.vars` file. [Pages Function setup](https://developers.cloudflare.com/pages/functions/get-started/) · [Pages secrets](https://developers.cloudflare.com/pages/functions/bindings/#secrets) · [Wrangler configuration](https://developers.cloudflare.com/pages/functions/wrangler-configuration/)
 
 ### Optional invite-only access
 

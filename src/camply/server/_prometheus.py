@@ -37,8 +37,10 @@ else:
 import prometheus_client  # noqa: E402
 import structlog  # noqa: E402
 from fastapi import Response  # noqa: E402
+from fastapi.routing import APIRoute  # noqa: E402
 from prometheus_client import Counter, Gauge, Histogram  # noqa: E402
 from prometheus_client.multiprocess import MultiProcessCollector  # noqa: E402
+from starlette._utils import get_route_path  # noqa: E402
 
 logger = structlog.getLogger(__name__)
 
@@ -219,6 +221,18 @@ async def refresh_db_gauges() -> None:
 # Metrics middleware
 # ---------------------------------------------------------------------------
 
+_HTTP_METHODS = {
+    "GET",
+    "HEAD",
+    "OPTIONS",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "TRACE",
+    "CONNECT",
+}
+
 
 class PrometheusMiddleware:
     """
@@ -242,8 +256,10 @@ class PrometheusMiddleware:
             await self.app(scope, receive, send)
             return
 
-        path = scope.get("path", "")
+        path = get_route_path(scope)
         method = scope.get("method", "")
+        if method not in _HTTP_METHODS:
+            method = "OTHER"
 
         if path == "/metrics":
             await self.app(scope, receive, send)
@@ -263,7 +279,14 @@ class PrometheusMiddleware:
             await self.app(scope, receive, _send)
         finally:
             duration = time.monotonic() - start
-            endpoint = _normalize_path(path)
+            route = scope.get("route")
+            endpoint = getattr(route, "path_format", None) or "/unmatched"
+            if (
+                isinstance(route, APIRoute)
+                and path.startswith("/api/")
+                and not endpoint.startswith("/api/")
+            ):
+                endpoint = f"/api{endpoint}"
 
             HTTP_REQUESTS_TOTAL.labels(
                 method=method,
@@ -274,22 +297,6 @@ class PrometheusMiddleware:
                 method=method,
                 endpoint=endpoint,
             ).observe(duration)
-
-
-def _normalize_path(path: str) -> str:
-    """
-    Normalize path for metric labels by replacing UUIDs and numeric IDs
-    with placeholders to avoid cardinality explosion.
-    """
-    import re
-
-    path = re.sub(
-        r"/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
-        "/:uuid",
-        path,
-    )
-    path = re.sub(r"/\d+", "/:id", path)
-    return path
 
 
 # ---------------------------------------------------------------------------

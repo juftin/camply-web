@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import os
 import tempfile
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterator
 from pathlib import Path
 
 import pytest
@@ -25,6 +25,7 @@ from camply.db.config import db
 from camply.db.models import Base
 from camply.server.app import app as real_app
 from camply.server.config import AuthMode, backend_config
+from camply.server.rate_limits import MemoryRateLimits
 
 # ---------------------------------------------------------------------------
 # Temp-file database — shared across all tests (file-based so event-loop-safe)
@@ -191,3 +192,14 @@ def local_auth(monkeypatch: pytest.MonkeyPatch) -> None:
     """Use the automatic local admin unless a test opts into deployed authentication."""
     monkeypatch.setattr(backend_config, "auth_mode", AuthMode.NONE)
     monkeypatch.setattr(backend_config, "invite_only", False)
+
+
+@pytest.fixture(autouse=True)
+def local_quotas() -> Iterator[None]:
+    """Do not share rate windows across independent test scenarios."""
+    previous = real_app.state.api_rate_limits
+    real_app.state.api_rate_limits = MemoryRateLimits()
+    try:
+        yield
+    finally:
+        real_app.state.api_rate_limits = previous
