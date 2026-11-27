@@ -238,6 +238,12 @@ describe("Homepage walkthrough", () => {
       screen.getByText(/book directly on the provider’s website/i),
     ).toBeVisible();
     expect(screen.getByRole("heading", { name: "How it works" })).toBeVisible();
+    const steps = within(screen.getByRole("list")).getAllByRole("listitem");
+    expect(steps).toHaveLength(4);
+    expect(
+      within(steps[3]).getByRole("heading", { name: "Book with the provider" }),
+    ).toBeVisible();
+    expect(steps[3]).toHaveTextContent(/view on provider.*provider’s website/i);
     await waitFor(() =>
       expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled(),
     );

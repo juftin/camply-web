@@ -1,5 +1,12 @@
 import { useAuth } from "@/hooks/useAuth";
-import { MapPin, Tent } from "lucide-react";
+import {
+  Bell,
+  CheckCircle,
+  MapPin,
+  Search,
+  Settings,
+  Tent,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { DismissibleBanner } from "@/components/DismissibleBanner";
@@ -93,24 +100,56 @@ export function Home() {
       >
         <div className="mx-auto max-w-4xl">
           <h2 className="text-2xl font-bold mb-6">How it works</h2>
-          <ol className="grid list-decimal gap-6 pl-5 marker:font-semibold marker:text-primary md:grid-cols-3 md:gap-8">
+          <ol className="grid list-decimal gap-6 pl-5 marker:font-semibold marker:text-primary sm:grid-cols-2 lg:grid-cols-4">
             <li>
-              <h3 className="font-semibold">Find a campground</h3>
+              <h3 className="mb-2 flex items-center gap-2 font-semibold">
+                <Search
+                  aria-hidden="true"
+                  className="h-6 w-6 shrink-0 text-primary"
+                />
+                Find a campground
+              </h3>
               <p className="text-muted-foreground">
                 Search by campground or park name.
               </p>
             </li>
             <li>
-              <h3 className="font-semibold">Create a scan</h3>
+              <h3 className="mb-2 flex items-center gap-2 font-semibold">
+                <Settings
+                  aria-hidden="true"
+                  className="h-6 w-6 shrink-0 text-primary"
+                />
+                Create a scan
+              </h3>
               <p className="text-muted-foreground">
                 Choose your dates and any campsite preferences.
               </p>
             </li>
             <li>
-              <h3 className="font-semibold">Get alerts</h3>
+              <h3 className="mb-2 flex items-center gap-2 font-semibold">
+                <Bell
+                  aria-hidden="true"
+                  className="h-6 w-6 shrink-0 text-primary"
+                />
+                Get alerts
+              </h3>
               <p className="text-muted-foreground">
                 Set up notifications in your profile or check your dashboard for
                 openings.
+              </p>
+            </li>
+            <li>
+              <h3 className="mb-2 flex items-center gap-2 font-semibold">
+                <CheckCircle
+                  aria-hidden="true"
+                  className="h-6 w-6 shrink-0 text-primary"
+                />
+                Book with the provider
+              </h3>
+              <p className="text-muted-foreground">
+                Select{" "}
+                <strong className="text-foreground">View on provider</strong> in
+                your scan results and book on the provider’s website.
               </p>
             </li>
           </ol>
