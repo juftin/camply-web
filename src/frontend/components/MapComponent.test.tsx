@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StrictMode } from "react";
-import type { MapOptions } from "maplibre-gl";
+import type { MapOptions, RasterSourceSpecification } from "maplibre-gl";
 import { MapComponent } from "./MapComponent";
 
 const sdk = vi.hoisted(() => {
@@ -219,7 +219,7 @@ describe("MapLibre shared maps", () => {
     fireEvent.mouseEnter(marker);
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
-  it("renders valid zero locations with a keyless raster style and safe attribution/requests", () => {
+  it("renders valid zero locations with the default OpenFreeMap vector style and safe requests", () => {
     render(
       <MapComponent
         latitude={0}
@@ -233,20 +233,10 @@ describe("MapLibre shared maps", () => {
     expect(screen.getByLabelText("Primary")).toBeInTheDocument();
     expect(screen.getByLabelText("Related")).toBeInTheDocument();
     const map = sdk.maps[0];
-    expect(map.options.style).toMatchObject({
-      version: 8,
-      sources: {
-        basemap: {
-          type: "raster",
-          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-          tileSize: 256,
-          maxzoom: 19,
-          attribution: expect.stringContaining(
-            'href="https://www.openstreetmap.org/copyright"',
-          ),
-        },
-      },
-    });
+    expect(map.options.style).toBe(
+      "https://tiles.openfreemap.org/styles/liberty",
+    );
+    expect(map.options.attributionControl).toBe(false);
     expect(
       map.options.transformRequest!(
         "https://example.test/tiles.png",
@@ -257,6 +247,12 @@ describe("MapLibre shared maps", () => {
       credentials: "same-origin",
       referrerPolicy: "strict-origin",
     });
+    expect(
+      map.options.transformRequest!(
+        "https://example.test/tiles.png",
+        undefined,
+      ),
+    ).not.toHaveProperty("cache");
     expect(sdk.AttributionControl).toHaveBeenCalledWith({ compact: false });
     expect(map.fitBounds).toHaveBeenCalledWith(
       [
@@ -265,6 +261,62 @@ describe("MapLibre shared maps", () => {
       ],
       expect.objectContaining({ maxZoom: 12, animate: false }),
     );
+  });
+  it("supports custom vector styles and backwards-compatible custom raster tile overrides", () => {
+    vi.stubEnv(
+      "VITE_MAP_STYLE_URL",
+      "https://tiles.openfreemap.org/styles/bright",
+    );
+    const { unmount } = render(<MapComponent latitude={0} longitude={0} />);
+    expect(sdk.maps[0].options.style).toBe(
+      "https://tiles.openfreemap.org/styles/bright",
+    );
+    unmount();
+
+    vi.stubEnv("VITE_MAP_TILE_URL", "/tiles/{z}/{x}/{y}.png");
+    vi.stubEnv("VITE_MAP_ATTRIBUTION_TEXT", "<b>Custom Credit</b>");
+    vi.stubEnv("VITE_MAP_ATTRIBUTION_URL", "https://example.test/license");
+    vi.stubEnv("VITE_MAP_MAX_NATIVE_ZOOM", "14");
+    render(<MapComponent latitude={0} longitude={0} />);
+    const rasterMap = sdk.maps[1];
+    expect(rasterMap.options.style).toMatchObject({
+      version: 8,
+      sources: {
+        basemap: {
+          type: "raster",
+          tiles: ["/tiles/{z}/{x}/{y}.png"],
+          tileSize: 256,
+          minzoom: 0,
+          maxzoom: 14,
+          attribution: expect.stringContaining(
+            'href="https://example.test/license"',
+          ),
+        },
+      },
+      layers: [
+        {
+          id: "basemap",
+          type: "raster",
+          source: "basemap",
+          paint: { "raster-fade-duration": 0 },
+        },
+      ],
+    });
+    const style = rasterMap.options.style;
+    expect(style).toBeTypeOf("object");
+    const basemapSource =
+      typeof style === "object" && style !== null
+        ? (style.sources.basemap as RasterSourceSpecification)
+        : undefined;
+    const holder = document.createElement("div");
+    holder.innerHTML = basemapSource?.attribution ?? "";
+    const anchor = holder.querySelector("a");
+    expect(anchor).not.toBeNull();
+    expect(anchor?.getAttribute("href")).toBe("https://example.test/license");
+    expect(anchor?.getAttribute("target")).toBe("_blank");
+    expect(anchor?.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(anchor?.textContent).toBe("<b>Custom Credit</b>");
+    expect(anchor?.querySelector("b")).toBeNull();
   });
   it("reports loading until the renderer is ready and recovers a lost graphics context", () => {
     render(<MapComponent latitude={0} longitude={0} />);
@@ -405,26 +457,85 @@ describe("MapLibre shared maps", () => {
       ),
     ).toBe(true);
   });
-  it("keeps tile failures local and retries ordinary cached tile URLs", () => {
+  it("keeps tile failures local across vector and raster sources and retries ordinary cached URLs", () => {
     render(<MapComponent latitude={0} longitude={0} />);
     const map = sdk.maps[0];
     act(() =>
       map.fire("error", {
-        sourceId: "basemap",
-        error: new Error("Unavailable"),
+        sourceId: "openmaptiles",
+        error: new Error("Vector tiles unavailable"),
       }),
     );
     expect(
       screen.getByText(/Basemap tiles could not load/),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry tiles" }));
-    expect(map.refreshTiles).toHaveBeenCalledWith("basemap");
+    expect(map.refreshTiles).toHaveBeenCalledTimes(1);
+    expect(map.refreshTiles).toHaveBeenCalledWith("openmaptiles");
     expect(
       screen.queryByText(/Basemap tiles could not load/),
     ).not.toBeInTheDocument();
+
+    map.refreshTiles.mockClear();
+    act(() =>
+      map.fire("error", {
+        sourceId: "basemap",
+        error: new Error("Raster tiles unavailable"),
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Retry tiles" }));
+    expect(map.refreshTiles).toHaveBeenCalledTimes(1);
+    expect(map.refreshTiles).toHaveBeenCalledWith("basemap");
+
+    map.refreshTiles.mockClear();
+    act(() => {
+      map.fire("error", {
+        sourceId: "openmaptiles",
+        error: new Error("Source 1 unavailable"),
+      });
+      map.fire("error", {
+        sourceId: "terrain",
+        error: new Error("Source 2 unavailable"),
+      });
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Retry tiles" }));
+    expect(map.refreshTiles).toHaveBeenCalledTimes(2);
+    expect(map.refreshTiles).toHaveBeenCalledWith("openmaptiles");
+    expect(map.refreshTiles).toHaveBeenCalledWith("terrain");
+
+    map.refreshTiles.mockClear();
+    act(() =>
+      map.fire("error", {
+        sourceId: "terrain",
+        error: new Error("Source 2 still unavailable"),
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Retry tiles" }));
+    expect(map.refreshTiles).toHaveBeenCalledTimes(1);
+    expect(map.refreshTiles).toHaveBeenCalledWith("terrain");
+
     expect(
       map.options.transformRequest!("https://example.test/tile.png", undefined),
     ).not.toHaveProperty("cache");
+  });
+  it("recovers from remote style-document fetch failures without a sourceId via Retry map", () => {
+    render(<MapComponent latitude={0} longitude={0} />);
+    expect(screen.getByText("Loading map…")).toBeInTheDocument();
+    act(() =>
+      sdk.maps[0].fire("error", {
+        error: new Error("Failed to fetch style JSON"),
+      }),
+    );
+    expect(screen.queryByText("Loading map…")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Failed to fetch style JSON",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Retry map" }));
+    expect(sdk.maps[0].remove).toHaveBeenCalledOnce();
+    expect(sdk.maps).toHaveLength(2);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText("Loading map…")).toBeInTheDocument();
   });
   it("provides named buttons that activate selections by click, Enter and Space", () => {
     const onSelect = vi.fn();
@@ -448,6 +559,18 @@ describe("MapLibre shared maps", () => {
     expect(onSelect).toHaveBeenCalledTimes(3);
   });
   it("keeps invalid settings and unavailable WebGL recoverable within the map", () => {
+    for (const invalidStyleUrl of [
+      "http://insecure.example/style.json",
+      "https://u:p@example.com/style.json",
+    ]) {
+      vi.stubEnv("VITE_MAP_STYLE_URL", invalidStyleUrl);
+      const { unmount } = render(<MapComponent latitude={0} longitude={0} />);
+      expect(screen.getByRole("alert")).toHaveTextContent(/style/i);
+      expect(sdk.Map).not.toHaveBeenCalled();
+      unmount();
+      vi.unstubAllEnvs();
+    }
+
     vi.stubEnv("VITE_MAP_TILE_URL", "javascript:bad");
     const { unmount } = render(<MapComponent latitude={0} longitude={0} />);
     expect(screen.getByRole("alert")).toHaveTextContent(/attribution|XYZ/i);

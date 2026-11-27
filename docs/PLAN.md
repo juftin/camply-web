@@ -65,7 +65,7 @@ PyPI publication remains separate work.
 ### 3. Discovery & UX
 
 - **Global Search**: Unified search across all providers (Recreation.gov, State Parks, etc.).
-- **Map-Based Discovery**: Explore offers MapLibre GL JS mapping across all filtered results, with bounded geographic groups and campground monitoring actions; detail maps share the keyless/configurable basemap. See the [mapping plan](specs/010-open-source-explore-maps/plan.md).
+- **Map-Based Discovery**: Explore offers MapLibre GL JS mapping across all filtered results, with bounded geographic groups and campground monitoring actions; Explore and detail maps default to keyless OpenFreeMap vector styles (`VITE_MAP_STYLE_URL`) with backwards-compatible custom raster overrides (`VITE_MAP_TILE_URL`). See the [mapping plan](specs/010-open-source-explore-maps/plan.md) and [OpenFreeMap production tiles plan](specs/036-openfreemap-production-tiles/plan.md).
 - **Permit Monitoring**: Extend scanning logic to support Wilderness/Backcountry permits and Tours.
 
 ---

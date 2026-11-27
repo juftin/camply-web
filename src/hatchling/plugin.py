@@ -20,6 +20,7 @@ RECIPE = "camply-frontend-v2"
 """Change this identity when the frontend build procedure changes."""
 PUBLIC_SETTINGS = (
     "VITE_ENABLE_COMMUNITY_PAGES",
+    "VITE_MAP_STYLE_URL",
     "VITE_MAP_TILE_URL",
     "VITE_MAP_ATTRIBUTION_TEXT",
     "VITE_MAP_ATTRIBUTION_URL",

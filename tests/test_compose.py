@@ -106,6 +106,16 @@ def test_root_compose_preserves_dev_distributed_contract() -> None:
         assert service["build"]["context"] == "."
         assert service["build"]["dockerfile"] == "Dockerfile"
         assert service["build"]["target"] == "camply"
+        build_args = service["build"]["args"]
+        assert build_args["VITE_MAP_STYLE_URL"] == "${VITE_MAP_STYLE_URL:-}"
+        assert build_args["VITE_MAP_TILE_URL"] == "${VITE_MAP_TILE_URL:-}"
+        assert (
+            build_args["VITE_MAP_ATTRIBUTION_TEXT"] == "${VITE_MAP_ATTRIBUTION_TEXT:-}"
+        )
+        assert build_args["VITE_MAP_ATTRIBUTION_URL"] == "${VITE_MAP_ATTRIBUTION_URL:-}"
+        assert (
+            build_args["VITE_MAP_MAX_NATIVE_ZOOM"] == "${VITE_MAP_MAX_NATIVE_ZOOM:-19}"
+        )
 
     for name in ("backend", "celery-worker", "celery-beat"):
         env = _env_map(services[name])
