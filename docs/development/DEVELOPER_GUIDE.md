@@ -81,6 +81,10 @@ Run `task docs:build` to render `build/docs/`, or `task docs:check` to build and
 
 Every production frontend build compiles the VitePress site into `docs/` inside the static bundle (served at `/docs/` from standalone Python, Nginx, and Cloudflare Pages). Successful pushes to `main` also publish a mirror to GitHub Pages (`https://juftin.com/camply-web/`).
 
+## Capacitor mobile client
+
+The [mobile development guide](MOBILE.md) covers bundling the React app for Android and iOS, configuring the hosted API, and running native builds.
+
 ## Spec-Kit feature workflows
 
 Feature specifications, plans, and task lists live under `docs/specs/NNN-feature-name/` while `.specify/` remains at the repository root. After updating Spec-Kit scaffolding, run `uv run pytest tests/test_specify_workflows.py`.

@@ -1,0 +1,8 @@
+{
+  "appId": "com.camply.mobile",
+  "appName": "Camply",
+  "webDir": "build/mobile",
+  "android": { "path": "src/mobile/android" },
+  "ios": { "path": "src/mobile/ios" },
+  "plugins": { "SystemBars": { "insetsHandling": "native" } }
+}

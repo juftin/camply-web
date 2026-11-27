@@ -5,7 +5,8 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { Auth0Provider } from "@auth0/auth0-react";
+import { Auth0Provider, type AppState } from "@auth0/auth0-react";
+import { Capacitor } from "@capacitor/core";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
 import { Home } from "@/pages/Home";
@@ -40,8 +41,22 @@ import { AuthProvider, AuthConfigContext } from "@/hooks/useAuth";
 import { fetchAuthConfig, type AuthConfig } from "@/lib/api";
 import { communityPagesEnabled } from "@/lib/features";
 import { authReturnTo } from "@/lib/authRedirect";
+import { mobileAuthCallback } from "@/lib/mobile-auth";
+import { MobileAuthCallback } from "@/components/MobileAuthCallback";
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function restoreAuthDestination(appState?: AppState) {
+  const destination = authReturnTo(appState?.returnTo ?? null);
+  window.history.replaceState(
+    {},
+    document.title,
+    destination.startsWith(`${basename}/`)
+      ? destination
+      : `${basename}/dashboard`,
+  );
+  window.dispatchEvent(new PopStateEvent("popstate"));
+}
 
 function AppRoutes() {
   return (
@@ -244,34 +259,60 @@ function App() {
   }
 
   const isAuth0 = !config.auto_login && config.auth_mode === "auth0";
+  const native = Capacitor.isNativePlatform();
+
+  if (native && config.auth_mode === "session") {
+    const siteUrl = import.meta.env.VITE_MOBILE_SITE_URL;
+    return (
+      <div className="space-y-3 p-8 text-center">
+        <p role="alert">
+          Open Camply in your browser to use this deployment’s password sign-in.
+        </p>
+        {siteUrl && (
+          <a href={siteUrl} className="text-primary underline">
+            Open Camply in browser
+          </a>
+        )}
+      </div>
+    );
+  }
 
   if (isAuth0) {
+    const clientId = native
+      ? import.meta.env.VITE_MOBILE_AUTH0_CLIENT_ID
+      : config.auth0_client_id;
+    if (!clientId) {
+      return (
+        <p role="alert" className="p-8 text-center">
+          This build needs a native Auth0 client ID. Contact your Camply
+          administrator.
+        </p>
+      );
+    }
+    const redirectUri = native
+      ? mobileAuthCallback
+      : new URL(import.meta.env.BASE_URL, window.location.origin).href;
+
     return (
       <Auth0Provider
         domain={config.auth0_domain!}
-        clientId={config.auth0_client_id!}
+        clientId={clientId}
         authorizationParams={{
-          redirect_uri: new URL(
-            import.meta.env.BASE_URL,
-            window.location.origin,
-          ).href,
+          redirect_uri: redirectUri,
           audience: config.auth0_audience!,
         }}
         cacheLocation="memory"
         useRefreshTokens={true}
-        useRefreshTokensFallback={true}
-        onRedirectCallback={(appState) => {
-          const destination = authReturnTo(appState?.returnTo ?? null);
-          window.history.replaceState(
-            {},
-            document.title,
-            destination.startsWith(`${basename}/`)
-              ? destination
-              : `${basename}/dashboard`,
-          );
-          window.dispatchEvent(new PopStateEvent("popstate"));
-        }}
+        useRefreshTokensFallback={!native}
+        skipRedirectCallback={native}
+        onRedirectCallback={restoreAuthDestination}
       >
+        {native && (
+          <MobileAuthCallback
+            redirectUri={redirectUri}
+            onRedirect={restoreAuthDestination}
+          />
+        )}
         <AuthConfigContext.Provider value={config}>
           <AuthProvider>
             <AppRoutes />

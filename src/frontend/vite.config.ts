@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
+import { mobileApiUrl } from "./tooling/mobile-build.ts";
 
 function syncRootBuild(): Plugin {
   let output = "";
@@ -52,8 +53,12 @@ function syncRootBuild(): Plugin {
 }
 
 // https://vitejs.dev/config/
+const mobile = process.env.CAMPLY_MOBILE_BUILD === "1";
+const rootBuild = mobile || process.env.CAMPLY_STANDALONE_BUILD === "1";
+const apiUrl = mobile ? mobileApiUrl(process.env.CAMPLY_MOBILE_URL) : undefined;
+
 export default defineConfig({
-  plugins: [react(), syncRootBuild()],
+  plugins: [react(), !mobile && syncRootBuild()],
   css: {
     postcss: {
       plugins: [
@@ -65,16 +70,26 @@ export default defineConfig({
     },
   },
   root: import.meta.dirname,
-  base:
-    process.env.CAMPLY_STANDALONE_BUILD === "1"
-      ? "/"
-      : process.env.GITHUB_REPOSITORY
-        ? `/${process.env.GITHUB_REPOSITORY.split("/")[1]}/`
-        : "/",
+  base: rootBuild
+    ? "/"
+    : process.env.GITHUB_REPOSITORY
+      ? `/${process.env.GITHUB_REPOSITORY.split("/")[1]}/`
+      : "/",
   publicDir: "public",
-  envDir: process.env.CAMPLY_STANDALONE_BUILD === "1" ? false : undefined,
+  envDir: rootBuild ? false : undefined,
+  define: apiUrl
+    ? {
+        "import.meta.env.VITE_API_URL": JSON.stringify(apiUrl),
+        "import.meta.env.VITE_MOBILE_SITE_URL": JSON.stringify(
+          new URL(".", apiUrl).href,
+        ),
+      }
+    : undefined,
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist"),
+    outDir: path.resolve(
+      import.meta.dirname,
+      mobile ? "../../build/mobile" : "dist",
+    ),
     emptyOutDir: true,
     // Preserve Vite 6's browser support when upgrading the bundler.
     target: ["es2020", "edge88", "firefox78", "chrome87", "safari14"],

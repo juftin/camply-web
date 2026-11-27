@@ -9,6 +9,9 @@ includes:
   frontend:
     taskfile: tasks/frontend.yaml
     dir: .
+  mobile:
+    taskfile: tasks/mobile.yaml
+    dir: .
   backend:
     taskfile: tasks/python.yaml
     dir: .

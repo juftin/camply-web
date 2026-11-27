@@ -84,3 +84,5 @@ This catalog indexes all feature specifications, technical implementation plans,
   - [Plan](034-provider-availability-cassettes/plan.md) | [Tasks](034-provider-availability-cassettes/tasks.md) | [Verification](034-provider-availability-cassettes/quickstart.md) | [Requirements Checklist](034-provider-availability-cassettes/checklists/requirements.md)
 - **[035: Provider Metadata Cassettes](035-provider-metadata-cassettes/spec.md)**
   - [Plan](035-provider-metadata-cassettes/plan.md) | [Tasks](035-provider-metadata-cassettes/tasks.md) | [Verification](035-provider-metadata-cassettes/quickstart.md)
+- **[036: Capacitor Mobile Client](036-capacitor-mobile/spec.md)**
+  - [Plan](036-capacitor-mobile/plan.md) | [Tasks](036-capacitor-mobile/tasks.md) | [Development Guide](../development/MOBILE.md)

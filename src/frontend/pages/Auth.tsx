@@ -18,6 +18,7 @@ import { Link, useSearchParams, useNavigate, Navigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { authReturnTo } from "@/lib/authRedirect";
+import { auth0BrowserOptions } from "@/lib/mobile-auth";
 function Auth0Content() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -35,6 +36,7 @@ function Auth0Content() {
 
   const handleLogin = () => {
     loginWithRedirect({
+      ...auth0BrowserOptions(),
       appState: {
         returnTo: `${import.meta.env.BASE_URL.replace(/\/$/, "")}${returnTo}`,
       },
@@ -46,6 +48,7 @@ function Auth0Content() {
 
   const handleSignUp = () => {
     loginWithRedirect({
+      ...auth0BrowserOptions(),
       appState: {
         returnTo: `${import.meta.env.BASE_URL.replace(/\/$/, "")}${returnTo}`,
       },

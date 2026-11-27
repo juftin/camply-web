@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: "3"
+
+tasks:
+  bundle:
+    desc: Build the shared React app for Capacitor
+    deps: [":frontend:install"]
+    env:
+      CAMPLY_MOBILE_BUILD: "1"
+    cmd: pnpm run build
+
+  sync:
+    desc: Build and sync Capacitor (optionally pass android or ios)
+    deps: [bundle]
+    cmd: pnpm exec cap sync {{.CLI_ARGS}}
+
+  run:
+    desc: Build and run on a device or simulator (pass android or ios)
+    deps: [bundle]
+    cmd: pnpm exec cap run {{.CLI_ARGS}}
+
+  open:
+    desc: Open the synced native project (pass android or ios)
+    deps: [":frontend:install"]
+    cmd: pnpm exec cap open {{.CLI_ARGS}}
+
+  android:debug:
+    desc: Build an Android debug APK without launching a device
+    dir: "{{.ROOT_DIR}}/src/mobile/android"
+    cmds:
+      - task: sync
+        vars:
+          CLI_ARGS: android
+      - ./gradlew :app:assembleDebug

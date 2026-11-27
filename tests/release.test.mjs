@@ -24,6 +24,7 @@ function fixture(t, { sources = false } = {}) {
     "Taskfile.yaml",
     "tasks/python.yaml",
     "tasks/frontend.yaml",
+    "tasks/mobile.yaml",
     "tasks/docs.yaml",
     "tasks/compose.yaml",
     "tasks/helm.yaml",
@@ -44,7 +45,9 @@ function fixture(t, { sources = false } = {}) {
   }
   if (sources) {
     for (const file of [
-      "src",
+      "src/camply",
+      "src/frontend",
+      "src/hatchling",
       "docs",
       "pnpm-lock.yaml",
       "pnpm-workspace.yaml",

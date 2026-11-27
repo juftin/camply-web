@@ -10,6 +10,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { useAuth0 } from "@auth0/auth0-react";
+import { auth0BrowserOptions, mobileAuthCallback } from "@/lib/mobile-auth";
 import {
   getMe,
   logoutSession,
@@ -369,13 +370,19 @@ function Auth0AuthProvider({ children }: { children: ReactNode }) {
     queryClient.setQueryData(["me"], null);
     queryClient.removeQueries({ queryKey: ["scans"] });
     queryClient.removeQueries({ queryKey: ["admin"] });
-    logout({ logoutParams: { returnTo: window.location.origin } });
+    const browser = auth0BrowserOptions();
+    await logout({
+      ...browser,
+      logoutParams: {
+        returnTo: browser.openUrl ? mobileAuthCallback : window.location.origin,
+      },
+    });
   }, [queryClient, logout]);
 
   const login = useCallback(() => {
     setSessionError(null);
     setSignedOut(false);
-    loginWithRedirect();
+    loginWithRedirect(auth0BrowserOptions());
   }, [loginWithRedirect]);
 
   const effectiveLoading =

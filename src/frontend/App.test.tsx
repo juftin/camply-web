@@ -9,6 +9,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { Auth0Provider } from "@auth0/auth0-react";
+import { App as NativeApp, type URLOpenListenerEvent } from "@capacitor/app";
+import { Browser } from "@capacitor/browser";
+import { Capacitor } from "@capacitor/core";
 import { AxiosError } from "axios";
 import App from "./App";
 import {
@@ -33,6 +36,17 @@ const auth0 = vi.hoisted(() => ({
   getAccessTokenSilently: vi.fn().mockResolvedValue("token"),
   loginWithRedirect: vi.fn(),
   logout: vi.fn(),
+  handleRedirectCallback: vi.fn(),
+}));
+
+vi.mock("@capacitor/app", () => ({
+  App: { addListener: vi.fn(), getLaunchUrl: vi.fn() },
+}));
+vi.mock("@capacitor/browser", () => ({
+  Browser: { open: vi.fn(), close: vi.fn() },
+}));
+vi.mock("@capacitor/core", () => ({
+  Capacitor: { isNativePlatform: vi.fn(() => false) },
 }));
 
 vi.mock("@auth0/auth0-react", () => ({
@@ -250,6 +264,87 @@ describe("Community pages feature flag", () => {
 });
 
 describe("Application authentication", () => {
+  it("uses the native Auth0 client and accepts only its app callback", async () => {
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+    vi.stubEnv("VITE_MOBILE_AUTH0_CLIENT_ID", "native-client");
+    const redirectUri = "com.camply.mobile://auth/callback";
+    const nativeCallback = `${redirectUri}?code=synthetic-code&state=synthetic-state`;
+    const remove = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(NativeApp.addListener).mockResolvedValue({ remove });
+    vi.mocked(NativeApp.getLaunchUrl).mockResolvedValue({
+      url: nativeCallback,
+    });
+    auth0.handleRedirectCallback.mockResolvedValue({});
+    vi.mocked(Browser.open).mockResolvedValue(undefined);
+    vi.mocked(Browser.close).mockResolvedValue(undefined);
+
+    try {
+      const { unmount } = renderApp(auth0Config, "/auth");
+      await screen.findByText("Sign in to your camply account");
+      expect(Auth0Provider).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          clientId: "native-client",
+          cacheLocation: "memory",
+          useRefreshTokensFallback: false,
+          authorizationParams: expect.objectContaining({
+            redirect_uri: redirectUri,
+          }),
+        }),
+        expect.anything(),
+      );
+      fireEvent.click(
+        screen
+          .getAllByRole("button", { name: "Sign In" })
+          .find((button) => button.classList.contains("w-full"))!,
+      );
+      const options = auth0.loginWithRedirect.mock.lastCall?.[0];
+      const authorizeUrl = "https://test.example.com/authorize";
+      await options.openUrl(authorizeUrl);
+      expect(Browser.open).toHaveBeenCalledWith({ url: authorizeUrl });
+
+      await waitFor(() =>
+        expect(auth0.handleRedirectCallback).toHaveBeenCalledWith(
+          nativeCallback,
+        ),
+      );
+      expect(NativeApp.addListener).toHaveBeenCalledWith(
+        "appUrlOpen",
+        expect.any(Function),
+      );
+      const onAppUrlOpen = vi.mocked(NativeApp.addListener).mock
+        .lastCall![1] as unknown as (event: URLOpenListenerEvent) => void;
+      await act(async () => {
+        onAppUrlOpen({ url: nativeCallback });
+        onAppUrlOpen({ url: nativeCallback.replace("//auth/", "//other/") });
+      });
+      expect(auth0.handleRedirectCallback).toHaveBeenCalledTimes(1);
+      expect(Browser.close).toHaveBeenCalledTimes(1);
+      unmount();
+      await waitFor(() => expect(remove).toHaveBeenCalledOnce());
+    } finally {
+      vi.unstubAllEnvs();
+      vi.mocked(Capacitor.isNativePlatform).mockReturnValue(false);
+    }
+  });
+
+  it("explains cookie-session availability in native builds", async () => {
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+    vi.stubEnv("VITE_MOBILE_SITE_URL", "https://camply.example/camply/");
+    try {
+      renderApp(sessionConfig);
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Open Camply in your browser to use this deployment’s password sign-in.",
+      );
+      expect(
+        screen.getByRole("link", { name: "Open Camply in browser" }),
+      ).toHaveAttribute("href", "https://camply.example/camply/");
+      expect(Auth0Provider).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+      vi.mocked(Capacitor.isNativePlatform).mockReturnValue(false);
+    }
+  });
+
   it("opens the notified scan when Auth0 completes while the router is mounted", async () => {
     const { client } = renderApp(auth0Config, "/auth");
     await screen.findByText("Sign in to your camply account");

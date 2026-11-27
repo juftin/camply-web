@@ -361,6 +361,12 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Add recorded discovery, enrichment, catalog sync, and campsite listing coverage for the supported provider families. Document [metadata fixture refresh](development/PROVIDER_CASSETTES.md#metadata-recordings).
 - [x] Verify recreation-area expansion excludes recorded facilities without online booking, and replay staged RIDB archives through both enrichment and catalog sync before replacement.
 
+### Capacitor mobile client (036)
+
+- [x] Bundle the existing React app for Android and iOS, wire native Auth0 sign-in, and document the [mobile development workflow](development/MOBILE.md).
+- [ ] Implement native cookie-session authentication for self-hosted deployments.
+- [ ] Add server-sent push and verify signed builds and notification taps on physical Android and iOS devices.
+
 ### Dependency Maintenance
 
 - [x] Consolidate verified Renovate dependency upgrades into a single release PR, excluding risky or incompatible upgrades (Python 3.15, Postgres 18, React 19, Tailwind CSS v4, TypeScript 7, Lucide React 1.x, @types/node 26, and major Redis/Hookform bumps).
