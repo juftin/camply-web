@@ -142,4 +142,4 @@ task frontend:pages:dev
 
 These local commands need no Cloudflare authentication. The API proxy needs an externally supplied `CAMPLY_API_ORIGIN`; see [Pages configuration and operator migration](../operations/CONFIGURATION.md#cloudflare-pages-frontend) for production/preview bindings and hosted build-root settings. No deployment is performed by tests.
 
-See the [developer guide](../development/DEVELOPER_GUIDE.md), [architecture](../architecture/ARCHITECTURE_DEEP_DIVE.md), [release operations](../operations/RELEASES.md), and [feature 013](../specs/019-root-project-layout/plan.md).
+See the [developer guide](../development/DEVELOPER_GUIDE.md), [architecture](../architecture/ARCHITECTURE_DEEP_DIVE.md), [release operations](../operations/RELEASES.md), and [the root project layout plan](../specs/20261030-231534-root-project-layout/plan.md).

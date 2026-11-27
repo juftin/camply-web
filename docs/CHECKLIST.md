@@ -2,36 +2,36 @@
 
 This checklist tracks the granular progress of `camply`. Agents **MUST** update this file by marking tasks as completed (`[x]`) before finalizing any PR.
 
-## Found campsites UI rework (033)
+## Found campsites UI rework
 
-- [x] Specify, plan, task out, and implement the Found Campsites & Scan Detail UI rework: interactive availability calendar with single-night and check-in/check-out range filtering, deduplicated campsite cards with capability badges and inline stay expansion, Cards ↔ Sites × Dates Availability Grid view switcher with inline stay inspection, cohesive Scan Detail header consolidation, structured recreation-area coverage summary with relative timestamps, updated snapshot scenarios, and full Vitest/typecheck/lint coverage. [Spec](specs/033-found-campsites-ui/spec.md) | [Plan](specs/033-found-campsites-ui/plan.md) | [Tasks](specs/033-found-campsites-ui/tasks.md).
+- [x] Specify, plan, task out, and implement the Found Campsites & Scan Detail UI rework: interactive availability calendar with single-night and check-in/check-out range filtering, deduplicated campsite cards with capability badges and inline stay expansion, Cards ↔ Sites × Dates Availability Grid view switcher with inline stay inspection, cohesive Scan Detail header consolidation, structured recreation-area coverage summary with relative timestamps, updated snapshot scenarios, and full Vitest/typecheck/lint coverage. [Spec](specs/20261122-140251-found-campsites-ui/spec.md) | [Plan](specs/20261122-140251-found-campsites-ui/plan.md) | [Tasks](specs/20261122-140251-found-campsites-ui/tasks.md).
 - [ ] Refresh Playwright visual snapshot baselines (`scan-detail-*`, `scan-detail-grid-*`, `scan-detail-paginated-*`, `area-scan-detail-*`) in `tests/frontend/snapshots/baselines/` via `task frontend:snapshot:update -- --filter scan-detail` on an environment with Chromium system libraries (`T019`/`T023`).
 
-## CLI YAML configuration (032)
+## CLI YAML configuration
 
-- [x] Specify, plan, and implement `camply campsites --yaml-config` with strict validation, shared defaults, concurrent provider searches, per-search alert history, and single-pass JSON results. Verify the CLI on Python 3.11 and 3.14 and exercise the installed base wheel against synthetic providers and notification delivery. [Spec](specs/032-cli-yaml-config/spec.md) | [Tasks](specs/032-cli-yaml-config/tasks.md) | [CLI guide](cli.md#run-multiple-searches-from-a-yaml-file).
+- [x] Specify, plan, and implement `camply campsites --yaml-config` with strict validation, shared defaults, concurrent provider searches, per-search alert history, and single-pass JSON results. Verify the CLI on Python 3.11 and 3.14 and exercise the installed base wheel against synthetic providers and notification delivery. [Spec](specs/20261121-153915-cli-yaml-config/spec.md) | [Tasks](specs/20261121-153915-cli-yaml-config/tasks.md) | [CLI guide](cli.md#run-multiple-searches-from-a-yaml-file).
 
-## CLI full-stack parity (031)
+## CLI full-stack parity
 
-- [x] Specify, clarify, plan, and task out stateless CLI full-stack parity in [spec 031](specs/031-cli-fullstack-parity/spec.md), [plan](specs/031-cli-fullstack-parity/plan.md), and [tasks](specs/031-cli-fullstack-parity/tasks.md); add deferred database saved-scan CRUD and multi-provider YAML configuration to [docs/PLAN.md](PLAN.md).
+- [x] Specify, clarify, plan, and task out stateless CLI full-stack parity in [spec](specs/20261117-193928-cli-fullstack-parity/spec.md), [plan](specs/20261117-193928-cli-fullstack-parity/plan.md), and [tasks](specs/20261117-193928-cli-fullstack-parity/tasks.md); add deferred database saved-scan CRUD and multi-provider YAML configuration to [docs/PLAN.md](PLAN.md).
 - [x] Implement site/equipment/campsite-ID filtering (`--campsite-type`, `--electric`, `--accessible`, `--rv-length`, `--campsite`) and provider filter capability reporting, stateless Pushover/ntfy notifications (`--notifications`, `camply test-notifications`, and `PUSHOVER_*` / `NTFY_*` environment variables) with in-memory and `--state-file` deduplication, live discovery `--limit` pagination (`1`–`500`), canonical provider names in `camply db metadata`, and `--search-once`, `--interval`, and `--json` stdout formatting with unit, CLI, and installed base-wheel regression tests.
 
-## Documentation rework (030)
+## Documentation rework
 
-- [x] Specify, clarify, plan, and task out the four-perspective documentation rework (`User Documentation`, `Self-Hosting`, `Technical and Architectural Documentation`, `Technical Reference`) with a collapsible sidebar (User and Self-Hosting expanded by default) and human-readable editorial standard in [spec 030](specs/030-docs-rework/spec.md).
+- [x] Specify, clarify, plan, and task out the four-perspective documentation rework (`User Documentation`, `Self-Hosting`, `Technical and Architectural Documentation`, `Technical Reference`) with a collapsible sidebar (User and Self-Hosting expanded by default) and human-readable editorial standard in [the documentation rework spec](specs/20261116-171913-docs-rework/spec.md).
 - [x] Reorganize `docs/.vitepress/config.ts` with a 4-item navbar, unified collapsible sidebar, client-side Mermaid diagram rendering, dedicated [license](license.md) page, and search exclusion/ranking for internal specs/checklists/agent docs; consolidate and rewrite User Documentation, Self-Hosting, Technical & Architectural Documentation, Technical Reference, and `README.md`; verify link/editorial/search hygiene and bundled `/docs/` packaging checks.
 
-## Recreation-area monitoring (029)
+## Recreation-area monitoring
 
-- [x] Specify one saved scan for all eligible campgrounds or a selected subset within one recreation area, including membership changes, attributed results, notifications, shared polling, lifecycle, and compatibility; validate the [specification](specs/029-recreation-area-monitoring/spec.md) against its [requirements checklist](specs/029-recreation-area-monitoring/checklists/requirements.md).
-- [x] Complete clarification review, [technical planning](specs/029-recreation-area-monitoring/plan.md), research/data/contracts, the reviewer-owned [monitoring checklist](specs/029-recreation-area-monitoring/checklists/monitoring.md), and dependency-ordered [implementation tasks](specs/029-recreation-area-monitoring/tasks.md).
+- [x] Specify one saved scan for all eligible campgrounds or a selected subset within one recreation area, including membership changes, attributed results, notifications, shared polling, lifecycle, and compatibility; validate the [specification](specs/20261115-200611-recreation-area-monitoring/spec.md) against its [requirements checklist](specs/20261115-200611-recreation-area-monitoring/checklists/requirements.md).
+- [x] Complete clarification review, [technical planning](specs/20261115-200611-recreation-area-monitoring/plan.md), research/data/contracts, the reviewer-owned [monitoring checklist](specs/20261115-200611-recreation-area-monitoring/checklists/monitoring.md), and dependency-ordered [implementation tasks](specs/20261115-200611-recreation-area-monitoring/tasks.md).
 - [x] Implement recreation-area monitoring and selected-campground coverage, verify local unit/router/worker/frontend/packaging/standalone/snapshot acceptance suites, update architecture docs, and complete convergence (Docker-only PostgreSQL/admin container smokes remain for CI where Docker is available).
 
-## Legacy CLI parity (026)
+## Legacy CLI parity
 
-- [x] Audit legacy `juftin/camply` v0.34.4 CLI commands, options, YAML/configuration, providers, deployment IDs and notifications; map replacements and gaps in the [baseline inventory](specs/026-cli-parity/legacy-audit.md).
-- [x] Write the [parity specification](specs/026-cli-parity/spec.md), [design outline](specs/026-cli-parity/plan.md), [delivery backlog](specs/026-cli-parity/tasks.md) and [readiness checklist](specs/026-cli-parity/checklists/requirements.md).
-- [x] Narrow initial CLI scope and track D01–D13 as [deferred TODOs](specs/026-cli-parity/tasks.md#deferred-todo-registry), including site listing/selection, full notification/campground parity, YAML, permits, equipment, TUI, Rich-click, configure, notification caps and offline history.
+- [x] Audit legacy `juftin/camply` v0.34.4 CLI commands, options, YAML/configuration, providers, deployment IDs and notifications; map replacements and gaps in the [baseline inventory](specs/20261110-005958-cli-parity/legacy-audit.md).
+- [x] Write the [parity specification](specs/20261110-005958-cli-parity/spec.md), [design outline](specs/20261110-005958-cli-parity/plan.md), [delivery backlog](specs/20261110-005958-cli-parity/tasks.md) and [readiness checklist](specs/20261110-005958-cli-parity/checklists/requirements.md).
+- [x] Narrow initial CLI scope and track D01–D13 as [deferred TODOs](specs/20261110-005958-cli-parity/tasks.md#deferred-todo-registry), including site listing/selection, full notification/campground parity, YAML, permits, equipment, TUI, Rich-click, configure, notification caps and offline history.
 - [x] Address command-contract and test-coverage review gaps: specify option precedence/repeatability, exact campground lookup and real installed-command monitoring/cancellation acceptance gates. Keep initial CLI output console-only; defer Pushover and all external notification setup/delivery.
 - [x] Restore current-provider discovery and campground-based availability through shared base-only capabilities: exact metadata lookup, complete area expansion, paired date/day matching, continuous console output and cancellation cleanup.
 - [x] Verify initial CLI acceptance with full test/lint/type/docs gates and installed wheel/sdist checks on Python 3.11/3.14; keep all D01–D13 deferred.
@@ -40,18 +40,18 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] Stabilize snapshot capture by waiting for visible image/font readiness, cover delayed lazy-image loading without network-idle waits, and refresh the complete desktop light profile baseline from macOS CI.
 - [x] Finalize CLI parity and modern ergonomics: add `camply list-campsites` and provider site-catalog APIs across all 26 providers (`D01`), refine watch lifecycle (`--search-once`, `--stop-on-match`, transient-error retry resilience, and automatic date-expiry stop; drop legacy `--continuous` / `--search-forever`, `D11`), replace `--notify-first-try` with `--max-notifications` and overflow summary alerts (`D12`), add zero-dependency `webhook`, `discord`, `slack`, and `telegram` CLI notification channels (with YAML schema support), and explicitly drop legacy `tui` (`D08`), `rich-click` (`D09`), and `configure`/`.camply` (`D10`).
 
-## Destination enrichment research (027)
+## Destination enrichment research
 
 - [x] Exclude placeholder `0/0` coordinates from campground and recreation-area detail maps; let campgrounds and related pins inherit their recreation area's complete coordinate pair when their own location is unusable, preserving valid equator/prime-meridian locations and detail content with regression tests.
 - [x] Align the opt-in map browser smoke fixtures with coordinate validation; verify real browser fallback for placeholder, missing, and invalid campground coordinates and omitted maps when neither location is usable.
-- [x] Replace destination photo grids with an Embla carousel supporting overlaid controls, keyboard, swipe/drag, reduced motion, captions without credit/source lines, and a photo count shown only in the opened viewer; move the renamed “Know before you go” section below the overview/map on both pages. See the [UI/UX plan](specs/027-campground-enrichment/ui-ux.md).
-- [x] Review the ten carousel captures from macOS PR CI and align their visual baselines with the CI platform while retaining the 78 other views and existing comparison thresholds. See the [validation report](specs/027-campground-enrichment/validation.md#carousel-pr-ci-follow-up).
-- [x] Fix enrichment rollout beyond the initial 100 destinations with independent periodic discovery and bounded continuations in both runtimes; add backlog, recovery, and client-lifecycle regressions. See the [rollout plan](specs/028-enrichment-rollout/plan.md).
+- [x] Replace destination photo grids with an Embla carousel supporting overlaid controls, keyboard, swipe/drag, reduced motion, captions without credit/source lines, and a photo count shown only in the opened viewer; move the renamed “Know before you go” section below the overview/map on both pages. See the [UI/UX plan](specs/20261114-141003-campground-enrichment/ui-ux.md).
+- [x] Review the ten carousel captures from macOS PR CI and align their visual baselines with the CI platform while retaining the 78 other views and existing comparison thresholds. See the [validation report](specs/20261114-141003-campground-enrichment/validation.md#carousel-pr-ci-follow-up).
+- [x] Fix enrichment rollout beyond the initial 100 destinations with independent periodic discovery and bounded continuations in both runtimes; add backlog, recovery, and client-lifecycle regressions. See the [rollout plan](specs/20261114-164211-enrichment-rollout/plan.md).
 
-- [x] Audit retained metadata and verify upstream enrichment sources; document Recreation.gov export/media and California park-information evidence, access limitations, and a [phased implementation proposal](specs/027-campground-enrichment/plan.md).
-- [x] Expand the [provider research matrix](specs/027-campground-enrichment/provider-matrix.md) across all ten UseDirect deployments, verified ReserveAmerica galleries/details, and Washington's official operator-site gallery; identify placeholder URLs, missing assets, photo scope, and remaining native GoingToCamp access limits.
-- [x] Implement cached destination photos and practical details for Recreation.gov, all ten UseDirect deployments, and ReserveAmerica; add portable JSON persistence/migration, bounded seven-day refreshes with failure retention and retry continuation, detail-only API responses, accessible galleries, provenance, synthetic regressions, and enriched visual baselines. See the [feature plan](specs/027-campground-enrichment/plan.md).
-- [x] Review the 12 affected macOS visual captures and align their baselines with the CI platform; verify live PostgreSQL upgrade/downgrade/re-upgrade in PR CI. See the [validation report](specs/027-campground-enrichment/validation.md).
+- [x] Audit retained metadata and verify upstream enrichment sources; document Recreation.gov export/media and California park-information evidence, access limitations, and a [phased implementation proposal](specs/20261114-141003-campground-enrichment/plan.md).
+- [x] Expand the [provider research matrix](specs/20261114-141003-campground-enrichment/provider-matrix.md) across all ten UseDirect deployments, verified ReserveAmerica galleries/details, and Washington's official operator-site gallery; identify placeholder URLs, missing assets, photo scope, and remaining native GoingToCamp access limits.
+- [x] Implement cached destination photos and practical details for Recreation.gov, all ten UseDirect deployments, and ReserveAmerica; add portable JSON persistence/migration, bounded seven-day refreshes with failure retention and retry continuation, detail-only API responses, accessible galleries, provenance, synthetic regressions, and enriched visual baselines. See the [feature plan](specs/20261114-141003-campground-enrichment/plan.md).
+- [x] Review the 12 affected macOS visual captures and align their baselines with the CI platform; verify live PostgreSQL upgrade/downgrade/re-upgrade in PR CI. See the [validation report](specs/20261114-141003-campground-enrichment/validation.md).
 
 ---
 
@@ -85,7 +85,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.3.7 Integrate `Sentry` for background task error tracking.
 - [x] T1.3.8 **Testing**: Write integration tests for the Celery task lifecycle and de-duplication logic.
 - [x] T1.3.9 Configure heartbeat search polling interval to default to 5 minutes (300s) and support customization via `CAMPLY_HEARTBEAT_INTERVAL`.
-- [x] T1.3.10 Default to one new-opening summary per saved scan/check linking to Camply results; support configurable individual booking-link alerts for local deployments and preserve unchanged-opening suppression. See [campsite alerts plan](specs/014-campsite-alerts/plan.md).
+- [x] T1.3.10 Default to one new-opening summary per saved scan/check linking to Camply results; support configurable individual booking-link alerts for local deployments and preserve unchanged-opening suppression. See [campsite alerts plan](specs/20261025-142556-campsite-alerts/plan.md).
 
 ### 1.4 API & Frontend Foundation
 
@@ -100,7 +100,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.4.9 Implement the optional invite-only gate UI.
 - [x] T1.4.10 **Testing**: Write backend API tests (`pytest`) and frontend component tests (`vitest`). _(✅ 16 backend + 13 frontend tests passing)_
 - [x] T1.4.11 **UI Snapshots & Feedback Loop**: Implement automated UI snapshot capture across 40 viewports/routes/themes, visual diffing, and Markdown/HTML reporting (`task snapshot`, `task snapshot:update`, `task snapshot:check`). Automate visual snapshot CI gate with Playwright artifact reporting, enforce deterministic test clocks, and provide comprehensive Vitest component DOM snapshot coverage (31 component test variants).
-- [x] T1.4.11a Provide a local HTML comparison gallery linked to before/after PNG files, side-by-side, reveal-slider and diff views, search/status filters, pre-update baseline preservation, report-only regeneration and offline browser verification. See [snapshot gallery plan](specs/016-snapshot-gallery/plan.md).
+- [x] T1.4.11a Provide a local HTML comparison gallery linked to before/after PNG files, side-by-side, reveal-slider and diff views, search/status filters, pre-update baseline preservation, report-only regeneration and offline browser verification. See [snapshot gallery plan](specs/20261025-162334-snapshot-gallery/plan.md).
 - [x] T1.4.11b Prevent map snapshot navigation from waiting on background network traffic; wait for search results, rendered maps and loaded markers, with a browser regression covering an indefinitely pending request.
 - [x] T1.4.11c Improve visual regression and DOM snapshot determinism: enforce UTC timezone in test setup, and pin US English locale and device scale factor in browser context.
 - [x] T1.4.11d Accelerate UI snapshot execution with parallel worker concurrency, scenario filtering (`--filter`), DOM-mount navigation without `networkidle` pauses, isolated default port (`5197`), and clean process-group shutdown.
@@ -108,12 +108,12 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.4.13 Migrate frontend tooling to Oxlint, Oxfmt, Vite 8, Vitest 5, and native TypeScript 7; align Node 24 across environments and preserve eager page imports.
 - [x] T1.4.14 Make plain `task` list available workflows without installing dependencies.
 - [x] T1.4.15 Refine DatePicker component and date range synchronization (anchor check-out to check-in, popover calendar, quick duration presets).
-- [x] T1.4.16 Add scan editing from dashboard cards and detail pages, safely relink de-duplicated targets, and fix delete navigation, pending state, and failure feedback. Cover form lifecycle, ownership, duplicate validation, and shared-target isolation; see [scan editing plan](specs/008-scan-editing/plan.md).
+- [x] T1.4.16 Add scan editing from dashboard cards and detail pages, safely relink de-duplicated targets, and fix delete navigation, pending state, and failure feedback. Cover form lifecycle, ownership, duplicate validation, and shared-target isolation; see [scan editing plan](specs/20261014-005019-scan-editing/plan.md).
 - [x] T1.4.17 Gate Ethos and Contribute behind `VITE_ENABLE_COMMUNITY_PAGES`, disabled by default; hide related navigation and links, redirect disabled routes home, and document frontend/Docker configuration with regression coverage.
-- [x] T1.4.18 Replace placeholder branding with the original camply artwork: horizontal and stacked logos with the title, tent-and-trees artwork without the title, light/dark variants, branded favicons, and the Recreation.gov provider logo. Add the supplied portrait to Meet Justin and preview all logo variations in the design system catalog; see the [branding plan](specs/012-branding/plan.md).
-- [x] T1.4.19 Show searchable matching campsite details, consecutive available stays and booking actions; align API/dashboard counts with notification filters, persist provider site attributes, preserve notification destinations through login, and cover desktop/mobile themes. See [campsite alerts plan](specs/014-campsite-alerts/plan.md).
+- [x] T1.4.18 Replace placeholder branding with the original camply artwork: horizontal and stacked logos with the title, tent-and-trees artwork without the title, light/dark variants, branded favicons, and the Recreation.gov provider logo. Add the supplied portrait to Meet Justin and preview all logo variations in the design system catalog; see the [branding plan](specs/20261016-052850-branding/plan.md).
+- [x] T1.4.19 Show searchable matching campsite details, consecutive available stays and booking actions; align API/dashboard counts with notification filters, persist provider site attributes, preserve notification destinations through login, and cover desktop/mobile themes. See [campsite alerts plan](specs/20261025-142556-campsite-alerts/plan.md).
 - [x] T1.4.19a Group identical stay dates into collapsible sections with compact campsite rows, unique-site counts, search and date/stay-length sorting; surface scan context and a separate full-campground provider link. Verify grouping and navigation regressions plus desktop/mobile themes.
-- [x] T1.4.20 Collapse dashboard scans into campground groups, paginate each stay-date group at five campsites per page, and expire past/out-of-range nights before matching saved stays in the API and alerts. Cover successful availability removal and preservation on provider errors; see [compact results plan](specs/017-compact-results/plan.md).
+- [x] T1.4.20 Collapse dashboard scans into campground groups, paginate each stay-date group at five campsites per page, and expire past/out-of-range nights before matching saved stays in the API and alerts. Cover successful availability removal and preservation on provider errors; see [compact results plan](specs/20261028-054322-compact-results/plan.md).
 
 ### 1.5 Governance & Licensing
 
@@ -185,7 +185,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 
 ### Admin UI ✅
 
-Implementation specification and tasks: [Admin UI plan](specs/002-admin-ui/plan.md).
+Implementation specification and tasks: [Admin UI plan](specs/20261013-032156-admin-ui/plan.md).
 
 - [x] Add administrator authorization and scanning suspension while preserving login and saved scan state.
 - [x] Build user, scan, and shared-target administration with audited changes.
@@ -208,38 +208,38 @@ Implementation specification and tasks: [Admin UI plan](specs/002-admin-ui/plan.
 - [x] T3.1.1 Migrate `usedirect` (all 10 verified live deployments: California, Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, Northern Territory).
 - [x] T3.1.1a Implement ReserveCalifornia on the current Tyler RDR API: async scans, metadata/search ingestion, seed migration, modern booking links, and synthetic HTTP/database regressions. Source models now share the UseDirect package.
 - [x] T3.1.1b Extract the async UseDirect ABC and implement verified Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory variations with independent metadata sync, stable seeds, booking routes, and provider-isolation regressions.
-- [x] T3.1.1c Verify Alabama State Parks (`https://reserve.alapark.com`); migrated off UseDirect/RDR to **Itinio** (closed out of UseDirect scope). See [provider TODOs](specs/007-usedirect-providers/TODO.md).
-- [x] T3.1.1d Verify Maricopa County Parks (`https://www.exploremaricopacountyparks.org/`); migrated off UseDirect/RDR to **Cedar** (closed out of UseDirect scope). See [provider TODOs](specs/007-usedirect-providers/TODO.md).
+- [x] T3.1.1c Verify Alabama State Parks (`https://reserve.alapark.com`); migrated off UseDirect/RDR to **Itinio** (closed out of UseDirect scope). See [provider TODOs](specs/20261013-133646-usedirect-providers/TODO.md).
+- [x] T3.1.1d Verify Maricopa County Parks (`https://www.exploremaricopacountyparks.org/`); migrated off UseDirect/RDR to **Cedar** (closed out of UseDirect scope). See [provider TODOs](specs/20261013-133646-usedirect-providers/TODO.md).
 - [x] T3.1.2 Migrate `going_to_camp` (all 14 verified live deployments registered).
-- [x] T3.1.2a Re-engineer the async `GoingToCampProvider` ABC (dynamic nightly booking/resource categories, bulk resource metadata, 60-night map availability BFS traversal, multi-category equipment and filterable attribute decoding) and implement `WashingtonStateParksProvider` (`https://washington.goingtocamp.com`, ID 12) with seed migration, deep links, and synthetic HTTP/VCR/database regressions. See [GoingToCamp plan](specs/023-going-to-camp/plan.md) and [deployment verification](specs/023-going-to-camp/TODO.md).
+- [x] T3.1.2a Re-engineer the async `GoingToCampProvider` ABC (dynamic nightly booking/resource categories, bulk resource metadata, 60-night map availability BFS traversal, multi-category equipment and filterable attribute decoding) and implement `WashingtonStateParksProvider` (`https://washington.goingtocamp.com`, ID 12) with seed migration, deep links, and synthetic HTTP/VCR/database regressions. See [GoingToCamp plan](specs/20261106-035753-going-to-camp/plan.md) and [deployment verification](specs/20261106-035753-going-to-camp/TODO.md).
 - [x] T3.1.2b Verify all remaining GoingToCamp candidates and register the 13 live deployments (Wisconsin, Michigan, Tacoma Power, Parks Canada, BC Parks, Ontario Parks, Nova Scotia, Manitoba, Newfoundland & Labrador, Gatineau Park, Long Point, Maitland Valley, St. Clair; IDs 14–26) with seed migration and registry/state regressions; close out Maryland DNR (ReserveAmerica/Aspira), New Brunswick (custom), Algonquin Highlands (`algonquinhighlands.ca`), and Saugeen Valley (`saugeenconservation.ca`) as non-GoingToCamp.
 - [x] T3.1.3 Skip `xanterra` (Yellowstone, etc.) as its campsites are moving to Recreation.gov.
 
 ### 3.2 Advanced Search
 
 - [x] T3.2.1 Implement electric hookup and ADA accessibility filters, multi-criteria search, facets, and pagination (`/api/search/explore`, `SearchPage`).
-- [x] T3.2.1a Keep discovery in PostgreSQL with indexed weighted full-text and per-token typo matching, exact-name ranking, deterministic pagination, lightweight autocomplete, and live Explore typing/filtering with URL navigation and cancellation. Verify migrations and real PostgreSQL query plans in CI; see [search plan](specs/009-live-search/plan.md).
-- [x] T3.2.1b Populate discovery amenity and RV metadata from provider catalogs (`campgrounds` -> `search`, including Explore ADA filter parity); see [equipment filtering spec](specs/030-equipment-metadata-filtering/spec.md) and [plan](specs/030-equipment-metadata-filtering/plan.md).
-- [x] T3.2.2 Implement equipment length (RV/Trailer) and ADA accessibility validation across providers, saved scans, worker/alerts, API, and UI; see [equipment filtering tasks](specs/030-equipment-metadata-filtering/tasks.md).
+- [x] T3.2.1a Keep discovery in PostgreSQL with indexed weighted full-text and per-token typo matching, exact-name ranking, deterministic pagination, lightweight autocomplete, and live Explore typing/filtering with URL navigation and cancellation. Verify migrations and real PostgreSQL query plans in CI; see [search plan](specs/20261014-044613-live-search/plan.md).
+- [x] T3.2.1b Populate discovery amenity and RV metadata from provider catalogs (`campgrounds` -> `search`, including Explore ADA filter parity); see [equipment filtering spec](specs/20261116-052724-equipment-metadata-filtering/spec.md) and [plan](specs/20261116-052724-equipment-metadata-filtering/plan.md).
+- [x] T3.2.2 Implement equipment length (RV/Trailer) and ADA accessibility validation across providers, saved scans, worker/alerts, API, and UI; see [equipment filtering tasks](specs/20261116-052724-equipment-metadata-filtering/tasks.md).
 - [ ] T3.2.3 Implement minimum stay requirement (X nights) in poller logic.
-- [x] T3.2.4 Specify recurring nights-of-the-week selection for saved web scans with existing CLI day/weekend parity, stay-length semantics, validation, and consistent results/alerts; see the [night-selection specification](specs/029-weekday-night-filter/spec.md).
-- [x] T3.2.5 Plan, implement and verify saved night preferences, accessible web selection/editing, consistent results and notification delivery in both runtimes, and CLI parity; see the [night-selection plan](specs/029-weekday-night-filter/plan.md) and [completed tasks](specs/029-weekday-night-filter/tasks.md).
+- [x] T3.2.4 Specify recurring nights-of-the-week selection for saved web scans with existing CLI day/weekend parity, stay-length semantics, validation, and consistent results/alerts; see the [night-selection specification](specs/20261115-104517-weekday-night-filter/spec.md).
+- [x] T3.2.5 Plan, implement and verify saved night preferences, accessible web selection/editing, consistent results and notification delivery in both runtimes, and CLI parity; see the [night-selection plan](specs/20261115-104517-weekday-night-filter/plan.md) and [completed tasks](specs/20261115-104517-weekday-night-filter/tasks.md).
 - [x] T3.2.5a Review and align affected scan and design-preview visual baselines with CI captures, including the scan-card night preference badge.
 
 ### 3.3 Open-Source Maps & Explore Discovery
 
-Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-source-explore-maps/spec.md).
+Feature specification: [Open-Source Maps & Explore Map View](specs/20261014-223122-open-source-explore-maps/spec.md).
 
 - [x] T3.3.1 Specify replacement of proprietary maps and Explore discovery across all filtered results, including acceptance scenarios and a specification quality checklist.
-- [x] T3.3.2 Complete the [technical plan](specs/010-open-source-explore-maps/plan.md), selecting MapLibre GL JS, a keyless OpenStreetMap default, configurable raster sources, and bounded map/group-member contracts.
-- [x] T3.3.2a Generate dependency-ordered [implementation tasks](specs/010-open-source-explore-maps/tasks.md) for the mapping plan, including story acceptance checks and live database/browser validation.
+- [x] T3.3.2 Complete the [technical plan](specs/20261014-223122-open-source-explore-maps/plan.md), selecting MapLibre GL JS, a keyless OpenStreetMap default, configurable raster sources, and bounded map/group-member contracts.
+- [x] T3.3.2a Generate dependency-ordered [implementation tasks](specs/20261014-223122-open-source-explore-maps/tasks.md) for the mapping plan, including story acceptance checks and live database/browser validation.
 - [x] T3.3.3 Replace existing detail maps and add responsive Explore mapping with a collapsible map stacked above the list, filter parity, pagination-independent discovery, and detail/monitor actions.
 - [x] T3.3.4 Verify coordinate handling, overlapping/provider-qualified identities, loading and failure recovery, navigation, accessibility, performance, and visual coverage; update mapping setup documentation.
 - [x] T3.3.5 Remove the redundant matching-locations/in-view count above Explore's map and refresh visual coverage.
-- [x] T3.3.7 Link Explore map zoom/pan to paginated list bounds, initialize unfiltered visits from approximate IP location with fallback, and show hover/focus marker information; see [interaction plan](specs/013-map-list-interaction/plan.md).
+- [x] T3.3.7 Link Explore map zoom/pan to paginated list bounds, initialize unfiltered visits from approximate IP location with fallback, and show hover/focus marker information; see [interaction plan](specs/20261016-001650-map-list-interaction/plan.md).
 - [x] T3.3.8 Refresh Explore list results during continuous map movement, including camera events without DOM metadata; verify with an unreleased browser drag.
 - [x] T3.3.9 Wait for a narrowed Explore response when verifying animated zooms, allowing intermediate camera responses while still requiring fewer matching results.
-- [x] T3.3.6 Replace OpenStreetMap's public raster tile server as the default basemap with OpenFreeMap vector styles (`VITE_MAP_STYLE_URL` defaulting to `https://tiles.openfreemap.org/styles/liberty`) at $0/month with zero additional infrastructure, while preserving backwards-compatible custom raster overrides (`VITE_MAP_TILE_URL` + `VITE_MAP_ATTRIBUTION_*`) and offline-safe automated verification; see [OpenFreeMap tiles spec](specs/036-openfreemap-production-tiles/spec.md) and [plan](specs/036-openfreemap-production-tiles/plan.md).
+- [x] T3.3.6 Replace OpenStreetMap's public raster tile server as the default basemap with OpenFreeMap vector styles (`VITE_MAP_STYLE_URL` defaulting to `https://tiles.openfreemap.org/styles/liberty`) at $0/month with zero additional infrastructure, while preserving backwards-compatible custom raster overrides (`VITE_MAP_TILE_URL` + `VITE_MAP_ATTRIBUTION_*`) and offline-safe automated verification; see [OpenFreeMap tiles spec](specs/20261127-143403-openfreemap-production-tiles/spec.md) and [plan](specs/20261127-143403-openfreemap-production-tiles/plan.md).
 
 ---
 
@@ -253,20 +253,20 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 
 ### 4.2 Deployment
 
-- [x] Specify and plan the root project layout, complete frontend-bearing wheel/sdist builds, consolidated Docker/Compose, packaged Gunicorn, nested Pages/Wrangler tooling, and Spec-Kit documentation migration; see [root layout specification](specs/019-root-project-layout/spec.md) and [implementation plan](specs/019-root-project-layout/plan.md).
-- [x] Implement and verify [feature 013](specs/019-root-project-layout/plan.md), including the constitution directory amendment and all packaging/deployment/Spec-Kit acceptance checks.
+- [x] Specify and plan the root project layout, complete frontend-bearing wheel/sdist builds, consolidated Docker/Compose, packaged Gunicorn, nested Pages/Wrangler tooling, and Spec-Kit documentation migration; see [root layout specification](specs/20261030-231534-root-project-layout/spec.md) and [implementation plan](specs/20261030-231534-root-project-layout/plan.md).
+- [x] Implement and verify [the root project layout plan](specs/20261030-231534-root-project-layout/plan.md), including the constitution directory amendment and all packaging/deployment/Spec-Kit acceptance checks.
 
-- [x] T4.2.1 Add separate release/publish workflows with CI-gated Gitmoji semantic releases using the shared cookiecutter infrastructure and the existing App through `APP_ID`/`APP_PRIVATE_KEY`, synchronized application build versions, full-version/major-alias GHCR images, latest images for successful main builds, Git major aliases via semantic-release-major-tag, workspace sdists attached to releases, publication regression checks, and [release operations documentation](operations/RELEASES.md); see the [release plan](specs/015-release-ci/plan.md).
+- [x] T4.2.1 Add separate release/publish workflows with CI-gated Gitmoji semantic releases using the shared cookiecutter infrastructure and the existing App through `APP_ID`/`APP_PRIVATE_KEY`, synchronized application build versions, full-version/major-alias GHCR images, latest images for successful main builds, Git major aliases via semantic-release-major-tag, workspace sdists attached to releases, publication regression checks, and [release operations documentation](operations/RELEASES.md); see the [release plan](specs/20261027-223723-release-ci/plan.md).
 - [x] Run CI Taskfile jobs, Pages deployments, and semantic releases through repository-local composite actions.
 - [x] Publish CI JUnit test summaries, frontend Vitest coverage, and downloadable test artifacts in Actions. Exercise the Pages integration check in CI.
-- [x] T4.2.2 Specify and plan consolidation into one `camply` Python distribution with internal subpackages and optional runtime extras; see the [package migration plan](specs/018-python-package/plan.md). CLI implementation, local scheduling, UI bundling, and PyPI publication are excluded.
-- [x] T4.2.2a Resolve the migration's Python policy (`>=3.11` support; 3.14 development/primary CI/Docker/release defaults), align extras/tooling task order, and add a [requirements and acceptance checklist](specs/018-python-package/checklists/requirements.md).
+- [x] T4.2.2 Specify and plan consolidation into one `camply` Python distribution with internal subpackages and optional runtime extras; see the [package migration plan](specs/20261029-024929-python-package/plan.md). CLI implementation, local scheduling, UI bundling, and PyPI publication are excluded.
+- [x] T4.2.2a Resolve the migration's Python policy (`>=3.11` support; 3.14 development/primary CI/Docker/release defaults), align extras/tooling task order, and add a [requirements and acceptance checklist](specs/20261029-024929-python-package/checklists/requirements.md).
 - [x] T4.2.3 Consolidate workspace members into `backend/src/camply/`, package runtime resources, and update imports, governance, development tooling, containers, and release artifacts.
 - [x] T4.2.4 Isolate `server`, `distributed`, `postgres`, and `sentry` extras while keeping providers/SQLite in base and preserving the existing metadata utility.
 - [x] T4.2.5 Verify base/server/worker installations and sdist-rebuilt wheels outside the checkout; integrate packaging checks into Task/CI and document migration/deployment limitations.
 - [x] T4.2.6 Enforce internal layers, runtime independence, lightweight root imports, and optional dependency boundaries using Import Linter; integrate lint/pre-commit and verify intentional violations fail.
 - [x] T4.2.7 Add the `camply.cli` package and base `camply` console script (`--version`/`--help`, `python -m camply.cli`), constrained by Import Linter to base dependencies as a sibling of `server`/`worker`; verify unit, boundary, and isolated-install coverage. Subcommands are future work.
-- [x] T4.2.8 Locate installed static assets internally without server dependencies, and serve them with Nginx in one shared `camply-web` image for API, frontend, worker, and beat; unify Compose, release publishing, and CI builds. See the [shared container plan](specs/020-unified-container/plan.md).
+- [x] T4.2.8 Locate installed static assets internally without server dependencies, and serve them with Nginx in one shared `camply-web` image for API, frontend, worker, and beat; unify Compose, release publishing, and CI builds. See the [shared container plan](specs/20261031-173810-unified-container/plan.md).
 - [x] T4.2.9 Tag each shared-image release with `vMAJOR`, `vMAJOR.MINOR.PATCH`, the seven-character release commit SHA, and `latest`.
 - [x] T4.2.10 Add `camply serve frontend`, `camply serve backend`, `camply serve worker`, and `camply serve beat`, package Nginx templates with the CLI, and preserve migrations, process signals, and Compose scheduler initialization.
 - [x] T4.2.11 Make bare `camply serve` launch the standalone UI/API/SQLite/local scheduler, preserving explicit role subcommands and verifying installed-package HTTP behavior.
@@ -282,18 +282,18 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] T4.2.21 Publish the standalone Python package distribution as `camply-web` on PyPI upon release, configuring PyPI Trusted Publishing and aligning build scripts, package metadata, Taskfile targets, and CI publish workflows.
 - [x] T4.2.22 Pin Python application and optional dependencies to exact versions and configure uv wheel-only binary resolution (`environments`, `required-environments`, and `no-build`) for Python 3.11–3.15 across Linux, macOS, and Windows.
 
-- [x] T4.2.2 Complete the pre-implementation Spec-Kit specification, clarification review, research, design/contracts, tasking, and consistency analysis for optional Python-served frontend assets, SQLite, and background work without Celery, Redis/Valkey, or Prometheus; see [standalone runtime plan](specs/011-standalone-runtime/plan.md).
+- [x] T4.2.2 Complete the pre-implementation Spec-Kit specification, clarification review, research, design/contracts, tasking, and consistency analysis for optional Python-served frontend assets, SQLite, and background work without Celery, Redis/Valkey, or Prometheus; see [standalone runtime plan](specs/20261029-220541-standalone-runtime/plan.md).
 - [x] T4.2.3 Implement and verify the standalone runtime, minimal dependency installation, notification recovery, Python-served frontend, and service-free browser smoke tests while preserving the distributed stack; rebase onto current search/maps/results/release behavior and preserve both migration paths. Explicit regressions protect default API startup, Prometheus instrumentation, and Celery scan/alert dispatch from standalone behavior.
 - [x] T4.1.4 Finalize Docker Compose deployment flavors: retain root `docker-compose.yaml` for local builds (adding backend Sentry forwarding and consistent restart policies), and add self-contained GHCR-pulling Compose files under `deploy/compose/`: `docker-compose.yaml` (distributed quick start), `docker-compose.standalone.yaml` (single-container SQLite), and `docker-compose.production.yaml` (hardened production with required secrets, network isolation, named volumes, inline Prometheus config, and JSON log rotation) with `deploy/compose/production.env.example`, documentation, and regression tests.
-- [x] T4.1.5 Add the [Camply Helm chart](https://github.com/juftin/camply-web/blob/main/deploy/helm/README.md) with scalable API/workers, singleton beat, migration Job startup gates, optional PostgreSQL/Valkey/Prometheus, Ingress/Gateway API routing, configurable/existing PVCs, secret references, stable-release OCI publication as `ghcr.io/juftin/charts/camply-web` with matching image versions, and Task/CI verification; add schema validation, configurable probes with database readiness, ServiceMonitor integration, install notes, Helm connection tests, and source-image lifecycle CI with initialized Task/Python tooling and documented local disk requirements, verified locally through successful/failed upgrades and rollback, with database-backed migration checkpoints and Prometheus configuration rollouts; see the [implementation plan](specs/021-helm-chart/plan.md).
+- [x] T4.1.5 Add the [Camply Helm chart](https://github.com/juftin/camply-web/blob/main/deploy/helm/README.md) with scalable API/workers, singleton beat, migration Job startup gates, optional PostgreSQL/Valkey/Prometheus, Ingress/Gateway API routing, configurable/existing PVCs, secret references, stable-release OCI publication as `ghcr.io/juftin/charts/camply-web` with matching image versions, and Task/CI verification; add schema validation, configurable probes with database readiness, ServiceMonitor integration, install notes, Helm connection tests, and source-image lifecycle CI with initialized Task/Python tooling and documented local disk requirements, verified locally through successful/failed upgrades and rollback, with database-backed migration checkpoints and Prometheus configuration rollouts; see the [implementation plan](specs/20261101-023611-helm-chart/plan.md).
 - [x] T4.1.5a Render explicit HTTPRoute backend reference defaults (`group`, `kind`, and `weight`) to prevent ArgoCD drift, with Gateway and home-ops rendering regressions.
 - [x] T4.1.5b Publish Helm OCI chart tags `vMAJOR`, `vMAJOR.MINOR.PATCH`, seven-character SHA, and `latest`, each selecting the matching upstream image tag; include SHA/latest images and charts on successful main builds, retain unprefixed release compatibility, and verify Helm 3/4 OCI installs by digest.
-- [x] T4.1.6 Complete a full mobile-responsive audit of the UI. [Audit report](specs/034-mobile-responsive-audit/audit-report.md).
+- [x] T4.1.6 Complete a full mobile-responsive audit of the UI. [Audit report](specs/20261126-182156-mobile-responsive-audit/audit-report.md).
 
 ### Documentation
 
 - [x] Simplify the README around camply, the hosted app, local setup, and links to further documentation; preserve the runtime and packaging reference in [Running camply](operations/RUNNING.md).
-- [x] Add a VitePress site under `docs/site`, with usage, standalone, container hosting, configuration, development, and reference guides; provide `task docs:install`, `task docs:serve`, `task docs:build`, and `task docs:check`. Verify the build, generated links/assets, and local HTTP preview; see the [documentation plan](specs/022-documentation-site/plan.md).
+- [x] Add a VitePress site under `docs/site`, with usage, standalone, container hosting, configuration, development, and reference guides; provide `task docs:install`, `task docs:serve`, `task docs:build`, and `task docs:check`. Verify the build, generated links/assets, and local HTTP preview; see the [documentation plan](specs/20261102-233121-documentation-site/plan.md).
 - [x] Follow cookiecutter-python's shared GitHub Pages action to publish `build/docs` after successful main CI, validate docs on PRs, configure the canonical site URL, and document one-time Pages enablement; add publishing-boundary/link regressions and retain the new Task include in release fixtures.
 - [x] Use `uvx --from "camply-web[server]" camply serve` for user setup, remove the standalone `populate-database` script in favor of `camply db metadata`, add `camply db info`, `camply db migrate`, and `camply db delete`, and align PyPI package and GitHub repository references.
 - [x] Build documentation into every frontend bundle at `/docs/`, link it from the app footer, manage VitePress via `package.json`, and preserve docs sources/assets in wheel/sdist integrity checks. Serve documentation pages and real documentation 404s in Python, Nginx, and Cloudflare Pages previews; verify installed artifacts without the generator.
@@ -307,7 +307,7 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Assign each account an editable ntfy topic defaulting to `camply-` plus the first seven user-ID characters, including migration of existing users.
 - [x] Add per-user provider selection and Profile settings for custom HTTP(S) servers and optional access tokens.
 - [x] Deliver through the selected Pushover or ntfy provider in standalone and distributed runtimes.
-- [x] Test publishing, settings validation, delivery eligibility, provider switching and retries. See [ntfy plan](specs/024-ntfy/plan.md).
+- [x] Test publishing, settings validation, delivery eligibility, provider switching and retries. See [ntfy plan](specs/20261113-041645-ntfy/plan.md).
 
 - [x] Configure default ntfy publish/subscription URLs server-side, expose only public subscriptions, and support per-user custom servers and publish URL fallback.
 
@@ -332,14 +332,14 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Discover native US overnight campgrounds from bulk brand metadata and paginated state searches; refresh metadata/search atomically.
 - [x] Scan paginated site grids in 14-night windows, map explicit campsite attributes, and preserve failures for worker retry.
 - [x] Keep auth headers aligned with rotated, deleted and expired cookies; recover after unsuccessful refreshes and serialize concurrent callers.
-- [x] Cover synthetic HTTP, persistence, migration and registry regressions; verify live CO metadata and site scanning. See [endpoint research](specs/024-reserve-america/validation.md).
+- [x] Cover synthetic HTTP, persistence, migration and registry regressions; verify live CO metadata and site scanning. See [endpoint research](specs/20261107-211141-reserve-america/validation.md).
 
 - [x] Replace Yellowstone Lodges with ReserveAmerica in popular/all provider cards.
 - [x] Update provider-page visual baselines from inspected macOS CI captures.
 
 - [x] Use `www.reserveamerica.com` for public links, retain the separate `a1` API/session URLs, and migrate existing seeded provider URLs with custom-URL preservation.
 
-### Direct provider search (025)
+### Direct provider search
 
 - [x] Add validated database-independent upstream campground and recreation-area search with typed results.
 - [x] Implement Recreation.gov, shared UseDirect regional providers, GoingToCamp, and ReserveAmerica search.
@@ -351,12 +351,12 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 - [x] Pass full test and quality workflows, including a final backend rerun after independent-review fixes.
 - [x] Keep provider extension methods public: `search_upstream` is the abstract discovery contract.
 
-### Provider availability cassettes (034)
+### Provider availability cassettes
 
 - [x] Add strict offline replay for 40 confirmed searches across 20 providers, with provider-specific equipment cases and a [single-scenario refresh guide](development/PROVIDER_CASSETTES.md).
-- [ ] Record the 12 remaining searches once the six deferred providers have bookable inventory and enable strict coverage for all 26 providers. See the [seasonal recording TODOs](specs/034-provider-availability-cassettes/tasks.md#seasonal-recording-todos).
+- [ ] Record the 12 remaining searches once the six deferred providers have bookable inventory and enable strict coverage for all 26 providers. See the [seasonal recording TODOs](specs/20261125-220553-provider-availability-cassettes/tasks.md#seasonal-recording-todos).
 
-### Provider metadata cassettes (035)
+### Provider metadata cassettes
 
 - [x] Add recorded discovery, enrichment, catalog sync, and campsite listing coverage for the supported provider families. Document [metadata fixture refresh](development/PROVIDER_CASSETTES.md#metadata-recordings).
 - [x] Verify recreation-area expansion excludes recorded facilities without online booking, and replay staged RIDB archives through both enrichment and catalog sync before replacement.
