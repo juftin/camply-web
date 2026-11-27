@@ -20,6 +20,10 @@ The web client lives in `src/frontend/` and uses React 18, TypeScript, Vite 8, T
 | `src/frontend/components/Map*.tsx`     | MapLibre GL JS integration and viewport-driven explore markers                                  |
 | `src/frontend/public/branding/`        | Light/dark outlined SVG brand marks (`CamplyLogo`)                                              |
 
+## Theme
+
+Campfire Tent is the default application theme. `src/frontend/index.css` defines the light and dark color tokens, the `0.5rem` radius, and the Explore map pins. Camply serves the bundled Bitter and Source Sans 3 WOFF2 fonts from its own origin and uses system fonts as fallbacks. The font licenses ship with the frontend assets in `public/fonts/`.
+
 ## Build and docs bundling
 
 Production frontend builds (`vite build`) compile VitePress docs under `docs/` and copy them into `dist/docs/` alongside the SPA bundle. In Python distributions, the Hatchling build hook embeds `build/frontend/` into `camply/server/static/` without staging generated files into Git-tracked source.

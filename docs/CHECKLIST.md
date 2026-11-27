@@ -114,6 +114,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] T1.4.19 Show searchable matching campsite details, consecutive available stays and booking actions; align API/dashboard counts with notification filters, persist provider site attributes, preserve notification destinations through login, and cover desktop/mobile themes. See [campsite alerts plan](specs/20261025-142556-campsite-alerts/plan.md).
 - [x] T1.4.19a Group identical stay dates into collapsible sections with compact campsite rows, unique-site counts, search and date/stay-length sorting; surface scan context and a separate full-campground provider link. Verify grouping and navigation regressions plus desktop/mobile themes.
 - [x] T1.4.20 Collapse dashboard scans into campground groups, paginate each stay-date group at five campsites per page, and expire past/out-of-range nights before matching saved stays in the API and alerts. Cover successful availability removal and preservation on provider errors; see [compact results plan](specs/20261028-054322-compact-results/plan.md).
+- [x] T1.4.21 Apply the Campfire Tent light and dark palettes and Explore map pin colors. Serve Bitter and Source Sans 3 locally and refresh the Playwright visual baselines.
 
 ### 1.5 Governance & Licensing
 
