@@ -30,6 +30,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from camply.db.models import Campground, Provider, RecreationArea, Search
+from camply.providers.cooldown import ProviderCooldownGate, parse_retry_after
 from camply.providers.dto import (
     CampgroundSearchResult,
     CampsiteDTO,
@@ -38,7 +39,18 @@ from camply.providers.dto import (
     RecreationAreaSearchResult,
     SearchEntityType,
 )
-from camply.providers.errors import CircuitBreakerOpenError, ProviderRateLimitedError
+from camply.providers.errors import (
+    CircuitBreakerOpenError,
+    ProviderRateLimitedError,
+    ProxyPoolExhaustedError,
+)
+from camply.providers.proxy import ProxyPool
+from camply.providers.transport_config import (
+    ProviderTransportConfig,
+    ProxyEndpoint,
+    ProxyExhaustedPolicy,
+    scrub_credentials,
+)
 
 logger = structlog.getLogger()
 
@@ -83,6 +95,7 @@ class ProviderFilterCapabilities:
 
 
 # ── HTTP status code constants ─────────────────────────────────────────
+_HTTP_FORBIDDEN = 403
 _HTTP_TOO_MANY_REQUESTS = 429
 _HTTP_SERVER_ERROR_MIN = 500
 _HTTP_SERVER_ERROR_MAX = 599
@@ -93,6 +106,23 @@ _RETRYABLE_CONNECTION_ERRORS = (
     httpx2.TimeoutException,
     httpx2.RemoteProtocolError,
 )
+_RETRYABLE_PROXY_ERRORS = (
+    httpx2.ProxyError,
+    *_RETRYABLE_CONNECTION_ERRORS,
+)
+
+
+def _transport_error_reason(exc: Exception) -> str:
+    """Map a transport exception instance to a low-cardinality reason string."""
+    if isinstance(exc, httpx2.ProxyError):
+        return "proxy_error"
+    if isinstance(exc, httpx2.ConnectError):
+        return "connect_error"
+    if isinstance(exc, httpx2.TimeoutException):
+        return "timeout"
+    if isinstance(exc, httpx2.RemoteProtocolError):
+        return "protocol_error"
+    return "transport_error"
 
 
 # ===========================================================================
@@ -301,30 +331,52 @@ class RetryTransport(httpx2.AsyncHTTPTransport):
         retry_strategy: RetryStrategy | None = None,
         circuit_breaker: ProviderCircuitBreaker | None = None,
         limits: httpx2.Limits | None = None,
+        *,
+        provider_name: str = "Provider",
+        cooldown_gate: ProviderCooldownGate | None = None,
+        max_cooldown_seconds: float = 60.0,
+        proxy_pool: ProxyPool | None = None,
     ) -> None:
         self._retry_strategy = retry_strategy or RetryStrategy()
         self._circuit_breaker = circuit_breaker
-        self._inner = httpx2.AsyncHTTPTransport(
-            limits=limits
-            or httpx2.Limits(
-                max_keepalive_connections=50,
-                max_connections=200,
-                keepalive_expiry=30.0,
-            )
+        self._provider_name = provider_name
+        self._max_cooldown_seconds = max_cooldown_seconds
+        self._proxy_pool = proxy_pool
+        self._limits = limits or httpx2.Limits(
+            max_keepalive_connections=50,
+            max_connections=200,
+            keepalive_expiry=30.0,
         )
+        self._cooldown_gate = cooldown_gate or ProviderCooldownGate(
+            provider_name=provider_name,
+            max_concurrency=4,
+            min_interval_seconds=0.0,
+            max_cooldown_seconds=max_cooldown_seconds,
+        )
+        self._inner = httpx2.AsyncHTTPTransport(limits=self._limits)
+        self._proxy_transports: dict[int, httpx2.AsyncHTTPTransport] = {}
         self._cb_tasks: set[asyncio.Task[None]] = set()
         super().__init__()
 
     async def aclose(self) -> None:
-        """Release retry sockets and reap owned circuit-breaker update tasks."""
+        """Release direct/proxy sockets and reap owned circuit-breaker update tasks."""
+        proxy_transports = list(self._proxy_transports.values())
+        self._proxy_transports.clear()
         try:
-            await self._inner.aclose()
+            if proxy_transports:
+                await asyncio.gather(
+                    *(transport.aclose() for transport in proxy_transports),
+                    return_exceptions=True,
+                )
         finally:
             try:
-                await super().aclose()
+                await self._inner.aclose()
             finally:
-                if self._cb_tasks:
-                    await asyncio.gather(*self._cb_tasks, return_exceptions=True)
+                try:
+                    await super().aclose()
+                finally:
+                    if self._cb_tasks:
+                        await asyncio.gather(*self._cb_tasks, return_exceptions=True)
 
     async def handle_async_request(
         self,
@@ -348,6 +400,9 @@ class RetryTransport(httpx2.AsyncHTTPTransport):
             try:
                 req = self._request_for_attempt(request, request_body, attempt)
                 result = await self._execute_attempt(req, attempt)
+            except ProxyPoolExhaustedError:
+                # Exhausted proxy pool is a local egress condition, not an upstream outage.
+                raise
             except ProviderRateLimitedError:
                 self._record_failure()
                 raise
@@ -360,8 +415,10 @@ class RetryTransport(httpx2.AsyncHTTPTransport):
                 last_exception = result
                 break
 
-            # 5xx that exhausted retries
-            if self._is_5xx(result):
+            # 5xx or proxy-mode 403 that exhausted retries
+            if self._is_5xx(result) or (
+                self._proxy_pool is not None and result.status_code == _HTTP_FORBIDDEN
+            ):
                 self._record_failure()
                 last_response = result
                 break
@@ -399,19 +456,30 @@ class RetryTransport(httpx2.AsyncHTTPTransport):
         attempt: int,
     ) -> httpx2.Response | Exception | None:
         """
-        Execute one attempt and return the result.
+        Execute one attempt through either the configured proxy pool or direct egress.
 
         Returns
         -------
         ``None``
-            Retry needed (connection or server error within limits).
+            Retry needed (connection, rate-limit, proxy, or server error within limits).
         ``Exception``
             Non-recoverable error; caller should re-raise.
         ``httpx2.Response``
             Final response (success or exhausted retries).
         """
+        if self._proxy_pool is not None:
+            return await self._execute_proxy_attempt(request, attempt)
+        return await self._execute_direct_attempt(request, attempt)
+
+    async def _execute_direct_attempt(
+        self,
+        request: httpx2.Request,
+        attempt: int,
+    ) -> httpx2.Response | Exception | None:
+        """Execute one direct-egress attempt coordinated by the shared cooldown gate."""
         try:
-            response = await self._inner.handle_async_request(request)
+            async with self._cooldown_gate.slot(wait_cooldown=True):
+                response = await self._inner.handle_async_request(request)
         except _RETRYABLE_CONNECTION_ERRORS as exc:
             if self._connection_retryable(attempt):
                 delay = self._compute_delay(
@@ -429,11 +497,8 @@ class RetryTransport(httpx2.AsyncHTTPTransport):
             return exc
 
         if self._is_429(response) and self._retry_strategy.retry_on_429:
-            if await self._handle_retryable_response(response, attempt, "429"):
-                return None
-            raise ProviderRateLimitedError(
-                f"Rate limited after {self._retry_strategy.max_retries} retries"
-            )
+            self._handle_direct_429(response, attempt)
+            return None
 
         if self._is_5xx(response) and self._retry_strategy.retry_on_5xx:
             if await self._handle_retryable_response(
@@ -443,6 +508,152 @@ class RetryTransport(httpx2.AsyncHTTPTransport):
             return response
 
         return response
+
+    async def _execute_proxy_attempt(
+        self,
+        request: httpx2.Request,
+        attempt: int,
+    ) -> httpx2.Response | Exception | None:
+        """Execute one proxy-routed attempt; never dispatches through ``self._inner``."""
+        assert self._proxy_pool is not None
+        endpoint = await self._proxy_pool.select(self._provider_name)
+        proxy_transport = self._get_proxy_transport(endpoint)
+
+        try:
+            async with self._cooldown_gate.slot(wait_cooldown=False):
+                response = await proxy_transport.handle_async_request(request)
+        except _RETRYABLE_PROXY_ERRORS as exc:
+            reason = _transport_error_reason(exc)
+            self._proxy_pool.quarantine(
+                endpoint.index,
+                provider_name=self._provider_name,
+                reason=reason,
+                global_scope=True,
+            )
+            if self._connection_retryable(attempt):
+                logger.debug(
+                    "Retrying via alternate proxy after transport error",
+                    provider=self._provider_name,
+                    proxy=endpoint.label,
+                    attempt=attempt + 1,
+                    error=type(exc).__name__,
+                )
+                return None
+            return self._sanitize_proxy_exception(exc, endpoint)
+
+        return await self._handle_proxy_response(response, attempt, endpoint)
+
+    async def _handle_proxy_response(
+        self,
+        response: httpx2.Response,
+        attempt: int,
+        endpoint: ProxyEndpoint,
+    ) -> httpx2.Response | None:
+        """Classify a proxy-routed HTTP response and apply quarantine/retry rules."""
+        assert self._proxy_pool is not None
+        if self._is_429(response) and self._retry_strategy.retry_on_429:
+            retry_after = self._parse_retry_after(
+                response, max_seconds=self._max_cooldown_seconds
+            )
+            self._proxy_pool.quarantine(
+                endpoint.index,
+                provider_name=self._provider_name,
+                reason="429",
+                duration=retry_after,
+                global_scope=False,
+            )
+            if attempt >= self._retry_strategy.max_retries:
+                raise ProviderRateLimitedError(
+                    f"Rate limited after {self._retry_strategy.max_retries} retries"
+                )
+            return None
+
+        if response.status_code == _HTTP_FORBIDDEN:
+            self._proxy_pool.quarantine(
+                endpoint.index,
+                provider_name=self._provider_name,
+                reason="403",
+                global_scope=False,
+            )
+            return None if attempt < self._retry_strategy.max_retries else response
+
+        if self._is_5xx(response) and self._retry_strategy.retry_on_5xx:
+            if await self._handle_retryable_response(
+                response, attempt, str(response.status_code)
+            ):
+                return None
+            return response
+
+        return response
+
+    def _get_proxy_transport(
+        self, endpoint: ProxyEndpoint
+    ) -> httpx2.AsyncHTTPTransport:
+        """Lazily create and cache an isolated transport for one proxy endpoint."""
+        transport = self._proxy_transports.get(endpoint.index)
+        if transport is None:
+            transport = httpx2.AsyncHTTPTransport(
+                proxy=endpoint.raw_url,
+                limits=self._limits,
+                trust_env=False,
+            )
+            self._proxy_transports[endpoint.index] = transport
+        return transport
+
+    def _sanitize_proxy_exception(
+        self,
+        exc: Exception,
+        endpoint: ProxyEndpoint,
+    ) -> Exception:
+        """Scrub configured proxy credentials from re-raised transport exceptions."""
+        secrets = (
+            self._proxy_pool.credential_tokens()
+            if self._proxy_pool is not None
+            else endpoint.credential_tokens()
+        )
+        original = str(exc)
+        sanitized = scrub_credentials(original, secrets)
+        if sanitized == original:
+            return exc
+        try:
+            if isinstance(exc, httpx2.RequestError):
+                request = getattr(exc, "_request", None)
+                return type(exc)(sanitized, request=request)
+            return type(exc)(sanitized)
+        except Exception:
+            return httpx2.ProxyError(sanitized)
+
+    def _handle_direct_429(
+        self,
+        response: httpx2.Response,
+        attempt: int,
+    ) -> None:
+        """Trigger shared cooldown on HTTP 429 and retry via gate or raise on exhaustion."""
+        delay = self._parse_retry_after(
+            response, max_seconds=self._max_cooldown_seconds
+        )
+        if delay is None:
+            delay = min(
+                self._compute_delay(
+                    attempt,
+                    base=self._retry_strategy.base_delay,
+                    max_delay=self._retry_strategy.max_delay,
+                ),
+                self._max_cooldown_seconds,
+            )
+
+        self._cooldown_gate.trigger_cooldown(delay, reason="429")
+        if attempt >= self._retry_strategy.max_retries:
+            raise ProviderRateLimitedError(
+                f"Rate limited after {self._retry_strategy.max_retries} retries"
+            )
+
+        logger.debug(
+            "Retrying after 429 via shared cooldown gate",
+            provider=self._provider_name,
+            attempt=attempt + 1,
+            delay=round(delay, 2),
+        )
 
     # ── response classification helpers ────────────────────────────────
 
@@ -512,15 +723,14 @@ class RetryTransport(httpx2.AsyncHTTPTransport):
         return delay
 
     @staticmethod
-    def _parse_retry_after(response: httpx2.Response) -> float | None:
+    def _parse_retry_after(
+        response: httpx2.Response, *, max_seconds: float = 60.0
+    ) -> float | None:
         """Parse the ``Retry-After`` header from a response."""
-        raw = response.headers.get("Retry-After")
-        if raw is None:
-            return None
-        try:
-            return float(raw)
-        except ValueError:
-            return None
+        return parse_retry_after(
+            response.headers.get("Retry-After"),
+            max_seconds=max_seconds,
+        )
 
     # ── circuit-breaker helpers ─────────────────────────────────────────
 
@@ -549,8 +759,13 @@ class BaseProvider(ABC):
     Base Class for Providers
     """
 
-    # ── class-level circuit breaker registry ───────────────────────────
+    # ── class-level circuit breaker & shared transport state ───────────
     _circuit_breakers: ClassVar[dict[str, ProviderCircuitBreaker]] = {}
+    _cooldown_gates: ClassVar[dict[str, ProviderCooldownGate]] = {}
+    _cooldown_gate_configs: ClassVar[dict[str, tuple[int, float, float]]] = {}
+    _proxy_pools: ClassVar[
+        dict[tuple[tuple[str, ...], float, float, ProxyExhaustedPolicy], ProxyPool]
+    ] = {}
     filter_capabilities: ClassVar[ProviderFilterCapabilities] = (
         ProviderFilterCapabilities()
     )
@@ -571,10 +786,15 @@ class BaseProvider(ABC):
                 "Chrome/120.0.0.0 Safari/537.36"
             )
 
-        # Build retry transport with circuit breaker and tuned connection pool
+        # Build retry transport with circuit breaker, shared cooldown gate, and optional proxy pool
         provider_name = type(self).__name__
         self._retry_strategy = self.retry_strategy
+        transport_config = ProviderTransportConfig()
         cb = self._get_or_create_circuit_breaker(provider_name)
+        cooldown_gate = self._get_or_create_cooldown_gate(
+            provider_name, transport_config
+        )
+        proxy_pool = self._get_or_create_proxy_pool(transport_config)
         limits = httpx2.Limits(
             max_keepalive_connections=50,
             max_connections=200,
@@ -584,6 +804,10 @@ class BaseProvider(ABC):
             retry_strategy=self._retry_strategy,
             circuit_breaker=cb,
             limits=limits,
+            provider_name=provider_name,
+            cooldown_gate=cooldown_gate,
+            max_cooldown_seconds=transport_config.provider_max_cooldown_seconds,
+            proxy_pool=proxy_pool,
         )
         self.async_client = httpx2.AsyncClient(
             headers=self.headers,
@@ -635,6 +859,62 @@ class BaseProvider(ABC):
                 provider_name=provider_name,
             )
         return cls._circuit_breakers[provider_name]
+
+    @classmethod
+    def _get_or_create_cooldown_gate(
+        cls,
+        provider_name: str,
+        config: ProviderTransportConfig,
+    ) -> ProviderCooldownGate:
+        """Return the shared per-provider cooldown gate, refreshing if config changed."""
+        config_sig = (
+            config.provider_max_concurrency,
+            config.provider_min_interval_seconds,
+            config.provider_max_cooldown_seconds,
+        )
+        gate = cls._cooldown_gates.get(provider_name)
+        if gate is None or cls._cooldown_gate_configs.get(provider_name) != config_sig:
+            gate = ProviderCooldownGate(
+                provider_name=provider_name,
+                max_concurrency=config.provider_max_concurrency,
+                min_interval_seconds=config.provider_min_interval_seconds,
+                max_cooldown_seconds=config.provider_max_cooldown_seconds,
+            )
+            cls._cooldown_gates[provider_name] = gate
+            cls._cooldown_gate_configs[provider_name] = config_sig
+        return gate
+
+    @classmethod
+    def _get_or_create_proxy_pool(
+        cls,
+        config: ProviderTransportConfig,
+    ) -> ProxyPool | None:
+        """Return the process-wide proxy pool for *config*, or ``None`` if disabled."""
+        endpoints = config.parsed_proxies()
+        if not endpoints:
+            return None
+        key = config.proxy_pool_key()
+        pool = cls._proxy_pools.get(key)
+        if pool is None:
+            pool = ProxyPool(
+                endpoints,
+                quarantine_seconds=config.proxy_quarantine_seconds,
+                max_wait_seconds=config.provider_max_cooldown_seconds,
+                exhausted_policy=config.proxy_exhausted_policy,
+            )
+            cls._proxy_pools[key] = pool
+        return pool
+
+    @classmethod
+    def reset_transport_state(cls) -> None:
+        """Reset and clear all process-wide provider cooldown and proxy pool state."""
+        for gate in cls._cooldown_gates.values():
+            gate.reset()
+        cls._cooldown_gates.clear()
+        cls._cooldown_gate_configs.clear()
+        for pool in cls._proxy_pools.values():
+            pool.reset()
+        cls._proxy_pools.clear()
 
     async def search(
         self,
