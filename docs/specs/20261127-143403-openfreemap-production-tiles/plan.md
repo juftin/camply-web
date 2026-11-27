@@ -88,7 +88,7 @@ tests/
     └── snapshots/
         └── baselines/                             # Refresh affected map-* baselines if attribution bar text changes
 docs/
-├── CHECKLIST.md                                   # Mark T3.3.6 complete with link to spec 036
+├── CHECKLIST.md                                   # Mark T3.3.6 complete with link to OpenFreeMap tiles spec
 ├── PLAN.md                                        # Reference OpenFreeMap default in Map-Based Discovery
 ├── architecture/
 │   └── DESIGN_FRONTEND.md                         # Document VITE_MAP_STYLE_URL + custom raster overrides
@@ -97,9 +97,9 @@ docs/
 ├── operations/
 │   └── CONFIGURATION.md                           # Update Maps section with OpenFreeMap default, precedence & CSP
 └── specs/
-    ├── index.md                                   # Index feature 036
+    ├── index.md                                   # Index OpenFreeMap production tiles spec
     └── 20261014-223122-open-source-explore-maps/
-        └── TODO.md                                # Mark production tile hosting resolved by spec 036
+        └── TODO.md                                # Mark production tile hosting resolved by OpenFreeMap tiles spec
 ```
 
 **Structure Decision**: Reuse the existing single-module basemap helper (`src/frontend/lib/maps.ts`) and shared map component (`src/frontend/components/MapComponent.tsx`). No new modules, backend routes, or infrastructure files are needed.

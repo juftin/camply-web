@@ -84,7 +84,7 @@ tests/
     └── test_cli_search.py       # Installed base-wheel regression coverage for new flags and notifications
 ```
 
-**Structure Decision**: Extend the existing modular `src/camply/cli/` command layout and `src/camply/core/search.py` adapter established in [feature 026](../20261110-005958-cli-parity/plan.md), adding one focused module (`src/camply/cli/notifications.py`) for stateless Pushover/ntfy configuration, `test-notifications`, and seen-stay deduplication.
+**Structure Decision**: Extend the existing modular `src/camply/cli/` command layout and `src/camply/core/search.py` adapter established in [CLI parity](../20261110-005958-cli-parity/plan.md), adding one focused module (`src/camply/cli/notifications.py`) for stateless Pushover/ntfy configuration, `test-notifications`, and seen-stay deduplication.
 
 ## Architecture & Phase Design
 

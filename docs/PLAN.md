@@ -44,7 +44,7 @@ Python process. Root source builds produce complete wheels and sdists; prepared
 sdists rebuild without JavaScript tooling. The base CLI provides current-provider
 discovery and foreground campground availability monitoring; see the
 [command-line guide](cli.md). Remaining CLI work is tracked in
-[feature 026's deferred TODOs](specs/20261110-005958-cli-parity/tasks.md#deferred-todo-registry),
+[the legacy CLI parity deferred TODOs](specs/20261110-005958-cli-parity/tasks.md#deferred-todo-registry),
 focusing on the redesigned v2 interface rather than strict v1 parity.
 PyPI publication remains separate work.
 
@@ -106,8 +106,8 @@ PyPI publication remains separate work.
 - [x] **Shared UseDirect providers**: Implement independent metadata sync and availability for Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory (all 10 UseDirect providers verified live). Alabama State Parks (`reserve.alapark.com`, Itinio) and Maricopa County Parks (`exploremaricopacountyparks.org`, Cedar) moved off UseDirect; see [provider TODOs](specs/20261013-133646-usedirect-providers/TODO.md).
 - [x] **GoingToCamp**: Re-engineer `GoingToCampProvider` on async catalog/map endpoints and register all 14 live GoingToCamp deployments (Washington, Wisconsin, Michigan, Tacoma Power, Parks Canada, BC Parks, Ontario Parks, Nova Scotia, Manitoba, Newfoundland & Labrador, Gatineau Park, Long Point, Maitland Valley, and St. Clair). Maryland DNR (ReserveAmerica/Aspira), New Brunswick (custom), Algonquin Highlands (`algonquinhighlands.ca`), and Saugeen Valley (`saugeenconservation.ca`) no longer use GoingToCamp; see [GoingToCamp TODOs](specs/20261106-035753-going-to-camp/TODO.md).
 - [x] **Advanced Filters**: Implement RV length, electric hookup, and ADA accessibility filters across discovery, saved scans, poller, alerts, and UI.
-- [ ] **CLI Saved-Scan & Catalog Management**: Add optional database/server-backed CLI commands for persistent saved scan CRUD (`camply scans`) and catalog-backed cross-provider amenity/geographic search once stateless CLI parity ([spec 031](specs/20261117-193928-cli-fullstack-parity/spec.md)) is complete.
-- [x] **CLI YAML Configuration (Multi-Search & Multi-Provider)**: Support a declarative YAML configuration file in the CLI for running multiple concurrent searches, spanning multiple providers, target definitions, equipment/site filters, and notification channels in a single command. [Spec 032](specs/20261121-153915-cli-yaml-config/spec.md).
+- [ ] **CLI Saved-Scan & Catalog Management**: Add optional database/server-backed CLI commands for persistent saved scan CRUD (`camply scans`) and catalog-backed cross-provider amenity/geographic search once stateless CLI parity ([CLI full-stack parity spec](specs/20261117-193928-cli-fullstack-parity/spec.md)) is complete.
+- [x] **CLI YAML Configuration (Multi-Search & Multi-Provider)**: Support a declarative YAML configuration file in the CLI for running multiple concurrent searches, spanning multiple providers, target definitions, equipment/site filters, and notification channels in a single command. [CLI YAML configuration spec](specs/20261121-153915-cli-yaml-config/spec.md).
 - [ ] **Permits**: Add support for scanning wilderness permit and tour availability.
 
 ### Phase 4: Production & Scale

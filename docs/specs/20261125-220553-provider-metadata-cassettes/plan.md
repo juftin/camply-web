@@ -11,7 +11,7 @@ Record public provider responses for discovery first, enrichment next, then cata
 ## Technical Context
 
 - Put scenario inputs and independently verified expectations in `tests/providers/metadata_cases.py`. Store recordings by operation and family under `tests/providers/cassettes/metadata/`.
-- Build on Spec 034's strict matching, sanitization, and opt-in single-case recording. Keep fixture selection independent and preserve the existing availability commands. Stage candidates under ignored `tmp/`.
+- Build on Provider Availability Cassettes' strict matching, sanitization, and opt-in single-case recording. Keep fixture selection independent and preserve the existing availability commands. Stage candidates under ignored `tmp/`.
 - Use `search`, `get_campground`, `get_recreation_area`, `iter_campgrounds`, `sync_metadata`, and `list_campsites` through the real adapter. Use isolated SQLite for catalog and enrichment.
 - Use compact sanitized RIDB archives for Recreation.gov, preserving the upstream archive members and record envelopes the parser needs. For UseDirect image checks, keep the status and bounded image evidence the adapter consumes. Use synthetic anonymous session placeholders for ReserveAmerica.
 - Use deterministic synthetic failures to prove cache and catalog preservation. Freeze the browse date when required.

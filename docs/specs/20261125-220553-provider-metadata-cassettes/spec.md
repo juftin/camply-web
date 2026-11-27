@@ -65,4 +65,4 @@ A maintainer can replay a compact provider catalog and verify the records used f
 ## Assumptions
 
 - The first delivery uses one representative deployment per family.
-- The seasonal availability backlog is tracked in [Spec 034](../20261125-220553-provider-availability-cassettes/spec.md).
+- The seasonal availability backlog is tracked in [Provider Availability Cassettes](../20261125-220553-provider-availability-cassettes/spec.md).

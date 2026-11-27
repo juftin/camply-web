@@ -1,6 +1,6 @@
 # Open-Source Maps: Production Tile Hosting & Caching TODO
 
-> **Resolved**: Production tile hosting (`T3.3.6`) is resolved by defaulting all interactive maps to OpenFreeMap vector styles (`https://tiles.openfreemap.org/styles/liberty` via `VITE_MAP_STYLE_URL`) while keeping backwards-compatible custom raster overrides (`VITE_MAP_TILE_URL` + `VITE_MAP_ATTRIBUTION_*`). See [Spec 036: OpenFreeMap Production Map Tiles](../20261127-143403-openfreemap-production-tiles/spec.md) and its [implementation plan](../20261127-143403-openfreemap-production-tiles/plan.md).
+> **Resolved**: Production tile hosting (`T3.3.6`) is resolved by defaulting all interactive maps to OpenFreeMap vector styles (`https://tiles.openfreemap.org/styles/liberty` via `VITE_MAP_STYLE_URL`) while keeping backwards-compatible custom raster overrides (`VITE_MAP_TILE_URL` + `VITE_MAP_ATTRIBUTION_*`). See [OpenFreeMap Production Map Tiles](../20261127-143403-openfreemap-production-tiles/spec.md) and its [implementation plan](../20261127-143403-openfreemap-production-tiles/plan.md).
 
 ## Background
 
@@ -56,7 +56,7 @@ Since the frontend is deployed to Cloudflare Pages, set up a Cloudflare Worker o
 
 ## Implementation Checklist
 
-- [x] Select preferred production tile strategy (OpenFreeMap vector styles by default; Managed SaaS, reverse-proxy cache, or self-hosted PMTiles supported via `VITE_MAP_STYLE_URL` / `VITE_MAP_TILE_URL` — see [Spec 036](../20261127-143403-openfreemap-production-tiles/spec.md)).
+- [x] Select preferred production tile strategy (OpenFreeMap vector styles by default; Managed SaaS, reverse-proxy cache, or self-hosted PMTiles supported via `VITE_MAP_STYLE_URL` / `VITE_MAP_TILE_URL` — see [OpenFreeMap Production Map Tiles](../20261127-143403-openfreemap-production-tiles/spec.md)).
 - [x] Forward `VITE_MAP_STYLE_URL`, `VITE_MAP_TILE_URL`, `VITE_MAP_ATTRIBUTION_TEXT`, `VITE_MAP_ATTRIBUTION_URL`, and `VITE_MAP_MAX_NATIVE_ZOOM` across frontend builds, Hatchling packaging, and Docker/Compose build arguments.
 - [x] Verify that attribution text and links render cleanly at 375px mobile and 1440px desktop viewports with zero horizontal overflow.
 - [x] Verify that vector styles and custom raster max native zoom behave properly with local retry recovery on tile and style failures.

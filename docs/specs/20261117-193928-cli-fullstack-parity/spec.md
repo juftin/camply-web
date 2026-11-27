@@ -38,7 +38,7 @@ A camper using the terminal wants to watch for campsites that fit their actual s
 
 A camper running the CLI in the terminal (either continuously or on a recurring cron/timer schedule) wants alerts sent to Pushover or ntfy when qualifying campsites open up—without being notified repeatedly for unchanged openings on every poll cycle—and wants a way to verify notification credentials before relying on an alert.
 
-**Why this priority**: Real-time push alerting for newly discovered cancellations is the core reason campers monitor sold-out campgrounds over extended periods, and bringing Pushover and ntfy parity to the CLI completes the standalone monitoring workflow initiated in [feature 026](../20261110-005958-cli-parity/spec.md).
+**Why this priority**: Real-time push alerting for newly discovered cancellations is the core reason campers monitor sold-out campgrounds over extended periods, and bringing Pushover and ntfy parity to the CLI completes the standalone monitoring workflow initiated in [CLI parity](../20261110-005958-cli-parity/spec.md).
 
 **Independent Test**: Configure Pushover or ntfy environment variables for a synthetic CLI watch, run `camply test-notifications`, then run multiple poll cycles where an opening appears on cycle 1, remains unchanged on cycle 2, disappears on cycle 3, and reopens on cycle 4 (both in a continuous process and across separate single-pass invocations using an optional state file). Confirm the test alert succeeds, cycle 1 and cycle 4 trigger external alerts, and cycle 2 suppresses duplicate delivery.
 
@@ -127,7 +127,7 @@ A camper wants to control whether foreground CLI monitoring runs once or continu
 ## Assumptions
 
 - **Stateless-first CLI**: All user-facing CLI discovery (`providers`, `campgrounds`, `recreation-areas`), foreground availability watching (`campsites`), and external alerting (`test-notifications`, `campsites --notifications`) operate directly against upstream provider APIs with zero database setup.
-- **Backward compatibility**: All existing CLI commands, single-provider per-command scoping, classic log output formatting, exact `--nights` stay matching, and defaults from [feature 026](../20261110-005958-cli-parity/spec.md) (`providers`, `recreation-areas`, `campgrounds`, `campsites` continuous console-only default, `serve`, `db`) remain unchanged when new options are omitted.
+- **Backward compatibility**: All existing CLI commands, single-provider per-command scoping, classic log output formatting, exact `--nights` stay matching, and defaults from [CLI parity](../20261110-005958-cli-parity/spec.md) (`providers`, `recreation-areas`, `campgrounds`, `campsites` continuous console-only default, `serve`, `db`) remain unchanged when new options are omitted.
 - **Out of scope**:
   - Database-backed CLI features: persistent saved scan CRUD (`camply scans`) and catalog-backed cross-provider/amenity/geographic discovery (tracked on the roadmap in [docs/PLAN.md](../../PLAN.md)).
   - Multi-provider/multi-search CLI orchestration via flags (tracked as a declarative YAML configuration feature on the roadmap in [docs/PLAN.md](../../PLAN.md)).

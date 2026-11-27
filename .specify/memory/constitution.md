@@ -8,7 +8,7 @@
     - .specify/templates/plan-template.md (✅ updated/verified)
     - .specify/templates/spec-template.md (✅ updated/verified)
     - .specify/templates/tasks-template.md (✅ updated/verified)
-- Follow-up TODOs: Feature 013 implements the root layout, complete artifacts, and associated workflow checks.
+- Follow-up TODOs: The root project layout spec (`docs/specs/20261030-231534-root-project-layout`) implements the root layout, complete artifacts, and associated workflow checks.
 </sync_impact_report>
 -->
 

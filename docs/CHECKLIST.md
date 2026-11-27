@@ -2,32 +2,32 @@
 
 This checklist tracks the granular progress of `camply`. Agents **MUST** update this file by marking tasks as completed (`[x]`) before finalizing any PR.
 
-## Found campsites UI rework (033)
+## Found campsites UI rework
 
 - [x] Specify, plan, task out, and implement the Found Campsites & Scan Detail UI rework: interactive availability calendar with single-night and check-in/check-out range filtering, deduplicated campsite cards with capability badges and inline stay expansion, Cards ↔ Sites × Dates Availability Grid view switcher with inline stay inspection, cohesive Scan Detail header consolidation, structured recreation-area coverage summary with relative timestamps, updated snapshot scenarios, and full Vitest/typecheck/lint coverage. [Spec](specs/20261122-140251-found-campsites-ui/spec.md) | [Plan](specs/20261122-140251-found-campsites-ui/plan.md) | [Tasks](specs/20261122-140251-found-campsites-ui/tasks.md).
 - [ ] Refresh Playwright visual snapshot baselines (`scan-detail-*`, `scan-detail-grid-*`, `scan-detail-paginated-*`, `area-scan-detail-*`) in `tests/frontend/snapshots/baselines/` via `task frontend:snapshot:update -- --filter scan-detail` on an environment with Chromium system libraries (`T019`/`T023`).
 
-## CLI YAML configuration (032)
+## CLI YAML configuration
 
 - [x] Specify, plan, and implement `camply campsites --yaml-config` with strict validation, shared defaults, concurrent provider searches, per-search alert history, and single-pass JSON results. Verify the CLI on Python 3.11 and 3.14 and exercise the installed base wheel against synthetic providers and notification delivery. [Spec](specs/20261121-153915-cli-yaml-config/spec.md) | [Tasks](specs/20261121-153915-cli-yaml-config/tasks.md) | [CLI guide](cli.md#run-multiple-searches-from-a-yaml-file).
 
-## CLI full-stack parity (031)
+## CLI full-stack parity
 
-- [x] Specify, clarify, plan, and task out stateless CLI full-stack parity in [spec 031](specs/20261117-193928-cli-fullstack-parity/spec.md), [plan](specs/20261117-193928-cli-fullstack-parity/plan.md), and [tasks](specs/20261117-193928-cli-fullstack-parity/tasks.md); add deferred database saved-scan CRUD and multi-provider YAML configuration to [docs/PLAN.md](PLAN.md).
+- [x] Specify, clarify, plan, and task out stateless CLI full-stack parity in [spec](specs/20261117-193928-cli-fullstack-parity/spec.md), [plan](specs/20261117-193928-cli-fullstack-parity/plan.md), and [tasks](specs/20261117-193928-cli-fullstack-parity/tasks.md); add deferred database saved-scan CRUD and multi-provider YAML configuration to [docs/PLAN.md](PLAN.md).
 - [x] Implement site/equipment/campsite-ID filtering (`--campsite-type`, `--electric`, `--accessible`, `--rv-length`, `--campsite`) and provider filter capability reporting, stateless Pushover/ntfy notifications (`--notifications`, `camply test-notifications`, and `PUSHOVER_*` / `NTFY_*` environment variables) with in-memory and `--state-file` deduplication, live discovery `--limit` pagination (`1`–`500`), canonical provider names in `camply db metadata`, and `--search-once`, `--interval`, and `--json` stdout formatting with unit, CLI, and installed base-wheel regression tests.
 
-## Documentation rework (030)
+## Documentation rework
 
-- [x] Specify, clarify, plan, and task out the four-perspective documentation rework (`User Documentation`, `Self-Hosting`, `Technical and Architectural Documentation`, `Technical Reference`) with a collapsible sidebar (User and Self-Hosting expanded by default) and human-readable editorial standard in [spec 030](specs/20261116-171913-docs-rework/spec.md).
+- [x] Specify, clarify, plan, and task out the four-perspective documentation rework (`User Documentation`, `Self-Hosting`, `Technical and Architectural Documentation`, `Technical Reference`) with a collapsible sidebar (User and Self-Hosting expanded by default) and human-readable editorial standard in [the documentation rework spec](specs/20261116-171913-docs-rework/spec.md).
 - [x] Reorganize `docs/.vitepress/config.ts` with a 4-item navbar, unified collapsible sidebar, client-side Mermaid diagram rendering, dedicated [license](license.md) page, and search exclusion/ranking for internal specs/checklists/agent docs; consolidate and rewrite User Documentation, Self-Hosting, Technical & Architectural Documentation, Technical Reference, and `README.md`; verify link/editorial/search hygiene and bundled `/docs/` packaging checks.
 
-## Recreation-area monitoring (029)
+## Recreation-area monitoring
 
 - [x] Specify one saved scan for all eligible campgrounds or a selected subset within one recreation area, including membership changes, attributed results, notifications, shared polling, lifecycle, and compatibility; validate the [specification](specs/20261115-200611-recreation-area-monitoring/spec.md) against its [requirements checklist](specs/20261115-200611-recreation-area-monitoring/checklists/requirements.md).
 - [x] Complete clarification review, [technical planning](specs/20261115-200611-recreation-area-monitoring/plan.md), research/data/contracts, the reviewer-owned [monitoring checklist](specs/20261115-200611-recreation-area-monitoring/checklists/monitoring.md), and dependency-ordered [implementation tasks](specs/20261115-200611-recreation-area-monitoring/tasks.md).
 - [x] Implement recreation-area monitoring and selected-campground coverage, verify local unit/router/worker/frontend/packaging/standalone/snapshot acceptance suites, update architecture docs, and complete convergence (Docker-only PostgreSQL/admin container smokes remain for CI where Docker is available).
 
-## Legacy CLI parity (026)
+## Legacy CLI parity
 
 - [x] Audit legacy `juftin/camply` v0.34.4 CLI commands, options, YAML/configuration, providers, deployment IDs and notifications; map replacements and gaps in the [baseline inventory](specs/20261110-005958-cli-parity/legacy-audit.md).
 - [x] Write the [parity specification](specs/20261110-005958-cli-parity/spec.md), [design outline](specs/20261110-005958-cli-parity/plan.md), [delivery backlog](specs/20261110-005958-cli-parity/tasks.md) and [readiness checklist](specs/20261110-005958-cli-parity/checklists/requirements.md).
@@ -40,7 +40,7 @@ This checklist tracks the granular progress of `camply`. Agents **MUST** update 
 - [x] Stabilize snapshot capture by waiting for visible image/font readiness, cover delayed lazy-image loading without network-idle waits, and refresh the complete desktop light profile baseline from macOS CI.
 - [x] Finalize CLI parity and modern ergonomics: add `camply list-campsites` and provider site-catalog APIs across all 26 providers (`D01`), refine watch lifecycle (`--search-once`, `--stop-on-match`, transient-error retry resilience, and automatic date-expiry stop; drop legacy `--continuous` / `--search-forever`, `D11`), replace `--notify-first-try` with `--max-notifications` and overflow summary alerts (`D12`), add zero-dependency `webhook`, `discord`, `slack`, and `telegram` CLI notification channels (with YAML schema support), and explicitly drop legacy `tui` (`D08`), `rich-click` (`D09`), and `configure`/`.camply` (`D10`).
 
-## Destination enrichment research (027)
+## Destination enrichment research
 
 - [x] Exclude placeholder `0/0` coordinates from campground and recreation-area detail maps; let campgrounds and related pins inherit their recreation area's complete coordinate pair when their own location is unusable, preserving valid equator/prime-meridian locations and detail content with regression tests.
 - [x] Align the opt-in map browser smoke fixtures with coordinate validation; verify real browser fallback for placeholder, missing, and invalid campground coordinates and omitted maps when neither location is usable.
@@ -254,7 +254,7 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/20261014-2231
 ### 4.2 Deployment
 
 - [x] Specify and plan the root project layout, complete frontend-bearing wheel/sdist builds, consolidated Docker/Compose, packaged Gunicorn, nested Pages/Wrangler tooling, and Spec-Kit documentation migration; see [root layout specification](specs/20261030-231534-root-project-layout/spec.md) and [implementation plan](specs/20261030-231534-root-project-layout/plan.md).
-- [x] Implement and verify [feature 013](specs/20261030-231534-root-project-layout/plan.md), including the constitution directory amendment and all packaging/deployment/Spec-Kit acceptance checks.
+- [x] Implement and verify [the root project layout plan](specs/20261030-231534-root-project-layout/plan.md), including the constitution directory amendment and all packaging/deployment/Spec-Kit acceptance checks.
 
 - [x] T4.2.1 Add separate release/publish workflows with CI-gated Gitmoji semantic releases using the shared cookiecutter infrastructure and the existing App through `APP_ID`/`APP_PRIVATE_KEY`, synchronized application build versions, full-version/major-alias GHCR images, latest images for successful main builds, Git major aliases via semantic-release-major-tag, workspace sdists attached to releases, publication regression checks, and [release operations documentation](operations/RELEASES.md); see the [release plan](specs/20261027-223723-release-ci/plan.md).
 - [x] Run CI Taskfile jobs, Pages deployments, and semantic releases through repository-local composite actions.
@@ -339,7 +339,7 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/20261014-2231
 
 - [x] Use `www.reserveamerica.com` for public links, retain the separate `a1` API/session URLs, and migrate existing seeded provider URLs with custom-URL preservation.
 
-### Direct provider search (025)
+### Direct provider search
 
 - [x] Add validated database-independent upstream campground and recreation-area search with typed results.
 - [x] Implement Recreation.gov, shared UseDirect regional providers, GoingToCamp, and ReserveAmerica search.
@@ -351,12 +351,12 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/20261014-2231
 - [x] Pass full test and quality workflows, including a final backend rerun after independent-review fixes.
 - [x] Keep provider extension methods public: `search_upstream` is the abstract discovery contract.
 
-### Provider availability cassettes (034)
+### Provider availability cassettes
 
 - [x] Add strict offline replay for 40 confirmed searches across 20 providers, with provider-specific equipment cases and a [single-scenario refresh guide](development/PROVIDER_CASSETTES.md).
 - [ ] Record the 12 remaining searches once the six deferred providers have bookable inventory and enable strict coverage for all 26 providers. See the [seasonal recording TODOs](specs/20261125-220553-provider-availability-cassettes/tasks.md#seasonal-recording-todos).
 
-### Provider metadata cassettes (035)
+### Provider metadata cassettes
 
 - [x] Add recorded discovery, enrichment, catalog sync, and campsite listing coverage for the supported provider families. Document [metadata fixture refresh](development/PROVIDER_CASSETTES.md#metadata-recordings).
 - [x] Verify recreation-area expansion excludes recorded facilities without online booking, and replay staged RIDB archives through both enrichment and catalog sync before replacement.

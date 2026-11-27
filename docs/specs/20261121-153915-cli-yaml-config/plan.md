@@ -4,7 +4,7 @@
 
 **Date** — 2026-11-18
 
-**Spec** — [Spec 032](spec.md)
+**Spec** — [CLI YAML Configuration](spec.md)
 
 ## Summary
 

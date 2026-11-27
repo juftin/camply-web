@@ -61,7 +61,7 @@ The current proxy uses externally supplied `CAMPLY_API_ORIGIN`, requires HTTPS, 
 
 ## 6. Relocate specs through existing feature-path support
 
-**Decision**: New feature 013 is created directly under `docs/specs`; move old features and update creation/numbering defaults during implementation. Keep `.specify` at root and feature state checkout-local.
+**Decision**: The root project layout spec is created directly under `docs/specs`; move old features and update creation/numbering defaults during implementation. Keep `.specify` at root and feature state checkout-local.
 
 **Evidence**: The installed version is 1.1.3. [Path resolver](https://github.com/juftin/camply-web/blob/main/.specify/scripts/bash/common.sh) honors explicit feature directories and `.specify/feature.json`; [creator](https://github.com/juftin/camply-web/blob/main/.specify/scripts/bash/create-new-feature.sh) and [Gemini specification command](https://github.com/juftin/camply-web/blob/main/.gemini/commands/speckit.specify.toml) still default to root `specs`. Spec-Kit's upstream documents the independent project-root and active-feature-directory axes. [Core reference](https://github.com/github/spec-kit/blob/main/docs/reference/core.md)
 

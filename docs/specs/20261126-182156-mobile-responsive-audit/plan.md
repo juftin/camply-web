@@ -90,7 +90,7 @@ src/frontend/
 │   ├── Campground.tsx                   # Header/badge wrapping, action layout, detail sections
 │   ├── RecreationArea.tsx               # Header/badge wrapping, child campground list fit
 │   ├── Dashboard.tsx                    # Group header wrapping, empty state, mobile spacing
-│   ├── ScanDetail.tsx                   # Audit verification (already reworked in spec 033)
+│   ├── ScanDetail.tsx                   # Audit verification (already reworked in found-campsites-ui)
 │   ├── Auth.tsx                         # Touch-friendly auth card & inputs
 │   ├── InviteOnly.tsx                   # Mobile form spacing & status messages
 │   ├── Profile.tsx                      # Account details, long email wrapping, sections

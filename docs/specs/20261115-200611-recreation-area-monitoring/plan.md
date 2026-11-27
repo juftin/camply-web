@@ -2,7 +2,7 @@
 
 **Branch**: `flawless-elk` | **Date**: 2026-11-15 | **Spec**: [spec.md](spec.md)
 
-**Input**: [Feature 029 specification](spec.md). **Status**: Design complete; implementation explicitly not started.
+**Input**: [Recreation Area Monitoring specification](spec.md). **Status**: Design complete; implementation explicitly not started.
 
 ## Summary
 

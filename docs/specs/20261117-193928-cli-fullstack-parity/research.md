@@ -16,7 +16,7 @@
 
 ### Foreground Availability & Filtering (`src/camply/core/search.py`, `src/camply/db/availability.py`)
 
-- `CampsiteDTO` (`src/camply/providers/dto.py`) already normalizes `campsite_id`, `campsite_name`, `campsite_type` (`TENT`, `RV`, `CABIN`, `OTHER`), `is_electric`, `is_accessible`, `permitted_equipment`, and `max_vehicle_length` across all 26 providers (completed in [feature 030](../20261116-052724-equipment-metadata-filtering/spec.md)).
+- `CampsiteDTO` (`src/camply/providers/dto.py`) already normalizes `campsite_id`, `campsite_name`, `campsite_type` (`TENT`, `RV`, `CABIN`, `OTHER`), `is_electric`, `is_accessible`, `permitted_equipment`, and `max_vehicle_length` across all 26 providers (completed in [equipment metadata filtering](../20261116-052724-equipment-metadata-filtering/spec.md)).
 - `PROVIDERS` and `get_provider_filter_capabilities` (`src/camply/providers/__init__.py`) already expose `ProviderFilterCapabilities(preferred_types, require_electric, require_accessible, min_rv_length)` per provider class.
 - **Gap**: `camply.core.search.SearchRequest` and `_stays()` currently only filter by date windows, weekday nights, and exact stay length (`nights`), ignoring `campsite_type`, `is_electric`, `is_accessible`, `max_vehicle_length`, and `--campsite` ID/name selectors.
 
