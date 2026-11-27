@@ -83,4 +83,4 @@ Every production frontend build compiles the VitePress site into `docs/` inside 
 
 ## Spec-Kit feature workflows
 
-Feature specifications, plans, and task lists live under `docs/specs/NNN-feature-name/` while `.specify/` remains at the repository root. After updating Spec-Kit scaffolding, run `uv run pytest tests/test_specify_workflows.py`.
+Feature specifications, plans, and task lists live under `docs/specs/YYYYMMDD-HHMMSS-feature-name/` while `.specify/` remains at the repository root. After updating Spec-Kit scaffolding, run `uv run pytest tests/test_specify_workflows.py`.

@@ -1,6 +1,6 @@
 {
   "ai": "gemini",
-  "feature_numbering": "sequential",
+  "feature_numbering": "timestamp",
   "here": true,
   "integration": "gemini",
   "script": "sh",

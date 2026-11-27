@@ -48,7 +48,7 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
 - `src/frontend/`: React TypeScript application, colocated tests, public assets, Pages `functions/`, and Node `tooling/`; manifests/configuration live at root.
 - `src/camply/cli/`: The `camply` command-line entrypoint (base dependencies only; provides `--version`/`--help`, `serve`, and `db` subcommands `info`, `migrate`, `delete`, and `metadata`).
 - `docs/{development,architecture,operations,self-hosting,technical}/`: Current guides and design blueprints.
-- `docs/specs/`: Feature specifications, plans, and task tracking. Spec-Kit creation defaults and numbering use this directory; `.specify/` stays at root. Feature overrides identify the complete feature directory, and saved pointers remain checkout-local.
+- `docs/specs/`: Feature specifications, plans, and task tracking (`YYYYMMDD-HHMMSS-<feature-name>`). Spec-Kit creation defaults to timestamp prefixes in this directory; `.specify/` stays at root. Feature overrides identify the complete feature directory, and saved pointers remain checkout-local.
 - `tests/`: Python suites, installed-artifact/release regressions, and frontend visual baselines.
 - `tasks/`: Python/frontend task definitions included by root `Taskfile.yaml`; preserve task namespaces and root working directories.
 - `deploy/`: Infrastructure configuration (GHCR-based Compose flavors in `deploy/compose/`, Helm chart in `deploy/helm/`, Prometheus config, and Bake overlay). Root `Dockerfile` and `docker-compose.yaml` build and run the local development stack.
