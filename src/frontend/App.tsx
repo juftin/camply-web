@@ -43,6 +43,7 @@ import { authReturnTo } from "@/lib/authRedirect";
 import { mobileAuthCallback } from "@/lib/mobile-auth";
 import { MobileAuthCallback } from "@/components/MobileAuthCallback";
 import { MobileServerSettings } from "@/components/MobileServerSettings";
+import { Button } from "@/components/ui/button";
 import { defaultMobileServerUrl, getMobileServer } from "@/lib/mobile-server";
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -218,6 +219,7 @@ function AppRoutes() {
 function App() {
   const [config, setConfig] = useState<AuthConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [connectionAttempt, setConnectionAttempt] = useState(0);
   const [mobileServer] = useState(getMobileServer);
 
   useEffect(() => {
@@ -242,7 +244,7 @@ function App() {
           "Unable to load authentication configuration. Please reload to try again.",
         ),
       );
-  }, []);
+  }, [connectionAttempt]);
 
   const isAuth0 = config?.auth_mode === "auth0" && !config.auto_login;
   const clientId = mobileServer
@@ -254,7 +256,7 @@ function App() {
   let message = error;
   if (mobileServer) {
     if (error) {
-      message = `Could not connect to ${new URL(mobileServer.url).host}. Check the server settings or open the site in your browser.`;
+      message = `Could not connect to ${new URL(mobileServer.url).host}.`;
     } else if (
       config?.auth_mode === "session" &&
       !config.native_password_sessions
@@ -273,6 +275,16 @@ function App() {
         <p role="alert">{message}</p>
         {mobileServer && (
           <div className="flex flex-wrap items-center justify-center gap-4">
+            {error && (
+              <Button
+                onClick={() => {
+                  setError(null);
+                  setConnectionAttempt((attempt) => attempt + 1);
+                }}
+              >
+                Try again
+              </Button>
+            )}
             <a href={mobileServer.url} className="text-primary underline">
               Open Camply in browser
             </a>

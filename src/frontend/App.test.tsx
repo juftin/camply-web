@@ -464,6 +464,22 @@ describe("Application authentication", () => {
     );
   });
 
+  it("retries the selected deployment after a connection failure", async () => {
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
+    await saveMobileServer("https://camply.example", "");
+    await loadMobileServer();
+    vi.mocked(fetchAuthConfig).mockRejectedValueOnce(new Error("Offline"));
+
+    renderApp({ ...sessionConfig, native_password_sessions: true }, "/auth");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not connect to camply.example",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByLabelText("Username")).toBeVisible();
+    expect(fetchAuthConfig).toHaveBeenCalledTimes(2);
+  });
+
   it("allows server recovery when the selected deployment is unavailable", async () => {
     vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true);
     await saveMobileServer("https://unavailable.example/camply", "old-client");
