@@ -113,6 +113,135 @@ export const fitLocations = (
 export const DEFAULT_MAP_STYLE_URL =
   "https://tiles.openfreemap.org/styles/liberty";
 
+export interface MapAttributionItem {
+  text: string;
+  href?: string;
+}
+
+export const OPENFREEMAP_MINIMUM_ATTRIBUTIONS: readonly MapAttributionItem[] = [
+  { text: "© OpenMapTiles", href: "https://www.openmaptiles.org/" },
+  { text: "© OpenStreetMap", href: "https://www.openstreetmap.org/copyright" },
+];
+
+export const isOpenFreeMapStyleUrl = (styleUrl: string): boolean => {
+  try {
+    const parsed = new URL(styleUrl, "https://camply.invalid");
+    return (
+      parsed.hostname === "tiles.openfreemap.org" ||
+      parsed.hostname === "openfreemap.org" ||
+      parsed.hostname.endsWith(".openfreemap.org")
+    );
+  } catch {
+    return false;
+  }
+};
+
+const safeAttributionHref = (href: string | null): string | undefined => {
+  if (!href) return undefined;
+  const trimmed = href.trim();
+  if (!trimmed || hasWhitespaceOrControl(trimmed)) return undefined;
+  try {
+    const parsed = new URL(trimmed);
+    if (
+      (parsed.protocol !== "https:" && parsed.protocol !== "http:") ||
+      parsed.username ||
+      parsed.password
+    )
+      return undefined;
+    return parsed.href;
+  } catch {
+    return undefined;
+  }
+};
+
+const isOptionalOpenFreeMapCredit = (href: string): boolean => {
+  try {
+    const { hostname } = new URL(href);
+    return hostname === "openfreemap.org" || hostname === "www.openfreemap.org";
+  } catch {
+    return false;
+  }
+};
+
+const isOsmCopyrightLink = (href: string): boolean => {
+  try {
+    const { hostname, pathname } = new URL(href);
+    return (
+      (hostname === "openstreetmap.org" ||
+        hostname === "www.openstreetmap.org") &&
+      pathname.startsWith("/copyright")
+    );
+  } catch {
+    return false;
+  }
+};
+
+/** Extract safe, deduplicated attribution entries from MapLibre source strings. */
+export const parseMapAttributions = (
+  rawAttributions: readonly string[],
+  options: { stripOptionalOpenFreeMap?: boolean } = {},
+): MapAttributionItem[] => {
+  const { stripOptionalOpenFreeMap = false } = options;
+  const items: MapAttributionItem[] = [];
+  const seen = new Set<string>();
+  const add = (text: string, href?: string) => {
+    const normalized = text.replace(/\s+/g, " ").trim();
+    if (!normalized) return;
+    const key = `${(href ?? "").toLowerCase()}|${normalized.toLowerCase()}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    items.push(href ? { text: normalized, href } : { text: normalized });
+  };
+  const visit = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const cleaned = (node.textContent ?? "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/^[,|·—-]+|[,|·—-]+$/g, "")
+        .trim();
+      if (!cleaned) return;
+      if (stripOptionalOpenFreeMap && /^data from$/i.test(cleaned)) return;
+      add(cleaned);
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const element = node as Element;
+    if (element.tagName === "A") {
+      const href = safeAttributionHref(element.getAttribute("href"));
+      if (href && stripOptionalOpenFreeMap && isOptionalOpenFreeMapCredit(href))
+        return;
+      let text = (element.textContent ?? "").replace(/\s+/g, " ").trim();
+      if (!text) return;
+      if (
+        href &&
+        stripOptionalOpenFreeMap &&
+        isOsmCopyrightLink(href) &&
+        !text.startsWith("©")
+      )
+        text = `© ${text}`;
+      add(text, href);
+      return;
+    }
+    element.childNodes.forEach(visit);
+  };
+  for (const raw of rawAttributions) {
+    if (!raw.trim()) continue;
+    const doc = new DOMParser().parseFromString(raw, "text/html");
+    doc.body.childNodes.forEach(visit);
+  }
+  return items;
+};
+
+export const initialMapAttributions = (
+  config: BasemapConfig,
+): MapAttributionItem[] => {
+  if (config.kind === "raster")
+    return [{ text: config.text, href: config.link }];
+  if (isOpenFreeMapStyleUrl(config.styleUrl))
+    return [...OPENFREEMAP_MINIMUM_ATTRIBUTIONS];
+  return [];
+};
+
 export interface VectorStyleBasemapConfig {
   kind: "style";
   styleUrl: string;
