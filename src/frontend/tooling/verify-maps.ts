@@ -192,13 +192,27 @@ try {
   await expect(
     page.getByText(/2 matching places cannot be mapped/),
   ).toBeVisible();
+  await expect(page.locator(".maplibregl-ctrl-attrib")).toHaveCount(0);
+  const attributionButton = page.getByRole("button", {
+    name: "Map attribution",
+    exact: true,
+  });
+  await expect(attributionButton).toHaveAttribute("aria-expanded", "false");
+  await attributionButton.click();
+  const attribution = page.getByLabel("Map attribution details", {
+    exact: true,
+  });
   await expect(
     page.getByRole("link", { name: "OpenFreeMap", exact: true }),
-  ).toBeVisible();
-  await expect(page.getByRole("link", { name: /OpenMapTiles/ })).toBeVisible();
+  ).toHaveCount(0);
   await expect(
-    page.getByRole("link", { name: "OpenStreetMap", exact: true }),
+    attribution.getByRole("link", { name: "© OpenMapTiles", exact: true }),
   ).toBeVisible();
+  await expect(
+    attribution.getByRole("link", { name: "© OpenStreetMap", exact: true }),
+  ).toBeVisible();
+  await attributionButton.click();
+  await expect(attributionButton).toHaveAttribute("aria-expanded", "false");
   const group = page
     .locator('.camply-map-marker[aria-label$="places"]')
     .first();
@@ -432,12 +446,36 @@ try {
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       ).toBe(true);
+      await expect(page.locator(".maplibregl-ctrl-attrib")).toHaveCount(0);
+      const viewportAttributionButton = page.getByRole("button", {
+        name: "Map attribution",
+        exact: true,
+      });
+      await viewportAttributionButton.click();
+      const viewportAttribution = page.getByLabel("Map attribution details", {
+        exact: true,
+      });
       await expect(
         page.getByRole("link", { name: "OpenFreeMap", exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        viewportAttribution.getByRole("link", {
+          name: "© OpenMapTiles",
+          exact: true,
+        }),
       ).toBeVisible();
       await expect(
-        page.getByRole("link", { name: "OpenStreetMap", exact: true }),
+        viewportAttribution.getByRole("link", {
+          name: "© OpenStreetMap",
+          exact: true,
+        }),
       ).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await viewportAttributionButton.click();
       await page.screenshot({
         path: `tmp/maps-${width}-${colorScheme}.png`,
         fullPage: true,
@@ -710,9 +748,18 @@ try {
         });
       });
       await staticPage.goto(`${staticOrigin}/map-check/search?q=Synthetic`);
+      await expect(staticPage.locator(".maplibregl-ctrl-attrib")).toHaveCount(
+        0,
+      );
+      await staticPage
+        .getByRole("button", { name: "Map attribution", exact: true })
+        .click();
       await expect(
-        staticPage.getByRole("link", { name: "Synthetic map credit" }),
+        staticPage
+          .getByLabel("Map attribution details", { exact: true })
+          .getByRole("link", { name: "Synthetic map credit" }),
       ).toHaveAttribute("href", "https://example.test/license");
+      await staticPage.keyboard.press("Escape");
       await staticPage
         .locator('.camply-map-marker[aria-label$="places"]')
         .first()

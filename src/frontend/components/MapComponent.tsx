@@ -1,5 +1,6 @@
 import {
   Component,
+  Fragment,
   type ReactNode,
   useEffect,
   useId,
@@ -12,21 +13,25 @@ import {
   Marker,
   Popup,
   NavigationControl,
-  AttributionControl,
   type MapEventType,
   type StyleSpecification,
   setWorkerUrl,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
+import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   basemapConfig,
   displayLatitude,
   fitLocations,
+  initialMapAttributions,
+  isOpenFreeMapStyleUrl,
   nearestLongitude,
+  parseMapAttributions,
   viewportBounds,
   type GeoBounds,
+  type MapAttributionItem,
   type MapCamera,
   type MapPin,
 } from "@/lib/maps";
@@ -72,7 +77,10 @@ const MapCanvas = ({
   onMove,
 }: MapComponentProps) => {
   const tooltipId = useId();
+  const attributionId = useId();
   const container = useRef<HTMLDivElement>(null);
+  const attributionRef = useRef<HTMLDivElement>(null);
+  const attributionButtonRef = useRef<HTMLButtonElement>(null);
   const movement = useRef(onMove);
   movement.current = onMove;
   const initial = useRef(camera);
@@ -81,6 +89,8 @@ const MapCanvas = ({
   const [tileError, setTileError] = useState(false);
   const [ready, setReady] = useState(false);
   const [idle, setIdle] = useState(false);
+  const [attributions, setAttributions] = useState<MapAttributionItem[]>([]);
+  const [attributionOpen, setAttributionOpen] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const failedSources = useRef<Set<string>>(new Set());
   const lastFit = useRef<string | null>(null);
@@ -119,18 +129,18 @@ const MapCanvas = ({
     let instance: LibreMap | undefined;
     try {
       const config = basemapConfig();
+      const baseAttributions = initialMapAttributions(config);
+      const isOpenFreeMap =
+        config.kind === "style" && isOpenFreeMapStyleUrl(config.styleUrl);
       trackedFailedSources.clear();
       setReady(false);
       setIdle(false);
+      setAttributions(baseAttributions);
+      setAttributionOpen(false);
       let style: string | StyleSpecification;
       if (config.kind === "style") {
         style = config.styleUrl;
       } else {
-        const credit = document.createElement("a");
-        credit.href = config.link;
-        credit.textContent = config.text;
-        credit.target = "_blank";
-        credit.rel = "noopener noreferrer";
         style = {
           version: 8,
           sources: {
@@ -140,7 +150,6 @@ const MapCanvas = ({
               tileSize: 256,
               minzoom: 0,
               maxzoom: config.maxNativeZoom,
-              attribution: credit.outerHTML,
             },
           },
           layers: [
@@ -178,10 +187,52 @@ const MapCanvas = ({
         new NavigationControl({ showCompass: false }),
         "top-left",
       );
-      instance.addControl(
-        new AttributionControl({ compact: false }),
-        "bottom-right",
-      );
+      const syncAttributions = () => {
+        if (!instance || config.kind !== "style") return;
+        const loadedStyle =
+          typeof instance.getStyle === "function"
+            ? instance.getStyle()
+            : undefined;
+        if (!loadedStyle?.sources) return;
+        const raw: string[] = [];
+        for (const [sourceId, sourceSpec] of Object.entries(
+          loadedStyle.sources,
+        )) {
+          const runtimeSource =
+            typeof instance.getSource === "function"
+              ? instance.getSource(sourceId)
+              : undefined;
+          const attribution =
+            runtimeSource?.attribution ??
+            ("attribution" in sourceSpec &&
+            typeof sourceSpec.attribution === "string"
+              ? sourceSpec.attribution
+              : undefined);
+          if (attribution) raw.push(attribution);
+        }
+        const parsed = parseMapAttributions(raw, {
+          stripOptionalOpenFreeMap: isOpenFreeMap,
+        });
+        if (parsed.length > 0 || !isOpenFreeMap) {
+          setAttributions((previous) =>
+            previous.length === parsed.length &&
+            previous.every(
+              (item, index) =>
+                item.text === parsed[index].text &&
+                item.href === parsed[index].href,
+            )
+              ? previous
+              : parsed,
+          );
+        }
+      };
+      const onSourceData = (event: MapEventType["sourcedata"]) => {
+        if (
+          event.sourceDataType === "metadata" ||
+          event.sourceDataType === "visibility"
+        )
+          syncAttributions();
+      };
       const emit = (event?: MapEventType["moveend"]) => {
         if (!instance || lastFit.current === null) return;
         const b = instance.getBounds(),
@@ -215,12 +266,17 @@ const MapCanvas = ({
           setError(event.error?.message || "Map could not load.");
         }
       };
-      const loaded = () => setReady(true);
+      const loaded = () => {
+        setReady(true);
+        syncAttributions();
+      };
       const markBusy = () => setIdle(false);
       const markIdle = () => setIdle(true);
       const contextLost = () =>
         setError("The map graphics context was lost. Please retry the map.");
       instance.on("load", loaded);
+      instance.on("styledata", syncAttributions);
+      instance.on("sourcedata", onSourceData);
       instance.on("movestart", markBusy);
       instance.on("dataloading", markBusy);
       instance.on("idle", markIdle);
@@ -239,6 +295,8 @@ const MapCanvas = ({
         trackedFailedSources.clear();
         observer.disconnect();
         instance?.off("load", loaded);
+        instance?.off("styledata", syncAttributions);
+        instance?.off("sourcedata", onSourceData);
         instance?.off("movestart", markBusy);
         instance?.off("dataloading", markBusy);
         instance?.off("idle", markIdle);
@@ -252,6 +310,8 @@ const MapCanvas = ({
     } catch (failure) {
       instance?.remove();
       instance = undefined;
+      setAttributions([]);
+      setAttributionOpen(false);
       setError(
         failure instanceof Error
           ? failure.message
@@ -425,6 +485,31 @@ const MapCanvas = ({
       );
   }, [map, target, key, zoom, fitMaxZoom]);
 
+  useEffect(() => {
+    if (!attributionOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (
+        attributionRef.current &&
+        !attributionRef.current.contains(event.target as Node)
+      )
+        setAttributionOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      const focusInside = attributionRef.current?.contains(
+        document.activeElement,
+      );
+      setAttributionOpen(false);
+      if (focusInside) attributionButtonRef.current?.focus();
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [attributionOpen]);
+
   return (
     <div className="space-y-2">
       {!ready && !error && !tileError && <p role="status">Loading map…</p>}
@@ -462,12 +547,66 @@ const MapCanvas = ({
           </Button>
         </div>
       )}
-      <div
-        ref={container}
-        aria-label="Interactive campground map"
-        data-map-idle={idle ? "true" : "false"}
-        className={`camply-map relative z-0 ${className}`}
-      />
+      <div className="relative">
+        <div
+          ref={container}
+          aria-label="Interactive campground map"
+          data-map-idle={idle ? "true" : "false"}
+          className={`camply-map relative z-0 ${className}`}
+        />
+        {!error && attributions.length > 0 && (
+          <div
+            ref={attributionRef}
+            className="absolute bottom-2 right-2 z-10 flex flex-col items-end"
+          >
+            {attributionOpen && (
+              <div
+                id={attributionId}
+                role="region"
+                aria-label="Map attribution details"
+                className="mb-1.5 flex w-max max-w-[min(18rem,calc(100vw-3rem))] flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 rounded-md border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-md"
+              >
+                {attributions.map((item, index) => (
+                  <Fragment key={`${item.href ?? ""}|${item.text}`}>
+                    {index > 0 && (
+                      <span
+                        aria-hidden="true"
+                        className="text-muted-foreground"
+                      >
+                        ·
+                      </span>
+                    )}
+                    {item.href ? (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline underline-offset-2"
+                      >
+                        {item.text}
+                      </a>
+                    ) : (
+                      <span>{item.text}</span>
+                    )}
+                  </Fragment>
+                ))}
+              </div>
+            )}
+            <button
+              ref={attributionButtonRef}
+              type="button"
+              aria-label="Map attribution"
+              aria-expanded={attributionOpen}
+              aria-controls={attributionId}
+              title="Map attribution"
+              onClick={() => setAttributionOpen((open) => !open)}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-full border bg-background/90 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Info className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

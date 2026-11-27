@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_MAP_STYLE_URL,
+  OPENFREEMAP_MINIMUM_ATTRIBUTIONS,
   basemapConfig,
   hasMappableCoordinates,
+  initialMapAttributions,
+  isOpenFreeMapStyleUrl,
+  parseMapAttributions,
   regionalBounds,
   validCoordinates,
   normalizeLongitude,
@@ -226,5 +230,68 @@ describe("map geometry and configuration", () => {
       latitude: 0,
       longitude: 0,
     });
+  });
+
+  it("extracts minimum required attributions and strips optional OpenFreeMap and unsafe links", () => {
+    expect(isOpenFreeMapStyleUrl(DEFAULT_MAP_STYLE_URL)).toBe(true);
+    expect(
+      isOpenFreeMapStyleUrl("https://tiles.openfreemap.org/styles/dark"),
+    ).toBe(true);
+    expect(isOpenFreeMapStyleUrl("/styles/liberty.json")).toBe(false);
+    expect(isOpenFreeMapStyleUrl("https://example.test/style.json")).toBe(
+      false,
+    );
+
+    expect(
+      initialMapAttributions({
+        kind: "style",
+        styleUrl: DEFAULT_MAP_STYLE_URL,
+      }),
+    ).toEqual(OPENFREEMAP_MINIMUM_ATTRIBUTIONS);
+    expect(
+      initialMapAttributions({
+        kind: "style",
+        styleUrl: "/styles/custom.json",
+      }),
+    ).toEqual([]);
+    expect(
+      initialMapAttributions({
+        kind: "raster",
+        url: "/tiles/{z}/{x}/{y}.png",
+        text: "Custom Credit",
+        link: "https://example.test/license",
+        maxNativeZoom: 14,
+      }),
+    ).toEqual([
+      { text: "Custom Credit", href: "https://example.test/license" },
+    ]);
+
+    expect(
+      parseMapAttributions(
+        [
+          '<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> <a href="https://www.openmaptiles.org/" target="_blank">&copy; OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+        ],
+        { stripOptionalOpenFreeMap: true },
+      ),
+    ).toEqual([
+      { text: "© OpenMapTiles", href: "https://www.openmaptiles.org/" },
+      {
+        text: "© OpenStreetMap",
+        href: "https://www.openstreetmap.org/copyright",
+      },
+    ]);
+
+    expect(
+      parseMapAttributions([
+        '<a href="javascript:alert(1)">Unsafe Link</a>, <a href="https://example.test/credit">© Example</a>',
+        "© Example",
+      ]),
+    ).toEqual([
+      { text: "Unsafe Link" },
+      { text: "© Example", href: "https://example.test/credit" },
+      { text: "© Example" },
+    ]);
+
+    expect(parseMapAttributions(["", "   "])).toEqual([]);
   });
 });
