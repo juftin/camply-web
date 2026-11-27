@@ -39,6 +39,11 @@ import prometheus_client  # noqa: E402
 from prometheus_client import Counter, Gauge, Histogram, multiprocess  # noqa: E402
 from prometheus_client.multiprocess import MultiProcessCollector  # noqa: E402
 
+from camply.providers.transport_config import (  # noqa: E402
+    TransportEvent,
+    register_transport_observer,
+)
+
 logger = structlog.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -114,6 +119,56 @@ APPLICATION_OUTCOMES_TOTAL = Counter(
     "Normalized application outcomes across worker tasks",
     labelnames=["task_name", "outcome"],
 )
+
+PROVIDER_COOLDOWN_WAITS_TOTAL = Counter(
+    f"{METRICS_PREFIX}_provider_cooldown_waits_total",
+    "Total provider cooldown and proxy exhaustion wait events",
+    labelnames=["provider", "reason"],
+)
+
+PROVIDER_COOLDOWN_WAIT_SECONDS = Histogram(
+    f"{METRICS_PREFIX}_provider_cooldown_wait_seconds",
+    "Duration of provider cooldown waits in seconds",
+    labelnames=["provider"],
+    buckets=(0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0),
+)
+
+PROVIDER_PROXY_EVENTS_TOTAL = Counter(
+    f"{METRICS_PREFIX}_provider_proxy_events_total",
+    "Total opt-in proxy rotation, quarantine, and exhaustion events",
+    labelnames=["provider", "event", "reason"],
+)
+
+_PROXY_EVENT_NAMES: dict[str, str] = {
+    "proxy_selected": "selected",
+    "proxy_quarantined": "quarantined",
+    "proxy_exhausted": "exhausted",
+}
+
+
+def _on_provider_transport_event(event: TransportEvent) -> None:
+    """Record low-cardinality Prometheus metrics for provider transport events."""
+    if event.kind == "cooldown_wait":
+        PROVIDER_COOLDOWN_WAITS_TOTAL.labels(
+            provider=event.provider,
+            reason=event.reason,
+        ).inc()
+        if event.delay_seconds > 0.0:
+            PROVIDER_COOLDOWN_WAIT_SECONDS.labels(
+                provider=event.provider,
+            ).observe(event.delay_seconds)
+        return
+
+    proxy_event = _PROXY_EVENT_NAMES.get(event.kind)
+    if proxy_event is not None:
+        PROVIDER_PROXY_EVENTS_TOTAL.labels(
+            provider=event.provider,
+            event=proxy_event,
+            reason=event.reason,
+        ).inc()
+
+
+register_transport_observer(_on_provider_transport_event)
 
 
 # ---------------------------------------------------------------------------

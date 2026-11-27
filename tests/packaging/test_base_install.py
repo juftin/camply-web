@@ -205,3 +205,103 @@ def test_healthchecks_without_optional_runtimes(
         path.unlink()
         assert not any(name.startswith(('camply.server', 'camply.worker', 'camply.providers', 'camply.db')) for name in sys.modules)
     """)
+
+
+def test_base_provider_cooldown_and_proxy_config_without_optional_extras(
+    install: Callable[[str], Installation],
+) -> None:
+    """Base wheel supports shared provider cooldown and opt-in proxy pools without extras."""
+    install("").run(
+        """
+        import asyncio
+        import importlib.util
+        import sys
+        from unittest.mock import AsyncMock, MagicMock
+        import httpx2
+        from camply.providers.base import BaseProvider, RetryStrategy, RetryTransport
+        from camply.providers.errors import ProxyPoolExhaustedError
+        from camply.providers.proxy import ProxyPool
+        from camply.providers.transport_config import ProviderTransportConfig
+
+        for module in ('prometheus_client', 'celery', 'redis', 'fastapi', 'sentry_sdk'):
+            assert importlib.util.find_spec(module) is None, module
+
+        cfg = ProviderTransportConfig()
+        endpoints = cfg.parsed_proxies()
+        assert len(endpoints) == 2
+        assert endpoints[0].label == 'proxy-0 (http://proxy1.invalid:8080)'
+        assert 'alice' not in repr(cfg) and 'supersecret' not in repr(cfg)
+        assert 'alice' not in repr(endpoints[0]) and 'supersecret' not in repr(endpoints[0])
+
+        async def exercise() -> None:
+            pool = ProxyPool(
+                endpoints,
+                quarantine_seconds=30.0,
+                max_wait_seconds=60.0,
+                exhausted_policy='fail',
+            )
+            transport = RetryTransport(
+                retry_strategy=RetryStrategy(max_retries=2, jitter=False),
+                provider_name='BaseWheelProvider',
+                proxy_pool=pool,
+            )
+            p0 = MagicMock(spec=httpx2.AsyncHTTPTransport)
+            p1 = MagicMock(spec=httpx2.AsyncHTTPTransport)
+            p0.handle_async_request = AsyncMock(
+                return_value=httpx2.Response(
+                    429,
+                    headers={'Retry-After': '15'},
+                    request=httpx2.Request('GET', 'https://example.invalid'),
+                )
+            )
+            p1.handle_async_request = AsyncMock(
+                return_value=httpx2.Response(
+                    200,
+                    request=httpx2.Request('GET', 'https://example.invalid'),
+                )
+            )
+            p0.aclose = AsyncMock()
+            p1.aclose = AsyncMock()
+            transport._proxy_transports[0] = p0
+            transport._proxy_transports[1] = p1
+            transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
+            transport._inner.handle_async_request = AsyncMock(
+                side_effect=AssertionError('direct egress must never be used')
+            )
+            transport._inner.aclose = AsyncMock()
+
+            resp = await transport.handle_async_request(
+                httpx2.Request('GET', 'https://example.invalid')
+            )
+            assert resp.status_code == 200
+            p0.handle_async_request.assert_awaited_once()
+            p1.handle_async_request.assert_awaited_once()
+            transport._inner.handle_async_request.assert_not_awaited()
+
+            pool.quarantine(1, provider_name='BaseWheelProvider', reason='403')
+            try:
+                await transport.handle_async_request(
+                    httpx2.Request('GET', 'https://example.invalid')
+                )
+            except ProxyPoolExhaustedError as exc:
+                assert 'alice' not in str(exc)
+                assert 'supersecret' not in str(exc)
+            else:
+                raise AssertionError('Expected ProxyPoolExhaustedError')
+
+            await transport.aclose()
+            p0.aclose.assert_awaited_once()
+            p1.aclose.assert_awaited_once()
+
+        asyncio.run(exercise())
+        assert BaseProvider is not None
+        assert not any(name.startswith(('camply.server', 'camply.worker')) for name in sys.modules)
+        """,
+        settings={
+            "CAMPLY_PROXY_URLS": (
+                "http://alice:supersecret@proxy1.invalid:8080,"
+                "http://proxy2.invalid:8080"
+            ),
+            "CAMPLY_PROXY_EXHAUSTED_POLICY": "fail",
+        },
+    )

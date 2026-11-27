@@ -114,3 +114,109 @@ assert "PROMETHEUS_MULTIPROC_DIR" not in os.environ
 """
     subprocess.run([sys.executable, "-c", script], cwd=tmp_path, check=True)
     assert list(tmp_path.glob("*.db")) == []
+
+
+def test_provider_transport_observer_metrics_and_low_cardinality_labels(
+    tmp_path: Path,
+) -> None:
+    """Worker metrics observer records cooldown and proxy events without URL/credential labels."""
+    script = """
+import os
+os.environ["PROMETHEUS_MULTIPROC_DIR"] = ""
+os.environ.pop("CAMPLY_PROMETHEUS_MULTIPROC_DIR", None)
+
+import camply.worker.metrics as wm
+from prometheus_client import REGISTRY, generate_latest
+from prometheus_client.parser import text_string_to_metric_families
+from camply.providers.transport_config import TransportEvent, emit_transport_event
+
+emit_transport_event(
+    TransportEvent(
+        kind="cooldown_wait",
+        provider="RecreationGovProvider",
+        reason="429",
+        delay_seconds=1.5,
+    )
+)
+emit_transport_event(
+    TransportEvent(
+        kind="proxy_selected",
+        provider="RecreationGovProvider",
+        reason="round_robin",
+        proxy_label="proxy-0 (http://proxy.example:8080)",
+    )
+)
+emit_transport_event(
+    TransportEvent(
+        kind="proxy_quarantined",
+        provider="RecreationGovProvider",
+        reason="403",
+        proxy_label="proxy-0 (http://proxy.example:8080)",
+        delay_seconds=60.0,
+    )
+)
+emit_transport_event(
+    TransportEvent(
+        kind="proxy_exhausted",
+        provider="RecreationGovProvider",
+        reason="all_quarantined",
+        delay_seconds=30.0,
+    )
+)
+
+payload = generate_latest(REGISTRY).decode()
+assert "proxy.example" not in payload
+assert "proxy-0" not in payload
+
+samples = [
+    sample
+    for family in text_string_to_metric_families(payload)
+    for sample in family.samples
+]
+assert any(
+    s.name == "camply_provider_cooldown_waits_total"
+    and s.labels == {"provider": "RecreationGovProvider", "reason": "429"}
+    and s.value >= 1.0
+    for s in samples
+), payload
+assert any(
+    s.name == "camply_provider_cooldown_wait_seconds_count"
+    and s.labels == {"provider": "RecreationGovProvider"}
+    and s.value >= 1.0
+    for s in samples
+), payload
+assert any(
+    s.name == "camply_provider_proxy_events_total"
+    and s.labels
+    == {
+        "provider": "RecreationGovProvider",
+        "event": "selected",
+        "reason": "round_robin",
+    }
+    and s.value >= 1.0
+    for s in samples
+), payload
+assert any(
+    s.name == "camply_provider_proxy_events_total"
+    and s.labels
+    == {
+        "provider": "RecreationGovProvider",
+        "event": "quarantined",
+        "reason": "403",
+    }
+    and s.value >= 1.0
+    for s in samples
+), payload
+assert any(
+    s.name == "camply_provider_proxy_events_total"
+    and s.labels
+    == {
+        "provider": "RecreationGovProvider",
+        "event": "exhausted",
+        "reason": "all_quarantined",
+    }
+    and s.value >= 1.0
+    for s in samples
+), payload
+"""
+    subprocess.run([sys.executable, "-c", script], cwd=tmp_path, check=True)

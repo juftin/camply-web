@@ -877,3 +877,98 @@ class TestEquipmentLengthNormalization:
         )
         assert default_dto.permitted_equipment == []
         assert default_dto.max_vehicle_length is None
+
+
+class TestBaseProviderSharedTransportState:
+    """Regression tests for shared cooldown gates and state isolation on BaseProvider."""
+
+    def setup_method(self) -> None:
+        """Reset shared provider transport and circuit-breaker state before each test."""
+        BaseProvider.reset_transport_state()
+        ConcreteProvider.reset_circuit_breaker()
+
+    def teardown_method(self) -> None:
+        """Clean up shared provider transport state after each test."""
+        BaseProvider.reset_transport_state()
+        ConcreteProvider.reset_circuit_breaker()
+
+    @pytest.mark.anyio
+    async def test_two_instances_of_same_provider_share_cooldown_gate(self) -> None:
+        """Two instances of the same BaseProvider subclass share one cooldown gate."""
+        provider_one = ConcreteProvider()
+        provider_two = ConcreteProvider()
+        t1 = provider_one.async_client._transport
+        t2 = provider_two.async_client._transport
+        assert isinstance(t1, RetryTransport)
+        assert isinstance(t2, RetryTransport)
+        assert t1._cooldown_gate is t2._cooldown_gate
+
+        t1._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
+        t2._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
+        t1._inner.handle_async_request = AsyncMock(
+            side_effect=[
+                _make_response(429, headers={"Retry-After": "0.1"}),
+                _make_response(200),
+            ]
+        )
+        t2._inner.handle_async_request = AsyncMock(return_value=_make_response(200))
+
+        # Trigger cooldown via provider_one (retry_on_429=True succeeds on retry)
+        resp1 = await provider_one.async_client.get("https://example.com/1")
+        assert resp1.status_code == 200
+
+        # Manually set a cooldown on the shared gate and confirm provider_two sees it
+        t1._cooldown_gate.trigger_cooldown(0.08, reason="429")
+        assert t2._cooldown_gate.remaining_cooldown() > 0.04
+
+        BaseProvider.reset_transport_state()
+        assert t2._cooldown_gate.remaining_cooldown() == 0.0
+
+        await provider_one.async_client.aclose()
+        await provider_two.async_client.aclose()
+
+    @pytest.mark.anyio
+    async def test_standalone_retry_transports_do_not_leak_cooldown(self) -> None:
+        """Standalone RetryTransport() instances have isolated cooldown gates."""
+        t1 = RetryTransport(retry_strategy=RetryStrategy(max_retries=1, jitter=False))
+        t2 = RetryTransport(retry_strategy=RetryStrategy(max_retries=1, jitter=False))
+        assert t1._cooldown_gate is not t2._cooldown_gate
+
+        t1._cooldown_gate.trigger_cooldown(5.0, reason="429")
+        assert t2._cooldown_gate.remaining_cooldown() == 0.0
+
+        await t1.aclose()
+        await t2.aclose()
+
+    @pytest.mark.anyio
+    async def test_exhausted_429_records_single_circuit_breaker_failure_and_403_no_retry(
+        self,
+    ) -> None:
+        """Exhausted 429 records 1 breaker failure; HTTP 403 does not retry in direct mode."""
+        provider = ConcreteProvider()
+        transport = provider.async_client._transport
+        assert isinstance(transport, RetryTransport)
+        assert transport._circuit_breaker is not None
+        transport._retry_strategy = RetryStrategy(
+            max_retries=2, base_delay=0.01, jitter=False
+        )
+        transport._inner = MagicMock(spec=httpx2.AsyncHTTPTransport)
+        transport._inner.handle_async_request = AsyncMock(
+            side_effect=[_make_response(429), _make_response(429), _make_response(429)]
+        )
+
+        with pytest.raises(ProviderRateLimitedError):
+            await provider.async_client.get("https://example.com/limited")
+        await asyncio.sleep(0)
+        assert transport._circuit_breaker.consecutive_failures == 1
+
+        # Reset cooldown and check HTTP 403 is not retried in direct mode
+        BaseProvider.reset_transport_state()
+        transport._inner.handle_async_request = AsyncMock(
+            return_value=_make_response(403)
+        )
+        resp_403 = await provider.async_client.get("https://example.com/forbidden")
+        assert resp_403.status_code == 403
+        transport._inner.handle_async_request.assert_awaited_once()
+
+        await provider.async_client.aclose()

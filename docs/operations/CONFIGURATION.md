@@ -72,6 +72,41 @@ For recreation-area and selected-campground scans, worker round deadlines scale 
 
 ---
 
+## Provider rate limiting, pacing, and opt-in proxy rotation
+
+Every booking provider (`BaseProvider`) routes upstream HTTP traffic through a shared in-process transport configured by `ProviderTransportConfig` (`src/camply/providers/transport_config.py`). These settings apply uniformly in the base CLI, standalone runtime, and distributed Celery workers with zero extra infrastructure required.
+
+| Variable                               | Description                                                                                             | Default |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------- |
+| `CAMPLY_PROVIDER_MAX_CONCURRENCY`      | Max concurrent in-flight HTTP requests per provider per process (`0` disables the cap)                  | `4`     |
+| `CAMPLY_PROVIDER_MIN_INTERVAL_SECONDS` | Optional minimum spacing in seconds between outgoing request starts to the same provider (`0.0`–`60.0`) | `0.0`   |
+| `CAMPLY_PROVIDER_MAX_COOLDOWN_SECONDS` | Upper cap in seconds for `Retry-After` waits, shared cooldowns, and `wait`-policy proxy waits           | `60.0`  |
+| `CAMPLY_PROXY_URLS`                    | Comma-separated opt-in BYO proxy URLs; empty/unset disables proxy rotation with zero overhead           | `""`    |
+| `CAMPLY_PROXY_QUARANTINE_SECONDS`      | Default quarantine window in seconds for failing or blocked proxies (`0.0` < x <= `3600.0`)             | `60.0`  |
+| `CAMPLY_PROXY_EXHAUSTED_POLICY`        | All-proxies-quarantined behavior: `wait` (bounded by max cooldown) or `fail` (raise immediately)        | `wait`  |
+
+### Shared per-provider cooldown and pacing (always on)
+
+In direct egress mode (when `CAMPLY_PROXY_URLS` is unset or empty), receiving HTTP 429 from a provider sets a shared in-process cooldown deadline for that provider so concurrent and subsequent requests wait together instead of amplifying rate limits. Both numeric delta-seconds and RFC 9110 HTTP-date `Retry-After` headers are parsed and clamped to `CAMPLY_PROVIDER_MAX_COOLDOWN_SECONDS`; missing or non-positive headers fall back to the provider's exponential backoff strategy. Cooldown deadlines move forward monotonically and never affect unrelated providers. Concurrency slots are always released before sleeping on cooldown or retry backoff.
+
+### Opt-in BYO proxy rotation (`CAMPLY_PROXY_URLS`)
+
+To distribute egress traffic across your own proxy infrastructure, supply one or more comma-separated proxy URLs in `CAMPLY_PROXY_URLS`:
+
+- **Native schemes (zero extra dependencies)**: `http://` and `https://`, with optional `user:pass@` basic authentication and optional `:port`.
+- **Optional SOCKS5**: `socks5://` and `socks5h://` are accepted automatically when optional `socksio` is installed in the Python environment; otherwise startup fails fast with a credential-redacted validation error.
+- **Examples**:
+  - Single VPN / exit-node proxy (Gluetun, Tailscale exit node, or Cloudflare WARP): `CAMPLY_PROXY_URLS="http://gluetun:8888"`
+  - Multiple self-hosted Squid/tinyproxy or commercial rotating endpoints: `CAMPLY_PROXY_URLS="http://proxy1.internal:8080,http://user:pass@proxy2.internal:8080"`
+
+When `CAMPLY_PROXY_URLS` is non-empty:
+
+1. **Round-robin selection and quarantine**: Requests rotate round-robin across healthy proxies. HTTP 429 (honoring positive clamped `Retry-After` or `CAMPLY_PROXY_QUARANTINE_SECONDS`) and HTTP 403 (WAF/IP blocks) quarantine the proxy for that provider and retry immediately via the next healthy proxy. Proxy connection, timeout, and protocol errors (`ProxyError`, `ConnectError`, `TimeoutException`, `RemoteProtocolError`) quarantine the proxy globally across all providers. Upstream HTTP 5xx errors retry with standard exponential backoff without quarantining healthy proxies.
+2. **Fail-closed egress guarantee**: Configured proxy pools never fall back to direct host egress and ignore ambient `HTTP_PROXY`/`HTTPS_PROXY` variables (`trust_env=False`). When every proxy is quarantined, `wait` pauses up to `CAMPLY_PROVIDER_MAX_COOLDOWN_SECONDS` for the soonest expiry (raising `ProxyPoolExhaustedError` if it exceeds the cap), and `fail` raises `ProxyPoolExhaustedError` immediately without tripping the upstream provider circuit breaker.
+3. **Credential redaction**: Usernames and passwords are stripped from logs, exceptions, `repr()`/`str()` outputs, and worker Prometheus labels. Proxies are identified solely by safe slot/endpoint labels such as `proxy-0 (http://proxy1.internal:8080)`.
+
+---
+
 ## Runtime selection
 
 | Variable              | Description                                                    | Default                                                                       |

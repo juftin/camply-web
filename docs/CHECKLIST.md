@@ -247,7 +247,7 @@ Feature specification: [Open-Source Maps & Explore Map View](specs/010-open-sour
 
 ### 4.1 Stability
 
-- [ ] T4.1.1 Implement proxy rotation logic for provider requests.
+- [x] T4.1.1 Implement proxy rotation logic for provider requests (shared per-provider cooldown gate, bounded concurrency/pacing, and opt-in BYO `CAMPLY_PROXY_URLS` rotation with fail-closed quarantine and credential redaction; see [spec 037](specs/037-provider-backoff-proxy-rotation/spec.md) and [plan](specs/037-provider-backoff-proxy-rotation/plan.md)).
 - [x] T4.1.2 Implement backoff/retry strategy for provider API failures.
 - [x] T4.1.3 Setup Prometheus-backed native Admin UI monitoring for scan success metrics (Grafana replaced).
 

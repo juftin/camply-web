@@ -114,7 +114,7 @@ PyPI publication remains separate work.
 
 **Goal**: Finalize for deployment and community use.
 
-- [ ] **Rate Limiting**: Implement proxy rotation and intelligent backoff strategies.
+- [x] **Rate Limiting**: Implement proxy rotation and intelligent backoff strategies (shared per-provider 429 cooldown gate, bounded concurrency/pacing, and opt-in BYO `CAMPLY_PROXY_URLS` rotation; [Spec 037](specs/037-provider-backoff-proxy-rotation/spec.md)).
 - [x] **Observability**: Native Admin UI monitoring backed by Prometheus for usage trends, API/worker performance, scan outcomes, and queue visibility; replaced legacy Grafana deployment as part of the [Admin UI plan](specs/002-admin-ui/plan.md).
 - [x] **Polish**: Full mobile-responsive UI/UX with Shadcn/UI refinements. [Audit report](specs/034-mobile-responsive-audit/audit-report.md).
 
