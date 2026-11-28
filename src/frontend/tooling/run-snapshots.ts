@@ -546,22 +546,6 @@ const SCENARIOS: Scenario[] = [
     description: "Supported booking providers and platforms (Desktop, Dark)",
   },
   {
-    name: "how-it-works-desktop-light",
-    route: "/how-it-works",
-    viewport: { width: 1280, height: 800 },
-    theme: "light",
-    description:
-      "How Camply Works architecture and lifecycle explanation (Desktop, Light)",
-  },
-  {
-    name: "how-it-works-desktop-dark",
-    route: "/how-it-works",
-    viewport: { width: 1280, height: 800 },
-    theme: "dark",
-    description:
-      "How Camply Works architecture and lifecycle explanation (Desktop, Dark)",
-  },
-  {
     name: "faq-desktop-light",
     route: "/faq",
     viewport: { width: 1280, height: 800 },
@@ -1158,7 +1142,6 @@ const phone = { width: 390, height: 844 };
 const desktopScenariosWithMobile = [
   ["auth", "light"],
   ["providers", "light"],
-  ["how-it-works", "dark"],
   ["faq", "light"],
   ["ethos", "light"],
   ["home-search-dropdown", "light"],
@@ -1316,7 +1299,6 @@ const AUDIT_ROUTES = [
   ["/", "Find Campsites at Sold-Out Campgrounds"],
   ["/search?q=yosemite", "Upper Pines Campground", "text"],
   ["/providers", "Supported Providers"],
-  ["/how-it-works", "How camply Works"],
   ["/faq", "Frequently Asked Questions"],
   ["/contact", "Get in Touch"],
   ["/ethos", "Making the Great Outdoors Accessible to All"],

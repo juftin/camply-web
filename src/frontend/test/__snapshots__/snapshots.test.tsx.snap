@@ -2160,9 +2160,9 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         <a
           class="text-muted-foreground hover:text-foreground "
           data-discover="true"
-          href="/how-it-works"
+          href="/faq"
         >
-          How It Works
+          FAQ
         </a>
       </nav>
       <button
@@ -2416,9 +2416,9 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         <a
           class="text-muted-foreground hover:text-foreground "
           data-discover="true"
-          href="/how-it-works"
+          href="/faq"
         >
-          How It Works
+          FAQ
         </a>
       </nav>
       <button
@@ -2650,9 +2650,9 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for unauthentica
         <a
           class="text-muted-foreground hover:text-foreground "
           data-discover="true"
-          href="/how-it-works"
+          href="/faq"
         >
-          How It Works
+          FAQ
         </a>
       </nav>
       <button
@@ -2806,9 +2806,9 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot without logo 1`]
         <a
           class="text-muted-foreground hover:text-foreground "
           data-discover="true"
-          href="/how-it-works"
+          href="/faq"
         >
-          How It Works
+          FAQ
         </a>
       </nav>
       <button

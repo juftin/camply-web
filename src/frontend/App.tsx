@@ -20,7 +20,6 @@ import { Contact } from "@/pages/Contact";
 import { Contribute } from "@/pages/Contribute";
 import { FAQ } from "@/pages/FAQ";
 import { Ethos } from "@/pages/Ethos";
-import { HowItWorks } from "@/pages/HowItWorks";
 import { Campground } from "@/pages/Campground";
 import { RecreationArea } from "@/pages/RecreationArea";
 import { ScanDetail } from "@/pages/ScanDetail";
@@ -67,7 +66,10 @@ function AppRoutes() {
                     )
                   }
                 />
-                <Route path="/how-it-works" element={<HowItWorks />} />
+                <Route
+                  path="/how-it-works"
+                  element={<Navigate to="/#how-it-works" replace />}
+                />
                 <Route
                   path="/contribute"
                   element={

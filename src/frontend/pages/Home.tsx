@@ -1,5 +1,15 @@
 import { useAuth } from "@/hooks/useAuth";
-import { MapPin, Clock, Shield, Star, Heart, Tent } from "lucide-react";
+import {
+  MapPin,
+  Clock,
+  Shield,
+  Star,
+  Heart,
+  Tent,
+  Search,
+  Settings,
+  Bell,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -150,7 +160,7 @@ export function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 px-4">
+      <section id="how-it-works" className="scroll-mt-20 py-20 px-4">
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
           <div className="max-w-4xl mx-auto">
@@ -159,7 +169,13 @@ export function Home() {
                 <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold mx-auto mb-4">
                   1
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Search & Select</h3>
+                <h3 className="mb-2 flex items-center justify-center gap-2 text-xl font-semibold">
+                  <Search
+                    aria-hidden="true"
+                    className="h-5 w-5 shrink-0 text-primary"
+                  />
+                  Search &amp; Select
+                </h3>
                 <p className="text-muted-foreground">
                   Find your desired campground and select your preferred dates
                   and campsite types.
@@ -170,7 +186,13 @@ export function Home() {
                 <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold mx-auto mb-4">
                   2
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Set Up Alerts</h3>
+                <h3 className="mb-2 flex items-center justify-center gap-2 text-xl font-semibold">
+                  <Settings
+                    aria-hidden="true"
+                    className="h-5 w-5 shrink-0 text-primary"
+                  />
+                  Set Up Alerts
+                </h3>
                 <p className="text-muted-foreground">
                   Choose how you want to be notified and we'll start monitoring
                   availability for you.
@@ -181,7 +203,13 @@ export function Home() {
                 <div className="bg-primary text-primary-foreground rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold mx-auto mb-4">
                   3
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Get Notified</h3>
+                <h3 className="mb-2 flex items-center justify-center gap-2 text-xl font-semibold">
+                  <Bell
+                    aria-hidden="true"
+                    className="h-5 w-5 shrink-0 text-primary"
+                  />
+                  Get Notified
+                </h3>
                 <p className="text-muted-foreground">
                   Receive instant alerts when campsites become available and
                   book quickly through official sites.

@@ -104,12 +104,12 @@ export function Header({ showLogo = true }: HeaderProps) {
               Providers
             </Link>
             <Link
-              to="/how-it-works"
+              to="/faq"
               className={`text-muted-foreground hover:text-foreground ${
-                location.pathname === "/how-it-works" ? "text-foreground" : ""
+                location.pathname === "/faq" ? "text-foreground" : ""
               }`}
             >
-              How It Works
+              FAQ
             </Link>
             {communityPagesEnabled && (
               <>
@@ -217,13 +217,13 @@ export function Header({ showLogo = true }: HeaderProps) {
             Providers
           </Link>
           <Link
-            to="/how-it-works"
+            to="/faq"
             className={`flex min-h-11 items-center rounded-md px-2 text-muted-foreground hover:text-foreground ${
-              location.pathname === "/how-it-works" ? "text-foreground" : ""
+              location.pathname === "/faq" ? "text-foreground" : ""
             }`}
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            How It Works
+            FAQ
           </Link>
           {communityPagesEnabled && (
             <>

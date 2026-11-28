@@ -3,6 +3,7 @@ import {
   screen,
   fireEvent,
   waitFor,
+  within,
   act,
 } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -151,6 +152,7 @@ beforeEach(() => {
   vi.mocked(listScans).mockResolvedValue({ scans: [], total: 0 });
   vi.mocked(getScan).mockResolvedValue({ id: "test" } as never);
   window.scrollTo = vi.fn();
+  window.HTMLElement.prototype.scrollIntoView = vi.fn();
 });
 
 describe("Community pages feature flag", () => {
@@ -219,33 +221,36 @@ describe("Community pages feature flag", () => {
       screen.getAllByRole("link", { name: "GitHub repository" }).length,
     ).toBeGreaterThan(0);
   });
+});
 
-  it(`${enabled ? "shows hosted-service details" : "describes configured app behavior"} on How It Works`, async () => {
+describe("Homepage walkthrough", () => {
+  it("redirects the old page to the homepage walkthrough", async () => {
     renderApp(localConfig, "/how-it-works");
     expect(
-      await screen.findAllByRole("heading", {
-        name: enabled ? "We Monitor 24/7" : "Check Availability",
+      await screen.findByRole("heading", {
+        name: "How It Works",
+        level: 2,
       }),
-    ).toHaveLength(enabled ? 1 : 2);
+    ).toBeVisible();
+    expect(window.location.pathname).toBe(appPath("/"));
+    expect(window.location.hash).toBe("#how-it-works");
+    await waitFor(() =>
+      expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled(),
+    );
+  });
 
-    if (enabled) {
-      expect(screen.getByText("Reliable Infrastructure")).toBeVisible();
-      expect(screen.getByText("Checks every 2-5 minutes")).toBeVisible();
-    } else {
-      expect(screen.getByText("What the App Does")).toBeVisible();
-      expect(
-        screen.getAllByText("Checks on the configured schedule"),
-      ).toHaveLength(2);
-      expect(
-        screen.getAllByText(/review matching availability in your dashboard/i),
-      ).toHaveLength(2);
-      expect(
-        screen.queryByText(/redundancy and failover systems/i),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByText(/checks every 2-5 minutes, 24\/7/i),
-      ).not.toBeInTheDocument();
-    }
+  it("omits How It Works from desktop and mobile navigation", async () => {
+    renderApp(localConfig, "/contact");
+    await screen.findByRole("link", { name: "Explore" });
+    expect(
+      screen.queryByRole("link", { name: "How It Works" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Toggle mobile menu" }));
+    const drawer = await screen.findByRole("dialog", { name: "Navigation" });
+    expect(
+      within(drawer).queryByRole("link", { name: "How It Works" }),
+    ).not.toBeInTheDocument();
   });
 });
 
