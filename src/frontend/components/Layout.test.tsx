@@ -33,6 +33,21 @@ describe("Layout", () => {
     expect(link).toHaveAttribute("href", `${import.meta.env.BASE_URL}docs/`);
     expect(link).not.toHaveAttribute("data-discover");
   });
+
+  it("links to FAQ from the desktop navigation", () => {
+    render(
+      <MemoryRouter>
+        <Layout>Content</Layout>
+      </MemoryRouter>,
+    );
+    const nav = within(screen.getByRole("navigation"));
+    expect(nav.getByRole("link", { name: "FAQ" })).toHaveAttribute(
+      "href",
+      "/faq",
+    );
+    const footer = within(screen.getByRole("contentinfo"));
+    expect(footer.queryByRole("link", { name: "FAQ" })).not.toBeInTheDocument();
+  });
 });
 
 it("opens the mobile navigation and closes it after following a link", async () => {
@@ -46,7 +61,9 @@ it("opens the mobile navigation and closes it after following a link", async () 
   const trigger = screen.getByRole("button", { name: "Toggle mobile menu" });
   await user.click(trigger);
   const drawer = screen.getByRole("dialog", { name: "Navigation" });
-  await user.click(within(drawer).getByRole("link", { name: "Providers" }));
+  const faq = within(drawer).getByRole("link", { name: "FAQ" });
+  expect(faq).toHaveAttribute("href", "/faq");
+  await user.click(faq);
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(trigger).toHaveAttribute("aria-expanded", "false");
 });

@@ -103,6 +103,14 @@ export function Header({ showLogo = true }: HeaderProps) {
             >
               Providers
             </Link>
+            <Link
+              to="/faq"
+              className={`text-muted-foreground hover:text-foreground ${
+                location.pathname === "/faq" ? "text-foreground" : ""
+              }`}
+            >
+              FAQ
+            </Link>
             {communityPagesEnabled && (
               <>
                 <Link
@@ -207,6 +215,15 @@ export function Header({ showLogo = true }: HeaderProps) {
             onClick={() => setIsMobileMenuOpen(false)}
           >
             Providers
+          </Link>
+          <Link
+            to="/faq"
+            className={`flex min-h-11 items-center rounded-md px-2 text-muted-foreground hover:text-foreground ${
+              location.pathname === "/faq" ? "text-foreground" : ""
+            }`}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            FAQ
           </Link>
           {communityPagesEnabled && (
             <>

@@ -2157,6 +2157,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         >
           Providers
         </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/faq"
+        >
+          FAQ
+        </a>
       </nav>
       <button
         aria-expanded="false"
@@ -2406,6 +2413,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for authenticate
         >
           Providers
         </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/faq"
+        >
+          FAQ
+        </a>
       </nav>
       <button
         aria-expanded="false"
@@ -2633,6 +2647,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot for unauthentica
         >
           Providers
         </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/faq"
+        >
+          FAQ
+        </a>
       </nav>
       <button
         aria-expanded="false"
@@ -2781,6 +2802,13 @@ exports[`UI Component DOM Snapshots > Header > matches snapshot without logo 1`]
           href="/providers"
         >
           Providers
+        </a>
+        <a
+          class="text-muted-foreground hover:text-foreground "
+          data-discover="true"
+          href="/faq"
+        >
+          FAQ
         </a>
       </nav>
       <button

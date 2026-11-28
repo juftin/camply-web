@@ -30,9 +30,6 @@ export function Layout({ children }: LayoutProps) {
               >
                 Docs
               </a>
-              <Link to="/faq" className="hover:text-foreground">
-                FAQ
-              </Link>
               <Link to="/privacy" className="hover:text-foreground">
                 Privacy Policy
               </Link>
