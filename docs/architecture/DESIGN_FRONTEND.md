@@ -4,7 +4,7 @@ The web client lives in `src/frontend/` and uses React 18, TypeScript, Vite 8, T
 
 ## Key application journeys
 
-- **Home (`/`)** introduces availability alerts, offers campground search, and explains how to create a scan and set up notifications. Visitors book directly on the provider's website. The former `/how-it-works` route redirects to the homepage walkthrough.
+- **Home (`/`)** includes the How It Works walkthrough. The former `/how-it-works` route redirects to that section.
 - **Explore (`/search`):** Stacks an interactive MapLibre map above a paginated list with amenity, ADA, and minimum RV-length filters. Panning or zooming debounces viewport bounds (`west`, `south`, `east`, `north`, `zoom`) to filter results in sync; an optional `Show map` / `Hide map` toggle preserves camera extent during the session. Initial unfiltered visits center roughly via `ipapi.co` (coordinates cached in memory, 2.5s timeout) without prompting for browser location.
 - **Destination details:** Campground and recreation-area pages display cached photos in an Embla carousel, an overview map, and "Know before you go" practical details without triggering live upstream enrichment requests.
 - **Dashboard & scan management (`/dashboard`, `/dashboard/scans/:scanId`):** Groups scans by destination, supports creation/editing (`ScanForm`) with campground or recreation-area coverage (`all` vs. `selected`), site preferences (type, electric, ADA accessibility, minimum RV length `1–200` ft), `Weekends` / individual-night selectors, and presents matching openings in `FoundCampsites` via an interactive availability calendar paired with deduplicated campsite cards (10 sites per page, vehicle-length and equipment badges, inline stay-chip expansion) plus a Sites × Dates availability grid view with inline stay inspection and a consolidated scan detail header with structured recreation-area coverage (`CoverageSummary`).
@@ -20,6 +20,10 @@ The web client lives in `src/frontend/` and uses React 18, TypeScript, Vite 8, T
 | `src/frontend/components/ScanForm.tsx` | Scan creation/editing dialog with Zod validation and weekday/coverage/equipment pickers         |
 | `src/frontend/components/Map*.tsx`     | MapLibre GL JS integration and viewport-driven explore markers                                  |
 | `src/frontend/public/branding/`        | Light/dark outlined SVG brand marks (`CamplyLogo`)                                              |
+
+## Theme
+
+Campfire Tent is the default application theme. `src/frontend/index.css` defines the light and dark color tokens, the `0.5rem` radius, and the Explore map pins. Camply serves the bundled Bitter and Source Sans 3 WOFF2 fonts from its own origin and uses system fonts as fallbacks. The font licenses ship with the frontend assets in `public/fonts/`.
 
 ## Build and docs bundling
 

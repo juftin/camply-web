@@ -1,88 +1,92 @@
 # Specifications Catalog
 
-This catalog indexes all feature specifications, technical implementation plans, task checklists, and data models for `camply-web`.
+This catalog indexes all feature specifications, technical implementation plans, task checklists, and data models for `camply-web`. Feature directories use timestamp prefixes (`YYYYMMDD-HHMMSS-<feature-name>`).
 
 ## Phase 1 & 2: Platform Foundation & Core Services
 
-- **[001: Checklist Data Layer](001-checklist-data-layer/spec.md)**
-  - [Plan](001-checklist-data-layer/plan.md) | [Tasks](001-checklist-data-layer/tasks.md) | [Data Model](001-checklist-data-layer/data-model.md)
-- **[002: Admin Operations UI](002-admin-ui/spec.md)**
-  - [Plan](002-admin-ui/plan.md) | [Tasks](002-admin-ui/tasks.md)
-- **[003: Invite-Only Authentication](003-auth-invite-only/spec.md)**
-  - [Plan](003-auth-invite-only/plan.md) | [Tasks](003-auth-invite-only/tasks.md)
-- **[004: Frontend Performance & Polling](004-frontend-performance/spec.md)**
-  - [Plan](004-frontend-performance/plan.md) | [Tasks](004-frontend-performance/tasks.md)
-- **[005: Reserve California Provider](005-reserve-california/spec.md)**
-  - [Plan](005-reserve-california/plan.md) | [Tasks](005-reserve-california/tasks.md)
-- **[006: Search Revamp & Campground Discovery](006-search-revamp/spec.md)**
-  - [Plan](006-search-revamp/plan.md) | [Tasks](006-search-revamp/tasks.md)
-- **[007: UseDirect Providers](007-usedirect-providers/spec.md)**
-  - [Plan](007-usedirect-providers/plan.md) | [Tasks](007-usedirect-providers/tasks.md)
-- **[008: Scan Editing & History](008-scan-editing/spec.md)**
-  - [Plan](008-scan-editing/plan.md) | [Tasks](008-scan-editing/tasks.md)
+- **[20260430-052100: Checklist Data Layer](20260430-052100-checklist-data-layer/spec.md)**
+  - [Plan](20260430-052100-checklist-data-layer/plan.md) | [Tasks](20260430-052100-checklist-data-layer/tasks.md) | [Data Model](20260430-052100-checklist-data-layer/data-model.md)
+- **[20261010-031226: Invite-Only Authentication](20261010-031226-auth-invite-only/spec.md)**
+  - [Plan](20261010-031226-auth-invite-only/plan.md) | [Tasks](20261010-031226-auth-invite-only/tasks.md)
+- **[20261010-184737: Frontend Performance & Polling](20261010-184737-frontend-performance/spec.md)**
+  - [Plan](20261010-184737-frontend-performance/plan.md) | [Tasks](20261010-184737-frontend-performance/tasks.md)
+- **[20261013-032156: Admin Operations UI](20261013-032156-admin-ui/spec.md)**
+  - [Plan](20261013-032156-admin-ui/plan.md) | [Tasks](20261013-032156-admin-ui/tasks.md)
+- **[20261013-133646: Reserve California Provider](20261013-133646-reserve-california/spec.md)**
+  - [Plan](20261013-133646-reserve-california/plan.md) | [Tasks](20261013-133646-reserve-california/tasks.md)
+- **[20261013-133646: UseDirect Providers](20261013-133646-usedirect-providers/spec.md)**
+  - [Plan](20261013-133646-usedirect-providers/plan.md) | [Tasks](20261013-133646-usedirect-providers/tasks.md)
+- **[20261014-005019: Scan Editing & History](20261014-005019-scan-editing/spec.md)**
+  - [Plan](20261014-005019-scan-editing/plan.md) | [Tasks](20261014-005019-scan-editing/tasks.md)
+- **[20261014-034515: Search Revamp & Campground Discovery](20261014-034515-search-revamp/spec.md)**
+  - [Plan](20261014-034515-search-revamp/plan.md) | [Tasks](20261014-034515-search-revamp/tasks.md)
 
 ## Phase 3: Maps, Search & User Experience
 
-- **[009: Live Search & PostgreSQL Discovery](009-live-search/spec.md)**
-  - [Plan](009-live-search/plan.md) | [Tasks](009-live-search/tasks.md)
-- **[010: Open-Source Explore Maps (MapLibre)](010-open-source-explore-maps/spec.md)**
-  - [Plan](010-open-source-explore-maps/plan.md) | [Tasks](010-open-source-explore-maps/tasks.md) | [Data Model](010-open-source-explore-maps/data-model.md)
-- **[011: Standalone Runtime](011-standalone-runtime/spec.md)**
-  - [Plan](011-standalone-runtime/plan.md) | [Tasks](011-standalone-runtime/tasks.md) | [Data Model](011-standalone-runtime/data-model.md)
-- **[012: Branding & Visual Identity](012-branding/spec.md)**
-  - [Plan](012-branding/plan.md) | [Tasks](012-branding/tasks.md)
-- **[013: Map & List Bidirectional Interaction](013-map-list-interaction/spec.md)**
-  - [Plan](013-map-list-interaction/plan.md) | [Tasks](013-map-list-interaction/tasks.md)
-- **[014: Campsite Alerts & Notifications](014-campsite-alerts/spec.md)**
-  - [Plan](014-campsite-alerts/plan.md) | [Tasks](014-campsite-alerts/tasks.md)
-- **[015: Automated Release CI](015-release-ci/spec.md)**
-  - [Plan](015-release-ci/plan.md) | [Tasks](015-release-ci/tasks.md)
-- **[016: Snapshot Gallery](016-snapshot-gallery/spec.md)**
-  - [Plan](016-snapshot-gallery/plan.md) | [Tasks](016-snapshot-gallery/tasks.md)
-- **[017: Compact Results View](017-compact-results/spec.md)**
-  - [Plan](017-compact-results/plan.md) | [Tasks](017-compact-results/tasks.md)
+- **[20261014-044613: Live Search & PostgreSQL Discovery](20261014-044613-live-search/spec.md)**
+  - [Plan](20261014-044613-live-search/plan.md) | [Tasks](20261014-044613-live-search/tasks.md)
+- **[20261014-223122: Open-Source Explore Maps (MapLibre)](20261014-223122-open-source-explore-maps/spec.md)**
+  - [Plan](20261014-223122-open-source-explore-maps/plan.md) | [Tasks](20261014-223122-open-source-explore-maps/tasks.md) | [Data Model](20261014-223122-open-source-explore-maps/data-model.md)
+- **[20261016-001650: Map & List Bidirectional Interaction](20261016-001650-map-list-interaction/spec.md)**
+  - [Plan](20261016-001650-map-list-interaction/plan.md) | [Tasks](20261016-001650-map-list-interaction/tasks.md)
+- **[20261016-052850: Branding & Visual Identity](20261016-052850-branding/spec.md)**
+  - [Plan](20261016-052850-branding/plan.md) | [Tasks](20261016-052850-branding/tasks.md)
+- **[20261025-142556: Campsite Alerts & Notifications](20261025-142556-campsite-alerts/spec.md)**
+  - [Plan](20261025-142556-campsite-alerts/plan.md) | [Tasks](20261025-142556-campsite-alerts/tasks.md)
+- **[20261025-162334: Snapshot Gallery](20261025-162334-snapshot-gallery/spec.md)**
+  - [Plan](20261025-162334-snapshot-gallery/plan.md) | [Tasks](20261025-162334-snapshot-gallery/tasks.md)
+- **[20261027-223723: Automated Release CI](20261027-223723-release-ci/spec.md)**
+  - [Plan](20261027-223723-release-ci/plan.md) | [Tasks](20261027-223723-release-ci/tasks.md)
+- **[20261028-054322: Compact Results View](20261028-054322-compact-results/spec.md)**
+  - [Plan](20261028-054322-compact-results/plan.md) | [Tasks](20261028-054322-compact-results/tasks.md)
+- **[20261029-220541: Standalone Runtime](20261029-220541-standalone-runtime/spec.md)**
+  - [Plan](20261029-220541-standalone-runtime/plan.md) | [Tasks](20261029-220541-standalone-runtime/tasks.md) | [Data Model](20261029-220541-standalone-runtime/data-model.md)
 
 ## Phase 4: Scale, Polish & Infrastructure
 
-- **[018: Python Distribution Consolidation](018-python-package/spec.md)**
-  - [Plan](018-python-package/plan.md) | [Tasks](018-python-package/tasks.md) | [Data Model](018-python-package/data-model.md)
-- **[019: Root Project Layout](019-root-project-layout/spec.md)**
-  - [Plan](019-root-project-layout/plan.md) | [Tasks](019-root-project-layout/tasks.md) | [Data Model](019-root-project-layout/data-model.md)
-- **[020: Unified Container Image](020-unified-container/spec.md)**
-  - [Plan](020-unified-container/plan.md) | [Tasks](020-unified-container/tasks.md)
-- **[021: Helm Chart & Cloud-Native Deployment](021-helm-chart/spec.md)**
-  - [Plan](021-helm-chart/plan.md) | [Tasks](021-helm-chart/tasks.md)
-- **[022: Documentation Site](022-documentation-site/spec.md)**
-  - [Plan](022-documentation-site/plan.md) | [Tasks](022-documentation-site/tasks.md)
-- **[023: GoingToCamp Provider](023-going-to-camp/spec.md)**
-  - [Plan](023-going-to-camp/plan.md) | [Tasks](023-going-to-camp/tasks.md) | [TODOs](023-going-to-camp/TODO.md) | [Validation](023-going-to-camp/validation.md)
-- **[024: ReserveAmerica Provider](024-reserve-america/spec.md)**
-  - [Plan](024-reserve-america/plan.md) | [Tasks](024-reserve-america/tasks.md) | [Endpoint Research](024-reserve-america/validation.md)
-- **[025: Direct Upstream Provider Search](025-provider-search/spec.md)**
-  - [Plan](025-provider-search/plan.md) | [Tasks](025-provider-search/tasks.md)
-- **[026: Legacy CLI Parity](026-cli-parity/spec.md)**
-  - [Legacy Inventory](026-cli-parity/legacy-audit.md) | [Plan](026-cli-parity/plan.md) | [Tasks](026-cli-parity/tasks.md) | [Readiness](026-cli-parity/checklists/requirements.md)
-- **[027: Campground Enrichment](027-campground-enrichment/spec.md)**
-  - [Plan](027-campground-enrichment/plan.md) | [Tasks](027-campground-enrichment/tasks.md) | [UI/UX](027-campground-enrichment/ui-ux.md)
-- **[028: Enrichment Rollout](028-enrichment-rollout/spec.md)**
-  - [Plan](028-enrichment-rollout/plan.md) | [Tasks](028-enrichment-rollout/tasks.md) | [Validation](028-enrichment-rollout/validation.md)
-- **[029: Recreation Area Monitoring](029-recreation-area-monitoring/spec.md)**
-  - [Plan](029-recreation-area-monitoring/plan.md) | [Tasks](029-recreation-area-monitoring/tasks.md) | [Data Model](029-recreation-area-monitoring/data-model.md)
-- **[029: Nights of the Week](029-weekday-night-filter/spec.md)**
-  - [Plan](029-weekday-night-filter/plan.md) | [Tasks](029-weekday-night-filter/tasks.md) | [Data Model](029-weekday-night-filter/data-model.md)
-- **[030: Equipment Metadata & Filtering](030-equipment-metadata-filtering/spec.md)**
-  - [Plan](030-equipment-metadata-filtering/plan.md) | [Tasks](030-equipment-metadata-filtering/tasks.md) | [Data Model](030-equipment-metadata-filtering/data-model.md)
-- **[030: Documentation Rework](030-docs-rework/spec.md)**
-  - [Plan](030-docs-rework/plan.md) | [Tasks](030-docs-rework/tasks.md) | [Data Model](030-docs-rework/data-model.md)
-- **[031: CLI Full-Stack Parity](031-cli-fullstack-parity/spec.md)**
-  - [Plan](031-cli-fullstack-parity/plan.md) | [Tasks](031-cli-fullstack-parity/tasks.md) | [Data Model](031-cli-fullstack-parity/data-model.md) | [Requirements Checklist](031-cli-fullstack-parity/checklists/requirements.md)
-- **[032: CLI YAML Configuration](032-cli-yaml-config/spec.md)**
-  - [Plan](032-cli-yaml-config/plan.md) | [Tasks](032-cli-yaml-config/tasks.md) | [Data Model](032-cli-yaml-config/data-model.md) | [CLI Contract](032-cli-yaml-config/contracts/cli.md) | [Validation](032-cli-yaml-config/quickstart.md) | [Requirements Checklist](032-cli-yaml-config/checklists/requirements.md)
-- **[034: Mobile-Responsive UI Audit & Polish](034-mobile-responsive-audit/spec.md)**
-  - [Plan](034-mobile-responsive-audit/plan.md) | [Tasks](034-mobile-responsive-audit/tasks.md) | [Data Model](034-mobile-responsive-audit/data-model.md) | [Research](034-mobile-responsive-audit/research.md) | [UI Contract](034-mobile-responsive-audit/contracts/responsive-ui-contract.md) | [Validation](034-mobile-responsive-audit/quickstart.md) | [Audit Report](034-mobile-responsive-audit/audit-report.md) | [Requirements Checklist](034-mobile-responsive-audit/checklists/requirements.md)
-- **[034: Provider Availability Cassettes](034-provider-availability-cassettes/spec.md)**
-  - [Plan](034-provider-availability-cassettes/plan.md) | [Tasks](034-provider-availability-cassettes/tasks.md) | [Verification](034-provider-availability-cassettes/quickstart.md) | [Requirements Checklist](034-provider-availability-cassettes/checklists/requirements.md)
-- **[035: Provider Metadata Cassettes](035-provider-metadata-cassettes/spec.md)**
-  - [Plan](035-provider-metadata-cassettes/plan.md) | [Tasks](035-provider-metadata-cassettes/tasks.md) | [Verification](035-provider-metadata-cassettes/quickstart.md)
-- **[036: OpenFreeMap Production Map Tiles](036-openfreemap-production-tiles/spec.md)**
-  - [Plan](036-openfreemap-production-tiles/plan.md) | [Tasks](036-openfreemap-production-tiles/tasks.md) | [Data Model](036-openfreemap-production-tiles/data-model.md) | [Research](036-openfreemap-production-tiles/research.md) | [Basemap Config Contract](036-openfreemap-production-tiles/contracts/map-basemap-config.md) | [Validation](036-openfreemap-production-tiles/quickstart.md) | [Requirements Checklist](036-openfreemap-production-tiles/checklists/requirements.md)
+- **[20261029-024929: Python Distribution Consolidation](20261029-024929-python-package/spec.md)**
+  - [Plan](20261029-024929-python-package/plan.md) | [Tasks](20261029-024929-python-package/tasks.md) | [Data Model](20261029-024929-python-package/data-model.md)
+- **[20261030-231534: Root Project Layout](20261030-231534-root-project-layout/spec.md)**
+  - [Plan](20261030-231534-root-project-layout/plan.md) | [Tasks](20261030-231534-root-project-layout/tasks.md) | [Data Model](20261030-231534-root-project-layout/data-model.md)
+- **[20261031-173810: Unified Container Image](20261031-173810-unified-container/spec.md)**
+  - [Plan](20261031-173810-unified-container/plan.md) | [Tasks](20261031-173810-unified-container/tasks.md)
+- **[20261101-023611: Helm Chart & Cloud-Native Deployment](20261101-023611-helm-chart/spec.md)**
+  - [Plan](20261101-023611-helm-chart/plan.md) | [Tasks](20261101-023611-helm-chart/tasks.md)
+- **[20261102-233121: Documentation Site](20261102-233121-documentation-site/spec.md)**
+  - [Plan](20261102-233121-documentation-site/plan.md) | [Tasks](20261102-233121-documentation-site/tasks.md)
+- **[20261106-035753: GoingToCamp Provider](20261106-035753-going-to-camp/spec.md)**
+  - [Plan](20261106-035753-going-to-camp/plan.md) | [Tasks](20261106-035753-going-to-camp/tasks.md) | [TODOs](20261106-035753-going-to-camp/TODO.md) | [Validation](20261106-035753-going-to-camp/validation.md)
+- **[20261107-211141: ReserveAmerica Provider](20261107-211141-reserve-america/spec.md)**
+  - [Plan](20261107-211141-reserve-america/plan.md) | [Tasks](20261107-211141-reserve-america/tasks.md) | [Endpoint Research](20261107-211141-reserve-america/validation.md)
+- **[20261108-000531: Direct Upstream Provider Search](20261108-000531-provider-search/spec.md)**
+  - [Plan](20261108-000531-provider-search/plan.md) | [Tasks](20261108-000531-provider-search/tasks.md)
+- **[20261110-005958: Legacy CLI Parity](20261110-005958-cli-parity/spec.md)**
+  - [Legacy Inventory](20261110-005958-cli-parity/legacy-audit.md) | [Plan](20261110-005958-cli-parity/plan.md) | [Tasks](20261110-005958-cli-parity/tasks.md) | [Readiness](20261110-005958-cli-parity/checklists/requirements.md)
+- **[20261113-041645: ntfy Notification Provider](20261113-041645-ntfy/spec.md)**
+  - [Plan](20261113-041645-ntfy/plan.md) | [Tasks](20261113-041645-ntfy/tasks.md)
+- **[20261114-141003: Campground Enrichment](20261114-141003-campground-enrichment/spec.md)**
+  - [Plan](20261114-141003-campground-enrichment/plan.md) | [Tasks](20261114-141003-campground-enrichment/tasks.md) | [UI/UX](20261114-141003-campground-enrichment/ui-ux.md)
+- **[20261114-164211: Enrichment Rollout](20261114-164211-enrichment-rollout/spec.md)**
+  - [Plan](20261114-164211-enrichment-rollout/plan.md) | [Tasks](20261114-164211-enrichment-rollout/tasks.md) | [Validation](20261114-164211-enrichment-rollout/validation.md)
+- **[20261115-104517: Nights of the Week](20261115-104517-weekday-night-filter/spec.md)**
+  - [Plan](20261115-104517-weekday-night-filter/plan.md) | [Tasks](20261115-104517-weekday-night-filter/tasks.md) | [Data Model](20261115-104517-weekday-night-filter/data-model.md)
+- **[20261115-200611: Recreation Area Monitoring](20261115-200611-recreation-area-monitoring/spec.md)**
+  - [Plan](20261115-200611-recreation-area-monitoring/plan.md) | [Tasks](20261115-200611-recreation-area-monitoring/tasks.md) | [Data Model](20261115-200611-recreation-area-monitoring/data-model.md)
+- **[20261116-052724: Equipment Metadata & Filtering](20261116-052724-equipment-metadata-filtering/spec.md)**
+  - [Plan](20261116-052724-equipment-metadata-filtering/plan.md) | [Tasks](20261116-052724-equipment-metadata-filtering/tasks.md) | [Data Model](20261116-052724-equipment-metadata-filtering/data-model.md)
+- **[20261116-171913: Documentation Rework](20261116-171913-docs-rework/spec.md)**
+  - [Plan](20261116-171913-docs-rework/plan.md) | [Tasks](20261116-171913-docs-rework/tasks.md) | [Data Model](20261116-171913-docs-rework/data-model.md)
+- **[20261117-193928: CLI Full-Stack Parity](20261117-193928-cli-fullstack-parity/spec.md)**
+  - [Plan](20261117-193928-cli-fullstack-parity/plan.md) | [Tasks](20261117-193928-cli-fullstack-parity/tasks.md) | [Data Model](20261117-193928-cli-fullstack-parity/data-model.md) | [Requirements Checklist](20261117-193928-cli-fullstack-parity/checklists/requirements.md)
+- **[20261121-153915: CLI YAML Configuration](20261121-153915-cli-yaml-config/spec.md)**
+  - [Plan](20261121-153915-cli-yaml-config/plan.md) | [Tasks](20261121-153915-cli-yaml-config/tasks.md) | [Data Model](20261121-153915-cli-yaml-config/data-model.md) | [CLI Contract](20261121-153915-cli-yaml-config/contracts/cli.md) | [Validation](20261121-153915-cli-yaml-config/quickstart.md) | [Requirements Checklist](20261121-153915-cli-yaml-config/checklists/requirements.md)
+- **[20261122-140251: Found Campsites UI](20261122-140251-found-campsites-ui/spec.md)**
+  - [Plan](20261122-140251-found-campsites-ui/plan.md) | [Tasks](20261122-140251-found-campsites-ui/tasks.md) | [Data Model](20261122-140251-found-campsites-ui/data-model.md) | [Research](20261122-140251-found-campsites-ui/research.md) | [UI Contract](20261122-140251-found-campsites-ui/contracts/ui-contract.md) | [Validation](20261122-140251-found-campsites-ui/quickstart.md) | [Requirements Checklist](20261122-140251-found-campsites-ui/checklists/requirements.md)
+- **[20261125-220553: Provider Availability Cassettes](20261125-220553-provider-availability-cassettes/spec.md)**
+  - [Plan](20261125-220553-provider-availability-cassettes/plan.md) | [Tasks](20261125-220553-provider-availability-cassettes/tasks.md) | [Verification](20261125-220553-provider-availability-cassettes/quickstart.md) | [Requirements Checklist](20261125-220553-provider-availability-cassettes/checklists/requirements.md)
+- **[20261125-220553: Provider Metadata Cassettes](20261125-220553-provider-metadata-cassettes/spec.md)**
+  - [Plan](20261125-220553-provider-metadata-cassettes/plan.md) | [Tasks](20261125-220553-provider-metadata-cassettes/tasks.md) | [Verification](20261125-220553-provider-metadata-cassettes/quickstart.md)
+- **[20261126-182156: Mobile-Responsive UI Audit & Polish](20261126-182156-mobile-responsive-audit/spec.md)**
+  - [Plan](20261126-182156-mobile-responsive-audit/plan.md) | [Tasks](20261126-182156-mobile-responsive-audit/tasks.md) | [Data Model](20261126-182156-mobile-responsive-audit/data-model.md) | [Research](20261126-182156-mobile-responsive-audit/research.md) | [UI Contract](20261126-182156-mobile-responsive-audit/contracts/responsive-ui-contract.md) | [Validation](20261126-182156-mobile-responsive-audit/quickstart.md) | [Audit Report](20261126-182156-mobile-responsive-audit/audit-report.md) | [Requirements Checklist](20261126-182156-mobile-responsive-audit/checklists/requirements.md)
+- **[20261127-143403: OpenFreeMap Production Map Tiles](20261127-143403-openfreemap-production-tiles/spec.md)**
+  - [Plan](20261127-143403-openfreemap-production-tiles/plan.md) | [Tasks](20261127-143403-openfreemap-production-tiles/tasks.md) | [Data Model](20261127-143403-openfreemap-production-tiles/data-model.md) | [Research](20261127-143403-openfreemap-production-tiles/research.md) | [Basemap Config Contract](20261127-143403-openfreemap-production-tiles/contracts/map-basemap-config.md) | [Validation](20261127-143403-openfreemap-production-tiles/quickstart.md) | [Requirements Checklist](20261127-143403-openfreemap-production-tiles/checklists/requirements.md)

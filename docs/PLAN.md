@@ -44,7 +44,7 @@ Python process. Root source builds produce complete wheels and sdists; prepared
 sdists rebuild without JavaScript tooling. The base CLI provides current-provider
 discovery and foreground campground availability monitoring; see the
 [command-line guide](cli.md). Remaining CLI work is tracked in
-[feature 026's deferred TODOs](specs/026-cli-parity/tasks.md#deferred-todo-registry),
+[the legacy CLI parity deferred TODOs](specs/20261110-005958-cli-parity/tasks.md#deferred-todo-registry),
 focusing on the redesigned v2 interface rather than strict v1 parity.
 PyPI publication remains separate work.
 
@@ -65,7 +65,7 @@ PyPI publication remains separate work.
 ### 3. Discovery & UX
 
 - **Global Search**: Unified search across all providers (Recreation.gov, State Parks, etc.).
-- **Map-Based Discovery**: Explore offers MapLibre GL JS mapping across all filtered results, with bounded geographic groups and campground monitoring actions; Explore and detail maps default to keyless OpenFreeMap vector styles (`VITE_MAP_STYLE_URL`) with backwards-compatible custom raster overrides (`VITE_MAP_TILE_URL`). See the [mapping plan](specs/010-open-source-explore-maps/plan.md) and [OpenFreeMap production tiles plan](specs/036-openfreemap-production-tiles/plan.md).
+- **Map-Based Discovery**: Explore offers MapLibre GL JS mapping across all filtered results, with bounded geographic groups and campground monitoring actions; Explore and detail maps default to keyless OpenFreeMap vector styles (`VITE_MAP_STYLE_URL`) with backwards-compatible custom raster overrides (`VITE_MAP_TILE_URL`). See the [mapping plan](specs/20261014-223122-open-source-explore-maps/plan.md) and [OpenFreeMap production tiles plan](specs/20261127-143403-openfreemap-production-tiles/plan.md).
 - **Permit Monitoring**: Extend scanning logic to support Wilderness/Backcountry permits and Tours.
 
 ---
@@ -103,11 +103,11 @@ PyPI publication remains separate work.
 
 - [x] **Providers**: Port verified `usedirect` and `going_to_camp` deployments (plus `ReserveAmerica`); skip `xanterra` as its campsites are moving to Recreation.gov.
 - [x] **ReserveCalifornia**: Port California State Parks availability and metadata to the current Tyler RDR API; preserve modern booking routes on the shared UseDirect ABC.
-- [x] **Shared UseDirect providers**: Implement independent metadata sync and availability for Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory (all 10 UseDirect providers verified live). Alabama State Parks (`reserve.alapark.com`, Itinio) and Maricopa County Parks (`exploremaricopacountyparks.org`, Cedar) moved off UseDirect; see [provider TODOs](specs/007-usedirect-providers/TODO.md).
-- [x] **GoingToCamp**: Re-engineer `GoingToCampProvider` on async catalog/map endpoints and register all 14 live GoingToCamp deployments (Washington, Wisconsin, Michigan, Tacoma Power, Parks Canada, BC Parks, Ontario Parks, Nova Scotia, Manitoba, Newfoundland & Labrador, Gatineau Park, Long Point, Maitland Valley, and St. Clair). Maryland DNR (ReserveAmerica/Aspira), New Brunswick (custom), Algonquin Highlands (`algonquinhighlands.ca`), and Saugeen Valley (`saugeenconservation.ca`) no longer use GoingToCamp; see [GoingToCamp TODOs](specs/023-going-to-camp/TODO.md).
+- [x] **Shared UseDirect providers**: Implement independent metadata sync and availability for Florida, Virginia, Minnesota, Ohio, Arizona, Missouri, Fairfax County, Oregon Metro, and Northern Territory (all 10 UseDirect providers verified live). Alabama State Parks (`reserve.alapark.com`, Itinio) and Maricopa County Parks (`exploremaricopacountyparks.org`, Cedar) moved off UseDirect; see [provider TODOs](specs/20261013-133646-usedirect-providers/TODO.md).
+- [x] **GoingToCamp**: Re-engineer `GoingToCampProvider` on async catalog/map endpoints and register all 14 live GoingToCamp deployments (Washington, Wisconsin, Michigan, Tacoma Power, Parks Canada, BC Parks, Ontario Parks, Nova Scotia, Manitoba, Newfoundland & Labrador, Gatineau Park, Long Point, Maitland Valley, and St. Clair). Maryland DNR (ReserveAmerica/Aspira), New Brunswick (custom), Algonquin Highlands (`algonquinhighlands.ca`), and Saugeen Valley (`saugeenconservation.ca`) no longer use GoingToCamp; see [GoingToCamp TODOs](specs/20261106-035753-going-to-camp/TODO.md).
 - [x] **Advanced Filters**: Implement RV length, electric hookup, and ADA accessibility filters across discovery, saved scans, poller, alerts, and UI.
-- [ ] **CLI Saved-Scan & Catalog Management**: Add optional database/server-backed CLI commands for persistent saved scan CRUD (`camply scans`) and catalog-backed cross-provider amenity/geographic search once stateless CLI parity ([spec 031](specs/031-cli-fullstack-parity/spec.md)) is complete.
-- [x] **CLI YAML Configuration (Multi-Search & Multi-Provider)**: Support a declarative YAML configuration file in the CLI for running multiple concurrent searches, spanning multiple providers, target definitions, equipment/site filters, and notification channels in a single command. [Spec 032](specs/032-cli-yaml-config/spec.md).
+- [ ] **CLI Saved-Scan & Catalog Management**: Add optional database/server-backed CLI commands for persistent saved scan CRUD (`camply scans`) and catalog-backed cross-provider amenity/geographic search once stateless CLI parity ([CLI full-stack parity spec](specs/20261117-193928-cli-fullstack-parity/spec.md)) is complete.
+- [x] **CLI YAML Configuration (Multi-Search & Multi-Provider)**: Support a declarative YAML configuration file in the CLI for running multiple concurrent searches, spanning multiple providers, target definitions, equipment/site filters, and notification channels in a single command. [CLI YAML configuration spec](specs/20261121-153915-cli-yaml-config/spec.md).
 - [ ] **Permits**: Add support for scanning wilderness permit and tour availability.
 
 ### Phase 4: Production & Scale
@@ -115,8 +115,8 @@ PyPI publication remains separate work.
 **Goal**: Finalize for deployment and community use.
 
 - [ ] **Rate Limiting**: Implement proxy rotation and intelligent backoff strategies.
-- [x] **Observability**: Native Admin UI monitoring backed by Prometheus for usage trends, API/worker performance, scan outcomes, and queue visibility; replaced legacy Grafana deployment as part of the [Admin UI plan](specs/002-admin-ui/plan.md).
-- [x] **Polish**: Full mobile-responsive UI/UX with Shadcn/UI refinements. [Audit report](specs/034-mobile-responsive-audit/audit-report.md).
+- [x] **Observability**: Native Admin UI monitoring backed by Prometheus for usage trends, API/worker performance, scan outcomes, and queue visibility; replaced legacy Grafana deployment as part of the [Admin UI plan](specs/20261013-032156-admin-ui/plan.md).
+- [x] **Polish**: Full mobile-responsive UI/UX with Shadcn/UI refinements. [Audit report](specs/20261126-182156-mobile-responsive-audit/audit-report.md).
 
 ---
 
@@ -142,4 +142,4 @@ PyPI publication remains separate work.
 
 ## Standalone runtime delivery
 
-Optional standalone now serves built React assets and the API from one Python process with SQLite, local polling/catalog refresh, and durable notification recovery. The distributed runtime remains the default. See the [implementation tasks](specs/011-standalone-runtime/tasks.md), [developer workflow](development/DEVELOPER_GUIDE.md#local-setup), and [runtime constraints](operations/CONFIGURATION.md#runtime-selection).
+Optional standalone now serves built React assets and the API from one Python process with SQLite, local polling/catalog refresh, and durable notification recovery. The distributed runtime remains the default. See the [implementation tasks](specs/20261029-220541-standalone-runtime/tasks.md), [developer workflow](development/DEVELOPER_GUIDE.md#local-setup), and [runtime constraints](operations/CONFIGURATION.md#runtime-selection).

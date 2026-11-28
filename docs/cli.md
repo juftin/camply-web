@@ -98,7 +98,7 @@ Set `days` and `weekends` in `defaults`, beside `dates` in a search, or inside a
 
 With `--search-once --json`, the CLI outputs one ordered array with each search's `name`, `provider`, `status`, and `stays`. A search with no matches returns `ok` and an empty list. A failed search returns `error`, and the command exits with status 1 after the batch finishes. Local validation errors exit with status 2. Diagnostics go to stderr.
 
-Editors that use the YAML Language Server read the schema URL from the full example's first line. For other editors, associate the YAML file with `docs/cli-yaml-config.schema.json` from the repository. See the [configuration field reference](specs/032-cli-yaml-config/spec.md#configuration-fields) for settings and defaults.
+Editors that use the YAML Language Server read the schema URL from the full example's first line. For other editors, associate the YAML file with `docs/cli-yaml-config.schema.json` from the repository. See the [configuration field reference](specs/20261121-153915-cli-yaml-config/spec.md#configuration-fields) for settings and defaults.
 
 To migrate a legacy flat file, set `version: 2` and create one entry under `searches` with a `name` and an explicit `provider`. Convert scalar target and channel values to lists, use `recreation_areas` for recreation-area IDs, and move each start and end date pair into `dates`. Use `interval` for the polling interval and the CLI's `--search-once` when you want a single pass. Replace legacy offline history settings with a per-search `state_file`.
 

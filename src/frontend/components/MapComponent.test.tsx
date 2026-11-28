@@ -1,21 +1,28 @@
 import {
   render,
   screen,
+  within,
   cleanup,
   fireEvent,
   act,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StrictMode } from "react";
-import type { MapOptions, RasterSourceSpecification } from "maplibre-gl";
+import type { MapOptions, StyleSpecification } from "maplibre-gl";
 import { MapComponent } from "./MapComponent";
 
 const sdk = vi.hoisted(() => {
-  type Handler = (event: { sourceId?: string; error?: Error }) => void;
+  type Handler = (event: {
+    sourceId?: string;
+    sourceDataType?: string;
+    error?: Error;
+  }) => void;
   class TestMap {
     center: { lng: number; lat: number };
     zoom: number;
     events = new Map<string, Set<Handler>>();
+    loadedStyle?: StyleSpecification;
+    runtimeSources = new Map<string, { attribution?: string }>();
     constructor(public options: MapOptions) {
       const center = options.center as [number, number];
       this.center = { lng: center[0], lat: center[1] };
@@ -35,6 +42,8 @@ const sdk = vi.hoisted(() => {
     }
     getCenter = () => this.center;
     getZoom = () => this.zoom;
+    getStyle = () => this.loadedStyle;
+    getSource = (id: string) => this.runtimeSources.get(id);
     getBounds = () => ({
       getWest: () => -180,
       getEast: () => 180,
@@ -253,7 +262,31 @@ describe("MapLibre shared maps", () => {
         undefined,
       ),
     ).not.toHaveProperty("cache");
-    expect(sdk.AttributionControl).toHaveBeenCalledWith({ compact: false });
+    expect(sdk.AttributionControl).not.toHaveBeenCalled();
+    const attributionButton = screen.getByRole("button", {
+      name: "Map attribution",
+    });
+    expect(attributionButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByLabelText("Map attribution details")).toBeNull();
+    fireEvent.click(attributionButton);
+    expect(attributionButton).toHaveAttribute("aria-expanded", "true");
+    const attribution = screen.getByLabelText("Map attribution details");
+    expect(
+      within(attribution).queryByRole("link", { name: /OpenFreeMap/i }),
+    ).toBeNull();
+    expect(
+      within(attribution).getByRole("link", { name: "© OpenMapTiles" }),
+    ).toHaveAttribute("href", "https://www.openmaptiles.org/");
+    expect(
+      within(attribution).getByRole("link", { name: "© OpenStreetMap" }),
+    ).toHaveAttribute("href", "https://www.openstreetmap.org/copyright");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(attributionButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByLabelText("Map attribution details")).toBeNull();
+    fireEvent.click(attributionButton);
+    expect(screen.getByLabelText("Map attribution details")).toBeVisible();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByLabelText("Map attribution details")).toBeNull();
     expect(map.fitBounds).toHaveBeenCalledWith(
       [
         [0, 0],
@@ -263,14 +296,40 @@ describe("MapLibre shared maps", () => {
     );
   });
   it("supports custom vector styles and backwards-compatible custom raster tile overrides", () => {
-    vi.stubEnv(
-      "VITE_MAP_STYLE_URL",
-      "https://tiles.openfreemap.org/styles/bright",
-    );
+    vi.stubEnv("VITE_MAP_STYLE_URL", "https://tiles.example.test/style.json");
     const { unmount } = render(<MapComponent latitude={0} longitude={0} />);
-    expect(sdk.maps[0].options.style).toBe(
-      "https://tiles.openfreemap.org/styles/bright",
+    const customVectorMap = sdk.maps[0];
+    expect(customVectorMap.options.style).toBe(
+      "https://tiles.example.test/style.json",
     );
+    expect(
+      screen.queryByRole("button", { name: "Map attribution" }),
+    ).toBeNull();
+    customVectorMap.loadedStyle = {
+      version: 8,
+      sources: {
+        custom: {
+          type: "vector",
+          tiles: ["https://tiles.example.test/{z}/{x}/{y}.pbf"],
+        },
+      },
+      layers: [],
+    };
+    customVectorMap.runtimeSources.set("custom", {
+      attribution: '<a href="https://example.test/terms">© Custom Vector</a>',
+    });
+    act(() =>
+      customVectorMap.fire("sourcedata", { sourceDataType: "metadata" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Map attribution" }));
+    const customVectorAttribution = screen.getByLabelText(
+      "Map attribution details",
+    );
+    expect(
+      within(customVectorAttribution).getByRole("link", {
+        name: "© Custom Vector",
+      }),
+    ).toHaveAttribute("href", "https://example.test/terms");
     unmount();
 
     vi.stubEnv("VITE_MAP_TILE_URL", "/tiles/{z}/{x}/{y}.png");
@@ -279,7 +338,7 @@ describe("MapLibre shared maps", () => {
     vi.stubEnv("VITE_MAP_MAX_NATIVE_ZOOM", "14");
     render(<MapComponent latitude={0} longitude={0} />);
     const rasterMap = sdk.maps[1];
-    expect(rasterMap.options.style).toMatchObject({
+    expect(rasterMap.options.style).toEqual({
       version: 8,
       sources: {
         basemap: {
@@ -288,9 +347,6 @@ describe("MapLibre shared maps", () => {
           tileSize: 256,
           minzoom: 0,
           maxzoom: 14,
-          attribution: expect.stringContaining(
-            'href="https://example.test/license"',
-          ),
         },
       },
       layers: [
@@ -302,21 +358,15 @@ describe("MapLibre shared maps", () => {
         },
       ],
     });
-    const style = rasterMap.options.style;
-    expect(style).toBeTypeOf("object");
-    const basemapSource =
-      typeof style === "object" && style !== null
-        ? (style.sources.basemap as RasterSourceSpecification)
-        : undefined;
-    const holder = document.createElement("div");
-    holder.innerHTML = basemapSource?.attribution ?? "";
-    const anchor = holder.querySelector("a");
-    expect(anchor).not.toBeNull();
-    expect(anchor?.getAttribute("href")).toBe("https://example.test/license");
-    expect(anchor?.getAttribute("target")).toBe("_blank");
-    expect(anchor?.getAttribute("rel")).toBe("noopener noreferrer");
-    expect(anchor?.textContent).toBe("<b>Custom Credit</b>");
-    expect(anchor?.querySelector("b")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Map attribution" }));
+    const rasterAttribution = screen.getByLabelText("Map attribution details");
+    const anchor = within(rasterAttribution).getByRole("link", {
+      name: "<b>Custom Credit</b>",
+    });
+    expect(anchor).toHaveAttribute("href", "https://example.test/license");
+    expect(anchor).toHaveAttribute("target", "_blank");
+    expect(anchor).toHaveAttribute("rel", "noopener noreferrer");
+    expect(anchor.querySelector("b")).toBeNull();
   });
   it("reports loading until the renderer is ready and recovers a lost graphics context", () => {
     render(<MapComponent latitude={0} longitude={0} />);

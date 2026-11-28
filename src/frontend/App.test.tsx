@@ -224,26 +224,16 @@ describe("Community pages feature flag", () => {
 });
 
 describe("Homepage walkthrough", () => {
-  it("redirects the old page to the homepage and explains where to book", async () => {
+  it("redirects the old page to the homepage walkthrough", async () => {
     renderApp(localConfig, "/how-it-works");
     expect(
       await screen.findByRole("heading", {
-        name: "Campsite availability alerts",
-        level: 1,
+        name: "How It Works",
+        level: 2,
       }),
     ).toBeVisible();
     expect(window.location.pathname).toBe(appPath("/"));
     expect(window.location.hash).toBe("#how-it-works");
-    expect(
-      screen.getByText(/book directly on the provider’s website/i),
-    ).toBeVisible();
-    expect(screen.getByRole("heading", { name: "How it works" })).toBeVisible();
-    const steps = within(screen.getByRole("list")).getAllByRole("listitem");
-    expect(steps).toHaveLength(4);
-    expect(
-      within(steps[3]).getByRole("heading", { name: "Book with the provider" }),
-    ).toBeVisible();
-    expect(steps[3]).toHaveTextContent(/view on provider.*provider’s website/i);
     await waitFor(() =>
       expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled(),
     );
@@ -263,7 +253,7 @@ describe("Homepage walkthrough", () => {
     expect(mobileLink).toHaveAttribute("href", appPath("/#how-it-works"));
     fireEvent.click(mobileLink);
     expect(
-      await screen.findByRole("heading", { name: "How it works" }),
+      await screen.findByRole("heading", { name: "How It Works" }),
     ).toBeVisible();
     expect(window.location.hash).toBe("#how-it-works");
     expect(
@@ -322,9 +312,10 @@ describe("Application authentication", () => {
       screen.queryByRole("button", { name: "Sign Up" }),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(
-      screen.getByRole("link", { name: "Go to dashboard" }),
-    ).toHaveAttribute("href", appPath("/dashboard"));
+    expect(screen.getByRole("link", { name: "Get Started" })).toHaveAttribute(
+      "href",
+      appPath("/dashboard"),
+    );
   });
 
   it("uses the application sign-in page without a Basic credential form", async () => {
@@ -398,19 +389,13 @@ describe("Application authentication", () => {
     ).not.toBeInTheDocument();
   });
 
-  it.each([
-    [false, "Sign in", "/auth"],
-    [true, "Create an account", "/auth?mode=signup"],
-  ])(
-    "offers the right homepage account action when signup is %s",
-    async (signupEnabled, name, path) => {
-      renderApp({ ...auth0Config, signup_enabled: signupEnabled });
-      expect(await screen.findByRole("link", { name })).toHaveAttribute(
-        "href",
-        appPath(path),
-      );
-    },
-  );
+  it("local marketing links lead directly to the dashboard", async () => {
+    vi.mocked(getMe).mockResolvedValue({ ...user, is_invited: true });
+    renderApp({ ...localConfig, auto_login: true });
+    expect(
+      await screen.findByRole("link", { name: "Get Started" }),
+    ).toHaveAttribute("href", appPath("/dashboard"));
+  });
 
   it.each(["/dashboard", "/dashboard/scans/test"])(
     "gates uninvited users at %s",

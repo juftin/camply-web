@@ -277,14 +277,15 @@ const SCENARIOS: Scenario[] = [
     viewport: { width: 1280, height: 800 },
     theme: "light",
     description:
-      "Homepage search and availability walkthrough (Desktop, Light)",
+      "Home landing page hero, search bar, and features (Desktop, Light)",
   },
   {
     name: "home-desktop-dark",
     route: "/",
     viewport: { width: 1280, height: 800 },
     theme: "dark",
-    description: "Homepage search and availability walkthrough (Desktop, Dark)",
+    description:
+      "Home landing page hero, search bar, and features (Desktop, Dark)",
   },
   {
     name: "home-mobile-light",
@@ -1295,7 +1296,7 @@ SCENARIOS.push(
 // Use a success-only landmark or fixture value, including on routes whose
 // loading and error views repeat the page title.
 const AUDIT_ROUTES = [
-  ["/", "Campsite availability alerts"],
+  ["/", "Find Campsites at Sold-Out Campgrounds"],
   ["/search?q=yosemite", "Upper Pines Campground", "text"],
   ["/providers", "Supported Providers"],
   ["/faq", "Frequently Asked Questions"],

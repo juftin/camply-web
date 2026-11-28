@@ -12,6 +12,8 @@ from typing import Any
 
 import pytest
 
+TIMESTAMP_PREFIX_RE = re.compile(r"^\d{8}-\d{6}$")
+
 
 @pytest.fixture
 def specify_project(tmp_path: Path) -> Path:
@@ -20,9 +22,7 @@ def specify_project(tmp_path: Path) -> Path:
     destination = tmp_path / ".specify"
     for directory in ("scripts", "templates"):
         shutil.copytree(source / directory, destination / directory)
-    (destination / "init-options.json").write_text(
-        json.dumps({"feature_numbering": "sequential"})
-    )
+    shutil.copy2(source / "init-options.json", destination / "init-options.json")
     for name in ("007-first", "007-second", "013-existing"):
         feature = tmp_path / "docs" / "specs" / name
         feature.mkdir(parents=True)
@@ -54,6 +54,27 @@ def run_specify(
     )
     assert result.returncode == 0, result.stdout + result.stderr
     return json.loads(result.stdout)
+
+
+def test_create_feature_uses_timestamp_prefix(specify_project: Path) -> None:
+    """Timestamp creation writes under docs/specs without touching existing dirs."""
+    result = run_specify(
+        specify_project,
+        "create-new-feature.sh",
+        "--timestamp",
+        "--short-name",
+        "synthetic-feature",
+        "Create a synthetic feature",
+    )
+    feature_num = result["FEATURE_NUM"]
+    assert TIMESTAMP_PREFIX_RE.match(feature_num), feature_num
+    expected_dir = f"docs/specs/{feature_num}-synthetic-feature"
+    expected = specify_project / expected_dir / "spec.md"
+    assert result["SPEC_FILE"] == str(expected)
+    assert expected.is_file()
+    assert not (specify_project / "specs").exists()
+    state = json.loads((specify_project / ".specify/feature.json").read_text())
+    assert state["feature_directory"] == expected_dir
 
 
 def test_create_feature_uses_documentation_root(specify_project: Path) -> None:
@@ -158,6 +179,19 @@ def test_old_saved_pointer_resolves_relocated_feature(
     assert result["FEATURE_DIR"] == str(feature)
     expected = original if paths_only else "docs/specs/013-existing"
     assert json.loads(state.read_text())["feature_directory"] == expected
+
+
+def test_all_existing_specs_use_timestamp_prefixes() -> None:
+    """Repository configuration and spec directories follow timestamp naming."""
+    root = Path(__file__).resolve().parents[1]
+    init_options = json.loads((root / ".specify/init-options.json").read_text())
+    assert init_options["feature_numbering"] == "timestamp"
+    spec_dirs = sorted(
+        path.name for path in (root / "docs/specs").iterdir() if path.is_dir()
+    )
+    assert spec_dirs
+    for name in spec_dirs:
+        assert re.match(r"^\d{8}-\d{6}-.+", name), f"Non-timestamp spec dir: {name}"
 
 
 def test_local_documentation_links_resolve() -> None:

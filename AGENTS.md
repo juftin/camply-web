@@ -5,6 +5,7 @@
 **`camply`**, the campsite finder ⛺️, is a tool to help you book a campsite online. This repository (`github.com/juftin/camply-web`) is where **camply v2** is being developed—evolving camply from its original CLI tool into a full-stack web application alongside a redesigned CLI.
 
 - **Moving back to `juftin/camply`**: Once v2 is ready for a stable release, this codebase will move back to `github.com/juftin/camply`, and renaming `camply-web` to `camply` everywhere will be the final step. Until then, keep `camply-web` in package names, install commands, and repository links.
+- **Open PRs directly in `juftin/camply-web` when you are a collaborator**: If your GitHub account has collaborator access (including `jufty-bot`), create the branch and PR in the canonical `juftin/camply-web` repository instead of a fork. Direct PRs enable Cloudflare live previews and the repository's CI integrations to work fully.
 - **Design for v2, not v1**: Because v2 is a major release, favor a cleaner design over backwards compatibility. Do not preserve legacy v1 behavior, flags, or unmaintained features out of habit—simplify, reshape, or drop them when it makes camply better.
 
 ## 📚 Key Documentation & Pointers
@@ -48,7 +49,7 @@ This project uses **Spec-Kit** for formal feature definition and task tracking.
 - `src/frontend/`: React TypeScript application, colocated tests, public assets, Pages `functions/`, and Node `tooling/`; manifests/configuration live at root.
 - `src/camply/cli/`: The `camply` command-line entrypoint (base dependencies only; provides `--version`/`--help`, `serve`, and `db` subcommands `info`, `migrate`, `delete`, and `metadata`).
 - `docs/{development,architecture,operations,self-hosting,technical}/`: Current guides and design blueprints.
-- `docs/specs/`: Feature specifications, plans, and task tracking. Spec-Kit creation defaults and numbering use this directory; `.specify/` stays at root. Feature overrides identify the complete feature directory, and saved pointers remain checkout-local.
+- `docs/specs/`: Feature specifications, plans, and task tracking (`YYYYMMDD-HHMMSS-<feature-name>`). Spec-Kit creation defaults to timestamp prefixes in this directory; `.specify/` stays at root. Feature overrides identify the complete feature directory, and saved pointers remain checkout-local.
 - `tests/`: Python suites, installed-artifact/release regressions, and frontend visual baselines.
 - `tasks/`: Python/frontend task definitions included by root `Taskfile.yaml`; preserve task namespaces and root working directories.
 - `deploy/`: Infrastructure configuration (GHCR-based Compose flavors in `deploy/compose/`, Helm chart in `deploy/helm/`, Prometheus config, and Bake overlay). Root `Dockerfile` and `docker-compose.yaml` build and run the local development stack.
