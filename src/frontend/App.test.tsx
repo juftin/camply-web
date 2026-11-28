@@ -239,29 +239,18 @@ describe("Homepage walkthrough", () => {
     );
   });
 
-  it("links to the homepage walkthrough from desktop and mobile navigation", async () => {
+  it("omits How It Works from desktop and mobile navigation", async () => {
     renderApp(localConfig, "/contact");
-    const links = await screen.findAllByRole("link", { name: "How It Works" });
-    expect(links).toHaveLength(1);
-    expect(links[0]).toHaveAttribute("href", appPath("/#how-it-works"));
+    await screen.findByRole("link", { name: "Explore" });
+    expect(
+      screen.queryByRole("link", { name: "How It Works" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Toggle mobile menu" }));
     const drawer = await screen.findByRole("dialog", { name: "Navigation" });
-    const mobileLink = within(drawer).getByRole("link", {
-      name: "How It Works",
-    });
-    expect(mobileLink).toHaveAttribute("href", appPath("/#how-it-works"));
-    fireEvent.click(mobileLink);
     expect(
-      await screen.findByRole("heading", { name: "How It Works" }),
-    ).toBeVisible();
-    expect(window.location.hash).toBe("#how-it-works");
-    expect(
-      screen.queryByRole("navigation", { name: "Mobile navigation" }),
+      within(drawer).queryByRole("link", { name: "How It Works" }),
     ).not.toBeInTheDocument();
-    await waitFor(() =>
-      expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalled(),
-    );
   });
 });
 

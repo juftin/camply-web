@@ -25,8 +25,6 @@ export function Header({ showLogo = true }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const isAuthenticated = user !== null;
-  const isHowItWorks =
-    location.pathname === "/" && location.hash === "#how-it-works";
 
   const handleAuthNavigation = (mode?: "signup") => {
     if (location.pathname === "/auth") {
@@ -104,14 +102,6 @@ export function Header({ showLogo = true }: HeaderProps) {
               }`}
             >
               Providers
-            </Link>
-            <Link
-              to="/#how-it-works"
-              className={`text-muted-foreground hover:text-foreground ${
-                isHowItWorks ? "text-foreground" : ""
-              }`}
-            >
-              How It Works
             </Link>
             {communityPagesEnabled && (
               <>
@@ -217,15 +207,6 @@ export function Header({ showLogo = true }: HeaderProps) {
             onClick={() => setIsMobileMenuOpen(false)}
           >
             Providers
-          </Link>
-          <Link
-            to="/#how-it-works"
-            className={`flex min-h-11 items-center rounded-md px-2 text-muted-foreground hover:text-foreground ${
-              isHowItWorks ? "text-foreground" : ""
-            }`}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            How It Works
           </Link>
           {communityPagesEnabled && (
             <>
