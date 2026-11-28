@@ -70,7 +70,7 @@ volumes:
 
 services:
   db:
-    image: postgres:17
+    image: postgres:17@sha256:97fb53376be3e4fb1a8a61421daa69dcc3bf2fa39bda3259f5245f9a455af1a9
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-camply}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-camply}
@@ -91,7 +91,7 @@ services:
     logging: *default-logging
 
   valkey:
-    image: valkey/valkey:9-alpine
+    image: valkey/valkey:9-alpine@sha256:3ad5a213cb1bc2fd4a113c89b6248a88655a6bf1dda69519d04e03cd3e3d2742
     command: valkey-server --save 60 1 --loglevel warning
     volumes:
       - valkey_data:/data
@@ -238,7 +238,7 @@ services:
       start_period: 40s
 
   prometheus:
-    image: prom/prometheus:v3.15.1
+    image: prom/prometheus:v3.15.1@sha256:fa3302279710be2f21a8301ec17a8b4f2301fd829bd113839b3b6b02b6f191a2
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
